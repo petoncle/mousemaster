@@ -22,11 +22,15 @@ public class InkDetector {
     /** Rows of the window the median is taken over, a stroke apart: any further and a
      *  stroke could fall between two of them and leave the background it sits on. */
     private static final int backgroundStep = strokeWidth;
+    /** Rows sharing one background, a stroke apart for the same reason. */
+    private static final int backgroundRows = strokeWidth;
 
     public static boolean[] ink(byte[] rgb, int width, int height) {
         boolean[] ink = new boolean[width * height];
         byte[] backgrounds = new byte[rgb.length];
-        IntStream.range(0, height).parallel().forEach(y -> {
+        IntStream.range(0, (height + backgroundRows - 1) / backgroundRows)
+                 .parallel().forEach(band -> {
+            int y = band * backgroundRows;
             int top = Math.max(0, y - backgroundRadius);
             int bottom = Math.min(height - 1, y + backgroundRadius);
             Background[] backgroundByChannel =
@@ -38,10 +42,14 @@ public class InkDetector {
                 int pixel = y * width + x;
                 for (int channel = 0; channel < 3; channel++) {
                     int median = backgroundByChannel[channel].median();
-                    backgrounds[pixel * 3 + channel] = (byte) median;
-                    if (Math.abs((rgb[pixel * 3 + channel] & 0xff) - value(median)) >
-                        inkThreshold)
-                        ink[pixel] = true;
+                    for (int row = y; row < Math.min(height, y + backgroundRows);
+                         row++) {
+                        int shared = row * width + x;
+                        backgrounds[shared * 3 + channel] = (byte) median;
+                        if (Math.abs((rgb[shared * 3 + channel] & 0xff) - value(median)) >
+                            inkThreshold)
+                            ink[shared] = true;
+                    }
                 }
                 int leaving = x - backgroundRadius;
                 int entering = x + backgroundRadius + 1;
@@ -120,42 +128,7 @@ public class InkDetector {
     }
 
     public static boolean[] dilated(boolean[] ink, int width, int height) {
-        return dilateVertically(dilateHorizontally(ink, width, height), width, height);
-    }
-
-    private static boolean[] dilateHorizontally(boolean[] ink, int width, int height) {
-        boolean[] dilated = new boolean[ink.length];
-        IntStream.range(0, height).parallel().forEach(y -> {
-            int row = y * width;
-            for (int x = 0; x < width; x++) {
-                int from = Math.max(0, x - horizontalDilation);
-                int to = Math.min(width - 1, x + horizontalDilation);
-                for (int dilatedX = from; dilatedX <= to; dilatedX++) {
-                    if (ink[row + dilatedX]) {
-                        dilated[row + x] = true;
-                        break;
-                    }
-                }
-            }
-        });
-        return dilated;
-    }
-
-    private static boolean[] dilateVertically(boolean[] ink, int width, int height) {
-        boolean[] dilated = new boolean[ink.length];
-        IntStream.range(0, height).parallel().forEach(y -> {
-            int from = Math.max(0, y - verticalDilation);
-            int to = Math.min(height - 1, y + verticalDilation);
-            for (int x = 0; x < width; x++) {
-                for (int dilatedY = from; dilatedY <= to; dilatedY++) {
-                    if (ink[dilatedY * width + x]) {
-                        dilated[y * width + x] = true;
-                        break;
-                    }
-                }
-            }
-        });
-        return dilated;
+        return Dilation.dilated(ink, width, height, horizontalDilation, verticalDilation);
     }
 
     public static boolean[] downsampledInk(boolean[] ink, int width, int height,

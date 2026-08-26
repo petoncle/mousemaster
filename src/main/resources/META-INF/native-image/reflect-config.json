@@ -824,12 +824,12 @@
 {
   "name":"mousemaster.HintMeshType$UiAccessibilityHintMesh",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["mousemaster.UiHintArea"] }, {"name":"area","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.UiHintArea","double"] }, {"name":"area","parameterTypes":[] }, {"name":"density","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.HintMeshType$UiVisionHintMesh",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["mousemaster.UiHintArea"] }, {"name":"area","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.UiHintArea","int"] }, {"name":"area","parameterTypes":[] }, {"name":"density","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.IndicatorConfiguration",

@@ -34,6 +34,18 @@ public class Vision {
     private static final double maximumElementAreaRatio = 0.25;
     /** No hint on the very edge of the screen, where a click can miss. */
     private static final int screenEdgeInset = 2;
+
+    private static final int minimumBoundedSide = 2;
+    private static final int minimumBoundedAreaFactor = 30;
+    private static final int[] cornerOutsets = {0, 2, 5, 10};
+    private static final int maximumCornerColors = 3;
+    private static final int widestEdgeMargin = 3;
+    private static final int tallestEdgeMargin = 2;
+    private static final int shallowestCut = 2;
+    private static final int deepestCut = 4;
+    /** One for each margin pair and each depth the ink is cut to. */
+    static final int densities =
+            widestEdgeMargin * tallestEdgeMargin + deepestCut - shallowestCut + 1;
     private static final String dumpPath = System.getProperty("vision.dump");
 
     private final Overlay overlay;
@@ -49,7 +61,7 @@ public class Vision {
     }
 
     public Future<List<UiElement>> startFindElements(Set<Screen> screens,
-                                                     Rectangle area) {
+                                                     Rectangle area, int density) {
         List<Supplier<List<UiElement>>> detections = new ArrayList<>();
         for (Screen screen : screens) {
             Rectangle part = area.intersection(screen.rectangle());
@@ -66,7 +78,7 @@ public class Vision {
                 logger.warn("Desktop capture failed, no vision hints on that screen", e);
                 continue;
             }
-            detections.add(() -> findElements(capture, screen.scale()));
+            detections.add(() -> findElements(capture, screen.scale(), density));
         }
         if (detections.isEmpty())
             return CompletableFuture.completedFuture(List.of());
@@ -84,35 +96,26 @@ public class Vision {
         });
     }
 
-    public void preWarm(Screen screen) {
-        startFindElements(Set.of(screen), screen.rectangle());
+    public void preWarm(Screen screen, int density) {
+        startFindElements(Set.of(screen), screen.rectangle(), density);
     }
 
-    List<UiElement> findElements(DesktopCapture capture, double scale) {
+    List<UiElement> findElements(DesktopCapture capture, double scale, int density) {
         int width = capture.scaledWidth();
         int height = capture.scaledHeight();
-        int downsampledWidth = (width + downsampleFactor - 1) / downsampleFactor;
-        int downsampledHeight = (height + downsampleFactor - 1) / downsampleFactor;
-        boolean[] ink = InkDetector.ink(capture.scaledRgb(), width, height);
-        boolean[] mask = InkDetector.downsampledInk(
-                InkDetector.dilated(ink, width, height), width, height,
-                downsampleFactor,
-                downsampledWidth, downsampledHeight);
-        SummedAreaTable inkTable = new SummedAreaTable(ink, width, height);
-        double maximumElementArea = maximumElementAreaRatio * width * height;
-        List<Rectangle> boxes = ConnectedComponentFinder.boundingBoxes(mask,
-                downsampledWidth, downsampledHeight,
-                        minimumElementPixels / (downsampleFactor * downsampleFactor))
-                .parallelStream()
-                .flatMap(box -> {
-                    List<Rectangle> parts = new ArrayList<>();
-                    XyCut.cut(ink, inkTable, width,
-                            detectionBox(box, width, height), maximumElementArea, parts);
-                    return parts.stream();
-                })
-                .collect(Collectors.toCollection(ArrayList::new));
+        // The edge margins narrow one pair at a time, then the ink is cut ever deeper.
+        int edgeSteps = widestEdgeMargin * tallestEdgeMargin;
+        int step = density - 1;
+        List<Rectangle> boxes = step < edgeSteps
+                ? boundedRegions(capture.scaledRgb(), width, height, scale,
+                        widestEdgeMargin - step / tallestEdgeMargin,
+                        tallestEdgeMargin - step % tallestEdgeMargin)
+                : inkBoxes(capture.scaledRgb(), width, height,
+                        shallowestCut + step - edgeSteps);
         if (dumpPath != null)
-            dump(capture.scaledRgb(), ink, boxes, width, height);
+            dump(capture.scaledRgb(),
+                    InkDetector.ink(capture.scaledRgb(), width, height), boxes, width,
+                    height);
         // Greedy suppression keeps whichever element comes first, so order by area.
         boxes.sort(Comparator.comparingLong(box -> -(long) box.width() * box.height()));
         Rectangle bounds = capture.bounds();
@@ -133,6 +136,94 @@ public class Vision {
                 elements.add(new UiElement(centerX, centerY));
         }
         return elements;
+    }
+
+    /** What the ink splits into once cut apart: one hint each. */
+    private static List<Rectangle> inkBoxes(byte[] rgb, int width, int height,
+                                           int maximumCutDepth) {
+        int downsampledWidth = (width + downsampleFactor - 1) / downsampleFactor;
+        int downsampledHeight = (height + downsampleFactor - 1) / downsampleFactor;
+        boolean[] ink = InkDetector.ink(rgb, width, height);
+        boolean[] mask = InkDetector.downsampledInk(
+                InkDetector.dilated(ink, width, height), width, height, downsampleFactor,
+                downsampledWidth, downsampledHeight);
+        SummedAreaTable inkTable = new SummedAreaTable(ink, width, height);
+        double maximumElementArea = maximumElementAreaRatio * width * height;
+        return ConnectedComponentFinder.boundingBoxes(mask, downsampledWidth,
+                        downsampledHeight,
+                        minimumElementPixels / (downsampleFactor * downsampleFactor))
+                .parallelStream()
+                .flatMap(box -> {
+                    List<Rectangle> parts = new ArrayList<>();
+                    XyCut.cut(ink, inkTable, width,
+                            detectionBox(box, width, height), maximumElementArea,
+                            maximumCutDepth, parts);
+                    return parts.stream();
+                })
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    /** What an edge draws a boundary around: one hint for what the ink inside splits up. */
+    private static List<Rectangle> boundedRegions(byte[] rgb, int width, int height,
+                                                  double scale, int edgeDilation,
+                                                  int verticalDilation) {
+        boolean[] edges = EdgeDetector.edges(rgb, width, height, edgeDilation,
+                verticalDilation);
+        List<Rectangle> bounded = new ArrayList<>();
+        // No floor: the dilation already makes every component wider than one.
+        for (Rectangle region : ConnectedComponentFinder.boundingBoxes(edges, width,
+                height, 1)) {
+            // Back to source pixels, less the margins the dilation added.
+            Rectangle inside = new Rectangle(region.x() + edgeDilation,
+                    region.y() + verticalDilation,
+                    region.width() - 2 * edgeDilation,
+                    region.height() - 2 * verticalDilation);
+            if (isTargetShaped((int) (inside.width() * scale),
+                    (int) (inside.height() * scale))
+                && cornersShareABackground(rgb, width, height, inside))
+                bounded.add(inside);
+        }
+        return bounded;
+    }
+
+    private static boolean isTargetShaped(int width, int height) {
+        return width >= minimumBoundedSide && height >= minimumBoundedSide
+               && (long) width * height
+                  >= (long) minimumBoundedSide * minimumBoundedAreaFactor;
+    }
+
+    /** A box straddling unrelated content has corners of its own at every outset. */
+    private static boolean cornersShareABackground(byte[] rgb, int width, int height,
+                                                   Rectangle box) {
+        for (int outset : cornerOutsets) {
+            int x0 = box.x() - outset;
+            int x1 = box.x() + box.width() + outset;
+            int y0 = box.y();
+            int y1 = box.y() + box.height();
+            if (x0 < 0 || y0 < 0 || x1 >= width || y1 >= height)
+                continue;
+            int topLeft = color(rgb, width, x0, y0);
+            int topRight = color(rgb, width, x1, y0);
+            int bottomLeft = color(rgb, width, x0, y1);
+            int bottomRight = color(rgb, width, x1, y1);
+            int colors = 1;
+            if (topRight != topLeft)
+                colors++;
+            if (bottomLeft != topLeft && bottomLeft != topRight)
+                colors++;
+            if (bottomRight != topLeft && bottomRight != topRight
+                && bottomRight != bottomLeft)
+                colors++;
+            if (colors <= maximumCornerColors)
+                return true;
+        }
+        return false;
+    }
+
+    private static int color(byte[] rgb, int width, int x, int y) {
+        int channel = (y * width + x) * 3;
+        return (rgb[channel] & 0xff) << 16 | (rgb[channel + 1] & 0xff) << 8 |
+               rgb[channel + 2] & 0xff;
     }
 
     /** A grid box in the detected frame's pixels, clamped to it. */

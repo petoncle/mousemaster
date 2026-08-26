@@ -16,29 +16,30 @@ public class XyCut {
     private static final int minimumGapColumns = 3;
     /** Below this an element is an ink sliver rather than a target. */
     private static final int minimumElementColumns = 2;
-    private static final int maximumCutDepth = 6;
     /** A drawn border is a pixel or two wide at this resolution. */
     private static final int borderInset = 2;
 
-    static void cut(boolean[] ink, SummedAreaTable inkTable, int width,
-                    Rectangle box, double maximumElementArea, List<Rectangle> out) {
-        cut(ink, inkTable, width, box, maximumElementArea, 0, out);
+    static void cut(boolean[] ink, SummedAreaTable inkTable, int width, Rectangle box,
+                    double maximumElementArea, int maximumCutDepth, List<Rectangle> out) {
+        cut(ink, inkTable, width, box, maximumElementArea, maximumCutDepth, 0, out);
     }
 
     private static void cut(boolean[] ink, SummedAreaTable inkTable, int width,
-                            Rectangle box, double maximumElementArea, int depth,
-                            List<Rectangle> out) {
+                            Rectangle box, double maximumElementArea,
+                            int maximumCutDepth, int depth, List<Rectangle> out) {
         List<Rectangle> rows = cutAtProfileValleys(inkTable, box, false);
         if (rows.size() > 1 && depth < maximumCutDepth) {
             for (Rectangle row : rows)
-                cut(ink, inkTable, width, row, maximumElementArea, depth + 1, out);
+                cut(ink, inkTable, width, row, maximumElementArea, maximumCutDepth,
+                        depth + 1, out);
             return;
         }
         Rectangle tightened = rows.size() == 1 ? rows.getFirst() : box;
         List<Rectangle> columns = cutAtProfileValleys(inkTable, tightened, true);
         if (columns.size() > 1 && depth < maximumCutDepth) {
             for (Rectangle column : columns)
-                cut(ink, inkTable, width, column, maximumElementArea, depth + 1, out);
+                cut(ink, inkTable, width, column, maximumElementArea, maximumCutDepth,
+                        depth + 1, out);
             return;
         }
         Rectangle element = columns.size() == 1 ? columns.getFirst() : tightened;
@@ -52,7 +53,7 @@ public class XyCut {
                     new SummedAreaTable(enclosed, element.width(), element.height()),
                     element.width(),
                     new Rectangle(0, 0, element.width(), element.height()),
-                    maximumElementArea, depth + 1, inside);
+                    maximumElementArea, maximumCutDepth, depth + 1, inside);
             if (!inside.isEmpty()) {
                 for (Rectangle part : inside)
                     out.add(new Rectangle(part.x() + element.x(), part.y() + element.y(),

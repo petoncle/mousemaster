@@ -284,16 +284,20 @@ public class Mousemaster {
         if (preWarmHints)
             hintManager.preWarmHintMeshes(configuration.modeMap());
         // Last, so the detector does not compete with the mesh pre-warm for cores.
-        if (hasUiVisionHintMesh(configuration.modeMap()))
-            platform.vision().preWarm(screenManager.activeScreen());
+        Integer density = uiVisionDensity(configuration.modeMap());
+        if (density != null)
+            platform.vision().preWarm(screenManager.activeScreen(), density);
     }
 
-    private static boolean hasUiVisionHintMesh(ModeMap modeMap) {
+    private static Integer uiVisionDensity(ModeMap modeMap) {
         return modeMap.modes()
                       .stream()
                       .filter(mode -> mode.hintMesh().enabled())
                       .map(mode -> mode.hintMesh().type())
-                      .anyMatch(HintMeshType.UiVisionHintMesh.class::isInstance);
+                      .filter(HintMeshType.UiVisionHintMesh.class::isInstance)
+                      .map(type -> ((HintMeshType.UiVisionHintMesh) type).density())
+                      .findFirst()
+                      .orElse(null);
     }
 
 }

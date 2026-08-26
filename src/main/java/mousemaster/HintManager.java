@@ -561,7 +561,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private Future<List<UiElement>> startUiElementQuery(HintMeshType type) {
         if (type instanceof HintMeshType.UiVisionHintMesh uiVisionHintMesh)
             return vision.startFindElements(screenManager.screens(),
-                    uiHintArea(uiVisionHintMesh.area()));
+                    uiHintArea(uiVisionHintMesh.area()), uiVisionHintMesh.density());
         UiHintArea uiArea = ((HintMeshType.UiAccessibilityHintMesh) type).area();
         return uiArea == UiHintArea.ACTIVE_WINDOW ?
                 uiAutomation.startFindActiveWindowUiElements() :

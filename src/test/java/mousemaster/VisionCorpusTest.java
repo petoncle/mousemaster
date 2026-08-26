@@ -18,6 +18,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class VisionCorpusTest {
 
+    private static final int density = 4;
+
     private static final double scale = 3;
     private static final String[] screens =
             {"excalidraw", "github", "hn", "vscode", "wikipedia"};
@@ -67,7 +69,7 @@ public class VisionCorpusTest {
             }
         return new Vision(null).findElements(new DesktopCapture(
                 new Rectangle(0, 0, source.getWidth(), source.getHeight()), rgb, width,
-                height), scale);
+                height), scale, density);
     }
 
     @Test

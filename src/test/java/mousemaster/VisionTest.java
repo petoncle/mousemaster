@@ -16,6 +16,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class VisionTest {
 
+    private static final int density = 9;
+
     private static final int width = 400, height = 300;
 
     private static BufferedImage screen(Color background) {
@@ -48,7 +50,7 @@ public class VisionTest {
             }
         return new Vision(null).findElements(
                 new DesktopCapture(new Rectangle(0, 0, width, height), rgb, width,
-                        height), 1);
+                        height), 1, density);
     }
 
     private static long within(List<UiElement> elements, int x, int y, int right,

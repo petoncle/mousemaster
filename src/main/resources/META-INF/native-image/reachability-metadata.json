@@ -6958,11 +6958,16 @@
         {
           "name": "<init>",
           "parameterTypes": [
-            "mousemaster.UiHintArea"
+            "mousemaster.UiHintArea",
+            "int"
           ]
         },
         {
           "name": "area",
+          "parameterTypes": []
+        },
+        {
+          "name": "density",
           "parameterTypes": []
         }
       ]

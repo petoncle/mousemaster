@@ -189,6 +189,7 @@ public class ConfigurationParser {
                            .widthPercent(1.0)
                            .heightPercent(1.0);
         hintMeshTypeBuilder.uiArea(UiHintArea.ACTIVE_SCREEN);
+        hintMeshTypeBuilder.visionDensity(4);
         ModeTimeoutBuilder timeout =
                 new ModeTimeoutBuilder().enabled(false).onlyIfIdle(true);
         IndicatorConfigurationBuilder indicator =
@@ -2040,6 +2041,8 @@ public class ConfigurationParser {
             new ModePropertyPath(List.of("hintMesh", "type", "area", "size", "source"));
     private static final ModePropertyPath HINT_UI_AREA_PATH =
             new ModePropertyPath(List.of("hintMesh", "type", "area"));
+    private static final ModePropertyPath HINT_VISION_DENSITY_PATH =
+            new ModePropertyPath(List.of("hintMesh", "type", "density"));
 
     private static void checkMissingProperties(ModeBuilder mode) {
         if (mode.timeout.builder.enabled() != null && mode.timeout.builder.enabled() &&
@@ -2078,6 +2081,11 @@ public class ConfigurationParser {
                         "Invalid definition of hint for " + mode.modeName +
                         ": hint.ui-area only applies to hint.type=ui-accessibility or " +
                         "hint.type=ui-vision");
+            if (hintMeshType.type() != HintMeshType.HintMeshTypeType.UI_VISION
+                && mode.hintMesh.setPropertyPaths.contains(HINT_VISION_DENSITY_PATH))
+                throw new IllegalArgumentException(
+                        "Invalid definition of hint for " + mode.modeName +
+                        ": hint.vision-density only applies to hint.type=ui-vision");
             switch (hintMeshType.type()) {
                 case GRID -> {
                     HintGridLayoutBuilder defaultLayout =
@@ -2577,6 +2585,7 @@ public class ConfigurationParser {
             // The area elements are looked for in. Only the ui types read it and it is
             // rejected on the others.
             case "ui-area" -> ModePropertyHandler.of(prefix.append("type", "area"), v -> parseUiHintArea("hint.ui-area", v), v -> hintMeshBuilder.type().uiArea(v));
+            case "vision-density" -> ModePropertyHandler.of(prefix.append("type", "density"), v -> parseUnsignedInteger(v, 1, Vision.densities), v -> hintMeshBuilder.type().visionDensity(v));
             // Grid area = size + center. Mutations set the record component directly
             // (the mutator keeps the sibling component), so no Function is needed.
             case "grid-area" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "source"), v -> parseHintGridAreaSizeSource("hint.grid-area", v), v -> hintMeshBuilder.type().gridArea().source(v));
@@ -3506,6 +3515,8 @@ public class ConfigurationParser {
                     builder.type().gridArea().center(parent.type().gridArea().center());
                 if (builder.type().uiArea() == null)
                     builder.type().uiArea(parent.type().uiArea());
+                if (builder.type().visionDensity() == null)
+                    builder.type().visionDensity(parent.type().visionDensity());
                 if (builder.type().positionHistoryName() == null)
                     builder.type().positionHistoryName(parent.type().positionHistoryName());
                 for (var parentEntry : parent.type()
