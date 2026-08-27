@@ -2188,7 +2188,7 @@ public final class HintMeshRenderer {
                 QFontMetrics metrics = labelStyle.metrics();
                 int advance = metrics.horizontalAdvance(label);
                 this.decorationLabelX = (width - advance) / 2;
-                QtHintFont.Ink ink = QtHintFont.ink(metrics, labelStyle.font(), label);
+                QtHintFont.Ink ink = QtHintFont.ink(metrics, label);
                 this.decorationLabelY =
                         baselineY(verticalAlignment, height, metrics, ink.top(), ink.height(),
                                 qtScaleFactor);
@@ -2848,7 +2848,7 @@ public final class HintMeshRenderer {
             double inkBottom = -Double.MAX_VALUE;
             for (int keyIndex = 0; keyIndex < keySequence.size(); keyIndex++) {
                 QtFontStyle keyStyle = keyStyle(keyIndex, prefixLength, selectedKeyEndIndex);
-                QtHintFont.Ink ink = QtHintFont.ink(keyStyle.metrics(), keyStyle.font(),
+                QtHintFont.Ink ink = QtHintFont.ink(keyStyle.metrics(),
                         keySequence.get(keyIndex).hintLabel());
                 inkTop = Math.min(inkTop, ink.top());
                 inkBottom = Math.max(inkBottom, ink.bottom());
@@ -2910,9 +2910,7 @@ public final class HintMeshRenderer {
                 double textY = baselineY(verticalAlignment, boxHeight, keyMetrics, inkTop,
                         inkBottom - inkTop, qtScaleFactor);
                 if (!isHintPartOfTiledGrid) {
-                    QtHintFont.Ink keyInk = QtHintFont.ink(keyMetrics,
-                            keyStyle(keyIndex, prefixLength, selectedKeyEndIndex).font(),
-                            keyText);
+                    QtHintFont.Ink keyInk = QtHintFont.ink(keyMetrics, keyText);
                     tightLeft = Math.min(tightLeft, textX + keyInk.left());
                     tightRight = Math.max(tightRight, textX + keyInk.right());
                 }
@@ -2973,7 +2971,7 @@ public final class HintMeshRenderer {
             for (HintKeyText keyText : keyTexts) {
                 QtFontStyle keyStyle = hintKeyTextQtFontStyle(keyText);
                 QtHintFont.Ink ink =
-                        QtHintFont.ink(keyStyle.metrics(), keyStyle.font(), keyText.text());
+                        QtHintFont.ink(keyStyle.metrics(), keyText.text());
                 int outlineThickness = keyStyle.outlineThickness();
                 inkLeft = Math.min(inkLeft, keyText.x() + ink.left() - outlineThickness);
                 inkTop = Math.min(inkTop, keyText.y() + ink.top() - outlineThickness);

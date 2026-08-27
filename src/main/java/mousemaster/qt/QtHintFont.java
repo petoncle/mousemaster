@@ -44,6 +44,9 @@ public final class QtHintFont {
     }
 
     private static final Map<FontKey, QFontMetrics> metricsByFont = new HashMap<>();
+    /** Qt resolves a point size against the primary screen, so measuring through the paint font
+     *  would be off by the dpi ratio on any other screen. */
+    private static final Map<QFontMetrics, QFont> fontByMetrics = new IdentityHashMap<>();
     private static final Map<QFontMetrics, Map<String, Rectangle>>
             tightBoundsByTextByMetrics = new IdentityHashMap<>();
     private static final Map<QFontMetrics, Map<String, Ink>> inkByTextByMetrics =
@@ -67,11 +70,11 @@ public final class QtHintFont {
      * overshoots the cap line and the baseline by a fraction of a pixel, which
      * {@link #tightBounds} rounds away and a scaled screen then makes visible.
      */
-    public static Ink ink(QFontMetrics metrics, QFont font, String text) {
+    public static Ink ink(QFontMetrics metrics, String text) {
         return inkByTextByMetrics.computeIfAbsent(metrics, m -> new HashMap<>())
                                  .computeIfAbsent(text, t -> {
                                      QPainterPath glyphs = new QPainterPath();
-                                     glyphs.addText(0, 0, font, t);
+                                     glyphs.addText(0, 0, fontByMetrics.get(metrics), t);
                                      QRectF bounds = glyphs.boundingRect();
                                      Ink ink = new Ink(bounds.x(), bounds.y(),
                                              bounds.x() + bounds.width(),
@@ -108,13 +111,13 @@ public final class QtHintFont {
     /** Adds the text's glyph outline to {@code path}, baseline origin at (x, y). Outlines are kept
      *  at the origin and copied into place: ~90us to build one under the GDI font engine. Keyed by
      *  the metrics, which are cached per font, unlike the QFont, which callers may resize. */
-    static void addTextPath(QPainterPath path, QFontMetrics metrics, QFont font, String text,
+    static void addTextPath(QPainterPath path, QFontMetrics metrics, String text,
                             double x, double y) {
         QPainterPath glyphs =
                 textPathsByMetrics.computeIfAbsent(metrics, m -> new HashMap<>())
                                   .computeIfAbsent(text, t -> {
                                       QPainterPath origin = new QPainterPath();
-                                      origin.addText(0, 0, font, t);
+                                      origin.addText(0, 0, fontByMetrics.get(metrics), t);
                                       return origin;
                                   });
         glyphs.translate(x, y);
@@ -299,7 +302,9 @@ public final class QtHintFont {
                     double targetDpi = screenScale * 96.0;
                     if (!gdiFontEngine || Math.abs(primaryScreenDpi - targetDpi) < 1) {
                         // QFontMetrics already matches how the text will be rendered.
-                        return new QFontMetrics(renderFont);
+                        QFontMetrics metrics = new QFontMetrics(renderFont);
+                        fontByMetrics.put(metrics, renderFont);
+                        return metrics;
                     }
                     // Create a metrics-only font with the pixel size that GDI will use.
                     int correctedPixelSize =
@@ -310,7 +315,7 @@ public final class QtHintFont {
                     antialiasing(metricsFont);
                     metricsFont.setHintingPreference(QFont.HintingPreference.PreferFullHinting);
                     QFontMetrics metrics = new QFontMetrics(metricsFont);
-                    metricsFont.dispose();
+                    fontByMetrics.put(metrics, metricsFont);
                     return metrics;
                 });
     }
