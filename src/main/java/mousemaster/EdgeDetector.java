@@ -10,8 +10,9 @@ import java.util.stream.IntStream;
 class EdgeDetector {
 
     private static final float contrast = 2;
-    private static final float contrastMidpoint = 0.5f;
-    private static final int[] stretched = stretched();
+    /** Light edges on a white pane clamp away about the first of these. */
+    static final float[] contrastMidpoints = {0.5f, 0.75f};
+    private static final int[][] stretched = stretched();
     /** Axis aligned within half of a 45 degree bin. */
     private static final float axisAlignedGradientRatio =
             (float) (1 / Math.tan(Math.toRadians(45 / 2.0)));
@@ -25,8 +26,8 @@ class EdgeDetector {
     private static final int edgeThreshold = 765;
 
     static boolean[] edges(byte[] rgb, int width, int height, int dilation,
-                           int verticalDilation) {
-        short[] luminance = luminance(rgb, width, height);
+                           int verticalDilation, int midpoint) {
+        short[] luminance = luminance(rgb, width, height, stretched[midpoint]);
         short[] magnitude = new short[width * height];
         byte[] direction = new byte[width * height];
         sobel(luminance, width, height, magnitude, direction);
@@ -36,7 +37,8 @@ class EdgeDetector {
     }
 
     /** The unweighted channel sum, in 0..765: brightness, not a perceptual luma. */
-    private static short[] luminance(byte[] rgb, int width, int height) {
+    private static short[] luminance(byte[] rgb, int width, int height,
+                                     int[] stretched) {
         short[] luminance = new short[width * height];
         IntStream.range(0, height).parallel().forEach(y -> {
             for (int x = 0; x < width; x++) {
@@ -50,11 +52,13 @@ class EdgeDetector {
         return luminance;
     }
 
-    private static int[] stretched() {
-        int[] levels = new int[256];
-        for (int level = 0; level < levels.length; level++)
-            levels[level] = Math.round(255 * Math.clamp(
-                    (level / 255f - contrastMidpoint) * contrast + contrastMidpoint, 0, 1));
+    private static int[][] stretched() {
+        int[][] levels = new int[contrastMidpoints.length][256];
+        for (int midpoint = 0; midpoint < levels.length; midpoint++)
+            for (int level = 0; level < levels[midpoint].length; level++)
+                levels[midpoint][level] = Math.round(255 * Math.clamp(
+                        (level / 255f - contrastMidpoints[midpoint]) * contrast
+                        + contrastMidpoints[midpoint], 0, 1));
         return levels;
     }
 

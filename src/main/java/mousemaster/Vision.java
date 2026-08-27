@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -30,6 +31,8 @@ public class Vision {
     private static final int downsampleFactor = 2;
     /** Detection pixels, about the smallest glyph a screen draws. */
     private static final int minimumElementPixels = 44;
+    /** Detection pixels, past which the lighter midpoint has found the pane itself. */
+    private static final int maximumLightElementPixels = 500;
     /** Bigger than this is a pane, not something to click. */
     private static final double maximumElementAreaRatio = 0.25;
     /** No hint on the very edge of the screen, where a click can miss. */
@@ -41,7 +44,7 @@ public class Vision {
     private static final int maximumCornerColors = 3;
     private static final int widestEdgeMargin = 3;
     private static final int tallestEdgeMargin = 2;
-    private static final int widestInkGap = 5;
+    private static final int widestInkGap = 4;
     private static final int narrowestInkGap = 3;
     /** One for each margin pair and each depth the ink is cut to. */
     static final int densities =
@@ -107,12 +110,27 @@ public class Vision {
         // narrower gaps.
         int edgeSteps = widestEdgeMargin * tallestEdgeMargin;
         int step = density - 1;
-        List<Rectangle> boxes = step < edgeSteps
-                ? boundedRegions(capture.scaledRgb(), width, height, scale,
-                        widestEdgeMargin - step / tallestEdgeMargin,
-                        tallestEdgeMargin - step % tallestEdgeMargin)
-                : inkBoxes(capture.scaledRgb(), width, height,
-                        widestInkGap - step + edgeSteps);
+        List<Rectangle> boxes;
+        if (step < edgeSteps) {
+            List<List<Rectangle>> byMidpoint =
+                    IntStream.range(0, EdgeDetector.contrastMidpoints.length)
+                             .parallel()
+                             .mapToObj(midpoint -> boundedRegions(capture.scaledRgb(),
+                                     width, height, scale,
+                                     widestEdgeMargin - step / tallestEdgeMargin,
+                                     tallestEdgeMargin - step % tallestEdgeMargin,
+                                     midpoint))
+                             .toList();
+            boxes = new ArrayList<>(byMidpoint.getFirst());
+            // A lighter midpoint answers only where the first one found nothing.
+            for (int midpoint = 1; midpoint < byMidpoint.size(); midpoint++)
+                for (Rectangle region : byMidpoint.get(midpoint))
+                    if (boxes.stream().noneMatch(box -> box.contains(region)))
+                        boxes.add(region);
+        }
+        else
+            boxes = inkBoxes(capture.scaledRgb(), width, height,
+                    widestInkGap - step + edgeSteps);
         if (dumpPath != null)
             dump(capture.scaledRgb(),
                     InkDetector.ink(capture.scaledRgb(), width, height), boxes, width,
@@ -167,9 +185,9 @@ public class Vision {
     /** What an edge draws a boundary around: one hint for what the ink inside splits up. */
     private static List<Rectangle> boundedRegions(byte[] rgb, int width, int height,
                                                   double scale, int edgeDilation,
-                                                  int verticalDilation) {
+                                                  int verticalDilation, int midpoint) {
         boolean[] edges = EdgeDetector.edges(rgb, width, height, edgeDilation,
-                verticalDilation);
+                verticalDilation, midpoint);
         List<Rectangle> bounded = new ArrayList<>();
         // No floor: the dilation already makes every component wider than one.
         for (Rectangle region : ConnectedComponentFinder.boundingBoxes(edges, width,
@@ -179,6 +197,9 @@ public class Vision {
                     region.y() + verticalDilation,
                     region.width() - 2 * edgeDilation,
                     region.height() - 2 * verticalDilation);
+            if (midpoint > 0 && (long) inside.width() * inside.height()
+                                > maximumLightElementPixels)
+                continue;
             if (isTargetShaped((int) (inside.width() * scale),
                     (int) (inside.height() * scale))
                 && cornersShareABackground(rgb, width, height, inside))
