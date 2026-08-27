@@ -784,8 +784,7 @@ public final class HintMeshRenderer {
                         transitionHintContainers(animateTransition,
                                 oldContainer, newContainer,
                                 window, hintMeshWindow, transitionAnimationDuration);
-                        // Borders are drawn on the layer morphBorders builds, so non-grid hints
-                        // (which never animate or cache) still need it created.
+                        // Non-grid hints draw their own borders and only need the window shown.
                         morphBorders(window, hintMeshWindow, container, boxes, enclosingInk,
                                 animateTransition, transitionAnimationDuration);
                         // The mesh is on screen a frame sooner than waiting for the next pump.
@@ -979,6 +978,12 @@ public final class HintMeshRenderer {
                             List<HintBox> newBoxes, List<Rectangle> enclosingInk,
                             boolean animateTransition, Duration duration) {
         BorderMorph morph = borderMorphByWindow.computeIfAbsent(window, w -> new BorderMorph());
+        boolean isHintGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
+        if (!isHintGrid) {
+            stopBorderMorph(morph);
+            window.show();
+            return;
+        }
         QRect containerGeometry = contentContainer.geometry();
         int originX = containerGeometry.x(), originY = containerGeometry.y();
         containerGeometry.dispose();
@@ -1736,10 +1741,9 @@ public final class HintMeshRenderer {
         // Layer 1: Box shadow (painted underneath boxes; empty unless shadow is active).
         HintPaintLayer boxShadowLayer = new HintPaintLayer(container, List.of(), List.of());
         boxShadowLayer.setGeometry(0, 0, containerWidth, containerHeight);
-        // Layer 2: the hint boxes without their border. The border is drawn on the live border layer
-        // so it can move; the rest (background, label, decorations) crops with the container.
-        HintPaintLayer hintBoxLayer =
-                new HintPaintLayer(container, hintBoxes, List.of(), HintBox::paintWithoutBorder);
+        // Layer 2: the hint boxes. A grid's border moves on the live border layer instead.
+        HintPaintLayer hintBoxLayer = new HintPaintLayer(container, hintBoxes, List.of(),
+                isHintPartOfGrid ? HintBox::paintWithoutBorder : HintBox::paint);
         hintBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
         applyBoxShadow(boxShadowLayer, hintBoxes, boxShadow,
                 containerWidth, containerHeight, qtScaleFactor);
