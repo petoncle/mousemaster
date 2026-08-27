@@ -1521,7 +1521,7 @@ public final class HintMeshRenderer {
                                     (hintMesh.selectedKeySequence().size() - 1
                                     - (style.prefixInBackground() && hintMesh.prefixLength() != -1 ? prefix.size() : 0)),
                             style.fontStyle().defaultFontStyle().verticalAlignment(),
-                            isHintPartOfGrid, isHintPartOfTiledGrid, qtScaleFactor);
+                            isHintPartOfTiledGrid, qtScaleFactor);
             hintLabels.add(hintLabel);
             boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
             boolean gridTopEdge = isHintPartOfGrid && hint.centerY() == minHintCenterY || style.boxHeightPercent() != 1;
@@ -1554,7 +1554,7 @@ public final class HintMeshRenderer {
                 boxHeight = Math.max(hintLabel.tightHintBoxHeight, (int) (fullBoxHeight * style.boxHeightPercent()));
             }
             hintLabel.left = !isHintPartOfGrid && boxWidth == hintLabel.tightHintBoxWidth ? hintLabel.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
-            hintLabel.top = !isHintPartOfGrid && boxHeight == hintLabel.tightHintBoxHeight ? (int) Math.round(hintLabel.tightHintBoxTop) : (fullBoxHeight - boxHeight) / 2;
+            hintLabel.top = (fullBoxHeight - boxHeight) / 2;
             x += hintLabel.left;
             y += hintLabel.top;
             // Not sure why required, but this help having the grid match the screen
@@ -1657,14 +1657,14 @@ public final class HintMeshRenderer {
                                 prefixHintKeyMaxXAdvance,
                                 hintMesh.selectedKeySequence().size() - 1,
                                 style.prefixFontStyle().defaultFontStyle().verticalAlignment(),
-                                isHintPartOfGrid, isHintPartOfTiledGrid, qtScaleFactor);
+                                isHintPartOfTiledGrid, qtScaleFactor);
                 // The group bounds come from boxes that are already scaled down.
                 int x = hintRoundedX((hintGroup.left + hintGroup.right-1) / 2d, fullBoxWidth, 1);
                 int y = hintRoundedY((hintGroup.top + hintGroup.bottom-1) / 2d, fullBoxHeight, 1);
                 int boxWidth = Math.max(prefixHintLabel.tightHintBoxWidth, (int) (fullBoxWidth * 1d));
                 int boxHeight = Math.max(prefixHintLabel.tightHintBoxHeight, (int) (fullBoxHeight * 1d));
                 prefixHintLabel.left = boxWidth == prefixHintLabel.tightHintBoxWidth ? prefixHintLabel.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
-                prefixHintLabel.top = boxHeight == prefixHintLabel.tightHintBoxHeight ? (int) Math.round(prefixHintLabel.tightHintBoxTop) : (fullBoxHeight - boxHeight) / 2;
+                prefixHintLabel.top = (fullBoxHeight - boxHeight) / 2;
                 x += prefixHintLabel.left;
                 y += prefixHintLabel.top;
                 prefixHintLabel.move(
@@ -2762,7 +2762,7 @@ public final class HintMeshRenderer {
          *  screen position is stripped, so it is built once and copied. */
         private record LabelKey(String label, int boxWidth, int boxHeight, int totalXAdvance,
                                 int prefixLength, int hintKeyMaxXAdvance, int selectedKeyEndIndex,
-                                FontVerticalAlignment verticalAlignment, boolean grid,
+                                FontVerticalAlignment verticalAlignment,
                                 boolean tiledGrid, double qtScaleFactor,
                                 QtHintFontStyle labelFontStyle) {
         }
@@ -2777,21 +2777,20 @@ public final class HintMeshRenderer {
                             int boxWidth, int boxHeight, int totalXAdvance, int prefixLength,
                             QtHintFontStyle labelFontStyle, int hintKeyMaxXAdvance,
                             int selectedKeyEndIndex, FontVerticalAlignment verticalAlignment,
-                            boolean isHintPartOfGrid, boolean isHintPartOfTiledGrid,
-                            double qtScaleFactor) {
+                            boolean isHintPartOfTiledGrid, double qtScaleFactor) {
             StringBuilder label = new StringBuilder();
             for (Key key : keySequence)
                 label.append(key.hintLabel()).append('\n');
             LabelKey key = new LabelKey(label.toString(), boxWidth, boxHeight, totalXAdvance,
                     prefixLength, hintKeyMaxXAdvance, selectedKeyEndIndex, verticalAlignment,
-                    isHintPartOfGrid, isHintPartOfTiledGrid, qtScaleFactor, labelFontStyle);
+                    isHintPartOfTiledGrid, qtScaleFactor, labelFontStyle);
             HintLabel cached = labelCache.get(key);
             if (cached != null)
                 return new HintLabel(cached);
             HintLabel built = new HintLabel(keySequence, xAdvancesByString, boxWidth, boxHeight,
                     totalXAdvance, prefixLength, labelFontStyle, hintKeyMaxXAdvance,
-                    selectedKeyEndIndex, verticalAlignment, isHintPartOfGrid,
-                    isHintPartOfTiledGrid, qtScaleFactor);
+                    selectedKeyEndIndex, verticalAlignment, isHintPartOfTiledGrid,
+                    qtScaleFactor);
             labelCache.put(key, built);
             return built;
         }
@@ -2810,9 +2809,8 @@ public final class HintMeshRenderer {
         private final QtHintFontStyle labelFontStyle;
         private final List<HintKeyText> keyTexts;
         /** Only a non-grid hint's box is sized and placed to fit its label; a grid hint's box is its
-         *  cell, so its left and top are left at 0. */
+         *  cell, so its left is left at 0. */
         final int tightHintBoxLeft;
-        final double tightHintBoxTop;
         final int tightHintBoxWidth;
         final int tightHintBoxHeight;
         int left;
@@ -2825,8 +2823,7 @@ public final class HintMeshRenderer {
                          QtHintFontStyle labelFontStyle,
                          int hintKeyMaxXAdvance, int selectedKeyEndIndex,
                          FontVerticalAlignment verticalAlignment,
-                         boolean isHintPartOfGrid, boolean isHintPartOfTiledGrid,
-                         double qtScaleFactor) {
+                         boolean isHintPartOfTiledGrid, double qtScaleFactor) {
             this.labelFontStyle = labelFontStyle;
 
             QFontMetrics labelMetrics = labelFontStyle.defaultStyle().metrics();
@@ -2933,9 +2930,6 @@ public final class HintMeshRenderer {
                 }
             }
             this.tightHintBoxLeft = smallestHintBoxLeft;
-            this.tightHintBoxTop = isHintPartOfGrid ? 0 :
-                    baselineY(verticalAlignment, boxHeight, labelMetrics, inkTop,
-                            inkBottom - inkTop, qtScaleFactor) - labelMetrics.ascent();
             this.tightHintBoxWidth = smallestHintBoxWidth;
             this.tightHintBoxHeight = labelMetrics.height();
         }
@@ -2945,7 +2939,6 @@ public final class HintMeshRenderer {
             this.labelFontStyle = template.labelFontStyle;
             this.keyTexts = template.keyTexts;
             this.tightHintBoxLeft = template.tightHintBoxLeft;
-            this.tightHintBoxTop = template.tightHintBoxTop;
             this.tightHintBoxWidth = template.tightHintBoxWidth;
             this.tightHintBoxHeight = template.tightHintBoxHeight;
         }
