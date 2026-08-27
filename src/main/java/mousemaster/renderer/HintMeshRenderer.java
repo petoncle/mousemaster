@@ -484,14 +484,16 @@ public final class HintMeshRenderer {
         }
 
         private QColor clearColor = new QColor(0, 0, 0, 0);
+        private Rectangle clearRect = new Rectangle(0, 0, 0, 0);
         /** Crop region, clipped in paintEvent instead of via setMask (which recomposites the whole
          *  window). Null paints the full pixmap. */
         private QRect crop;
 
-        void setClearColor(QColor clearColor) {
+        void setClearColor(QColor clearColor, Rectangle clearRect) {
             if (this.clearColor != null)
                 this.clearColor.dispose();
             this.clearColor = clearColor;
+            this.clearRect = clearRect;
         }
 
         boolean cropCapable() {
@@ -549,11 +551,18 @@ public final class HintMeshRenderer {
                 return;
             }
             QPainter painter = new QPainter(this);
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
             // Clear what's behind (when we're drawing the old container behind).
             QRect r = rect();
             painter.fillRect(r, clearColor);
             r.dispose();
+            Rectangle background =
+                    clearRect.intersection(new Rectangle(x(), y(), width(), height()));
+            if (!background.isEmpty()) {
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
+                painter.fillRect(background.x() - x(), background.y() - y(),
+                        background.width(), background.height(), clearColor);
+            }
             painter.end();
             painter.dispose();
             super.paintEvent(event);
@@ -738,8 +747,8 @@ public final class HintMeshRenderer {
             // Uses ClearBackgroundQLabel because when in the mergedContainer,
             // the top-level container must override the container below.
             ClearBackgroundQLabel container = new ClearBackgroundQLabel(window);
-            if (backgroundColor != null)
-                container.setClearColor(backgroundColor);
+            if (backgroundRect != null)
+                container.setClearColor(backgroundColor, backgroundRect);
             container.setStyleSheet("background: transparent;");
             newContainer = container;
             int hideCountBeforeBuild = hideCount;
