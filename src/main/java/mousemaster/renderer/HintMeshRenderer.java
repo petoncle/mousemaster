@@ -1473,23 +1473,17 @@ public final class HintMeshRenderer {
                                                                      .map(Key::hintLabel)
                                                                      .collect(
                                                                              Collectors.joining()));
-            // Size of cell for screen selection hint is not configured by user.
-            // The default size is used and it is too small (and will be less than totalXAdvance).
             int lineHeight = labelFontStyle.defaultStyle().metrics().height();
             // A cell is in pixels, as the padding and the grid's own cell are, but metrics are
             // in the points Qt draws text in.
             double advancePixels = totalXAdvance * qtScaleFactor;
             double lineHeightPixels = lineHeight * qtScaleFactor;
-            double cellWidth = (hint.cellWidth() != -1 ?
-                    // For grid hints, use the grid cell width as-is so boxes tile
-                    // perfectly. Text that overflows is handled by the label layer.
-                    (isHintPartOfGrid ? hint.cellWidth() :
-                            Math.max(advancePixels, hint.cellWidth())) :
-                    advancePixels) + 2 * cellHorizontalPadding;
-            double cellHeight = (hint.cellHeight() != -1 ?
-                    (isHintPartOfGrid ? hint.cellHeight() :
-                            Math.max(lineHeightPixels, hint.cellHeight())) :
-                    lineHeightPixels) + 2 * cellVerticalPadding;
+            // A grid cell is used as-is so boxes tile perfectly. Text that overflows is handled
+            // by the label layer.
+            double cellWidth = (isHintPartOfGrid ? hint.cellWidth() : advancePixels) +
+                               2 * cellHorizontalPadding;
+            double cellHeight = (isHintPartOfGrid ? hint.cellHeight() : lineHeightPixels) +
+                                2 * cellVerticalPadding;
             int x = hintRoundedX(hint.centerX(), cellWidth, qtScaleFactor);
             int y = hintRoundedY(hint.centerY(), cellHeight, qtScaleFactor);
             int fullBoxWidth = (int) (cellWidth / qtScaleFactor);
@@ -2972,8 +2966,7 @@ public final class HintMeshRenderer {
             double inkRight = -Double.MAX_VALUE, inkBottom = -Double.MAX_VALUE;
             for (HintKeyText keyText : keyTexts) {
                 QtFontStyle keyStyle = hintKeyTextQtFontStyle(keyText);
-                QtHintFont.Ink ink =
-                        QtHintFont.ink(keyStyle.metrics(), keyText.text());
+                QtHintFont.Ink ink = QtHintFont.ink(keyStyle.metrics(), keyText.text());
                 int outlineThickness = keyStyle.outlineThickness();
                 inkLeft = Math.min(inkLeft, keyText.x() + ink.left() - outlineThickness);
                 inkTop = Math.min(inkTop, keyText.y() + ink.top() - outlineThickness);
