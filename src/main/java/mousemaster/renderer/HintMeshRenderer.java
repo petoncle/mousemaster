@@ -1543,17 +1543,16 @@ public final class HintMeshRenderer {
                             boxBorderRadius
                     );
             hintBoxes.add(hintBox);
-            int boxWidth, boxHeight;
-            if (isHintPartOfTiledGrid) {
-                // For grid hints, box size is determined by the grid cell, not the text.
-                boxWidth = (int) (fullBoxWidth * style.boxWidthPercent());
-                boxHeight = (int) (fullBoxHeight * style.boxHeightPercent());
-            }
-            else {
-                boxWidth = Math.max(hintLabel.tightHintBoxWidth, (int) (fullBoxWidth * style.boxWidthPercent()));
-                boxHeight = Math.max(hintLabel.tightHintBoxHeight, (int) (fullBoxHeight * style.boxHeightPercent()));
-            }
-            hintLabel.left = !isHintPartOfGrid && boxWidth == hintLabel.tightHintBoxWidth ? hintLabel.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
+            int scaledBoxWidth = (int) (fullBoxWidth * style.boxWidthPercent());
+            int scaledBoxHeight = (int) (fullBoxHeight * style.boxHeightPercent());
+            boolean boxSizedByLabel =
+                    !isHintPartOfGrid && hintLabel.tightHintBoxWidth >= scaledBoxWidth;
+            int boxWidth = isHintPartOfTiledGrid ? scaledBoxWidth :
+                    Math.max(hintLabel.tightHintBoxWidth, scaledBoxWidth);
+            int boxHeight = isHintPartOfTiledGrid ? scaledBoxHeight :
+                    Math.max(hintLabel.tightHintBoxHeight, scaledBoxHeight);
+            hintLabel.left = boxSizedByLabel ? hintLabel.tightHintBoxLeft :
+                    (fullBoxWidth - boxWidth) / 2;
             hintLabel.top = (fullBoxHeight - boxHeight) / 2;
             x += hintLabel.left;
             y += hintLabel.top;
@@ -1661,9 +1660,12 @@ public final class HintMeshRenderer {
                 // The group bounds come from boxes that are already scaled down.
                 int x = hintRoundedX((hintGroup.left + hintGroup.right-1) / 2d, fullBoxWidth, 1);
                 int y = hintRoundedY((hintGroup.top + hintGroup.bottom-1) / 2d, fullBoxHeight, 1);
-                int boxWidth = Math.max(prefixHintLabel.tightHintBoxWidth, (int) (fullBoxWidth * 1d));
-                int boxHeight = Math.max(prefixHintLabel.tightHintBoxHeight, (int) (fullBoxHeight * 1d));
-                prefixHintLabel.left = boxWidth == prefixHintLabel.tightHintBoxWidth ? prefixHintLabel.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
+                int boxWidth = Math.max(prefixHintLabel.tightHintBoxWidth, fullBoxWidth);
+                int boxHeight = Math.max(prefixHintLabel.tightHintBoxHeight, fullBoxHeight);
+                prefixHintLabel.left =
+                        prefixHintLabel.tightHintBoxWidth >= fullBoxWidth ?
+                                prefixHintLabel.tightHintBoxLeft :
+                                (fullBoxWidth - boxWidth) / 2;
                 prefixHintLabel.top = (fullBoxHeight - boxHeight) / 2;
                 x += prefixHintLabel.left;
                 y += prefixHintLabel.top;
