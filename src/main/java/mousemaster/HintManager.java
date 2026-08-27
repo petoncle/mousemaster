@@ -663,14 +663,17 @@ public class HintManager implements ModeListener, MousePositionListener {
                 // The one multi-grid source: a screen-centered grid per screen (scaled
                 // by the size percents). The center does not apply.
                 List<Screen> sortedScreens = sortedScreens();
+                List<Rectangle> areaRectangles = new ArrayList<>();
                 for (Screen screen : sortedScreens) {
                     Rectangle areaRectangle = scaledArea(screen.rectangle(), area.size(),
                             screen.rectangle().center());
+                    areaRectangles.add(areaRectangle);
                     HintGridLayout gridLayout = gridHintMesh.layout(
                             ScreenFilter.of(activeScreen));
                     fixedSizeHintGrids.add(hintGridForArea(areaRectangle,
                             areaRectangle.center(), gridLayout, screen.scale(), zoom));
                 }
+                hintMesh.area(Rectangle.union(areaRectangles));
                 hintMesh.backgroundArea(
                         Rectangle.union(screenRectangles(sortedScreens)));
             }
@@ -714,6 +717,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 HintGridLayout gridLayout = gridHintMesh.layout(screenFilter);
                 fixedSizeHintGrids.add(hintGridForArea(areaRectangle, gridCenter,
                         gridLayout, scaleScreen.scale(), zoom));
+                hintMesh.area(areaRectangle);
                 hintMesh.backgroundArea(
                         area.size().source() == HintGridAreaSizeSource.ACTIVE_WINDOW ?
                                 areaRectangle : scaleScreen.rectangle());
@@ -783,10 +787,12 @@ public class HintManager implements ModeListener, MousePositionListener {
             Set<Integer> prefixLengths = new HashSet<>();
             buildUiHints(hintMeshConfiguration, screenFilter, uiElements,
                     prefixLengths, hints);
+            Rectangle uiArea = uiHintArea(uiAccessibilityHintMesh.area());
             hintMesh.hints(hints)
                     .prefixLength(prefixLengths.size() == 1 ?
                             prefixLengths.iterator().next() : -1)
-                    .backgroundArea(uiHintArea(uiAccessibilityHintMesh.area()));
+                    .area(uiArea)
+                    .backgroundArea(uiArea);
         }
         else if (type instanceof HintMeshType.UiVisionHintMesh uiVisionHintMesh) {
             int hintCount = uiElements.size();
@@ -794,10 +800,12 @@ public class HintManager implements ModeListener, MousePositionListener {
             Set<Integer> prefixLengths = new HashSet<>();
             buildUiHints(hintMeshConfiguration, screenFilter, uiElements,
                     prefixLengths, hints);
+            Rectangle uiArea = uiHintArea(uiVisionHintMesh.area());
             hintMesh.hints(hints)
                     .prefixLength(prefixLengths.size() == 1 ?
                             prefixLengths.iterator().next() : -1)
-                    .backgroundArea(uiHintArea(uiVisionHintMesh.area()));
+                    .area(uiArea)
+                    .backgroundArea(uiArea);
         }
         else {
             List<Point> positions = currentPositionHistory.positions();
@@ -829,8 +837,10 @@ public class HintManager implements ModeListener, MousePositionListener {
                                                     .anyMatch(hint -> screenRectangle.contains(
                                                             hint.centerX(), hint.centerY())))
                     .toList();
-            if (!screensWithHint.isEmpty())
-                hintMesh.backgroundArea(Rectangle.union(screensWithHint));
+            if (!screensWithHint.isEmpty()) {
+                Rectangle hintScreens = Rectangle.union(screensWithHint);
+                hintMesh.area(hintScreens).backgroundArea(hintScreens);
+            }
         }
         // Prefer the live selection from the current mesh when the hint
         // area overlaps (e.g. zoom toggle). This is authoritative: do not
@@ -1240,7 +1250,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     childDecoration, null);
         }
         return new HintMesh(true, decorationHints, prefixLength, List.of(),
-                decorationStyleByFilter, area, null, childMesh);
+                decorationStyleByFilter, area, area, null, childMesh);
     }
 
     private FixedSizeHintGrid fixedSizeHintGrid(Rectangle areaRectangle,

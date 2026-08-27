@@ -12,7 +12,7 @@ import java.util.List;
 public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
                        List<Key> selectedKeySequence,
                        ScreenFilterMap<HintMeshStyle> styleByFilter,
-                       Rectangle backgroundArea, HintMesh decoration,
+                       Rectangle area, Rectangle backgroundArea, HintMesh decoration,
                        HintMesh subDecoration) {
 
     public HintMeshBuilder builder() {
@@ -25,6 +25,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
         private int prefixLength;
         private List<Key> selectedKeySequence = List.of();
         private ScreenFilterMap<HintMeshStyle> styleByFilter;
+        private Rectangle area;
         private Rectangle backgroundArea;
         private HintMesh decoration;
         private HintMesh subDecoration;
@@ -38,6 +39,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
             this.prefixLength = hintMesh.prefixLength;
             this.selectedKeySequence = hintMesh.selectedKeySequence;
             this.styleByFilter = hintMesh.styleByFilter;
+            this.area = hintMesh.area;
             this.backgroundArea = hintMesh.backgroundArea;
             this.decoration = hintMesh.decoration;
             this.subDecoration = hintMesh.subDecoration;
@@ -90,6 +92,15 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
             return this;
         }
 
+        public Rectangle area() {
+            return area;
+        }
+
+        public HintMeshBuilder area(Rectangle area) {
+            this.area = area;
+            return this;
+        }
+
         public Rectangle backgroundArea() {
             return backgroundArea;
         }
@@ -119,7 +130,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
 
         public HintMesh build() {
             return new HintMesh(visible, hints, prefixLength, selectedKeySequence,
-                    styleByFilter, backgroundArea, decoration, subDecoration);
+                    styleByFilter, area, backgroundArea, decoration, subDecoration);
         }
     }
 

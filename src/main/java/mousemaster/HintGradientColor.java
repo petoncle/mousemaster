@@ -16,8 +16,8 @@ public record HintGradientColor(List<String> hexColors, HintGradientDirection di
     public static HintGradientColor parse(String value) {
         List<String> hexColors = new ArrayList<>();
         HintGradientDirection direction = HintGradientDirection.TOP_TO_BOTTOM;
-        HintGradientArea area = HintGradientArea.CONTENT;
-        HintGradientStep step = HintGradientStep.ELEMENT;
+        HintGradientArea area = HintGradientArea.AREA;
+        HintGradientStep step = HintGradientStep.HINT;
         String directionToken = null, areaToken = null, stepToken = null;
         for (String token : value.split("\\s+")) {
             // A direction reads X-to-Y and the other keywords name their own axis, so a token
@@ -29,10 +29,14 @@ public record HintGradientColor(List<String> hexColors, HintGradientDirection di
                     case "bottom-to-top" -> HintGradientDirection.BOTTOM_TO_TOP;
                     case "left-to-right" -> HintGradientDirection.LEFT_TO_RIGHT;
                     case "right-to-left" -> HintGradientDirection.RIGHT_TO_LEFT;
-                    case "topleft-to-bottomright" -> HintGradientDirection.TOPLEFT_TO_BOTTOMRIGHT;
-                    case "bottomright-to-topleft" -> HintGradientDirection.BOTTOMRIGHT_TO_TOPLEFT;
-                    case "topright-to-bottomleft" -> HintGradientDirection.TOPRIGHT_TO_BOTTOMLEFT;
-                    case "bottomleft-to-topright" -> HintGradientDirection.BOTTOMLEFT_TO_TOPRIGHT;
+                    case "top-left-to-bottom-right" ->
+                            HintGradientDirection.TOP_LEFT_TO_BOTTOM_RIGHT;
+                    case "bottom-right-to-top-left" ->
+                            HintGradientDirection.BOTTOM_RIGHT_TO_TOP_LEFT;
+                    case "top-right-to-bottom-left" ->
+                            HintGradientDirection.TOP_RIGHT_TO_BOTTOM_LEFT;
+                    case "bottom-left-to-top-right" ->
+                            HintGradientDirection.BOTTOM_LEFT_TO_TOP_RIGHT;
                     case "center-to-corner" -> HintGradientDirection.CENTER_TO_CORNER;
                     case "corner-to-center" -> HintGradientDirection.CORNER_TO_CENTER;
                     case "center-to-edge" -> HintGradientDirection.CENTER_TO_EDGE;
@@ -43,20 +47,21 @@ public record HintGradientColor(List<String> hexColors, HintGradientDirection di
             else if (token.startsWith("across-")) {
                 areaToken = once(areaToken, token, value);
                 area = switch (token) {
-                    case "across-content" -> HintGradientArea.CONTENT;
+                    case "across-hint" -> HintGradientArea.HINT;
+                    case "across-subgrid" -> HintGradientArea.SUBGRID;
+                    case "across-all-hints" -> HintGradientArea.ALL_HINTS;
+                    case "across-area" -> HintGradientArea.AREA;
                     case "across-screen" -> HintGradientArea.SCREEN;
                     case "across-all-screens" -> HintGradientArea.ALL_SCREENS;
-                    case "across-group" -> HintGradientArea.GROUP;
-                    case "across-element" -> HintGradientArea.ELEMENT;
                     default -> throw invalid(token);
                 };
             }
             else if (token.startsWith("per-")) {
                 stepToken = once(stepToken, token, value);
                 step = switch (token) {
-                    case "per-element" -> HintGradientStep.ELEMENT;
-                    case "per-group" -> HintGradientStep.GROUP;
                     case "per-pixel" -> HintGradientStep.PIXEL;
+                    case "per-hint" -> HintGradientStep.HINT;
+                    case "per-subgrid" -> HintGradientStep.SUBGRID;
                     default -> throw invalid(token);
                 };
             }
@@ -67,10 +72,10 @@ public record HintGradientColor(List<String> hexColors, HintGradientDirection di
         }
         if (hexColors.isEmpty())
             throw new IllegalArgumentException("Invalid color " + value + ": no color given");
-        if (step == HintGradientStep.GROUP && (area == HintGradientArea.ELEMENT ||
-                                               area == HintGradientArea.GROUP))
+        if (step == HintGradientStep.SUBGRID && (area == HintGradientArea.HINT ||
+                                                 area == HintGradientArea.SUBGRID))
             throw new IllegalArgumentException("Invalid color " + value +
-                                               ": per-group needs an area wider than a group");
+                                               ": per-subgrid needs an area wider than a subgrid");
         return new HintGradientColor(List.copyOf(hexColors), direction, area, step);
     }
 
@@ -171,10 +176,10 @@ public record HintGradientColor(List<String> hexColors, HintGradientDirection di
         BOTTOM_TO_TOP(0, 1, 0, 0, HintGradientShape.STRAIGHT, false),
         LEFT_TO_RIGHT(0, 0, 1, 0, HintGradientShape.STRAIGHT, false),
         RIGHT_TO_LEFT(1, 0, 0, 0, HintGradientShape.STRAIGHT, false),
-        TOPLEFT_TO_BOTTOMRIGHT(0, 0, 1, 1, HintGradientShape.STRAIGHT, false),
-        BOTTOMRIGHT_TO_TOPLEFT(1, 1, 0, 0, HintGradientShape.STRAIGHT, false),
-        TOPRIGHT_TO_BOTTOMLEFT(1, 0, 0, 1, HintGradientShape.STRAIGHT, false),
-        BOTTOMLEFT_TO_TOPRIGHT(0, 1, 1, 0, HintGradientShape.STRAIGHT, false),
+        TOP_LEFT_TO_BOTTOM_RIGHT(0, 0, 1, 1, HintGradientShape.STRAIGHT, false),
+        BOTTOM_RIGHT_TO_TOP_LEFT(1, 1, 0, 0, HintGradientShape.STRAIGHT, false),
+        TOP_RIGHT_TO_BOTTOM_LEFT(1, 0, 0, 1, HintGradientShape.STRAIGHT, false),
+        BOTTOM_LEFT_TO_TOP_RIGHT(0, 1, 1, 0, HintGradientShape.STRAIGHT, false),
         CENTER_TO_CORNER(0.5, 0.5, 1, 1, HintGradientShape.CIRCLE, false),
         CORNER_TO_CENTER(0.5, 0.5, 1, 1, HintGradientShape.CIRCLE, true),
         CENTER_TO_EDGE(0.5, 0.5, 1, 1, HintGradientShape.ELLIPSE, false),
@@ -245,12 +250,12 @@ public record HintGradientColor(List<String> hexColors, HintGradientDirection di
 
     /** What one full sweep covers. */
     public enum HintGradientArea {
-        CONTENT, SCREEN, ALL_SCREENS, GROUP, ELEMENT
+        HINT, SUBGRID, ALL_HINTS, AREA, SCREEN, ALL_SCREENS
     }
 
     /** The unit that shares one color. */
     public enum HintGradientStep {
-        ELEMENT, GROUP, PIXEL
+        PIXEL, HINT, SUBGRID
     }
 
 }

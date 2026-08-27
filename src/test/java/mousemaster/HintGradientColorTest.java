@@ -34,19 +34,19 @@ class HintGradientColorTest {
     @Test
     void keywordsAreOrderFree() {
         HintGradientColor color =
-                HintGradientColor.parse("#FF0000 per-group #0000FF across-screen right-to-left");
+                HintGradientColor.parse("#FF0000 per-subgrid #0000FF across-screen right-to-left");
         assertEquals(List.of("#FF0000", "#0000FF"), color.hexColors());
         assertEquals(HintGradientDirection.RIGHT_TO_LEFT, color.direction());
         assertEquals(HintGradientArea.SCREEN, color.area());
-        assertEquals(HintGradientStep.GROUP, color.step());
+        assertEquals(HintGradientStep.SUBGRID, color.step());
     }
 
     @Test
-    void defaultsAreContentTopToBottomPerElement() {
+    void defaultsAreAreaTopToBottomPerHint() {
         HintGradientColor color = HintGradientColor.parse("#FF0000 #0000FF");
         assertEquals(HintGradientDirection.TOP_TO_BOTTOM, color.direction());
-        assertEquals(HintGradientArea.CONTENT, color.area());
-        assertEquals(HintGradientStep.ELEMENT, color.step());
+        assertEquals(HintGradientArea.AREA, color.area());
+        assertEquals(HintGradientStep.HINT, color.step());
     }
 
     @Test
@@ -155,15 +155,21 @@ class HintGradientColorTest {
     }
 
     @Test
+    void acrossAreaParses() {
+        HintGradientColor color = HintGradientColor.parse("across-area #FF0000 #0000FF");
+        assertEquals(HintGradientArea.AREA, color.area());
+    }
+
+    @Test
     void anInvalidTokenIsRejected() {
         assertThrows(IllegalArgumentException.class,
                 () -> HintGradientColor.parse("#FF0000 sideways #0000FF"));
         assertThrows(IllegalArgumentException.class,
                 () -> HintGradientColor.parse("across-screen"));
         assertThrows(IllegalArgumentException.class,
-                () -> HintGradientColor.parse("across-element per-group #FF0000 #0000FF"));
+                () -> HintGradientColor.parse("across-hint per-subgrid #FF0000 #0000FF"));
         assertThrows(IllegalArgumentException.class,
-                () -> HintGradientColor.parse("across-group per-group #FF0000 #0000FF"));
+                () -> HintGradientColor.parse("across-subgrid per-subgrid #FF0000 #0000FF"));
     }
 
     @Test
@@ -171,9 +177,9 @@ class HintGradientColorTest {
         assertThrows(IllegalArgumentException.class, () -> HintGradientColor.parse(
                 "right-to-left corner-to-center #FF0000 #0000FF"));
         assertThrows(IllegalArgumentException.class, () -> HintGradientColor.parse(
-                "across-screen across-content #FF0000 #0000FF"));
+                "across-screen across-all-hints #FF0000 #0000FF"));
         assertThrows(IllegalArgumentException.class, () -> HintGradientColor.parse(
-                "per-pixel per-element #FF0000 #0000FF"));
+                "per-pixel per-hint #FF0000 #0000FF"));
         assertThrows(IllegalArgumentException.class, () -> HintGradientColor.parse(
                 "top-to-bottom top-to-bottom #FF0000 #0000FF"));
     }
@@ -204,7 +210,7 @@ class HintGradientColorTest {
     void aSampledColorMatchesTheOneQtPaints() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         for (String direction : new String[] {"top-to-bottom", "right-to-left",
-                "topleft-to-bottomright", "center-to-corner", "corner-to-center", "center-to-edge",
+                "top-left-to-bottom-right", "center-to-corner", "corner-to-center", "center-to-edge",
                 "edge-to-center"})
             assertSampledMatchesPainted(direction);
     }

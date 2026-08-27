@@ -883,15 +883,18 @@ hint-mode.hint.background-opacity=0
     ```
     Keywords go anywhere among the colors, in any order:
     - Direction: `top-to-bottom` (default), `bottom-to-top`, `left-to-right`, `right-to-left`, the
-      four diagonals (`topleft-to-bottomright` and so on), and four round ones: `center-to-corner`
+      four diagonals (`top-left-to-bottom-right` and so on), and four round ones: `center-to-corner`
       and `corner-to-center` reach the last color at the corners, `center-to-edge` and
       `edge-to-center` at every edge.
-    - What one sweep covers: `across-content` (default, the hints on that screen), `across-screen`,
-      `across-all-screens` (one sweep over the whole arrangement), `across-group` (each
-      [subgrid](#hint-layout-and-positioning), so the gradient repeats), `across-element` (each box).
-    - What shares one color: `per-element` (default), `per-group` (one color per subgrid),
-      `per-pixel` (none: the gradient ramps inside a box and continues into the next). `per-group`
-      needs an area wider than a group, so not with `across-group` or `across-element`.
+    - What one sweep covers, narrowest first: `across-hint` (each box), `across-subgrid` (each
+      [subgrid](#hint-layout-and-positioning), so the gradient repeats), `across-all-hints` (the
+      hints on that screen), `across-area` (default, the region `grid-area` or `ui-area` names, so
+      the sweep spans it even where no hint sits), `across-screen`, `across-all-screens` (one sweep
+      over the whole arrangement).
+    - What shares one color: `per-hint` (default), `per-subgrid` (one color per subgrid),
+      `per-pixel` (none: the gradient ramps inside a box and continues into the next).
+      `per-subgrid` needs an area wider than a subgrid, so not with `across-subgrid` or
+      `across-hint`.
   - `box-border-length`: Higher values create continuous lines between hint boxes, lower values create dotted separators
   - `box-border-radius`: Radius for rounded corners (0-1000, default 0).
   - `box-shadow-blur-radius`: Shadow blur radius (0-1000, default 10).

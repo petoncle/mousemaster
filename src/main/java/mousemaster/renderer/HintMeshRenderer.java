@@ -1411,9 +1411,9 @@ public final class HintMeshRenderer {
         QtHintFontStyle labelFontStyle = QtHintFont.qtHintFontStyle(style.fontStyle(), prefixFontStyle, screenScale);
         HintGradientColor boxColor = style.boxColor();
         boolean boxSweptPerHint = style.boxOpacity() != 0 && boxColor.gradient() &&
-                                  boxColor.area() != HintGradientArea.ELEMENT;
+                                  boxColor.area() != HintGradientArea.HINT;
         Rectangle boxGradientArea =
-                boxSweptPerHint ? gradientArea(boxColor.area(), hintMeshWindow) : null;
+                boxSweptPerHint ? gradientArea(boxColor.area(), hintMeshWindow, hintMesh) : null;
         QBrush boxBrush = boxSweptPerHint ? null : fillBrush(boxColor, style.boxOpacity());
         QColor boxBorderColor = QtColorUtil.qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
         QColor prefixBoxBorderColor = QtColorUtil.qColor(style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity());
@@ -1831,14 +1831,16 @@ public final class HintMeshRenderer {
                 QtColorUtil.qBrush(color, opacity);
     }
 
-    private Rectangle gradientArea(HintGradientArea area, HintMeshWindow hintMeshWindow) {
+    private Rectangle gradientArea(HintGradientArea area, HintMeshWindow hintMeshWindow,
+                                   HintMesh hintMesh) {
         return switch (area) {
             case SCREEN -> screenArea(hintMeshWindow.window());
             case ALL_SCREENS -> Rectangle.union(hintMeshWindows.values().stream()
                     .map(window -> screenArea(window.window())).toList());
-            // A group narrows this to its own bounds per box.
-            case CONTENT, GROUP -> centerArea(hintMeshWindow.hints());
-            case ELEMENT -> null;
+            case AREA -> hintMesh.area();
+            // A subgrid narrows this to its own bounds per box.
+            case ALL_HINTS, SUBGRID -> centerArea(hintMeshWindow.hints());
+            case HINT -> null;
         };
     }
 
@@ -1878,14 +1880,14 @@ public final class HintMeshRenderer {
 
     private static Rectangle areaNarrowedToGroup(HintGradientColor color, Rectangle area,
                                                  HintGroup hintGroup) {
-        return color.area() == HintGradientArea.GROUP && hintGroup != null ?
+        return color.area() == HintGradientArea.SUBGRID && hintGroup != null ?
                 hintGroup.centerArea() : area;
     }
 
     private static QBrush sampledBrush(HintGradientColor color, double opacity, Rectangle area,
                                        HintGroup hintGroup, Hint hint) {
         Rectangle sampledArea = areaNarrowedToGroup(color, area, hintGroup);
-        Point sampled = color.step() == HintGradientStep.GROUP && hintGroup != null ?
+        Point sampled = color.step() == HintGradientStep.SUBGRID && hintGroup != null ?
                 hintGroup.centerArea().center() :
                 new Point(hint.centerX(), hint.centerY());
         return QtColorUtil.qBrush(color, opacity,
