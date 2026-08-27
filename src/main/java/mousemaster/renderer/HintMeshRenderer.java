@@ -874,7 +874,8 @@ public final class HintMeshRenderer {
                 // Shrink old container until it reaches the position and size of new.
                 oldContainer.setParent(window);
                 oldContainer.show();
-                newContainer.setParent(window);
+                // Re-attaching the old container placed it above the new one, already a child.
+                newContainer.raise();
                 newContainer.show();
                 if (containersEqual) {
                     // Same-size swap (a color change, or a screen-selection hint end): the new
@@ -924,7 +925,6 @@ public final class HintMeshRenderer {
             else if (animateTransition && (newContainsOld || continueCropIntoNew)) {
                 // Initially show new container with the position and size of old.
                 // Then grow new container until it reaches its final position and size.
-                newContainer.setParent(window);
                 newContainer.show();
                 // Start from the old container's visible (cropped) extent, not its full geometry, so a
                 // mid-animation reversal grows from where it is instead of snapping.
