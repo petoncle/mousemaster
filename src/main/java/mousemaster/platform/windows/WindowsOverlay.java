@@ -137,6 +137,7 @@ public class WindowsOverlay implements Overlay {
             // screen would show what it last held, the final frame of the previous zoom.
             Dwmapi.INSTANCE.DwmFlush();
             setZoomWindowVisible(true);
+            setWindowTopmost(zoomHwnd);
             setTopmost();
         }
     }
@@ -190,16 +191,18 @@ public class WindowsOverlay implements Overlay {
 
     private void enforceTopmost() {
         List<WinDef.HWND> hwnds = new ArrayList<>();
+        List<WinDef.HWND> notTopmostHwnds = new ArrayList<>();
         // First in the hwnds list means drawn on top.
-        if (gridHwnd != null && gridRenderer.showing())
-            hwnds.add(gridHwnd);
-        if (hintMeshRenderer.showing())
-            for (TransparentWindow window : hintMeshRenderer.windows())
-                hwnds.add(hwnd(window));
+        if (gridHwnd != null)
+            (gridRenderer.showing() ? hwnds : notTopmostHwnds).add(gridHwnd);
+        for (TransparentWindow window : hintMeshRenderer.windows())
+            (hintMeshRenderer.showing() ? hwnds : notTopmostHwnds).add(hwnd(window));
         if (indicatorHwnd != null && indicatorRenderer.showing())
             hwnds.add(indicatorHwnd);
         if (zoomHwnd != null)
-            hwnds.add(zoomHwnd);
+            (currentZoom != null ? hwnds : notTopmostHwnds).add(zoomHwnd);
+        // The shell demotes the taskbar under a topmost window that covers a screen.
+        notTopmostHwnds.forEach(this::setWindowNotTopmost);
         if (hwnds.isEmpty())
             return;
         if (currentZoom != null) {
@@ -235,6 +238,16 @@ public class WindowsOverlay implements Overlay {
 
     private void setWindowTopmost(WinDef.HWND hwnd) {
         User32.INSTANCE.SetWindowPos(hwnd, ExtendedUser32.HWND_TOPMOST, 0, 0, 0, 0,
+                WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE | WinUser.SWP_NOACTIVATE);
+    }
+
+    /** enforceTopmost runs every 200ms and SetWindowPos flickers the layered windows. */
+    private void setWindowNotTopmost(WinDef.HWND hwnd) {
+        long exStyle = User32.INSTANCE.GetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE)
+                                      .longValue();
+        if ((exStyle & User32.WS_EX_TOPMOST) == 0)
+            return;
+        User32.INSTANCE.SetWindowPos(hwnd, ExtendedUser32.HWND_NOTOPMOST, 0, 0, 0, 0,
                 WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE | WinUser.SWP_NOACTIVATE);
     }
 
@@ -343,7 +356,7 @@ public class WindowsOverlay implements Overlay {
         wClass.lpfnWndProc = zoomWindowProc;
         User32.INSTANCE.RegisterClassEx(wClass);
         zoomHwnd = User32.INSTANCE.CreateWindowEx(
-                User32.WS_EX_TOPMOST | ExtendedUser32.WS_EX_TOOLWINDOW |
+                ExtendedUser32.WS_EX_TOOLWINDOW |
                 ExtendedUser32.WS_EX_NOACTIVATE | ExtendedUser32.WS_EX_LAYERED |
                 ExtendedUser32.WS_EX_TRANSPARENT,
                 wClass.lpszClassName, "MousemasterZoom", WinUser.WS_POPUP,
