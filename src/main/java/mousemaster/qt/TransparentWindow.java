@@ -17,6 +17,7 @@ public class TransparentWindow extends QWidget {
 
     private QColor backgroundColor;
     private QRect backgroundRect;
+    private int backgroundRadius;
     private double pointsPerPixel = 1;
 
     public TransparentWindow() {
@@ -25,11 +26,12 @@ public class TransparentWindow extends QWidget {
         setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground);
     }
 
-    public void setBackground(QColor color, QRect rect) {
+    public void setBackground(QColor color, QRect rect, int radius) {
         if (this.backgroundRect != null)
             this.backgroundRect.dispose();
         this.backgroundColor = color;
         this.backgroundRect = rect;
+        this.backgroundRadius = radius;
     }
 
     /**
@@ -92,7 +94,12 @@ public class TransparentWindow extends QWidget {
     protected void paintEvent(QPaintEvent event) {
         if (backgroundColor != null) {
             QPainter painter = new QPainter(this);
-            painter.fillRect(backgroundRect, backgroundColor);
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, backgroundRadius > 0);
+            painter.setPen(Qt.PenStyle.NoPen);
+            painter.setBrush(QtColorUtil.qBrush(backgroundColor));
+            painter.drawRoundedRect(backgroundRect.x(), backgroundRect.y(),
+                    backgroundRect.width(), backgroundRect.height(), backgroundRadius,
+                    backgroundRadius);
             painter.end();
             painter.dispose();
         }

@@ -33,6 +33,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             Duration fadeAnimationDuration,
                             String backgroundHexColor,
                             double backgroundOpacity,
+                            double backgroundBorderRadius,
                             List<Key> labelOverride) {
 
     public HintMeshStyleBuilder builder() {
@@ -73,6 +74,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Duration fadeAnimationDuration;
         private String backgroundHexColor;
         private Double backgroundOpacity;
+        private Double backgroundBorderRadius;
         private List<Key> labelOverride;
 
         public HintMeshStyleBuilder() {
@@ -111,6 +113,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.fadeAnimationDuration = style.fadeAnimationDuration;
             this.backgroundHexColor = style.backgroundHexColor;
             this.backgroundOpacity = style.backgroundOpacity;
+            this.backgroundBorderRadius = style.backgroundBorderRadius;
             this.labelOverride = style.labelOverride;
         }
 
@@ -248,6 +251,11 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
+        public HintMeshStyleBuilder backgroundBorderRadius(Double backgroundBorderRadius) {
+            this.backgroundBorderRadius = backgroundBorderRadius;
+            return this;
+        }
+
         public HintMeshStyleBuilder labelOverride(List<Key> labelOverride) {
             this.labelOverride = labelOverride;
             return this;
@@ -370,6 +378,10 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return backgroundOpacity;
         }
 
+        public Double backgroundBorderRadius() {
+            return backgroundBorderRadius;
+        }
+
         public List<Key> labelOverride() {
             return labelOverride;
         }
@@ -412,6 +424,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     fadeAnimationDuration == null ? defaultStyle.fadeAnimationDuration : fadeAnimationDuration,
                     backgroundHexColor == null ? defaultStyle.backgroundHexColor : backgroundHexColor,
                     backgroundOpacity == null ? defaultStyle.backgroundOpacity : backgroundOpacity,
+                    backgroundBorderRadius == null ? defaultStyle.backgroundBorderRadius : backgroundBorderRadius,
                     labelOverride == null ? defaultStyle.labelOverride : labelOverride
             );
         }

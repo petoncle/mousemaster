@@ -6777,6 +6777,7 @@
             "java.time.Duration",
             "java.lang.String",
             "double",
+            "double",
             "java.util.List"
           ]
         },
@@ -6786,6 +6787,10 @@
         },
         {
           "name": "backgroundOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "backgroundBorderRadius",
           "parameterTypes": []
         },
         {

@@ -364,7 +364,7 @@ public final class HintMeshRenderer {
             BorderMorph lineMorph = borderMorphByWindow.remove(hintMeshWindow.window());
             if (lineMorph != null)
                 stopBorderMorph(lineMorph);
-            hintMeshWindow.window().setBackground(null, null);
+            hintMeshWindow.window().setBackground(null, null, 0);
             hintMeshWindow.window().hideChildren();
             hintMeshWindow.window().repaint();
             // Reset opacity after hiding so the window is ready for reuse.
@@ -485,15 +485,17 @@ public final class HintMeshRenderer {
 
         private QColor clearColor = new QColor(0, 0, 0, 0);
         private Rectangle clearRect = new Rectangle(0, 0, 0, 0);
+        private int clearRadius;
         /** Crop region, clipped in paintEvent instead of via setMask (which recomposites the whole
          *  window). Null paints the full pixmap. */
         private QRect crop;
 
-        void setClearColor(QColor clearColor, Rectangle clearRect) {
+        void setClearColor(QColor clearColor, Rectangle clearRect, int clearRadius) {
             if (this.clearColor != null)
                 this.clearColor.dispose();
             this.clearColor = clearColor;
             this.clearRect = clearRect;
+            this.clearRadius = clearRadius;
         }
 
         boolean cropCapable() {
@@ -556,13 +558,12 @@ public final class HintMeshRenderer {
             QRect r = rect();
             painter.fillRect(r, clearColor);
             r.dispose();
-            Rectangle background =
-                    clearRect.intersection(new Rectangle(x(), y(), width(), height()));
-            if (!background.isEmpty()) {
-                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
-                painter.fillRect(background.x() - x(), background.y() - y(),
-                        background.width(), background.height(), clearColor);
-            }
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, clearRadius > 0);
+            painter.setPen(Qt.PenStyle.NoPen);
+            painter.setBrush(QtColorUtil.qBrush(clearColor));
+            painter.drawRoundedRect(clearRect.x() - x(), clearRect.y() - y(),
+                    clearRect.width(), clearRect.height(), clearRadius, clearRadius);
             painter.end();
             painter.dispose();
             super.paintEvent(event);
@@ -690,8 +691,10 @@ public final class HintMeshRenderer {
                 QtColorUtil.qColor(style.backgroundHexColor(), style.backgroundOpacity()) : null;
         Rectangle backgroundRect = backgroundColor == null ? null :
                 backgroundRect(window, backgroundArea, qtScaleFactor);
+        int backgroundRadius =
+                scaledLength(style.backgroundBorderRadius(), screenScale / qtScaleFactor);
         if (hintMeshWindow.hints().isEmpty()) {
-            showBackground(window, backgroundColor, backgroundRect);
+            showBackground(window, backgroundColor, backgroundRect, backgroundRadius);
             QWidget container = new QWidget(window);
             container.setGeometry(0, 0, 0, 0);
             container.show();
@@ -731,7 +734,7 @@ public final class HintMeshRenderer {
             pixmapLabel.setScaledContents(true);
             newContainer = pixmapLabel;
             boolean animateTransition = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
-            showBackground(window, backgroundColor, backgroundRect);
+            showBackground(window, backgroundColor, backgroundRect, backgroundRadius);
             transitionHintContainers(animateTransition, oldContainer, newContainer,
                     window, hintMeshWindow, transitionAnimationDuration);
             if (pixmapAndPosition.boxes() != null)
@@ -748,7 +751,7 @@ public final class HintMeshRenderer {
             // the top-level container must override the container below.
             ClearBackgroundQLabel container = new ClearBackgroundQLabel(window);
             if (backgroundRect != null)
-                container.setClearColor(backgroundColor, backgroundRect);
+                container.setClearColor(backgroundColor, backgroundRect, backgroundRadius);
             container.setStyleSheet("background: transparent;");
             newContainer = container;
             int hideCountBeforeBuild = hideCount;
@@ -777,7 +780,7 @@ public final class HintMeshRenderer {
                             return;
                         }
                         boolean animateTransition = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
-                        showBackground(window, backgroundColor, backgroundRect);
+                        showBackground(window, backgroundColor, backgroundRect, backgroundRadius);
                         transitionHintContainers(animateTransition,
                                 oldContainer, newContainer,
                                 window, hintMeshWindow, transitionAnimationDuration);
@@ -829,14 +832,14 @@ public final class HintMeshRenderer {
     }
 
     private static void showBackground(TransparentWindow window, QColor backgroundColor,
-                                       Rectangle backgroundRect) {
+                                       Rectangle backgroundRect, int backgroundRadius) {
         if (backgroundRect == null) {
-            window.setBackground(null, null);
+            window.setBackground(null, null, 0);
             return;
         }
         QRect rect = new QRect(backgroundRect.x(), backgroundRect.y(),
                 backgroundRect.width(), backgroundRect.height());
-        window.setBackground(backgroundColor, rect);
+        window.setBackground(backgroundColor, rect, backgroundRadius);
         window.update(rect);
     }
 

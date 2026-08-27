@@ -905,6 +905,8 @@ hint-mode.hint.background-opacity=0
   - `box-shadow-vertical-offset`: Vertical shadow offset (-100 to 100, default 2).
   - `background-color`: Background color behind all hint boxes, mostly useful for UI hints (hex, default #000000).
   - `background-opacity`: Background opacity, mostly useful for UI hints (0-1, default 0 = no background).
+  - `background-border-radius`: Radius of the background's rounded corners (0-1000, default 8, matching
+    Windows' own window corners).
 
 - Decorations: purely visual grids drawn over the hints. Three levels share one set of
   properties, prefixed by how deep they sit: `decoration-` spans the whole hint grid as one

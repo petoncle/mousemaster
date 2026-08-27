@@ -148,6 +148,7 @@ public class ConfigurationParser {
                 .fadeAnimationDuration(Duration.ofMillis(100))
                 .backgroundHexColor("#000000")
                 .backgroundOpacity(0d)
+                .backgroundBorderRadius(8d)
                 .labelOverride(List.of());
         // Decoration defaults: index 0 = whole-area decoration, 1 = subdecoration,
         // 2 = subsubdecoration. Disabled by default (a 1x1 grid draws nothing).
@@ -2736,6 +2737,7 @@ public class ConfigurationParser {
             case "fade-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fadeAnimationDuration"), v -> parseDuration(v), v -> hintMeshBuilder.style(screenFilter).fadeAnimationDuration(v));
             case "background-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(screenFilter).backgroundHexColor(v));
             case "background-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).backgroundOpacity(v));
+            case "background-border-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundBorderRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).backgroundBorderRadius(v));
             // @formatter:on
             default -> null;
         };
@@ -3744,6 +3746,11 @@ public class ConfigurationParser {
                             childStyleByFilter, filter))
                         childStyle.backgroundOpacity(
                                 parentStyle.backgroundOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::backgroundBorderRadius,
+                            childStyleByFilter, filter))
+                        childStyle.backgroundBorderRadius(
+                                parentStyle.backgroundBorderRadius());
                 }
                 // Font-style cascade: for each screen filter, resolve all font
                 // properties (child.X, child.any, parent.X, parent.any).
