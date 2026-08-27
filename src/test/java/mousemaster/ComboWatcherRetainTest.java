@@ -39,7 +39,7 @@ class ComboWatcherRetainTest {
             map.put(combo, List.of());
         }
         Mode mode = new Mode("test-mode", false, false, null,
-                new ComboMap(map), null, null, null, null, null, null, null, null);
+                new ComboMap(map), null, null, null, null, null, null, null, null, null);
         return new ModeMap(Set.of(mode));
     }
 

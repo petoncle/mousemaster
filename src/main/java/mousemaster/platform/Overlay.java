@@ -1,5 +1,6 @@
 package mousemaster.platform;
 
+import mousemaster.EffectFrame;
 import mousemaster.Grid;
 import mousemaster.Hint;
 import mousemaster.HintMesh;
@@ -9,6 +10,7 @@ import mousemaster.Rectangle;
 
 import mousemaster.Zoom;
 
+import java.util.List;
 import java.util.Set;
 
 public interface Overlay {
@@ -41,6 +43,12 @@ public interface Overlay {
     void runPendingHintMeshWork();
 
     void hideIndicator(boolean allowFade);
+
+    /** Draws the given effect frames in an overlay centered on the mouse position.
+     *  Called every tick while at least one effect is running. */
+    void setEffects(List<EffectFrame> effectFrames);
+
+    void hideEffects();
 
     void setGrid(Grid grid);
 
