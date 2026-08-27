@@ -7,43 +7,38 @@ public class ConnectedComponentFinder {
 
     private final int[] parent;
     private final int[] size;
-    private final int[] left;
-    private final int[] top;
-    private final int[] right;
-    private final int[] bottom;
+    private final short[] left;
+    private final short[] top;
+    private final short[] right;
+    private final short[] bottom;
 
     private ConnectedComponentFinder(boolean[] mask, int width, int height) {
         parent = new int[mask.length];
         size = new int[mask.length];
-        left = new int[mask.length];
-        top = new int[mask.length];
-        right = new int[mask.length];
-        bottom = new int[mask.length];
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int pixel = y * width + x;
-                parent[pixel] = pixel;
-                size[pixel] = mask[pixel] ? 1 : 0;
-                left[pixel] = x;
-                top[pixel] = y;
-                right[pixel] = x;
-                bottom[pixel] = y;
-            }
-        }
+        left = new short[mask.length];
+        top = new short[mask.length];
+        right = new short[mask.length];
+        bottom = new short[mask.length];
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int pixel = y * width + x;
                 if (!mask[pixel])
                     continue;
-                if (x + 1 < width && mask[pixel + 1])
-                    union(pixel, pixel + 1);
-                if (y + 1 < height) {
-                    if (mask[pixel + width])
-                        union(pixel, pixel + width);
-                    if (x > 0 && mask[pixel + width - 1])
-                        union(pixel, pixel + width - 1);
-                    if (x + 1 < width && mask[pixel + width + 1])
-                        union(pixel, pixel + width + 1);
+                parent[pixel] = pixel;
+                size[pixel] = 1;
+                left[pixel] = (short) x;
+                top[pixel] = (short) y;
+                right[pixel] = (short) x;
+                bottom[pixel] = (short) y;
+                if (x > 0 && mask[pixel - 1])
+                    union(pixel, pixel - 1);
+                if (y > 0) {
+                    if (mask[pixel - width])
+                        union(pixel, pixel - width);
+                    if (x > 0 && mask[pixel - width - 1])
+                        union(pixel, pixel - width - 1);
+                    if (x + 1 < width && mask[pixel - width + 1])
+                        union(pixel, pixel - width + 1);
                 }
             }
         }
@@ -89,10 +84,10 @@ public class ConnectedComponentFinder {
         }
         parent[otherRoot] = root;
         size[root] += size[otherRoot];
-        left[root] = Math.min(left[root], left[otherRoot]);
-        top[root] = Math.min(top[root], top[otherRoot]);
-        right[root] = Math.max(right[root], right[otherRoot]);
-        bottom[root] = Math.max(bottom[root], bottom[otherRoot]);
+        left[root] = (short) Math.min(left[root], left[otherRoot]);
+        top[root] = (short) Math.min(top[root], top[otherRoot]);
+        right[root] = (short) Math.max(right[root], right[otherRoot]);
+        bottom[root] = (short) Math.max(bottom[root], bottom[otherRoot]);
     }
 
 }
