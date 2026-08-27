@@ -13,6 +13,7 @@
 - [Indicator properties](#indicator-properties)
 - [Cursor properties](#cursor-properties)
 - [Zoom properties](#zoom-properties)
+- [Effect properties](#effect-properties)
 - [Mouse move commands](#mouse-move-commands)
 - [Mouse button click commands](#mouse-button-click-commands)
 - [Wheel commands](#wheel-scrolling-commands)
@@ -498,6 +499,80 @@ zoom-mode.zoom.animation-duration-millis=300
 - `zoom.animation-enabled` defaults to `false`.
 - `zoom.animation-easing` can be `smoothstep`, `smootherstep`, `logarithmic`, `exponential`, or a number (the polynomial exponent, `1` = linear). Defaults to `smootherstep`.
 - `zoom.animation-duration-millis` is the duration of a full zoom transition (from 1x to the configured percent). Partial transitions (e.g. interrupted animations) are proportionally shorter. Defaults to `200`.
+
+### Effect properties
+
+Effects are short, named animations drawn in an area that follows the mouse: a stack of
+simple shape layers (dot, circle, square, triangle, line, cross) animated over one cycle
+with keyframes. They are started and stopped by combos, so an effect can play on a click,
+loop exactly while a key is held, or flash on a release — without touching the indicator.
+
+```properties
+# A calm click ripple: a circle that expands and fades over 250ms.
+normal-mode.effect.click-ripple.duration-millis=250
+normal-mode.effect.click-ripple.area=48
+normal-mode.effect.click-ripple.layer1-shape=circle
+normal-mode.effect.click-ripple.layer1-size=10
+normal-mode.effect.click-ripple.layer1-color=#96A8FF
+normal-mode.effect.click-ripple.layer1-thickness=2
+normal-mode.effect.click-ripple.layer1-keyframes=0 size=10 opacity=0.8 | 100 size=36 opacity=0
+normal-mode.start-effect.click-ripple=-leftbutton
+```
+
+- **`effect.<name>.duration-millis`**: One cycle in milliseconds (default `250`).
+- **`effect.<name>.repeat`**: `once` (default) removes the effect at the end of its cycle;
+  `loop` wraps around until `stop-effect` stops it.
+- **`effect.<name>.easing`**: Easing applied to the cycle progress, same values as
+  `zoom.animation-easing` (default linear).
+- **`effect.<name>.area`**: The effect's region, centered on the mouse position: a size
+  (`48`) or width-by-height (`64x32`), in logical pixels (default `100`). Layers are
+  clipped to it.
+
+Each layer is one shape, drawn in declaration order (layer1 at the bottom):
+
+- **`layer<n>-shape`**: `dot` (filled circle), `circle`, `square`, `triangle`, `line`, or
+  `cross` (a diagonal ×; rotate by 45 for a +).
+- **`layer<n>-x`** / **`layer<n>-y`**: Offset from the area center (default `0`).
+- **`layer<n>-size`**: A size (`24`), width-by-height (`24x12`), or `area` to take the
+  size of the whole area — a filled square layer sized to the area is the effect's
+  background (default `16`).
+- **`layer<n>-rotation`**: Degrees (default `0`).
+- **`layer<n>-color`** / **`layer<n>-opacity`**: Layer color (default `#FFFFFF`) and
+  opacity (default `1`).
+- **`layer<n>-filled`**: Filled or outline (default: filled for `dot`, outline otherwise).
+- **`layer<n>-thickness`**: Outline/stroke width (default `1`).
+- **`layer<n>-keyframes`**: The layer's timeline: `|`-separated keyframes, each a cycle
+  position in percent followed by the values it pins. `size`, `opacity`, `rotation`, `x`
+  and `y` are interpolated between the keyframes that mention them (the layer's base
+  values act as an implicit keyframe at 0%), while `color` and the bare keywords
+  `show`/`hide` switch when their keyframe is reached.
+
+Combos start and stop effects like any other command:
+
+```properties
+# A quiet pulse looping exactly while n (a mouse button key) is held: a square
+# outline rotating a quarter turn per cycle, over a breathing dot.
+normal-mode.effect.hold-pulse.repeat=loop
+normal-mode.effect.hold-pulse.duration-millis=1400
+normal-mode.effect.hold-pulse.layer1-shape=square
+normal-mode.effect.hold-pulse.layer1-size=22
+normal-mode.effect.hold-pulse.layer1-opacity=0.35
+normal-mode.effect.hold-pulse.layer1-keyframes=0 rotation=0 | 100 rotation=90
+normal-mode.effect.hold-pulse.layer2-shape=dot
+normal-mode.effect.hold-pulse.layer2-keyframes=0 size=4 | 50 size=7 | 100 size=4
+normal-mode.start-effect.hold-pulse=+n
+normal-mode.stop-effect.hold-pulse=-n
+```
+
+- **`start-effect.<name>`**: Starts the effect (restarting its cycle if it is already
+  running). The effect must be defined in the same mode.
+- **`stop-effect.<name>`**: Stops it immediately.
+
+A one-shot effect keeps playing to the end of its cycle when the mode changes; a looping
+effect is stopped by a mode change, because its `stop-effect` combo may not exist in the
+new mode. Effect properties do not support [mutation branches](#mode-property-mutation)
+(the `|` separator belongs to keyframes); start different effects from different combos
+instead.
 
 ### Mouse move commands
 

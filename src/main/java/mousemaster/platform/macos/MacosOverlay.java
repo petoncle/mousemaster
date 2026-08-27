@@ -1,6 +1,7 @@
 package mousemaster.platform.macos;
 
 import io.qt.core.QPoint;
+import mousemaster.EffectFrame;
 import mousemaster.Grid;
 import mousemaster.Hint;
 import mousemaster.HintMesh;
@@ -14,6 +15,7 @@ import mousemaster.platform.Overlay;
 import mousemaster.platform.DesktopCapture;
 import mousemaster.qt.QtHintFont;
 import mousemaster.qt.TransparentWindow;
+import mousemaster.renderer.EffectRenderer;
 import mousemaster.renderer.GridRenderer;
 import mousemaster.renderer.HintMeshRenderer;
 import mousemaster.renderer.IndicatorRenderer;
@@ -37,6 +39,7 @@ public class MacosOverlay implements Overlay {
 
     private IndicatorRenderer indicatorRenderer;
     private GridRenderer gridRenderer;
+    private EffectRenderer effectRenderer;
     private MacosZoomRenderer zoomRenderer;
     private Zoom currentZoom;
     private long nextZoomFrameNanos;
@@ -190,6 +193,24 @@ public class MacosOverlay implements Overlay {
         Point visualCenter = MacosCursor.visualCenter();
         return new Point(visualCenter.x() * activeScreen.scale(),
                 visualCenter.y() * activeScreen.scale());
+    }
+
+    @Override
+    public void setEffects(List<EffectFrame> effectFrames) {
+        if (effectRenderer == null) {
+            effectRenderer = new EffectRenderer();
+            MacosWindow.applyOverlayProperties(effectRenderer.widget());
+        }
+        QPoint mousePosition = mouse.findMousePosition();
+        // Qt positions and sizes are logical points on macOS: no scaling needed.
+        effectRenderer.setEffects(effectFrames, mousePosition.x(), mousePosition.y(),
+                1);
+    }
+
+    @Override
+    public void hideEffects() {
+        if (effectRenderer != null)
+            effectRenderer.hide();
     }
 
     @Override

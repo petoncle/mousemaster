@@ -18,6 +18,7 @@ public class Mousemaster {
     private final WatchService watchService;
     private Configuration configuration;
     private MouseManager mouseManager;
+    private EffectManager effectManager;
     private CommandRunner commandRunner;
     private MacroPlayer macroPlayer;
     private KeyboardManager keyboardManager;
@@ -95,6 +96,7 @@ public class Mousemaster {
             timeBeforeOp = System.nanoTime();
             pumpEventsNanos += timeBeforeOp - timeAfterOp;
             modeController.updateBuiltInVirtualKeys();
+            effectManager.update(delta);
             if (!hintManager.waitingForUiElements())
                 indicatorManager.update(delta);
             timeAfterOp = System.nanoTime();
@@ -225,7 +227,9 @@ public class Mousemaster {
                         screenManager, mouseManager, platform.overlay(),
                         platform.uiAutomation(), platform.activeAppFinder(),
                         keyRedactor, platform.vision());
-        commandRunner = new CommandRunner(mouseManager, gridManager, hintManager);
+        effectManager = new EffectManager(platform.overlay());
+        commandRunner = new CommandRunner(mouseManager, gridManager, hintManager,
+                effectManager);
         Set<Key> unpressedComboPreconditionKeys = new HashSet<>();
         Set<Key> pressedComboPreconditionKeys = new HashSet<>();
         for (Mode mode : configuration.modeMap().modes()) {
@@ -264,7 +268,7 @@ public class Mousemaster {
         // lastSelectedHintPoint() which is updated by HintManager#modeChanged.
         comboWatcher.setModeListeners(
                 List.of(platform, mouseManager, indicatorManager, gridManager,
-                        hintManager, zoomManager));
+                        hintManager, zoomManager, effectManager));
         modeController =
                 new ModeController(configuration.modeMap(), mouseManager, mouseState,
                         keyboardState,

@@ -58,7 +58,7 @@ class HintMeshEmptyVirtualKeyTest {
                 new MouseManager(screenManager, proxy(MouseController.class)),
                 overlay(), uiAutomation(), noApp,
                 new KeyRedactor(KeyRedaction.NONE), null);
-        CommandRunner commandRunner = new CommandRunner(null, null, hintManager) {
+        CommandRunner commandRunner = new CommandRunner(null, null, hintManager, null) {
             @Override
             public boolean runningAtomicCommand() {
                 return false;

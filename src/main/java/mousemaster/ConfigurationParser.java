@@ -2,6 +2,8 @@ package mousemaster;
 
 import mousemaster.ComboMove.KeyComboMove;
 import mousemaster.ComboMove.PressComboMove;
+import mousemaster.EffectConfiguration.EffectConfigurationBuilder;
+import mousemaster.EffectLayer.EffectLayerBuilder;
 import mousemaster.GridArea.GridAreaType;
 import mousemaster.GridConfiguration.GridConfigurationBuilder;
 import mousemaster.HideCursor.HideCursorBuilder;
@@ -294,7 +296,10 @@ public class ConfigurationParser {
                 new Property<>("set-variable", Map.of()),
                 new Property<>("unset-variable", Map.of()),
                 new Property<>("reset-variables", Map.of()),
-                new Property<>("noop", Map.of())
+                new Property<>("noop", Map.of()),
+                new Property<>("effect", new LinkedHashMap<String, EffectConfigurationBuilder>()),
+                new Property<>("start-effect", Map.of()),
+                new Property<>("stop-effect", Map.of())
         ).collect(Collectors.toMap(property -> property.propertyKey.propertyName, Function.identity()));
         // @formatter:on
     }
@@ -1327,6 +1332,48 @@ public class ConfigurationParser {
                             keyAliases, appAliases, keyResolver, allVariableNames);
                 }
             }
+            case "effect" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.effects.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(group4) == null ||
+                         keyMatcher.group(group5) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid effect property key: expected effect.<name>.<key>");
+                else {
+                    String effectName = keyMatcher.group(group4);
+                    parseEffectProperty(mode.effects.builder.computeIfAbsent(effectName,
+                                    effectName1 -> new EffectConfigurationBuilder()),
+                            effectName, keyMatcher.group(group5), propertyValue);
+                }
+            }
+            case "start-effect" -> {
+                if (keyMatcher.group(group3) == null || keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "start-effect requires an effect name: start-effect.<name>");
+                else if (keyMatcher.group(group5) != null)
+                    throw new IllegalArgumentException(
+                            "Invalid start-effect property key: expected start-effect.<name>");
+                else
+                    setCommand(mode.comboMap.startEffect.builder, propertyValue,
+                            new Command.StartEffect(keyMatcher.group(group4)),
+                            propertyKey, defaultComboMoveDuration, keyAliases,
+                            appAliases, keyResolver, allVariableNames);
+            }
+            case "stop-effect" -> {
+                if (keyMatcher.group(group3) == null || keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "stop-effect requires an effect name: stop-effect.<name>");
+                else if (keyMatcher.group(group5) != null)
+                    throw new IllegalArgumentException(
+                            "Invalid stop-effect property key: expected stop-effect.<name>");
+                else
+                    setCommand(mode.comboMap.stopEffect.builder, propertyValue,
+                            new Command.StopEffect(keyMatcher.group(group4)),
+                            propertyKey, defaultComboMoveDuration, keyAliases,
+                            appAliases, keyResolver, allVariableNames);
+            }
             case "hide-cursor" -> {
                 if (keyMatcher.group(group3) == null)
                     mode.hideCursor.parsePropertyReference(propertyKey, propertyValue,
@@ -2274,6 +2321,153 @@ public class ConfigurationParser {
                 defaultComboMoveDuration, keyAliases, appAliases, keyResolver,
                 allVariableNames, null))
             handler.modeBuilderSetter().accept(propertyValue);
+    }
+
+    private static final Pattern effectLayerKeyPattern =
+            Pattern.compile("layer([1-9][0-9]*)-(.+)");
+
+    /**
+     * Effect properties do not go through {@link #tryParseComboProperty}: combo-based
+     * mutation is not supported for them (yet), and keyframes reuse the | separator.
+     */
+    private static void parseEffectProperty(EffectConfigurationBuilder effect,
+                                            String effectName, String key,
+                                            String propertyValue) {
+        Matcher layerMatcher = effectLayerKeyPattern.matcher(key);
+        if (layerMatcher.matches()) {
+            int layerNumber = Integer.parseInt(layerMatcher.group(1));
+            String layerKey = layerMatcher.group(2);
+            EffectLayerBuilder layer = effect.layer(layerNumber);
+            switch (layerKey) {
+                // @formatter:off
+                case "shape" -> layer.shape(EffectShape.parse(propertyValue));
+                case "x" -> layer.x(parseDouble(propertyValue, true, -10_000, 10_000));
+                case "y" -> layer.y(parseDouble(propertyValue, true, -10_000, 10_000));
+                case "size" -> {
+                    if (propertyValue.equals("area"))
+                        layer.size(null, null, true);
+                    else {
+                        double[] size = parseEffectSize(propertyValue);
+                        layer.size(size[0], size[1], false);
+                    }
+                }
+                case "rotation" -> layer.rotation(parseDouble(propertyValue, true, -100_000, 100_000));
+                case "color" -> layer.hexColor(checkColorFormat(propertyValue));
+                case "opacity" -> layer.opacity(parseDouble(propertyValue, true, 0, 1));
+                case "filled" -> layer.filled(Boolean.parseBoolean(propertyValue));
+                case "thickness" -> layer.thickness(parseDouble(propertyValue, false, 0, 1_000));
+                case "keyframes" -> layer.keyframes(parseEffectKeyframes(effectName, layerNumber, propertyValue));
+                default -> throw new IllegalArgumentException(
+                        "Invalid effect layer property key: " + key);
+                // @formatter:on
+            }
+            return;
+        }
+        switch (key) {
+            // @formatter:off
+            case "duration-millis" -> effect.duration(parseDuration(propertyValue));
+            case "repeat" -> effect.loop(switch (propertyValue) {
+                case "once" -> false;
+                case "loop" -> true;
+                default -> throw new IllegalArgumentException(
+                        "Invalid effect repeat " + propertyValue +
+                        ": expected once or loop");
+            });
+            case "easing" -> effect.easing(parseEasing(propertyValue));
+            case "area" -> {
+                double[] area = parseEffectSize(propertyValue);
+                effect.area((int) area[0], (int) area[1]);
+            }
+            default -> throw new IllegalArgumentException(
+                    "Invalid effect property key: " + key);
+            // @formatter:on
+        }
+    }
+
+    /** A size is uniform ({@code 24}) or width-by-height ({@code 64x32}). */
+    private static double[] parseEffectSize(String propertyValue) {
+        int xIndex = propertyValue.indexOf('x');
+        if (xIndex == -1) {
+            double size = parseDouble(propertyValue, false, 0, 10_000);
+            return new double[]{size, size};
+        }
+        return new double[]{
+                parseDouble(propertyValue.substring(0, xIndex), false, 0, 10_000),
+                parseDouble(propertyValue.substring(xIndex + 1), false, 0, 10_000)};
+    }
+
+    /**
+     * Keyframes are | separated, each one a cycle position in percent followed by the
+     * values it pins: {@code 0 size=12 opacity=0.8 | 100 size=28 opacity=0}. The bare
+     * keywords {@code show} and {@code hide} toggle the layer's visibility.
+     */
+    private static List<EffectKeyframe> parseEffectKeyframes(String effectName,
+                                                             int layerNumber,
+                                                             String propertyValue) {
+        List<EffectKeyframe> keyframes = new ArrayList<>();
+        double previousPercent = -1;
+        for (String keyframeString : propertyValue.split("\\|")) {
+            String[] tokens = keyframeString.trim().split("\\s+");
+            String context = "effect " + effectName + " layer" + layerNumber +
+                             " keyframe \"" + keyframeString.trim() + "\"";
+            if (tokens.length == 0 || tokens[0].isEmpty())
+                throw new IllegalArgumentException("Empty keyframe in " + context);
+            double percent;
+            try {
+                percent = parseDouble(tokens[0], true, 0, 100);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(
+                        "Invalid keyframe in " + context +
+                        ": a keyframe begins with its cycle position in percent (0-100)");
+            }
+            if (percent <= previousPercent)
+                throw new IllegalArgumentException(
+                        "Invalid keyframe in " + context +
+                        ": keyframe positions must be increasing");
+            previousPercent = percent;
+            Double sizeWidth = null, sizeHeight = null, opacity = null, rotation = null,
+                    x = null, y = null;
+            Boolean sizeIsArea = null, visible = null;
+            String hexColor = null;
+            for (int tokenIndex = 1; tokenIndex < tokens.length; tokenIndex++) {
+                String token = tokens[tokenIndex];
+                int equalIndex = token.indexOf('=');
+                if (equalIndex == -1) {
+                    switch (token) {
+                        case "show" -> visible = true;
+                        case "hide" -> visible = false;
+                        default -> throw new IllegalArgumentException(
+                                "Invalid keyframe token " + token + " in " + context);
+                    }
+                    continue;
+                }
+                String tokenKey = token.substring(0, equalIndex);
+                String tokenValue = token.substring(equalIndex + 1);
+                switch (tokenKey) {
+                    // @formatter:off
+                    case "size" -> {
+                        if (tokenValue.equals("area"))
+                            sizeIsArea = true;
+                        else {
+                            double[] size = parseEffectSize(tokenValue);
+                            sizeWidth = size[0];
+                            sizeHeight = size[1];
+                        }
+                    }
+                    case "opacity" -> opacity = parseDouble(tokenValue, true, 0, 1);
+                    case "rotation" -> rotation = parseDouble(tokenValue, true, -100_000, 100_000);
+                    case "x" -> x = parseDouble(tokenValue, true, -10_000, 10_000);
+                    case "y" -> y = parseDouble(tokenValue, true, -10_000, 10_000);
+                    case "color" -> hexColor = checkColorFormat(tokenValue);
+                    default -> throw new IllegalArgumentException(
+                            "Invalid keyframe token " + token + " in " + context);
+                    // @formatter:on
+                }
+            }
+            keyframes.add(new EffectKeyframe(percent, sizeWidth, sizeHeight, sizeIsArea,
+                    opacity, rotation, x, y, visible, hexColor));
+        }
+        return List.copyOf(keyframes);
     }
 
     private record ModePropertyHandler(
@@ -3309,6 +3503,7 @@ public class ConfigurationParser {
         Property<IndicatorConfigurationBuilder> indicator;
         Property<HideCursorBuilder> hideCursor;
         Property<ZoomConfigurationBuilder> zoom;
+        Property<Map<String, EffectConfigurationBuilder>> effects;
 
         private ModeBuilder(String modeName,
                             Map<PropertyKey, Property<?>> propertyByKey) {
@@ -3465,17 +3660,50 @@ public class ConfigurationParser {
                         builder.animationDurationMillis(parent.animationDurationMillis());
                 }
             };
+            effects = new Property<>("effect", modeName, propertyByKey,
+                    new LinkedHashMap<>()) {
+                @Override
+                void extend(Object parent_) {
+                    Map<String, EffectConfigurationBuilder> parent =
+                            (Map<String, EffectConfigurationBuilder>) parent_;
+                    for (Map.Entry<String, EffectConfigurationBuilder> parentEntry :
+                            parent.entrySet())
+                        builder.computeIfAbsent(parentEntry.getKey(),
+                                       effectName -> new EffectConfigurationBuilder())
+                               .extend(parentEntry.getValue());
+                }
+            };
         }
 
         public Mode build() {
+            Map<String, EffectConfiguration> builtEffects = new LinkedHashMap<>();
+            for (Map.Entry<String, EffectConfigurationBuilder> entry :
+                    effects.builder.entrySet())
+                builtEffects.put(entry.getKey(), entry.getValue().build(entry.getKey()));
+            ComboMap builtComboMap = comboMap.build();
+            for (List<Command> commands : builtComboMap.commandsByCombo().values()) {
+                for (Command command : commands) {
+                    String effectName = switch (command) {
+                        case Command.StartEffect(String name) -> name;
+                        case Command.StopEffect(String name) -> name;
+                        default -> null;
+                    };
+                    if (effectName != null && !builtEffects.containsKey(effectName))
+                        throw new IllegalArgumentException(
+                                "Mode " + modeName + " references effect " + effectName +
+                                " which is not defined: expected " + modeName +
+                                ".effect." + effectName + ".layer1-shape=<shape>");
+                }
+            }
             return new Mode(modeName, stopCommandsFromPreviousMode.builder.get(),
                     pushModeToHistoryStack.builder.get(),
                     modeAfterUnhandledKeyPress.builder.get(),
-                    comboMap.build(),
+                    builtComboMap,
                     mouse.builder.build(), wheel.builder.build(), grid.builder.build(),
                     hintMesh.builder.build(), timeout.builder.build(),
                     indicator.builder.build(), hideCursor.builder.build(),
-                    zoom.builder.build());
+                    zoom.builder.build(),
+                    Collections.unmodifiableMap(builtEffects));
         }
 
         private static class HintMeshProperty
@@ -3969,6 +4197,8 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> setVariable;
         Property<Map<Combo, List<Command>>> unsetVariable;
         Property<Map<Combo, List<Command>>> resetVariables;
+        Property<Map<Combo, List<Command>>> startEffect;
+        Property<Map<Combo, List<Command>>> stopEffect;
 
         List<Combo> hintSelectCombos;
         List<Combo> hintUnselectCombos;
@@ -4001,6 +4231,8 @@ public class ConfigurationParser {
             setVariable = new ComboMapProperty("set-variable", modeName, propertyByKey);
             unsetVariable = new ComboMapProperty("unset-variable", modeName, propertyByKey);
             resetVariables = new ComboMapProperty("reset-variables", modeName, propertyByKey);
+            startEffect = new ComboMapProperty("start-effect", modeName, propertyByKey);
+            stopEffect = new ComboMapProperty("stop-effect", modeName, propertyByKey);
         }
 
           public void hintSelectCombos(List<Combo> combos) {
@@ -4090,6 +4322,8 @@ public class ConfigurationParser {
             add(commandsByCombo, setVariable.builder);
             add(commandsByCombo, unsetVariable.builder);
             add(commandsByCombo, resetVariables.builder);
+            add(commandsByCombo, startEffect.builder);
+            add(commandsByCombo, stopEffect.builder);
             return commandsByCombo;
         }
 
