@@ -1,6 +1,7 @@
 package mousemaster;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class ConnectedComponentFinder {
@@ -13,34 +14,46 @@ public class ConnectedComponentFinder {
     private final short[] bottom;
 
     private ConnectedComponentFinder(boolean[] mask, int width, int height) {
-        parent = new int[mask.length];
-        size = new int[mask.length];
-        left = new short[mask.length];
-        top = new short[mask.length];
-        right = new short[mask.length];
-        bottom = new short[mask.length];
+        int components = 0;
+        for (boolean set : mask)
+            if (set)
+                components++;
+        parent = new int[components];
+        size = new int[components];
+        left = new short[components];
+        top = new short[components];
+        right = new short[components];
+        bottom = new short[components];
+        // The neighbours a pixel joins are all in its own row or the one above.
+        int[] previousRow = new int[width];
+        int[] currentRow = new int[width];
+        int next = 0;
+        Arrays.fill(previousRow, -1);
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int pixel = y * width + x;
-                if (!mask[pixel])
+                if (!mask[pixel]) {
+                    currentRow[x] = -1;
                     continue;
-                parent[pixel] = pixel;
-                size[pixel] = 1;
-                left[pixel] = (short) x;
-                top[pixel] = (short) y;
-                right[pixel] = (short) x;
-                bottom[pixel] = (short) y;
-                if (x > 0 && mask[pixel - 1])
-                    union(pixel, pixel - 1);
-                if (y > 0) {
-                    if (mask[pixel - width])
-                        union(pixel, pixel - width);
-                    if (x > 0 && mask[pixel - width - 1])
-                        union(pixel, pixel - width - 1);
-                    if (x + 1 < width && mask[pixel - width + 1])
-                        union(pixel, pixel - width + 1);
                 }
+                int component = next++;
+                parent[component] = component;
+                size[component] = 1;
+                left[component] = right[component] = (short) x;
+                top[component] = bottom[component] = (short) y;
+                currentRow[x] = component;
+                if (x > 0 && currentRow[x - 1] >= 0)
+                    union(component, currentRow[x - 1]);
+                if (previousRow[x] >= 0)
+                    union(component, previousRow[x]);
+                if (x > 0 && previousRow[x - 1] >= 0)
+                    union(component, previousRow[x - 1]);
+                if (x + 1 < width && previousRow[x + 1] >= 0)
+                    union(component, previousRow[x + 1]);
             }
+            int[] swapped = previousRow;
+            previousRow = currentRow;
+            currentRow = swapped;
         }
     }
 
@@ -51,30 +64,31 @@ public class ConnectedComponentFinder {
 
     private List<Rectangle> boundingBoxes(int minimumPixels) {
         List<Rectangle> boundingBoxes = new ArrayList<>();
-        for (int pixel = 0; pixel < parent.length; pixel++) {
-            if (parent[pixel] != pixel || size[pixel] < minimumPixels)
+        for (int component = 0; component < parent.length; component++) {
+            if (parent[component] != component || size[component] < minimumPixels)
                 continue;
-            boundingBoxes.add(new Rectangle(left[pixel], top[pixel],
-                    right[pixel] - left[pixel] + 1, bottom[pixel] - top[pixel] + 1));
+            boundingBoxes.add(new Rectangle(left[component], top[component],
+                    right[component] - left[component] + 1,
+                    bottom[component] - top[component] + 1));
         }
         return boundingBoxes;
     }
 
-    private int find(int pixel) {
-        int root = pixel;
+    private int find(int component) {
+        int root = component;
         while (parent[root] != root)
             root = parent[root];
-        while (parent[pixel] != root) {
-            int next = parent[pixel];
-            parent[pixel] = root;
-            pixel = next;
+        while (parent[component] != root) {
+            int next = parent[component];
+            parent[component] = root;
+            component = next;
         }
         return root;
     }
 
-    private void union(int pixel, int otherPixel) {
-        int root = find(pixel);
-        int otherRoot = find(otherPixel);
+    private void union(int component, int otherComponent) {
+        int root = find(component);
+        int otherRoot = find(otherComponent);
         if (root == otherRoot)
             return;
         if (size[root] < size[otherRoot]) {
