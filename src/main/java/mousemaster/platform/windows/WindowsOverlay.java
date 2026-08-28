@@ -526,7 +526,7 @@ public class WindowsOverlay implements Overlay {
         boolean firstCreation = effectHwnd == null;
         if (firstCreation) {
             effectRenderer = new EffectRenderer();
-            effectHwnd = new WinDef.HWND(new Pointer(effectRenderer.widget().winId()));
+            effectHwnd = new WinDef.HWND(new Pointer(effectRenderer.window().winId()));
             applyOverlayExStyles(effectHwnd);
         }
         WinDef.POINT mousePosition = mouse.findMousePosition();
@@ -536,7 +536,7 @@ public class WindowsOverlay implements Overlay {
         }
         boolean wasShowing = effectRenderer.showing();
         effectRenderer.setEffects(effectFrames, mousePosition.x, mousePosition.y,
-                WindowsScreen.findActiveScreen(mousePosition).scale());
+                WindowsScreen.findActiveScreen(mousePosition));
         if (!wasShowing)
             setTopmost();
         if (firstCreation)

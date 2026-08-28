@@ -199,12 +199,15 @@ public class MacosOverlay implements Overlay {
     public void setEffects(List<EffectFrame> effectFrames) {
         if (effectRenderer == null) {
             effectRenderer = new EffectRenderer();
-            MacosWindow.applyOverlayProperties(effectRenderer.widget());
+            MacosWindow.applyOverlayProperties(effectRenderer.window());
         }
         QPoint mousePosition = mouse.findMousePosition();
-        // Qt positions and sizes are logical points on macOS: no scaling needed.
-        effectRenderer.setEffects(effectFrames, mousePosition.x(), mousePosition.y(),
-                1);
+        Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
+        // The renderer takes screen pixels; the mouse position is in points.
+        effectRenderer.setEffects(effectFrames,
+                (int) Math.round(mousePosition.x() * activeScreen.scale()),
+                (int) Math.round(mousePosition.y() * activeScreen.scale()),
+                activeScreen);
     }
 
     @Override
