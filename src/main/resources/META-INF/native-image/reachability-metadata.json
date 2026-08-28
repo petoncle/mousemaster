@@ -7247,6 +7247,29 @@
             "mousemaster.IndicatorConfiguration",
             "mousemaster.HideCursor",
             "mousemaster.ZoomConfiguration",
+            "java.util.Map"
+          ]
+        },
+        {
+          "name": "effects",
+          "parameterTypes": []
+        },
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "boolean",
+            "boolean",
+            "java.lang.String",
+            "mousemaster.ComboMap",
+            "mousemaster.Mouse",
+            "mousemaster.Wheel",
+            "mousemaster.GridConfiguration",
+            "mousemaster.HintMeshConfiguration",
+            "mousemaster.ModeTimeout",
+            "mousemaster.IndicatorConfiguration",
+            "mousemaster.HideCursor",
+            "mousemaster.ZoomConfiguration",
             "double"
           ]
         },
