@@ -321,6 +321,12 @@ public class WindowsOverlay implements Overlay {
         QtHintFont.preWarm(hintMeshConfigurations);
         hintMeshRenderer.preWarmHintMeshWindows(WindowsScreen.findScreens());
         preWarmZoomWindow();
+        if (effectHwnd == null) {
+            long beforeEffect = System.nanoTime();
+            createEffectWindow();
+            logger.debug("Pre-warmed the effect window in " +
+                         (long) ((System.nanoTime() - beforeEffect) / 1e6) + "ms");
+        }
         if (indicatorHwnd != null)
             return;
         long before = System.nanoTime();
@@ -532,14 +538,28 @@ public class WindowsOverlay implements Overlay {
             indicatorRenderer.hide(allowFade);
     }
 
+    /** Like the indicator's, the effect window is created at pre-warm: creating a
+     *  window dispatches native messages, which mid-loop can re-enter the low-level
+     *  keyboard hook and hang the main thread. */
+    private void createEffectWindow() {
+        if (effectRenderer == null)
+            effectRenderer = new EffectRenderer();
+        effectHwnd = new WinDef.HWND(new Pointer(effectRenderer.window().winId()));
+        applyOverlayExStyles(effectHwnd);
+        updateCaptureExclusions();
+    }
+
+    private int effectFrameCount;
+
     @Override
     public void setEffects(List<EffectFrame> effectFrames) {
-        boolean firstCreation = effectHwnd == null;
-        if (firstCreation) {
-            effectRenderer = new EffectRenderer();
-            effectHwnd = new WinDef.HWND(new Pointer(effectRenderer.window().winId()));
-            applyOverlayExStyles(effectHwnd);
-        }
+        effectFrameCount++;
+        if (effectFrameCount <= 3)
+            logger.debug("setEffects " + effectFrameCount + ": " +
+                         effectFrames.size() + " frame(s), window created=" +
+                         (effectHwnd != null));
+        if (effectHwnd == null)
+            createEffectWindow();
         WinDef.POINT mousePosition = mouse.findMousePosition();
         if (mousePosition == null) {
             logger.warn("Unable to find mouse position for effects");
@@ -550,8 +570,6 @@ public class WindowsOverlay implements Overlay {
                 WindowsScreen.findActiveScreen(mousePosition));
         if (!wasShowing)
             setTopmost();
-        if (firstCreation)
-            updateCaptureExclusions();
     }
 
     @Override
