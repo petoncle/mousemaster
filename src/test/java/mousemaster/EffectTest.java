@@ -167,6 +167,47 @@ class EffectTest {
     }
 
     @Test
+    void axisRotationsInterpolateWithSignedDirection() {
+        EffectConfiguration flip = effect("flip",
+                "idle-mode.effect.flip.duration-millis=100",
+                "idle-mode.effect.flip.layer1-shape=square",
+                "idle-mode.effect.flip.layer1-rotation-x=10",
+                "idle-mode.effect.flip.layer1-keyframes=0 rotation-y=0 | 100 rotation-y=-360",
+                "idle-mode.start-effect.flip=+n");
+        assertEquals(10, flip.layers().getFirst().rotationX());
+        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(flip);
+        player.advance(0.025); // 25%: spinning backward toward -360.
+        EffectFrame.ResolvedEffectLayer layer = player.frame().layers().getFirst();
+        assertEquals(-90, layer.rotationY(), 1e-9);
+        assertEquals(10, layer.rotationX(), 1e-9);
+    }
+
+    @Test
+    void aLayersSpeedRunsItsTimelineFasterThanTheCycle() {
+        EffectConfiguration spin = effect("spin",
+                "idle-mode.effect.spin.duration-millis=100",
+                "idle-mode.effect.spin.layer1-shape=dot",
+                "idle-mode.effect.spin.layer1-speed=2",
+                "idle-mode.effect.spin.layer1-keyframes=0 size=0 | 100 size=100",
+                "idle-mode.start-effect.spin=+n");
+        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(spin);
+        player.advance(0.06); // 60% of the cycle, 120% of the layer timeline: wraps to 20%.
+        assertEquals(20, player.frame().layers().getFirst().width(), 1e-9);
+    }
+
+    @Test
+    void aKeyframeEasingShapesItsSegment() {
+        EffectConfiguration grow = effect("grow",
+                "idle-mode.effect.grow.duration-millis=100",
+                "idle-mode.effect.grow.layer1-shape=dot",
+                "idle-mode.effect.grow.layer1-keyframes=0 size=0 | 100 size=100 easing=2",
+                "idle-mode.start-effect.grow=+n");
+        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(grow);
+        player.advance(0.05); // 50% with a quadratic segment: t^2 = 0.25.
+        assertEquals(25, player.frame().layers().getFirst().width(), 1e-9);
+    }
+
+    @Test
     void aHiddenLayerIsNotResolved() {
         EffectConfiguration wink = effect("wink",
                 "idle-mode.effect.wink.duration-millis=100",

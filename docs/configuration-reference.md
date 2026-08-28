@@ -536,16 +536,28 @@ Each layer is one shape, drawn in declaration order (layer1 at the bottom):
 - **`layer<n>-size`**: A size (`24`), width-by-height (`24x12`), or `area` to take the
   size of the whole area — a filled square layer sized to the area is the effect's
   background (default `16`).
-- **`layer<n>-rotation`**: Degrees (default `0`).
+- **`layer<n>-rotation`**: Degrees, in the screen plane (default `0`).
+- **`layer<n>-rotation-x`** / **`layer<n>-rotation-y`**: Degrees of 3D-projected tilt
+  around the layer's horizontal / vertical axis (default `0`) — animating `rotation-y`
+  from 0 to 360 flips the shape like a card. The sign picks the spin direction on every
+  axis: animating toward a negative angle spins the other way.
 - **`layer<n>-color`** / **`layer<n>-opacity`**: Layer color (default `#FFFFFF`) and
   opacity (default `1`).
 - **`layer<n>-filled`**: Filled or outline (default: filled for `dot`, outline otherwise).
 - **`layer<n>-thickness`**: Outline/stroke width (default `1`).
+- **`layer<n>-speed`**: How fast this layer's timeline runs relative to the effect's
+  cycle (default `1`): `2` plays it twice per cycle, `0.5` at half speed. Lets one
+  layer spin fast while another breathes slowly in the same effect.
 - **`layer<n>-keyframes`**: The layer's timeline: `|`-separated keyframes, each a cycle
-  position in percent followed by the values it pins. `size`, `opacity`, `rotation`, `x`
+  position in percent followed by the values it pins. `size`, `opacity`, `rotation`,
+  `rotation-x`, `rotation-y`, `x`
   and `y` are interpolated between the keyframes that mention them (the layer's base
   values act as an implicit keyframe at 0%), while `color` and the bare keywords
-  `show`/`hide` switch when their keyframe is reached.
+  `show`/`hide` switch when their keyframe is reached. Speed between keyframes is set
+  by their spacing (the same change over fewer percent runs faster), and an
+  `easing=<value>` token (same values as `zoom.animation-easing`) shapes the
+  acceleration of the segment that ends at that keyframe:
+  `0 size=10 | 100 size=40 easing=smootherstep` eases the growth in and out.
 
 Combos start and stop effects like any other command:
 

@@ -14,8 +14,9 @@ import java.util.List;
  */
 public record EffectLayer(EffectShape shape, double x, double y,
                           double sizeWidth, double sizeHeight, boolean sizeIsArea,
-                          double rotation, String hexColor, double opacity,
-                          boolean filled, double thickness,
+                          double rotation, double rotationX, double rotationY,
+                          String hexColor, double opacity,
+                          boolean filled, double thickness, double speed,
                           List<EffectKeyframe> keyframes) {
 
     public static class EffectLayerBuilder {
@@ -27,10 +28,13 @@ public record EffectLayer(EffectShape shape, double x, double y,
         private Double sizeHeight;
         private Boolean sizeIsArea;
         private Double rotation;
+        private Double rotationX;
+        private Double rotationY;
         private String hexColor;
         private Double opacity;
         private Boolean filled;
         private Double thickness;
+        private Double speed;
         private List<EffectKeyframe> keyframes;
 
         public EffectLayerBuilder() {
@@ -68,6 +72,16 @@ public record EffectLayer(EffectShape shape, double x, double y,
             return this;
         }
 
+        public EffectLayerBuilder rotationX(Double rotationX) {
+            this.rotationX = rotationX;
+            return this;
+        }
+
+        public EffectLayerBuilder rotationY(Double rotationY) {
+            this.rotationY = rotationY;
+            return this;
+        }
+
         public EffectLayerBuilder hexColor(String hexColor) {
             this.hexColor = hexColor;
             return this;
@@ -88,6 +102,11 @@ public record EffectLayer(EffectShape shape, double x, double y,
             return this;
         }
 
+        public EffectLayerBuilder speed(Double speed) {
+            this.speed = speed;
+            return this;
+        }
+
         public EffectLayerBuilder keyframes(List<EffectKeyframe> keyframes) {
             this.keyframes = keyframes;
             return this;
@@ -101,10 +120,13 @@ public record EffectLayer(EffectShape shape, double x, double y,
             if (sizeHeight == null) sizeHeight = parent.sizeHeight;
             if (sizeIsArea == null) sizeIsArea = parent.sizeIsArea;
             if (rotation == null) rotation = parent.rotation;
+            if (rotationX == null) rotationX = parent.rotationX;
+            if (rotationY == null) rotationY = parent.rotationY;
             if (hexColor == null) hexColor = parent.hexColor;
             if (opacity == null) opacity = parent.opacity;
             if (filled == null) filled = parent.filled;
             if (thickness == null) thickness = parent.thickness;
+            if (speed == null) speed = parent.speed;
             if (keyframes == null) keyframes = parent.keyframes;
         }
 
@@ -121,10 +143,13 @@ public record EffectLayer(EffectShape shape, double x, double y,
                     sizeHeight == null ? (sizeWidth == null ? 16 : sizeWidth) : sizeHeight,
                     sizeIsArea != null && sizeIsArea,
                     rotation == null ? 0 : rotation,
+                    rotationX == null ? 0 : rotationX,
+                    rotationY == null ? 0 : rotationY,
                     hexColor == null ? "#FFFFFF" : hexColor,
                     opacity == null ? 1.0 : opacity,
                     filled == null ? shape == EffectShape.DOT : filled,
                     thickness == null ? 1 : thickness,
+                    speed == null ? 1 : speed,
                     keyframes == null ? List.of() : keyframes);
         }
 

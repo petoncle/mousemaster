@@ -2352,10 +2352,13 @@ public class ConfigurationParser {
                     }
                 }
                 case "rotation" -> layer.rotation(parseDouble(propertyValue, true, -100_000, 100_000));
+                case "rotation-x" -> layer.rotationX(parseDouble(propertyValue, true, -100_000, 100_000));
+                case "rotation-y" -> layer.rotationY(parseDouble(propertyValue, true, -100_000, 100_000));
                 case "color" -> layer.hexColor(checkColorFormat(propertyValue));
                 case "opacity" -> layer.opacity(parseDouble(propertyValue, true, 0, 1));
                 case "filled" -> layer.filled(Boolean.parseBoolean(propertyValue));
                 case "thickness" -> layer.thickness(parseDouble(propertyValue, false, 0, 1_000));
+                case "speed" -> layer.speed(parseDouble(propertyValue, false, 0, 1_000));
                 case "keyframes" -> layer.keyframes(parseEffectKeyframes(effectName, layerNumber, propertyValue));
                 default -> throw new IllegalArgumentException(
                         "Invalid effect layer property key: " + key);
@@ -2386,14 +2389,15 @@ public class ConfigurationParser {
 
     /** A size is uniform ({@code 24}) or width-by-height ({@code 64x32}). */
     private static double[] parseEffectSize(String propertyValue) {
+        // 0 is allowed: shrinking a layer to nothing is a legitimate keyframe.
         int xIndex = propertyValue.indexOf('x');
         if (xIndex == -1) {
-            double size = parseDouble(propertyValue, false, 0, 10_000);
+            double size = parseDouble(propertyValue, true, 0, 10_000);
             return new double[]{size, size};
         }
         return new double[]{
-                parseDouble(propertyValue.substring(0, xIndex), false, 0, 10_000),
-                parseDouble(propertyValue.substring(xIndex + 1), false, 0, 10_000)};
+                parseDouble(propertyValue.substring(0, xIndex), true, 0, 10_000),
+                parseDouble(propertyValue.substring(xIndex + 1), true, 0, 10_000)};
     }
 
     /**
@@ -2426,9 +2430,10 @@ public class ConfigurationParser {
                         ": keyframe positions must be increasing");
             previousPercent = percent;
             Double sizeWidth = null, sizeHeight = null, opacity = null, rotation = null,
-                    x = null, y = null;
+                    rotationX = null, rotationY = null, x = null, y = null;
             Boolean sizeIsArea = null, visible = null;
             String hexColor = null;
+            Easing easing = null;
             for (int tokenIndex = 1; tokenIndex < tokens.length; tokenIndex++) {
                 String token = tokens[tokenIndex];
                 int equalIndex = token.indexOf('=');
@@ -2456,16 +2461,20 @@ public class ConfigurationParser {
                     }
                     case "opacity" -> opacity = parseDouble(tokenValue, true, 0, 1);
                     case "rotation" -> rotation = parseDouble(tokenValue, true, -100_000, 100_000);
+                    case "rotation-x" -> rotationX = parseDouble(tokenValue, true, -100_000, 100_000);
+                    case "rotation-y" -> rotationY = parseDouble(tokenValue, true, -100_000, 100_000);
                     case "x" -> x = parseDouble(tokenValue, true, -10_000, 10_000);
                     case "y" -> y = parseDouble(tokenValue, true, -10_000, 10_000);
                     case "color" -> hexColor = checkColorFormat(tokenValue);
+                    case "easing" -> easing = parseEasing(tokenValue);
                     default -> throw new IllegalArgumentException(
                             "Invalid keyframe token " + token + " in " + context);
                     // @formatter:on
                 }
             }
             keyframes.add(new EffectKeyframe(percent, sizeWidth, sizeHeight, sizeIsArea,
-                    opacity, rotation, x, y, visible, hexColor));
+                    opacity, rotation, rotationX, rotationY, x, y, visible, hexColor,
+                    easing));
         }
         return List.copyOf(keyframes);
     }
