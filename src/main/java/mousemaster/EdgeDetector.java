@@ -10,8 +10,9 @@ import java.util.stream.IntStream;
 class EdgeDetector {
 
     private static final float contrast = 2;
-    /** Light edges on a white pane clamp away about the first of these. */
-    static final float[] contrastMidpoints = {0.5f, 0.75f};
+    /** Light on white and dark on black both clamp away about the first of these. */
+    static final float[] contrastMidpoints = {0.5f, 0.75f, 0.25f};
+
     private static final int[][] stretched = stretched();
     /** Axis aligned within half of a 45 degree bin. */
     private static final float axisAlignedGradientRatio =
