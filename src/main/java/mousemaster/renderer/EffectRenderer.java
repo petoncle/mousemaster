@@ -7,6 +7,7 @@ import io.qt.gui.QPaintEvent;
 import io.qt.gui.QPainter;
 import io.qt.gui.QPainterPath;
 import io.qt.gui.QPen;
+import io.qt.gui.QTransform;
 import io.qt.widgets.QWidget;
 import mousemaster.EffectFrame;
 import mousemaster.EffectShape;
@@ -127,6 +128,15 @@ public final class EffectRenderer {
             painter.translate(center + layer.x() * screenScale,
                     center + layer.y() * screenScale);
             painter.rotate(layer.rotation());
+            if (layer.rotationX() != 0 || layer.rotationY() != 0) {
+                // 3D-projected tilt around the layer's own center (Qt applies a
+                // perspective projection for the X and Y axes).
+                QTransform tilt = new QTransform();
+                tilt.rotate(layer.rotationX(), Qt.Axis.XAxis);
+                tilt.rotate(layer.rotationY(), Qt.Axis.YAxis);
+                painter.setWorldTransform(tilt, true);
+                tilt.dispose();
+            }
             QColor color = QtColorUtil.qColor(layer.hexColor(), layer.opacity());
             QPainterPath path = layerPath(layer.shape(), width, height);
             boolean stroke = layer.shape() == EffectShape.LINE ||

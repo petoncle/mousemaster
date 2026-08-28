@@ -15,6 +15,7 @@ public record EffectFrame(int areaWidth, int areaHeight,
     /** A layer with its animated values resolved for the current frame time. */
     public record ResolvedEffectLayer(EffectShape shape, double x, double y,
                                       double width, double height, double rotation,
+                                      double rotationX, double rotationY,
                                       String hexColor, double opacity,
                                       boolean filled, double thickness) {
 

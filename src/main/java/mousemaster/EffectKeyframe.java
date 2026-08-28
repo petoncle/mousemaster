@@ -5,10 +5,14 @@ package mousemaster;
  * effect's cycle (0-100). Fields left null are not constrained by this keyframe:
  * numeric fields are interpolated between the keyframes that do mention them, while
  * {@code visible} and {@code hexColor} switch when their keyframe is reached.
- * The layer's base values act as an implicit keyframe at 0%.
+ * The layer's base values act as an implicit keyframe at 0%. {@code easing}
+ * shapes the interpolation of the segment that ends at this keyframe (null =
+ * linear).
  */
 public record EffectKeyframe(double percent, Double sizeWidth, Double sizeHeight,
                              Boolean sizeIsArea, Double opacity, Double rotation,
-                             Double x, Double y, Boolean visible, String hexColor) {
+                             Double rotationX, Double rotationY,
+                             Double x, Double y, Boolean visible, String hexColor,
+                             Easing easing) {
 
 }
