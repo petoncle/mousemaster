@@ -65,6 +65,9 @@ public final class EffectRenderer {
         // An odd size puts the center half a pixel off (like the indicator).
         maxScaledArea += maxScaledArea % 2;
         windowSizePixels = Math.max(windowSizePixels, maxScaledArea);
+        boolean firstFrame = setEffectsCalls == 0;
+        if (firstFrame)
+            logger.debug("Effects first frame: moving the window");
         window.moveAndResizeInPixels(screen,
                 mouseXPixels - windowSizePixels / 2,
                 mouseYPixels - windowSizePixels / 2,
@@ -72,11 +75,15 @@ public final class EffectRenderer {
         widget.setGeometry(0, 0, window.width(), window.height());
         // Qt units are pixels on Windows and points on macOS: draw scaled on Windows.
         widget.showFrames(frames, Os.windows ? screen.scale() : 1);
+        if (firstFrame)
+            logger.debug("Effects first frame: window moved, showing it");
         if (!showing) {
             showing = true;
             window.show();
             widget.show();
         }
+        if (firstFrame)
+            logger.debug("Effects first frame: shown, repainting");
         widget.repaint();
         setEffectsCalls++;
         if (setEffectsCalls <= 3)

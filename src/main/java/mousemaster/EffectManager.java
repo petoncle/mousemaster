@@ -39,6 +39,7 @@ public class EffectManager implements ModeListener {
                         (currentMode == null ? "(no mode)" : currentMode.name()));
             return;
         }
+        logger.debug("Starting effect " + effectName);
         // Re-starting an already running effect restarts its cycle.
         players.put(effectName, new EffectPlayer(effect));
     }
