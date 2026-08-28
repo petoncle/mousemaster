@@ -804,6 +804,10 @@
   "methods":[{"name":"clearWindow","parameterTypes":[] }, {"name":"hideChildren","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setBackground","parameterTypes":["io.qt.gui.QColor","io.qt.core.QRect"] }]
 },
 {
+  "name":"mousemaster.renderer.EffectRenderer$EffectWidget",
+  "methods":[{"name":"clearFrames","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"showFrames","parameterTypes":["java.util.List","double"] }]
+},
+{
   "name":"mousemaster.renderer.GridRenderer$GridWidget",
   "methods":[{"name":"animateDrawRect","parameterTypes":["int","int","int","int","int","int","int","int","java.time.Duration"] }, {"name":"coverVirtualDesktop","parameterTypes":["mousemaster.Rectangle"] }, {"name":"drawGrid","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"hideGrid","parameterTypes":[] }, {"name":"lambda$animateDrawRect$65642449$1","parameterTypes":["java.lang.Object"] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"repaintGrid","parameterTypes":["io.qt.core.QRect"] }, {"name":"setDrawRect","parameterTypes":["int","int","int","int"] }, {"name":"showGrid","parameterTypes":["mousemaster.Grid","int","io.qt.gui.QColor","io.qt.gui.QColor","boolean","java.time.Duration"] }, {"name":"stopAnimation","parameterTypes":[] }]
 },

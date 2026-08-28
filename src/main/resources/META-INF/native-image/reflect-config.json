@@ -1062,6 +1062,14 @@
   "name":"mousemaster.qt.TransparentWindow$WhenMappings"
 },
 {
+  "name":"mousemaster.renderer.EffectRenderer$EffectWidget",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
   "name":"mousemaster.renderer.GridRenderer$GridWidget",
   "allDeclaredFields":true,
   "allDeclaredClasses":true,
