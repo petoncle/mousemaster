@@ -120,7 +120,10 @@ public class EffectManager implements ModeListener {
         }
 
         private EffectFrame.ResolvedEffectLayer resolveLayer(EffectLayer layer,
-                                                             double percent) {
+                                                             double effectPercent) {
+            // The layer's speed runs its timeline faster or slower than the effect's
+            // cycle: at speed 2 the timeline plays twice per cycle.
+            double percent = layerPercent(effectPercent, layer.speed());
             if (!latestBoolean(layer.keyframes(), percent, EffectKeyframe::visible))
                 return null;
             double width = interpolate(layer.keyframes(), percent,
@@ -133,13 +136,25 @@ public class EffectManager implements ModeListener {
                     layer.y());
             double rotation = interpolate(layer.keyframes(), percent,
                     EffectKeyframe::rotation, layer.rotation());
+            double rotationX = interpolate(layer.keyframes(), percent,
+                    EffectKeyframe::rotationX, layer.rotationX());
+            double rotationY = interpolate(layer.keyframes(), percent,
+                    EffectKeyframe::rotationY, layer.rotationY());
             double opacity = interpolate(layer.keyframes(), percent,
                     EffectKeyframe::opacity, layer.opacity());
             String hexColor = latestString(layer.keyframes(), percent,
                     EffectKeyframe::hexColor, layer.hexColor());
             return new EffectFrame.ResolvedEffectLayer(layer.shape(), x, y, width,
-                    height, rotation, hexColor, opacity, layer.filled(),
-                    layer.thickness());
+                    height, rotation, rotationX, rotationY, hexColor, opacity,
+                    layer.filled(), layer.thickness());
+        }
+
+        private static double layerPercent(double effectPercent, double speed) {
+            double percent = effectPercent * speed;
+            if (percent <= 100)
+                return percent;
+            double wrapped = percent % 100;
+            return wrapped == 0 ? 100 : wrapped;
         }
 
         private double layerSizeWidth(EffectLayer layer) {
@@ -185,6 +200,9 @@ public class EffectManager implements ModeListener {
                     if (span <= 0)
                         return value;
                     double t = (percent - previousPercent) / span;
+                    // The keyframe's easing shapes the segment that ends at it.
+                    if (keyframe.easing() != null)
+                        t = keyframe.easing().apply(t);
                     return previousValue + (value - previousValue) * t;
                 }
                 previousPercent = keyframe.percent();
