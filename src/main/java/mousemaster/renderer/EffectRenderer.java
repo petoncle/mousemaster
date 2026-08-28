@@ -11,84 +11,118 @@ import io.qt.gui.QTransform;
 import io.qt.widgets.QWidget;
 import mousemaster.EffectFrame;
 import mousemaster.EffectShape;
+import mousemaster.Os;
+import mousemaster.Screen;
 import mousemaster.qt.QtColorUtil;
+import mousemaster.qt.TransparentWindow;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 /**
  * Cross-platform Qt rendering of the effects: one transparent window centered on
- * the mouse position, redrawn every tick with the fully-resolved frames the
+ * the mouse position (the same {@link TransparentWindow} + child widget pattern as
+ * the indicator), redrawn every tick with the fully-resolved frames the
  * {@link mousemaster.EffectManager} hands over. The platform overlay owns the
- * native window (styles its handle) and supplies the mouse position and screen
- * scale.
+ * native window (styles its handle) and supplies the mouse position and screen.
  */
 public final class EffectRenderer {
 
-    private final EffectWidget widget = new EffectWidget();
+    private static final Logger logger = LoggerFactory.getLogger(EffectRenderer.class);
+
+    private TransparentWindow window;
+    private EffectWidget widget;
     private boolean showing;
     // The window never shrinks, so it is not resized (and cleared) frame after frame.
-    private int windowSize;
+    private int windowSizePixels;
+    private int setEffectsCalls;
 
-    public QWidget widget() {
-        return widget;
+    /** Lazily creates the window and its widget; the host styles winId() afterwards. */
+    public TransparentWindow window() {
+        if (window == null) {
+            window = new TransparentWindow();
+            widget = new EffectWidget(window);
+        }
+        return window;
     }
 
     public boolean showing() {
         return showing;
     }
 
-    /** Shows the frames in a window centered on the mouse position. Coordinates and
-     *  sizes in the frames are logical: they are multiplied by the screen scale. */
-    public void setEffects(List<EffectFrame> frames, int mouseX, int mouseY,
-                           double screenScale) {
+    /** Shows the frames in a window centered on the given mouse position (in screen
+     *  pixels). Frame coordinates and sizes are logical: they scale by the screen's
+     *  scale on Windows, and are Qt points as-is on macOS. */
+    public void setEffects(List<EffectFrame> frames, int mouseXPixels,
+                           int mouseYPixels, Screen screen) {
+        window();
         int maxScaledArea = 0;
         for (EffectFrame frame : frames)
             maxScaledArea = Math.max(maxScaledArea,
                     (int) Math.ceil(Math.max(frame.areaWidth(), frame.areaHeight()) *
-                                    screenScale));
+                                    screen.scale()));
         // An odd size puts the center half a pixel off (like the indicator).
         maxScaledArea += maxScaledArea % 2;
-        windowSize = Math.max(windowSize, maxScaledArea);
-        widget.showFrames(frames, screenScale, windowSize);
-        widget.move(mouseX - windowSize / 2, mouseY - windowSize / 2);
+        windowSizePixels = Math.max(windowSizePixels, maxScaledArea);
+        window.moveAndResizeInPixels(screen,
+                mouseXPixels - windowSizePixels / 2,
+                mouseYPixels - windowSizePixels / 2,
+                windowSizePixels, windowSizePixels);
+        widget.setGeometry(0, 0, window.width(), window.height());
+        // Qt units are pixels on Windows and points on macOS: draw scaled on Windows.
+        widget.showFrames(frames, Os.windows ? screen.scale() : 1);
         if (!showing) {
             showing = true;
+            window.show();
             widget.show();
         }
+        widget.repaint();
+        setEffectsCalls++;
+        if (setEffectsCalls <= 3)
+            logger.debug("Effects frame " + setEffectsCalls + ": " + frames.size() +
+                         " effect(s), mouse (" + mouseXPixels + "," + mouseYPixels +
+                         "), scale " + screen.scale() + ", window " +
+                         window.x() + "," + window.y() + " " + window.width() + "x" +
+                         window.height() + " visible=" + window.isVisible() +
+                         ", widget " + widget.width() + "x" + widget.height() +
+                         " visible=" + widget.isVisible() + ", paints=" +
+                         widget.paintCount);
     }
 
     public void hide() {
         if (!showing)
             return;
         showing = false;
-        widget.hideFrames();
+        widget.clearFrames();
+        window.hide();
+        logger.debug("Effects hidden after " + setEffectsCalls + " frames, " +
+                     widget.paintCount + " paints");
+        setEffectsCalls = 0;
     }
 
     private static final class EffectWidget extends QWidget {
 
         private List<EffectFrame> frames;
-        private double screenScale = 1;
+        private double drawScale = 1;
+        private int paintCount;
 
-        EffectWidget() {
-            setWindowFlags(Qt.WindowType.FramelessWindowHint);
-            setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground);
+        EffectWidget(QWidget parent) {
+            super(parent);
         }
 
-        void showFrames(List<EffectFrame> frames, double screenScale, int windowSize) {
+        void showFrames(List<EffectFrame> frames, double drawScale) {
             this.frames = frames;
-            this.screenScale = screenScale;
-            if (width() != windowSize || height() != windowSize)
-                resize(windowSize, windowSize);
-            repaint();
+            this.drawScale = drawScale;
         }
 
-        void hideFrames() {
+        void clearFrames() {
             frames = null;
-            repaint();
         }
 
         @Override
         protected void paintEvent(QPaintEvent event) {
+            paintCount++;
             QPainter painter = new QPainter(this);
             QColor transparent = new QColor(0, 0, 0, 0);
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
@@ -107,8 +141,8 @@ public final class EffectRenderer {
         }
 
         private void drawFrame(QPainter painter, EffectFrame frame, double center) {
-            double areaWidth = frame.areaWidth() * screenScale;
-            double areaHeight = frame.areaHeight() * screenScale;
+            double areaWidth = frame.areaWidth() * drawScale;
+            double areaHeight = frame.areaHeight() * drawScale;
             painter.save();
             // Each effect clips to its own area, so an area-sized background layer
             // cannot bleed into another effect drawn in the same window.
@@ -122,11 +156,11 @@ public final class EffectRenderer {
 
         private void drawLayer(QPainter painter,
                                EffectFrame.ResolvedEffectLayer layer, double center) {
-            double width = layer.width() * screenScale;
-            double height = layer.height() * screenScale;
+            double width = layer.width() * drawScale;
+            double height = layer.height() * drawScale;
             painter.save();
-            painter.translate(center + layer.x() * screenScale,
-                    center + layer.y() * screenScale);
+            painter.translate(center + layer.x() * drawScale,
+                    center + layer.y() * drawScale);
             painter.rotate(layer.rotation());
             if (layer.rotationX() != 0 || layer.rotationY() != 0) {
                 // 3D-projected tilt around the layer's own center (Qt applies a
@@ -143,7 +177,7 @@ public final class EffectRenderer {
                              layer.shape() == EffectShape.CROSS || !layer.filled();
             if (stroke) {
                 QPen pen = new QPen(color);
-                pen.setWidthF(Math.max(1, layer.thickness() * screenScale));
+                pen.setWidthF(Math.max(1, layer.thickness() * drawScale));
                 pen.setCapStyle(Qt.PenCapStyle.FlatCap);
                 painter.setPen(pen);
                 painter.setBrush(QtColorUtil.noBrush());
