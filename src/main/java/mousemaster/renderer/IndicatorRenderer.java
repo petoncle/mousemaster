@@ -354,14 +354,10 @@ public final class IndicatorRenderer {
         widget.repaint();
         showing = true;
         if (!wasShowing) {
-            fadeAnimator = new FadeAnimator(
-                    window::setWindowOpacity,
-                    this::doHide,
-                    indicator.fadeAnimationEnabled(),
-                    indicator.fadeAnimationDuration());
-            if (allowFade && fadeAnimator.isEnabled()) {
+            fadeAnimator = new FadeAnimator(window::setWindowOpacity, this::doHide);
+            if (allowFade && indicator.fadeAnimationEnabled()) {
                 window.setWindowOpacity(0.0);
-                fadeAnimator.startFadeIn();
+                fadeAnimator.startFadeIn(indicator.fadeAnimationDuration());
             }
         }
     }
@@ -399,7 +395,8 @@ public final class IndicatorRenderer {
     public void hide(boolean allowFade) {
         if (!showing)
             return;
-        if (allowFade && fadeAnimator != null && fadeAnimator.shouldDeferHide())
+        if (allowFade && fadeAnimator != null && currentIndicator.fadeAnimationEnabled() &&
+            fadeAnimator.shouldDeferHide(currentIndicator.fadeAnimationDuration()))
             return;
         doHide();
     }

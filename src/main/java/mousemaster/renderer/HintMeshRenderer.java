@@ -309,23 +309,17 @@ public final class HintMeshRenderer {
         createOrUpdateHintMeshWindows(currentHintMesh, zoom, screens);
         showingHintMesh = true;
         if (allowFade && (!wasShowing || fadeIn) && !hintMeshWindows.isEmpty()) {
-            // Resolve fade settings from first screen's style.
-            Map.Entry<Screen, HintMeshWindow> firstEntry =
-                    hintMeshWindows.entrySet().iterator().next();
-            HintMeshStyle style = currentHintMesh.styleByFilter()
-                    .get(ScreenFilter.of(firstEntry.getKey()));
             hintMeshFadeAnimator = new FadeAnimator(
                     opacity -> {
                         for (HintMeshWindow w : hintMeshWindows.values())
                             w.window().setWindowOpacity(opacity);
                     },
-                    this::doHideHintMesh,
-                    style.fadeAnimationEnabled(),
-                    style.fadeAnimationDuration());
-            if (hintMeshFadeAnimator.isEnabled()) {
+                    this::doHideHintMesh);
+            HintMeshStyle style = currentStyle();
+            if (style.fadeAnimationEnabled()) {
                 for (HintMeshWindow w : hintMeshWindows.values())
                     w.window().setWindowOpacity(0.0);
-                hintMeshFadeAnimator.startFadeIn();
+                hintMeshFadeAnimator.startFadeIn(style.fadeAnimationDuration());
             }
         }
         return nonMatchShown;
@@ -336,9 +330,18 @@ public final class HintMeshRenderer {
             return;
         if (isHintMeshEndAnimation())
             return;
-        if (hintMeshFadeAnimator != null && hintMeshFadeAnimator.shouldDeferHide())
-            return;
+        if (hintMeshFadeAnimator != null && !hintMeshWindows.isEmpty()) {
+            HintMeshStyle style = currentStyle();
+            if (style.fadeAnimationEnabled() &&
+                hintMeshFadeAnimator.shouldDeferHide(style.fadeAnimationDuration()))
+                return;
+        }
         doHideHintMesh();
+    }
+
+    private HintMeshStyle currentStyle() {
+        return currentHintMesh.styleByFilter()
+                              .get(ScreenFilter.of(hintMeshWindows.keySet().iterator().next()));
     }
 
     private void doHideHintMesh() {

@@ -60,14 +60,10 @@ public final class GridRenderer {
                 grid.transitionAnimationEnabled() && wasShowing,
                 grid.transitionAnimationDuration());
         if (!wasShowing) {
-            fadeAnimator = new FadeAnimator(
-                    widget::setWindowOpacity,
-                    this::doHide,
-                    grid.fadeAnimationEnabled(),
-                    grid.fadeAnimationDuration());
-            if (fadeAnimator.isEnabled()) {
+            fadeAnimator = new FadeAnimator(widget::setWindowOpacity, this::doHide);
+            if (grid.fadeAnimationEnabled()) {
                 widget.setWindowOpacity(0.0);
-                fadeAnimator.startFadeIn();
+                fadeAnimator.startFadeIn(grid.fadeAnimationDuration());
             }
         }
     }
@@ -75,7 +71,8 @@ public final class GridRenderer {
     public void hide() {
         if (!showing)
             return;
-        if (fadeAnimator != null && fadeAnimator.shouldDeferHide())
+        if (fadeAnimator != null && currentGrid.fadeAnimationEnabled() &&
+            fadeAnimator.shouldDeferHide(currentGrid.fadeAnimationDuration()))
             return;
         doHide();
     }

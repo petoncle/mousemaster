@@ -16,8 +16,6 @@ public class FadeAnimator {
 
     private final Consumer<Double> applyOpacity;
     private final Runnable onFadeOutComplete;
-    private final boolean enabled;
-    private final Duration duration;
 
     private QVariantAnimation animation;
     private long startNanos;
@@ -29,42 +27,33 @@ public class FadeAnimator {
     private ValueChanged valueChangedCallback;
     private Finished finishedCallback;
 
-    public FadeAnimator(Consumer<Double> applyOpacity, Runnable onFadeOutComplete,
-                 boolean enabled, Duration duration) {
+    public FadeAnimator(Consumer<Double> applyOpacity, Runnable onFadeOutComplete) {
         this.applyOpacity = applyOpacity;
         this.onFadeOutComplete = onFadeOutComplete;
-        this.enabled = enabled;
-        this.duration = duration;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
     }
 
     public boolean isFadingOut() {
         return fadingOut;
     }
 
-    public void startFadeIn() {
+    public void startFadeIn(Duration duration) {
         disposeAnimation();
         currentOpacity = 0.0;
-        animation = createAnimation(0.0, 1.0);
+        animation = createAnimation(0.0, 1.0, duration);
         startAnimation();
     }
 
     /**
-     * Starts fade-out if enabled and not already fading out.
-     * Returns true if the caller should defer the hide (fade-out started or already in progress).
+     * Starts the fade-out if it is not already running.
+     * Returns true if the caller should defer the hide.
      */
-    public boolean shouldDeferHide() {
-        if (!enabled)
-            return false;
+    public boolean shouldDeferHide(Duration duration) {
         if (fadingOut)
             return true;
         // Cancel any in-progress fade-in and fade out from wherever it got to.
         disposeAnimation();
         fadingOut = true;
-        animation = createAnimation(currentOpacity, 0.0);
+        animation = createAnimation(currentOpacity, 0.0, duration);
         startAnimation();
         return true;
     }
@@ -80,7 +69,7 @@ public class FadeAnimator {
         applyOpacity.accept(1.0);
     }
 
-    private QVariantAnimation createAnimation(double from, double to) {
+    private QVariantAnimation createAnimation(double from, double to, Duration duration) {
         QVariantAnimation anim = new QVariantAnimation();
         anim.setStartValue(from);
         anim.setEndValue(to);
