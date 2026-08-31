@@ -400,7 +400,8 @@ public class WindowsOverlay implements Overlay {
             if (indicatorRenderer == null)
                 indicatorRenderer = new IndicatorRenderer();
             IndicatorRenderer.CursorImage image =
-                    indicatorRenderer.renderCursorImage(indicator, scale);
+                    indicatorRenderer.renderCursorImage(indicator, scale,
+                            hintMeshRenderer.lastSelectedHintBoxHexColor());
             if (image == null)
                 return;
             mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
@@ -421,7 +422,8 @@ public class WindowsOverlay implements Overlay {
         boolean wasShowing = indicatorRenderer.showing();
         indicatorRenderer.setIndicator(indicator, transitionTo, allowFade,
                 mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
-                WindowsScreen.findActiveScreen(mousePosition), currentZoom);
+                WindowsScreen.findActiveScreen(mousePosition), currentZoom,
+                hintMeshRenderer.lastSelectedHintBoxHexColor());
         if (!wasShowing)
             setTopmost();
     }
@@ -527,7 +529,8 @@ public class WindowsOverlay implements Overlay {
         // screen's scale leaves below a pixel is still drawn as one, and the repainted region
         // grows by the thickness, so a thickness of 0 would leave the line behind.
         gridRenderer.setGrid(grid, virtualDesktopBounds(),
-                Math.max(1, (int) Math.round(grid.lineThickness())));
+                Math.max(1, (int) Math.round(grid.lineThickness())),
+                hintMeshRenderer.lastSelectedHintBoxHexColor());
         if (!wasShowing)
             setTopmost();
     }
@@ -599,7 +602,8 @@ public class WindowsOverlay implements Overlay {
             double scale = WindowsScreen.findActiveScreen(mousePosition).scale();
             if (scale != currentCursorScale && currentCursorIndicator != null) {
                 IndicatorRenderer.CursorImage image =
-                        indicatorRenderer.renderCursorImage(currentCursorIndicator, scale);
+                        indicatorRenderer.renderCursorImage(currentCursorIndicator, scale,
+                                hintMeshRenderer.lastSelectedHintBoxHexColor());
                 if (image != null) {
                     mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
                             currentCursorIncludeGlyph, true);

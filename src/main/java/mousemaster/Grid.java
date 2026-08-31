@@ -3,8 +3,8 @@ package mousemaster;
 import java.time.Duration;
 
 public record Grid(int x, int y, int width, int height, int rowCount, int columnCount,
-                   boolean lineVisible, String lineHexColor, double lineThickness,
-                   double lineOpacity, String backgroundHexColor, double backgroundOpacity,
+                   boolean lineVisible, Color lineColor, double lineThickness,
+                   double lineOpacity, Color backgroundColor, double backgroundOpacity,
                    boolean transitionAnimationEnabled, Duration transitionAnimationDuration,
                    boolean fadeAnimationEnabled, Duration fadeAnimationDuration) {
 
@@ -20,10 +20,10 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
         private int rowCount;
         private int columnCount;
         private boolean lineVisible;
-        private String lineHexColor;
+        private Color lineColor;
         private double lineThickness;
         private double lineOpacity;
-        private String backgroundHexColor;
+        private Color backgroundColor;
         private double backgroundOpacity;
         private boolean transitionAnimationEnabled;
         private Duration transitionAnimationDuration;
@@ -41,10 +41,10 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             this.rowCount = grid.rowCount;
             this.columnCount = grid.columnCount;
             this.lineVisible = grid.lineVisible;
-            this.lineHexColor = grid.lineHexColor;
+            this.lineColor = grid.lineColor;
             this.lineThickness = grid.lineThickness;
             this.lineOpacity = grid.lineOpacity;
-            this.backgroundHexColor = grid.backgroundHexColor;
+            this.backgroundColor = grid.backgroundColor;
             this.backgroundOpacity = grid.backgroundOpacity;
             this.transitionAnimationEnabled = grid.transitionAnimationEnabled;
             this.transitionAnimationDuration = grid.transitionAnimationDuration;
@@ -80,8 +80,8 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             return lineVisible;
         }
 
-        public String lineHexColor() {
-            return lineHexColor;
+        public Color lineColor() {
+            return lineColor;
         }
 
         public double lineThickness() {
@@ -92,8 +92,8 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             return lineOpacity;
         }
 
-        public String backgroundHexColor() {
-            return backgroundHexColor;
+        public Color backgroundColor() {
+            return backgroundColor;
         }
 
         public double backgroundOpacity() {
@@ -151,8 +151,8 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             return this;
         }
 
-        public GridBuilder lineHexColor(String lineHexColor) {
-            this.lineHexColor = lineHexColor;
+        public GridBuilder lineColor(Color lineColor) {
+            this.lineColor = lineColor;
             return this;
         }
 
@@ -166,8 +166,8 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             return this;
         }
 
-        public GridBuilder backgroundHexColor(String backgroundHexColor) {
-            this.backgroundHexColor = backgroundHexColor;
+        public GridBuilder backgroundColor(Color backgroundColor) {
+            this.backgroundColor = backgroundColor;
             return this;
         }
 
@@ -198,7 +198,7 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
 
         public Grid build() {
             return new Grid(x, y, width, height, rowCount, columnCount, lineVisible,
-                    lineHexColor, lineThickness, lineOpacity, backgroundHexColor,
+                    lineColor, lineThickness, lineOpacity, backgroundColor,
                     backgroundOpacity, transitionAnimationEnabled, transitionAnimationDuration,
                     fadeAnimationEnabled, fadeAnimationDuration);
         }

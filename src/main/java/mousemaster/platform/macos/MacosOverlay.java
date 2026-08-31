@@ -160,7 +160,8 @@ public class MacosOverlay implements Overlay {
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
         indicatorRenderer.setIndicator(indicator, transitionTo, allowFade,
                 cursorRectangle(mousePosition, activeScreen),
-                cursorVisualCenter(activeScreen), activeScreen, null);
+                cursorVisualCenter(activeScreen), activeScreen, null,
+                hintMeshRenderer.lastSelectedHintBoxHexColor());
     }
 
     @Override
@@ -202,7 +203,8 @@ public class MacosOverlay implements Overlay {
         QPoint gridTopLeft = new QPoint(grid.x(), grid.y());
         gridRenderer.setGrid(logicalGrid(grid, gridTopLeft),
                 MacosScreens.logicalScreenBounds(gridTopLeft),
-                Math.max(1, (int) Math.round(grid.lineThickness())));
+                Math.max(1, (int) Math.round(grid.lineThickness())),
+                hintMeshRenderer.lastSelectedHintBoxHexColor());
     }
 
     /** The far corner is on the screen's exclusive edge, so the size scales by where the grid starts. */

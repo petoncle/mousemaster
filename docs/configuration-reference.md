@@ -292,6 +292,16 @@ The properties mean what the mouse ones do, except that `acceleration-easing` de
 
 The indicator is a small polygon displayed next to the cursor. Properties use the format `<mode>.indicator.<property>`.
 
+Any color property takes either `#FFFFFF` or `last-selected-hint-box-color`, the color at the
+center of the box of the hint selected last, which is black until one has been selected. It plays
+a click in the color of the hint that was clicked:
+
+```properties
+_hint-indicator-mode.indicator.color=last-selected-hint-box-color
+```
+
+A box fill (`box-color`) is a gradient rather than a single color, so it takes hex colors only.
+
 #### Following the mouse state
 
 Any indicator property can take a different value per mouse state, with a

@@ -4,8 +4,8 @@ import java.time.Duration;
 
 public record GridConfiguration(GridArea area, Synchronization synchronization, int rowCount,
                                 int columnCount, boolean lineVisible,
-                                String lineHexColor, double lineThickness,
-                                double lineOpacity, String backgroundHexColor,
+                                Color lineColor, double lineThickness,
+                                double lineOpacity, Color backgroundColor,
                                 double backgroundOpacity,
                                 boolean transitionAnimationEnabled,
                                 Duration transitionAnimationDuration,
@@ -18,10 +18,10 @@ public record GridConfiguration(GridArea area, Synchronization synchronization, 
         private Integer rowCount;
         private Integer columnCount;
         private Boolean lineVisible;
-        private String lineHexColor;
+        private Color lineColor;
         private Double lineThickness;
         private Double lineOpacity;
-        private String backgroundHexColor;
+        private Color backgroundColor;
         private Double backgroundOpacity;
         private Boolean transitionAnimationEnabled;
         private Duration transitionAnimationDuration;
@@ -48,8 +48,8 @@ public record GridConfiguration(GridArea area, Synchronization synchronization, 
             return this;
         }
 
-        public GridConfigurationBuilder lineHexColor(String lineHexColor) {
-            this.lineHexColor = lineHexColor;
+        public GridConfigurationBuilder lineColor(Color lineColor) {
+            this.lineColor = lineColor;
             return this;
         }
 
@@ -63,8 +63,8 @@ public record GridConfiguration(GridArea area, Synchronization synchronization, 
             return this;
         }
 
-        public GridConfigurationBuilder backgroundHexColor(String backgroundHexColor) {
-            this.backgroundHexColor = backgroundHexColor;
+        public GridConfigurationBuilder backgroundColor(Color backgroundColor) {
+            this.backgroundColor = backgroundColor;
             return this;
         }
 
@@ -113,8 +113,8 @@ public record GridConfiguration(GridArea area, Synchronization synchronization, 
             return lineVisible;
         }
 
-        public String lineHexColor() {
-            return lineHexColor;
+        public Color lineColor() {
+            return lineColor;
         }
 
         public Double lineThickness() {
@@ -125,8 +125,8 @@ public record GridConfiguration(GridArea area, Synchronization synchronization, 
             return lineOpacity;
         }
 
-        public String backgroundHexColor() {
-            return backgroundHexColor;
+        public Color backgroundColor() {
+            return backgroundColor;
         }
 
         public Double backgroundOpacity() {
@@ -151,8 +151,8 @@ public record GridConfiguration(GridArea area, Synchronization synchronization, 
 
         public GridConfiguration build() {
             return new GridConfiguration(area.build(), synchronization, rowCount,
-                    columnCount, lineVisible, lineHexColor, lineThickness, lineOpacity,
-                    backgroundHexColor, backgroundOpacity, transitionAnimationEnabled,
+                    columnCount, lineVisible, lineColor, lineThickness, lineOpacity,
+                    backgroundColor, backgroundOpacity, transitionAnimationEnabled,
                     transitionAnimationDuration, fadeAnimationEnabled, fadeAnimationDuration);
         }
 

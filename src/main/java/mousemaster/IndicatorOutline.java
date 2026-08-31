@@ -1,13 +1,13 @@
 package mousemaster;
 
-public record IndicatorOutline(double thickness, String hexColor, double opacity,
+public record IndicatorOutline(double thickness, Color color, double opacity,
                                double fillPercent, double fillStartAngle,
                                FillDirection fillDirection) {
 
     public static class IndicatorOutlineBuilder {
 
         private Double thickness;
-        private String hexColor;
+        private Color color;
         private Double opacity;
         private Double fillPercent;
         private Double fillStartAngle;
@@ -18,7 +18,7 @@ public record IndicatorOutline(double thickness, String hexColor, double opacity
 
         public IndicatorOutlineBuilder(IndicatorOutline outline) {
             this.thickness = outline.thickness;
-            this.hexColor = outline.hexColor;
+            this.color = outline.color;
             this.opacity = outline.opacity;
             this.fillPercent = outline.fillPercent;
             this.fillStartAngle = outline.fillStartAngle;
@@ -29,8 +29,8 @@ public record IndicatorOutline(double thickness, String hexColor, double opacity
             return thickness;
         }
 
-        public String hexColor() {
-            return hexColor;
+        public Color color() {
+            return color;
         }
 
         public Double opacity() {
@@ -54,8 +54,8 @@ public record IndicatorOutline(double thickness, String hexColor, double opacity
             return this;
         }
 
-        public IndicatorOutlineBuilder hexColor(String hexColor) {
-            this.hexColor = hexColor;
+        public IndicatorOutlineBuilder color(Color color) {
+            this.color = color;
             return this;
         }
 
@@ -81,7 +81,7 @@ public record IndicatorOutline(double thickness, String hexColor, double opacity
 
         public void extend(IndicatorOutlineBuilder parent) {
             if (thickness == null) thickness = parent.thickness;
-            if (hexColor == null) hexColor = parent.hexColor;
+            if (color == null) color = parent.color;
             if (opacity == null) opacity = parent.opacity;
             if (fillPercent == null) fillPercent = parent.fillPercent;
             if (fillStartAngle == null) fillStartAngle = parent.fillStartAngle;
@@ -89,7 +89,7 @@ public record IndicatorOutline(double thickness, String hexColor, double opacity
         }
 
         public IndicatorOutline build() {
-            return new IndicatorOutline(thickness, hexColor, opacity, fillPercent,
+            return new IndicatorOutline(thickness, color, opacity, fillPercent,
                     fillStartAngle, fillDirection);
         }
 

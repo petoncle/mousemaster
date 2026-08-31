@@ -56,8 +56,8 @@ class VirtualKeyMacroTest {
         macroPlayer.submit(macroByName.get(macroName).resolve(new AliasResolution(Map.of())));
     }
 
-    private String color() {
-        return comboWatcher.getMutatedMode().indicator().hexColor();
+    private Color color() {
+        return comboWatcher.getMutatedMode().indicator().color();
     }
 
     private int size() {
@@ -74,11 +74,11 @@ class VirtualKeyMacroTest {
         submit("x");
         submit("y");
         macroPlayer.update(0.01);
-        assertEquals("#00FF00", color());
+        assertEquals(Color.parse("#00FF00"), color());
         assertEquals(42, size(), "the second macro played while the first was waiting");
 
         macroPlayer.update(0.1);
-        assertEquals("#FF0000", color());
+        assertEquals(Color.parse("#FF0000"), color());
         assertEquals(26, size());
     }
 
@@ -92,10 +92,10 @@ class VirtualKeyMacroTest {
         macroPlayer.update(0.05);
         submit("x");
         macroPlayer.update(0.06);
-        assertEquals("#00FF00", color(), "the first release must not end the second press");
+        assertEquals(Color.parse("#00FF00"), color(), "the first release must not end the second press");
 
         macroPlayer.update(0.1);
-        assertEquals("#FF0000", color());
+        assertEquals(Color.parse("#FF0000"), color());
     }
 
     @Test
@@ -105,9 +105,9 @@ class VirtualKeyMacroTest {
                 "idle-mode.indicator.color=#FF0000 | _{flag} -> #00FF00");
         submit("x");
         macroPlayer.update(0.01);
-        assertEquals("#00FF00", color());
+        assertEquals(Color.parse("#00FF00"), color());
 
         macroPlayer.reset();
-        assertEquals("#FF0000", color());
+        assertEquals(Color.parse("#FF0000"), color());
     }
 }

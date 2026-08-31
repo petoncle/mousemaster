@@ -13,6 +13,9 @@ public record HintGradientColor(List<String> hexColors, HintGradientDirection di
     /** Qt's stops and the sampled colors both come from these, so the two agree. */
     public static final int rampSteps = 256;
 
+    /** What an across-hint sweep runs over, every shape it fills being mapped onto it. */
+    public static final Rectangle unitArea = new Rectangle(0, 0, 1, 1);
+
     public static HintGradientColor parse(String value) {
         List<String> hexColors = new ArrayList<>();
         HintGradientDirection direction = HintGradientDirection.TOP_TO_BOTTOM;
@@ -110,21 +113,16 @@ public record HintGradientColor(List<String> hexColors, HintGradientDirection di
 
     public int rgbAt(double t) {
         if (!gradient())
-            return rgb(hexColor());
+            return Color.rgb(hexColor());
         double scaled = Math.clamp(t, 0, 1) * (hexColors.size() - 1);
         int index = Math.min((int) scaled, hexColors.size() - 2);
-        double[] from = oklab(rgb(hexColors.get(index)));
-        double[] to = oklab(rgb(hexColors.get(index + 1)));
+        double[] from = oklab(Color.rgb(hexColors.get(index)));
+        double[] to = oklab(Color.rgb(hexColors.get(index + 1)));
         double segmentPosition = scaled - index;
         double[] mixed = new double[3];
         for (int i = 0; i < 3; i++)
             mixed[i] = from[i] + (to[i] - from[i]) * segmentPosition;
         return rgb(mixed);
-    }
-
-    private static int rgb(String hexColor) {
-        return Integer.parseUnsignedInt(
-                hexColor.startsWith("#") ? hexColor.substring(1) : hexColor, 16);
     }
 
     private static double[] oklab(int rgb) {

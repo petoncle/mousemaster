@@ -66,7 +66,8 @@ class IndicatorWindowGeometryTest {
         for (int transitionIndex = 0; transitionIndex < 2; transitionIndex++)
             for (double t : new double[] {0, 0.25, 0.5, 0.75, 1}) {
                 renderer.setIndicator(IndicatorConfiguration.lerp(from, to, t), to, false,
-                        new Rectangle(500, 500, 32, 32), new Point(16, 16), screen, null);
+                        new Rectangle(500, 500, 32, 32), new Point(16, 16), screen, null,
+                        "#000000");
                 geometries.add(renderer.window().xInPixels() + "," +
                                renderer.window().yInPixels() + " " +
                                renderer.window().widthInPixels() + "x" +

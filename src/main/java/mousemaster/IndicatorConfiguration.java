@@ -13,7 +13,7 @@ public record IndicatorConfiguration(boolean enabled,
                                      Easing transitionAnimationEasing,
                                      IndicatorSwitchAt transitionAnimationSwitchAt,
                                      boolean renderAsCursor,
-                                     int size, int edgeCount, String hexColor,
+                                     int size, int edgeCount, Color color,
                                      double opacity,
                                      IndicatorOutline outerOutline,
                                      IndicatorOutline innerOutline,
@@ -47,7 +47,7 @@ public record IndicatorConfiguration(boolean enabled,
                 to.transitionAnimationEasing, to.transitionAnimationSwitchAt,
                 to.renderAsCursor, (int) Math.round(lerp(from.size, to.size, t)),
                 lerpEdgeCount(from.edgeCount, to.edgeCount, t),
-                switched.hexColor, lerp(from.opacity, to.opacity, t),
+                switched.color, lerp(from.opacity, to.opacity, t),
                 lerp(from.outerOutline, to.outerOutline, switched.outerOutline, t),
                 lerp(from.innerOutline, to.innerOutline, switched.innerOutline, t),
                 lerp(from.shadow, to.shadow, switched.shadow, t), switched.labelEnabled,
@@ -59,13 +59,13 @@ public record IndicatorConfiguration(boolean enabled,
     private static IndicatorOutline lerp(IndicatorOutline from, IndicatorOutline to,
                                          IndicatorOutline switched, double t) {
         return new IndicatorOutline(lerp(from.thickness(), to.thickness(), t),
-                switched.hexColor(), lerp(from.opacity(), to.opacity(), t),
+                switched.color(), lerp(from.opacity(), to.opacity(), t),
                 lerp(from.fillPercent(), to.fillPercent(), t), switched.fillStartAngle(),
                 switched.fillDirection());
     }
 
     private static Shadow lerp(Shadow from, Shadow to, Shadow switched, double t) {
-        return new Shadow(lerp(from.blurRadius(), to.blurRadius(), t), switched.hexColor(),
+        return new Shadow(lerp(from.blurRadius(), to.blurRadius(), t), switched.color(),
                 lerp(from.opacity(), to.opacity(), t),
                 lerp(from.horizontalOffset(), to.horizontalOffset(), t),
                 lerp(from.verticalOffset(), to.verticalOffset(), t), switched.stackCount());
@@ -73,10 +73,10 @@ public record IndicatorConfiguration(boolean enabled,
 
     private static FontStyle lerp(FontStyle from, FontStyle to, FontStyle switched, double t) {
         return new FontStyle(switched.name(), switched.weight(),
-                lerp(from.size(), to.size(), t), switched.hexColor(),
+                lerp(from.size(), to.size(), t), switched.color(),
                 lerp(from.opacity(), to.opacity(), t),
                 lerp(from.outlineThickness(), to.outlineThickness(), t),
-                switched.outlineHexColor(), lerp(from.outlineOpacity(), to.outlineOpacity(), t),
+                switched.outlineColor(), lerp(from.outlineOpacity(), to.outlineOpacity(), t),
                 lerp(from.shadow(), to.shadow(), switched.shadow(), t),
                 switched.verticalAlignment());
     }
@@ -102,7 +102,7 @@ public record IndicatorConfiguration(boolean enabled,
         private Boolean renderAsCursor;
         private Integer size;
         private Integer edgeCount;
-        private String hexColor;
+        private Color color;
         private Double opacity;
         private IndicatorOutlineBuilder outerOutline = new IndicatorOutlineBuilder();
         private IndicatorOutlineBuilder innerOutline = new IndicatorOutlineBuilder();
@@ -125,7 +125,7 @@ public record IndicatorConfiguration(boolean enabled,
             this.renderAsCursor = indicator.renderAsCursor;
             this.size = indicator.size;
             this.edgeCount = indicator.edgeCount;
-            this.hexColor = indicator.hexColor;
+            this.color = indicator.color;
             this.opacity = indicator.opacity;
             this.outerOutline = new IndicatorOutlineBuilder(indicator.outerOutline);
             this.innerOutline = new IndicatorOutlineBuilder(indicator.innerOutline);
@@ -217,13 +217,13 @@ public record IndicatorConfiguration(boolean enabled,
             return edgeCount;
         }
 
-        public IndicatorConfigurationBuilder hexColor(String hexColor) {
-            this.hexColor = hexColor;
+        public IndicatorConfigurationBuilder color(Color color) {
+            this.color = color;
             return this;
         }
 
-        public String hexColor() {
-            return hexColor;
+        public Color color() {
+            return color;
         }
 
         public IndicatorConfigurationBuilder opacity(double opacity) {
@@ -288,7 +288,7 @@ public record IndicatorConfiguration(boolean enabled,
             if (renderAsCursor == null) renderAsCursor = parent.renderAsCursor;
             if (size == null) size = parent.size;
             if (edgeCount == null) edgeCount = parent.edgeCount;
-            if (hexColor == null) hexColor = parent.hexColor;
+            if (color == null) color = parent.color;
             if (opacity == null) opacity = parent.opacity;
             outerOutline.extend(parent.outerOutline);
             innerOutline.extend(parent.innerOutline);
@@ -303,7 +303,7 @@ public record IndicatorConfiguration(boolean enabled,
             return new IndicatorConfiguration(enabled, fadeAnimationEnabled,
                     fadeAnimationDuration, transitionAnimationDuration,
                     transitionAnimationEasing, transitionAnimationSwitchAt,
-                    renderAsCursor, size, edgeCount, hexColor,
+                    renderAsCursor, size, edgeCount, color,
                     opacity, outerOutline.build(), innerOutline.build(), shadow.build(),
                     labelEnabled, labelText, labelFontStyle.build(), position);
         }

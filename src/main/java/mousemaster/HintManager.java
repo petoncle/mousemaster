@@ -1224,11 +1224,11 @@ public class HintManager implements ModeListener, MousePositionListener {
                     prefixLengths.iterator().next() : -1;
         }
         HintMeshStyle decorationStyle = style.builder()
-                .boxColor(HintGradientColor.parse(decoration.boxHexColor()))
+                .boxColor(decoration.boxColor())
                 .boxOpacity(decoration.boxOpacity())
                 .boxBorderThickness(decoration.boxBorderThickness())
                 .boxBorderLength(decoration.boxBorderLength())
-                .boxBorderHexColor(decoration.boxBorderHexColor())
+                .boxBorderColor(decoration.boxBorderColor())
                 .boxBorderOpacity(decoration.boxBorderOpacity())
                 .boxBorderRadius(decoration.boxBorderRadius())
                 .prefixInBackground(false)

@@ -62,6 +62,7 @@ public final class HintMeshRenderer {
     private QWidget croppedContainer;
     private final TransitionMetrics transitionMetrics = new TransitionMetrics();
     private boolean showingHintMesh;
+    private String lastSelectedHintBoxHexColor = "#000000";
     private int hideCount;
     /** Set when a crop that was zooming into a selected hint's box is abandoned because the incoming
      *  grid does not continue that drill; the incoming grid then fades in instead of popping. */
@@ -323,6 +324,10 @@ public final class HintMeshRenderer {
             }
         }
         return nonMatchShown;
+    }
+
+    public String lastSelectedHintBoxHexColor() {
+        return lastSelectedHintBoxHexColor;
     }
 
     public void hideHintMesh() {
@@ -691,7 +696,7 @@ public final class HintMeshRenderer {
         // Compute background color for both the window and the container clear.
         Rectangle backgroundArea = hintMesh.backgroundArea();
         QColor backgroundColor = backgroundArea != null && style.backgroundOpacity() > 0 ?
-                QtColorUtil.qColor(style.backgroundHexColor(), style.backgroundOpacity()) : null;
+                QtColorUtil.qColor(style.backgroundColor().hexColor(lastSelectedHintBoxHexColor), style.backgroundOpacity()) : null;
         Rectangle backgroundRect = backgroundColor == null ? null :
                 backgroundRect(window, backgroundArea, qtScaleFactor);
         int backgroundRadius =
@@ -1428,15 +1433,15 @@ public final class HintMeshRenderer {
         // Background prefix is on a different layer.
         boolean hasForegroundPrefixKeys = !style.prefixInBackground() && hintMesh.prefixLength() != -1;
         HintFontStyle prefixFontStyle = hasForegroundPrefixKeys ? style.prefixFontStyle() : null;
-        QtHintFontStyle labelFontStyle = QtHintFont.qtHintFontStyle(style.fontStyle(), prefixFontStyle, screenScale);
+        QtHintFontStyle labelFontStyle = QtHintFont.qtHintFontStyle(style.fontStyle(), prefixFontStyle, screenScale, lastSelectedHintBoxHexColor);
         HintGradientColor boxColor = style.boxColor();
         boolean boxSweptPerHint = style.boxOpacity() != 0 && boxColor.gradient() &&
                                   boxColor.area() != HintGradientArea.HINT;
         Rectangle boxGradientArea =
                 boxSweptPerHint ? gradientArea(boxColor.area(), hintMeshWindow, hintMesh) : null;
         QBrush boxBrush = boxSweptPerHint ? null : fillBrush(boxColor, style.boxOpacity());
-        QColor boxBorderColor = QtColorUtil.qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
-        QColor prefixBoxBorderColor = QtColorUtil.qColor(style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity());
+        QColor boxBorderColor = QtColorUtil.qColor(style.boxBorderColor().hexColor(lastSelectedHintBoxHexColor), style.boxBorderOpacity());
+        QColor prefixBoxBorderColor = QtColorUtil.qColor(style.prefixBoxBorderColor().hexColor(lastSelectedHintBoxHexColor), style.prefixBoxBorderOpacity());
         int cellHorizontalPadding = scaledLength(style.cellHorizontalPadding(), screenScale);
         int cellVerticalPadding = scaledLength(style.cellVerticalPadding(), screenScale);
         int boxBorderThickness = scaledLength(style.boxBorderThickness(), screenScale);
@@ -1629,7 +1634,7 @@ public final class HintMeshRenderer {
         }
         QtHintFontStyle prefixQtHintFontStyle = null;
         if (style.prefixInBackground()) {
-            prefixQtHintFontStyle = QtHintFont.qtHintFontStyle(style.prefixFontStyle(), null, screenScale);
+            prefixQtHintFontStyle = QtHintFont.qtHintFontStyle(style.prefixFontStyle(), null, screenScale, lastSelectedHintBoxHexColor);
             Map<String, Integer> prefixXAdvancesByString = new HashMap<>();
             int prefixHintKeyMaxXAdvance = 0;
             for (List<Key> prefix : hintGroupByPrefix.keySet()) {
@@ -1837,12 +1842,12 @@ public final class HintMeshRenderer {
                            - (2 * otherBox.y() + otherBox.height())) <= 1;
     }
 
-    private static QBrush fillBrush(String hexColor, double opacity) {
-        return opacity == 0 ? null : QtColorUtil.qBrush(QtColorUtil.rgba(hexColor, opacity));
+    private static QBrush fillBrush(int rgb, double opacity) {
+        return opacity == 0 ? null : QtColorUtil.qBrush(QtColorUtil.rgba(rgb, opacity));
     }
 
     private static QBrush fillBrush(HintGradientColor color, double opacity) {
-        return opacity == 0 || !color.gradient() ? fillBrush(color.hexColor(), opacity) :
+        return opacity == 0 || !color.gradient() ? fillBrush(color.rgbAt(0), opacity) :
                 QtColorUtil.qBrush(color, opacity);
     }
 
@@ -1922,14 +1927,14 @@ public final class HintMeshRenderer {
     private DecorationStyle decorationStyle(Decoration decoration, double screenScale) {
         FontStyle font = decoration.fontStyle().defaultFontStyle();
         return new DecorationStyle(
-                fillBrush(decoration.boxHexColor(), decoration.boxOpacity()),
-                QtColorUtil.qColor(decoration.boxBorderHexColor(), decoration.boxBorderOpacity()),
+                fillBrush(decoration.boxColor(), decoration.boxOpacity()),
+                QtColorUtil.qColor(decoration.boxBorderColor().hexColor(lastSelectedHintBoxHexColor), decoration.boxBorderOpacity()),
                 scaledLength(decoration.boxBorderThickness(), screenScale),
                 scaledLength(decoration.boxBorderLength(), screenScale),
                 scaledLength(decoration.boxBorderRadius(), screenScale),
                 decoration.boxFramed(),
                 font.opacity() != 0,
-                QtHintFont.qtFontStyle(font, screenScale),
+                QtHintFont.qtFontStyle(font, screenScale, lastSelectedHintBoxHexColor),
                 decoration.labelOverride(),
                 font.verticalAlignment());
     }
@@ -2083,7 +2088,7 @@ public final class HintMeshRenderer {
     }
 
     private static Shadow scaledShadow(Shadow shadow, double screenScale) {
-        return new Shadow(shadow.blurRadius() * screenScale, shadow.hexColor(),
+        return new Shadow(shadow.blurRadius() * screenScale, shadow.color(),
                 shadow.opacity(), shadow.horizontalOffset() * screenScale,
                 shadow.verticalOffset() * screenScale, shadow.stackCount());
     }
@@ -3202,7 +3207,7 @@ public final class HintMeshRenderer {
                                        int containerWidth,
                                        int containerHeight,
                                        double qtScaleFactor) {
-        QColor shadowColor = QtColorUtil.shadow(boxShadow);
+        QColor shadowColor = QtColorUtil.shadow(boxShadow, lastSelectedHintBoxHexColor);
         if (shadowColor.alpha() == 0) {
             shadowColor.dispose();
             return;
@@ -3757,6 +3762,11 @@ public final class HintMeshRenderer {
         HintMesh lastHintMeshKey = hintMeshWindow.lastHintMeshKeyReference().get();
         HintMeshStyle style =
                 lastHintMeshKey.styleByFilter().get(ScreenFilter.of(screen));
+        HintGradientColor boxColor = style.boxColor();
+        Rectangle boxColorArea = gradientArea(boxColor.area(), hintMeshWindow, lastHintMeshKey);
+        lastSelectedHintBoxHexColor = Color.hexColor(boxColorArea == null ?
+                boxColor.rgbAt(HintGradientColor.unitArea, 0.5, 0.5) :
+                boxColor.rgbAt(boxColorArea, hint.centerX(), hint.centerY()));
         if (!style.transitionAnimationEnabled())
             return;
         boolean isHintGrid = lastHintMeshKey.hints().getFirst().cellWidth() != -1 &&

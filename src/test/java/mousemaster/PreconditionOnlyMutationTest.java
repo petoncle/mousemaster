@@ -123,8 +123,8 @@ class PreconditionOnlyMutationTest {
                         (proxy, method, args) -> null));
     }
 
-    private String hexColor() {
-        return comboWatcher.getMutatedMode().indicator().hexColor();
+    private Color color() {
+        return comboWatcher.getMutatedMode().indicator().color();
     }
 
     private int size() {
@@ -139,10 +139,10 @@ class PreconditionOnlyMutationTest {
     void aMutationReachesAnIndicatorProperty() {
         load("idle-mode.indicator.color=#FF0000 | _{isidling} -> #00FF00");
         tick();
-        assertEquals("#FF0000", hexColor());
+        assertEquals(Color.parse("#FF0000"), color());
 
         setIdling(true);
-        assertEquals("#00FF00", hexColor());
+        assertEquals(Color.parse("#00FF00"), color());
     }
 
     @Test
@@ -175,7 +175,7 @@ class PreconditionOnlyMutationTest {
         leftClick();
         assertEquals(1, notifiedModes.size(), "notified " + notifiedModes.size() + " times");
         assertEquals(50, notifiedModes.getFirst().indicator().size());
-        assertEquals("#00FF00", notifiedModes.getFirst().indicator().hexColor());
+        assertEquals(Color.parse("#00FF00"), notifiedModes.getFirst().indicator().color());
     }
 
     /** A hint mode's click presses and releases within one iteration, and the mouse state is
@@ -194,13 +194,13 @@ class PreconditionOnlyMutationTest {
         mouseManager.releaseLeft();
         setMouseAndKeyboardKeys(mouseState);
         assertEquals(50, size());
-        assertEquals("#00FF00", hexColor());
+        assertEquals(Color.parse("#00FF00"), color());
         assertEquals(1, opacity(), "a click is not idling");
 
         mouseManager.update(0.01);
         setMouseAndKeyboardKeys(mouseState);
         assertEquals(26, size());
-        assertEquals("#FF0000", hexColor());
+        assertEquals(Color.parse("#FF0000"), color());
         assertEquals(0.5, opacity());
     }
 

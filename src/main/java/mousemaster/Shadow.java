@@ -1,13 +1,13 @@
 package mousemaster;
 
-public record Shadow(double blurRadius, String hexColor, double opacity,
+public record Shadow(double blurRadius, Color color, double opacity,
                      double horizontalOffset, double verticalOffset,
                      int stackCount) {
 
     public static class ShadowBuilder {
 
         private Double blurRadius;
-        private String hexColor;
+        private Color color;
         private Double opacity;
         private Double horizontalOffset;
         private Double verticalOffset;
@@ -18,7 +18,7 @@ public record Shadow(double blurRadius, String hexColor, double opacity,
 
         public ShadowBuilder(Shadow shadow) {
             this.blurRadius = shadow.blurRadius;
-            this.hexColor = shadow.hexColor;
+            this.color = shadow.color;
             this.opacity = shadow.opacity;
             this.horizontalOffset = shadow.horizontalOffset;
             this.verticalOffset = shadow.verticalOffset;
@@ -29,8 +29,8 @@ public record Shadow(double blurRadius, String hexColor, double opacity,
             return blurRadius;
         }
 
-        public String hexColor() {
-            return hexColor;
+        public Color color() {
+            return color;
         }
 
         public Double opacity() {
@@ -54,8 +54,8 @@ public record Shadow(double blurRadius, String hexColor, double opacity,
             return this;
         }
 
-        public ShadowBuilder hexColor(String hexColor) {
-            this.hexColor = hexColor;
+        public ShadowBuilder color(Color color) {
+            this.color = color;
             return this;
         }
 
@@ -81,7 +81,7 @@ public record Shadow(double blurRadius, String hexColor, double opacity,
 
         public void extend(ShadowBuilder defaultShadow) {
             if (blurRadius == null) blurRadius = defaultShadow.blurRadius;
-            if (hexColor == null) hexColor = defaultShadow.hexColor;
+            if (color == null) color = defaultShadow.color;
             if (opacity == null) opacity = defaultShadow.opacity;
             if (horizontalOffset == null) horizontalOffset = defaultShadow.horizontalOffset;
             if (verticalOffset == null) verticalOffset = defaultShadow.verticalOffset;
@@ -89,7 +89,7 @@ public record Shadow(double blurRadius, String hexColor, double opacity,
         }
 
         public Shadow build() {
-            return new Shadow(blurRadius, hexColor, opacity, horizontalOffset, verticalOffset,
+            return new Shadow(blurRadius, color, opacity, horizontalOffset, verticalOffset,
                     stackCount);
         }
 

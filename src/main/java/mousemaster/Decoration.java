@@ -10,9 +10,9 @@ import java.util.List;
  */
 public record Decoration(int maxRowCount, int maxColumnCount,
                          List<Key> labelKeys, List<Key> labelOverride,
-                         String boxHexColor, double boxOpacity,
+                         HintGradientColor boxColor, double boxOpacity,
                          double boxBorderThickness, double boxBorderLength,
-                         String boxBorderHexColor, double boxBorderOpacity,
+                         Color boxBorderColor, double boxBorderOpacity,
                          double boxBorderRadius, boolean boxFramed,
                          HintFontStyle fontStyle) {
 
@@ -25,11 +25,11 @@ public record Decoration(int maxRowCount, int maxColumnCount,
         private Integer maxColumnCount;
         private List<Key> labelKeys;
         private List<Key> labelOverride;
-        private String boxHexColor;
+        private HintGradientColor boxColor;
         private Double boxOpacity;
         private Double boxBorderThickness;
         private Double boxBorderLength;
-        private String boxBorderHexColor;
+        private Color boxBorderColor;
         private Double boxBorderOpacity;
         private Double boxBorderRadius;
         private Boolean boxFramed;
@@ -44,11 +44,11 @@ public record Decoration(int maxRowCount, int maxColumnCount,
             this.maxColumnCount = decoration.maxColumnCount;
             this.labelKeys = decoration.labelKeys;
             this.labelOverride = decoration.labelOverride;
-            this.boxHexColor = decoration.boxHexColor;
+            this.boxColor = decoration.boxColor;
             this.boxOpacity = decoration.boxOpacity;
             this.boxBorderThickness = decoration.boxBorderThickness;
             this.boxBorderLength = decoration.boxBorderLength;
-            this.boxBorderHexColor = decoration.boxBorderHexColor;
+            this.boxBorderColor = decoration.boxBorderColor;
             this.boxBorderOpacity = decoration.boxBorderOpacity;
             this.boxBorderRadius = decoration.boxBorderRadius;
             this.boxFramed = decoration.boxFramed;
@@ -71,8 +71,8 @@ public record Decoration(int maxRowCount, int maxColumnCount,
             return labelOverride;
         }
 
-        public String boxHexColor() {
-            return boxHexColor;
+        public HintGradientColor boxColor() {
+            return boxColor;
         }
 
         public Double boxOpacity() {
@@ -87,8 +87,8 @@ public record Decoration(int maxRowCount, int maxColumnCount,
             return boxBorderLength;
         }
 
-        public String boxBorderHexColor() {
-            return boxBorderHexColor;
+        public Color boxBorderColor() {
+            return boxBorderColor;
         }
 
         public Double boxBorderOpacity() {
@@ -127,8 +127,8 @@ public record Decoration(int maxRowCount, int maxColumnCount,
             return this;
         }
 
-        public DecorationBuilder boxHexColor(String boxHexColor) {
-            this.boxHexColor = boxHexColor;
+        public DecorationBuilder boxColor(HintGradientColor boxColor) {
+            this.boxColor = boxColor;
             return this;
         }
 
@@ -147,8 +147,8 @@ public record Decoration(int maxRowCount, int maxColumnCount,
             return this;
         }
 
-        public DecorationBuilder boxBorderHexColor(String boxBorderHexColor) {
-            this.boxBorderHexColor = boxBorderHexColor;
+        public DecorationBuilder boxBorderColor(Color boxBorderColor) {
+            this.boxBorderColor = boxBorderColor;
             return this;
         }
 
@@ -173,11 +173,11 @@ public record Decoration(int maxRowCount, int maxColumnCount,
                     maxColumnCount == null ? defaultDecoration.maxColumnCount : maxColumnCount,
                     labelKeys == null ? defaultDecoration.labelKeys : labelKeys,
                     labelOverride == null ? defaultDecoration.labelOverride : labelOverride,
-                    boxHexColor == null ? defaultDecoration.boxHexColor : boxHexColor,
+                    boxColor == null ? defaultDecoration.boxColor : boxColor,
                     boxOpacity == null ? defaultDecoration.boxOpacity : boxOpacity,
                     boxBorderThickness == null ? defaultDecoration.boxBorderThickness : boxBorderThickness,
                     boxBorderLength == null ? defaultDecoration.boxBorderLength : boxBorderLength,
-                    boxBorderHexColor == null ? defaultDecoration.boxBorderHexColor : boxBorderHexColor,
+                    boxBorderColor == null ? defaultDecoration.boxBorderColor : boxBorderColor,
                     boxBorderOpacity == null ? defaultDecoration.boxBorderOpacity : boxBorderOpacity,
                     boxBorderRadius == null ? defaultDecoration.boxBorderRadius : boxBorderRadius,
                     boxFramed == null ? defaultDecoration.boxFramed : boxFramed,

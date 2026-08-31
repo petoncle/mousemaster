@@ -2,6 +2,7 @@ package mousemaster.qt;
 
 import io.qt.core.Qt;
 import io.qt.gui.*;
+import mousemaster.Color;
 import mousemaster.HintGradientColor;
 import mousemaster.Point;
 import mousemaster.Rectangle;
@@ -17,6 +18,10 @@ public final class QtColorUtil {
 
     public static QColor qColor(String hexColor, double opacity) {
         return QColor.fromRgba(rgba(hexColor, opacity));
+    }
+
+    public static int rgba(String hexColor, double opacity) {
+        return rgba(Color.rgb(hexColor), opacity);
     }
 
     /** Constructing a QtJambi object costs ~10us and a screen-sized hint grid paints tens of
@@ -52,7 +57,7 @@ public final class QtColorUtil {
 
     /** One sweep inside every shape it fills, whatever that shape's size and position. */
     public static QBrush qBrush(HintGradientColor color, double opacity) {
-        Rectangle unit = new Rectangle(0, 0, 1, 1);
+        Rectangle unit = HintGradientColor.unitArea;
         return gradientQBrush(color, opacity, color.direction().start(unit),
                 color.direction().end(unit), QGradient.CoordinateMode.ObjectBoundingMode);
     }
@@ -177,32 +182,13 @@ public final class QtColorUtil {
                 });
     }
 
-    public static QColor shadow(Shadow shadow) {
-        return qColor(shadow.hexColor(), shadow.opacity());
-    }
-
-    public static int rgba(String hexColor, double opacity) {
-        if (hexColor.startsWith("#"))
-            hexColor = hexColor.substring(1);
-        return rgba(Integer.parseUnsignedInt(hexColor, 16), opacity);
+    public static QColor shadow(Shadow shadow, String lastSelectedHintBoxHexColor) {
+        return qColor(shadow.color().hexColor(lastSelectedHintBoxHexColor), shadow.opacity());
     }
 
     public static int rgba(int rgb, double opacity) {
         int alpha = opacity > 0 ? Math.max(1, (int) (opacity * 255) & 0xFF) : 0;
         return (alpha << 24) | (rgb & 0xFFFFFF);
-    }
-
-    public static int rgb(String hexColor, double opacity) {
-        // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-blendfunction
-        // Note that the APIs use premultiplied alpha, which means that the red, green
-        // and blue channel values in the bitmap must be premultiplied with the alpha channel value.
-        if (hexColor.startsWith("#"))
-            hexColor = hexColor.substring(1);
-        int colorInt = Integer.parseUnsignedInt(hexColor, 16);
-        int red = (int) (((colorInt >> 16) & 0xFF) * opacity);
-        int green = (int) (((colorInt >> 8) & 0xFF) * opacity);
-        int blue = (int) ((colorInt & 0xFF) * opacity);
-        return (red << 16) | (green << 8) | blue;
     }
 
     public static int alphaMultiplied(int color, double opacity) {
@@ -227,19 +213,4 @@ public final class QtColorUtil {
         return (blendedRed << 16) | (blendedGreen << 8) | blendedBlue;
     }
 
-    public static String blendOverWhite(String hexColor, double opacity) {
-        if (hexColor.startsWith("#"))
-            hexColor = hexColor.substring(1);
-        int colorInt = Integer.parseUnsignedInt(hexColor, 16);
-        int inputRed = (colorInt >> 16) & 0xFF;
-        int inputGreen = (colorInt >> 8) & 0xFF;
-        int inputBlue = colorInt & 0xFF;
-        int whiteRed = 255;
-        int whiteGreen = 255;
-        int whiteBlue = 255;
-        int blendedRed = (int) Math.round((inputRed * opacity) + (whiteRed * (1 - opacity)));
-        int blendedGreen = (int) Math.round((inputGreen * opacity) + (whiteGreen * (1 - opacity)));
-        int blendedBlue = (int) Math.round((inputBlue * opacity) + (whiteBlue * (1 - opacity)));
-        return String.format("%02X%02X%02X", blendedRed, blendedGreen, blendedBlue);
-    }
 }

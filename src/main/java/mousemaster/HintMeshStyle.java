@@ -11,7 +11,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             double boxOpacity,
                             double boxBorderThickness,
                             double boxBorderLength,
-                            String boxBorderHexColor,
+                            Color boxBorderColor,
                             double boxBorderOpacity,
                             double boxBorderRadius,
                             boolean boxFramed,
@@ -19,7 +19,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             boolean prefixBoxEnabled,
                             double prefixBoxBorderThickness,
                             double prefixBoxBorderLength,
-                            String prefixBoxBorderHexColor,
+                            Color prefixBoxBorderColor,
                             double prefixBoxBorderOpacity,
                             boolean prefixBoxFramed,
                             double boxWidthPercent,
@@ -31,7 +31,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             Duration transitionAnimationDuration,
                             boolean fadeAnimationEnabled,
                             Duration fadeAnimationDuration,
-                            String backgroundHexColor,
+                            Color backgroundColor,
                             double backgroundOpacity,
                             double backgroundBorderRadius,
                             List<Key> labelOverride) {
@@ -48,7 +48,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Double boxOpacity;
         private Double boxBorderThickness;
         private Double boxBorderLength;
-        private String boxBorderHexColor;
+        private Color boxBorderColor;
         private Double boxBorderOpacity;
         private Double boxBorderRadius;
         private Boolean boxFramed;
@@ -56,7 +56,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Boolean prefixBoxEnabled;
         private Double prefixBoxBorderThickness;
         private Double prefixBoxBorderLength;
-        private String prefixBoxBorderHexColor;
+        private Color prefixBoxBorderColor;
         private Double prefixBoxBorderOpacity;
         private Boolean prefixBoxFramed;
         private Double boxWidthPercent;
@@ -72,7 +72,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Duration transitionAnimationDuration;
         private Boolean fadeAnimationEnabled;
         private Duration fadeAnimationDuration;
-        private String backgroundHexColor;
+        private Color backgroundColor;
         private Double backgroundOpacity;
         private Double backgroundBorderRadius;
         private List<Key> labelOverride;
@@ -89,7 +89,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.boxOpacity = style.boxOpacity;
             this.boxBorderThickness = style.boxBorderThickness;
             this.boxBorderLength = style.boxBorderLength;
-            this.boxBorderHexColor = style.boxBorderHexColor;
+            this.boxBorderColor = style.boxBorderColor;
             this.boxBorderOpacity = style.boxBorderOpacity;
             this.boxBorderRadius = style.boxBorderRadius;
             this.boxFramed = style.boxFramed;
@@ -97,7 +97,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.prefixBoxEnabled = style.prefixBoxEnabled;
             this.prefixBoxBorderThickness = style.prefixBoxBorderThickness;
             this.prefixBoxBorderLength = style.prefixBoxBorderLength;
-            this.prefixBoxBorderHexColor = style.prefixBoxBorderHexColor;
+            this.prefixBoxBorderColor = style.prefixBoxBorderColor;
             this.prefixBoxBorderOpacity = style.prefixBoxBorderOpacity;
             this.prefixBoxFramed = style.prefixBoxFramed;
             this.boxWidthPercent = style.boxWidthPercent;
@@ -111,7 +111,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.transitionAnimationDuration = style.transitionAnimationDuration;
             this.fadeAnimationEnabled = style.fadeAnimationEnabled;
             this.fadeAnimationDuration = style.fadeAnimationDuration;
-            this.backgroundHexColor = style.backgroundHexColor;
+            this.backgroundColor = style.backgroundColor;
             this.backgroundOpacity = style.backgroundOpacity;
             this.backgroundBorderRadius = style.backgroundBorderRadius;
             this.labelOverride = style.labelOverride;
@@ -143,8 +143,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
-        public HintMeshStyleBuilder boxBorderHexColor(String boxBorderHexColor) {
-            this.boxBorderHexColor = boxBorderHexColor;
+        public HintMeshStyleBuilder boxBorderColor(Color boxBorderColor) {
+            this.boxBorderColor = boxBorderColor;
             return this;
         }
 
@@ -178,8 +178,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
-        public HintMeshStyleBuilder prefixBoxBorderHexColor(String prefixBoxBorderHexColor) {
-            this.prefixBoxBorderHexColor = prefixBoxBorderHexColor;
+        public HintMeshStyleBuilder prefixBoxBorderColor(Color prefixBoxBorderColor) {
+            this.prefixBoxBorderColor = prefixBoxBorderColor;
             return this;
         }
 
@@ -241,8 +241,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
-        public HintMeshStyleBuilder backgroundHexColor(String backgroundHexColor) {
-            this.backgroundHexColor = backgroundHexColor;
+        public HintMeshStyleBuilder backgroundColor(Color backgroundColor) {
+            this.backgroundColor = backgroundColor;
             return this;
         }
 
@@ -294,8 +294,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return boxBorderLength;
         }
 
-        public String boxBorderHexColor() {
-            return boxBorderHexColor;
+        public Color boxBorderColor() {
+            return boxBorderColor;
         }
 
         public Double boxBorderOpacity() {
@@ -326,8 +326,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return prefixBoxBorderLength;
         }
 
-        public String prefixBoxBorderHexColor() {
-            return prefixBoxBorderHexColor;
+        public Color prefixBoxBorderColor() {
+            return prefixBoxBorderColor;
         }
 
         public Double prefixBoxBorderOpacity() {
@@ -370,8 +370,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return fadeAnimationDuration;
         }
 
-        public String backgroundHexColor() {
-            return backgroundHexColor;
+        public Color backgroundColor() {
+            return backgroundColor;
         }
 
         public Double backgroundOpacity() {
@@ -402,7 +402,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     boxOpacity == null ? defaultStyle.boxOpacity : boxOpacity,
                     boxBorderThickness == null ? defaultStyle.boxBorderThickness : boxBorderThickness,
                     boxBorderLength == null ? defaultStyle.boxBorderLength : boxBorderLength,
-                    boxBorderHexColor == null ? defaultStyle.boxBorderHexColor : boxBorderHexColor,
+                    boxBorderColor == null ? defaultStyle.boxBorderColor : boxBorderColor,
                     boxBorderOpacity == null ? defaultStyle.boxBorderOpacity : boxBorderOpacity,
                     boxBorderRadius == null ? defaultStyle.boxBorderRadius : boxBorderRadius,
                     boxFramed == null ? defaultStyle.boxFramed : boxFramed,
@@ -410,7 +410,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     prefixBoxEnabled == null ? defaultStyle.prefixBoxEnabled : prefixBoxEnabled,
                     prefixBoxBorderThickness == null ? defaultStyle.prefixBoxBorderThickness : prefixBoxBorderThickness,
                     prefixBoxBorderLength == null ? defaultStyle.prefixBoxBorderLength : prefixBoxBorderLength,
-                    prefixBoxBorderHexColor == null ? defaultStyle.prefixBoxBorderHexColor : prefixBoxBorderHexColor,
+                    prefixBoxBorderColor == null ? defaultStyle.prefixBoxBorderColor : prefixBoxBorderColor,
                     prefixBoxBorderOpacity == null ? defaultStyle.prefixBoxBorderOpacity : prefixBoxBorderOpacity,
                     prefixBoxFramed == null ? defaultStyle.prefixBoxFramed : prefixBoxFramed,
                     boxWidthPercent == null ? defaultStyle.boxWidthPercent : boxWidthPercent,
@@ -422,7 +422,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     transitionAnimationDuration == null ? defaultStyle.transitionAnimationDuration : transitionAnimationDuration,
                     fadeAnimationEnabled == null ? defaultStyle.fadeAnimationEnabled : fadeAnimationEnabled,
                     fadeAnimationDuration == null ? defaultStyle.fadeAnimationDuration : fadeAnimationDuration,
-                    backgroundHexColor == null ? defaultStyle.backgroundHexColor : backgroundHexColor,
+                    backgroundColor == null ? defaultStyle.backgroundColor : backgroundColor,
                     backgroundOpacity == null ? defaultStyle.backgroundOpacity : backgroundOpacity,
                     backgroundBorderRadius == null ? defaultStyle.backgroundBorderRadius : backgroundBorderRadius,
                     labelOverride == null ? defaultStyle.labelOverride : labelOverride

@@ -16,12 +16,12 @@ class DeprecatedIndicatorStateTest {
                 KeyboardLayout.keyboardLayout("00000409", null));
     }
 
-    private static String hexColor(String... lines) {
-        return parse(lines).modeMap().get(Mode.IDLE_MODE_NAME).indicator().hexColor();
+    private static Color color(String... lines) {
+        return parse(lines).modeMap().get(Mode.IDLE_MODE_NAME).indicator().color();
     }
 
     /** Presses the keys the runtime would press together, then reads the mutated color. */
-    private static String mutatedHexColor(Set<Key> pressedKeys, String... lines) {
+    private static Color mutatedColor(Set<Key> pressedKeys, String... lines) {
         Configuration configuration = parse(lines);
         ComboWatcher comboWatcher =
                 new ComboWatcher(null, null, () -> new App("test.exe"), null,
@@ -42,18 +42,18 @@ class DeprecatedIndicatorStateTest {
         for (Key pressedKey : pressedKeys)
             comboWatcher.setVirtualKeyPressed(pressedKey, true);
         comboWatcher.update(0.01);
-        return comboWatcher.getMutatedMode().indicator().hexColor();
+        return comboWatcher.getMutatedMode().indicator().color();
     }
 
     @Test
     void anIdleStateBecomesThePropertyItself() {
-        assertEquals("#00FF00", hexColor("idle-mode.indicator.idle.color=#00FF00"));
+        assertEquals(Color.parse("#00FF00"), color("idle-mode.indicator.idle.color=#00FF00"));
     }
 
     /** An idle value keeps its own branches, since it is the default they mutate. */
     @Test
     void anIdleStateKeepsItsBranches() {
-        assertEquals("#00FF00", hexColor(
+        assertEquals(Color.parse("#00FF00"), color(
                 "idle-mode.indicator.idle.color=#00FF00 | _{leftshift} -> #FF0000"));
     }
 
@@ -61,18 +61,18 @@ class DeprecatedIndicatorStateTest {
     void aMouseStateBecomesABranchOnThatStatesKey() {
         String[] lines = {"idle-mode.indicator.idle.color=#FF0000",
                 "idle-mode.indicator.wheel.color=#FFFF00"};
-        assertEquals("#FF0000", hexColor(lines));
-        assertEquals("#FFFF00",
-                mutatedHexColor(Set.of(BuiltInVirtualKey.IS_WHEELING), lines));
+        assertEquals(Color.parse("#FF0000"), color(lines));
+        assertEquals(Color.parse("#FFFF00"),
+                mutatedColor(Set.of(BuiltInVirtualKey.IS_WHEELING), lines));
     }
 
     /** Without an idle state there is no default, so the inherited one is left alone. */
     @Test
     void aMouseStateAloneOnlyAddsABranch() {
         String[] lines = {"idle-mode.indicator.wheel.color=#FFFF00"};
-        assertEquals("#FF0000", hexColor(lines));
-        assertEquals("#FFFF00",
-                mutatedHexColor(Set.of(BuiltInVirtualKey.IS_WHEELING), lines));
+        assertEquals(Color.parse("#FF0000"), color(lines));
+        assertEquals(Color.parse("#FFFF00"),
+                mutatedColor(Set.of(BuiltInVirtualKey.IS_WHEELING), lines));
     }
 
     /** mouse-press used to feed the three buttons, so a button state has to win over it. */
@@ -80,10 +80,10 @@ class DeprecatedIndicatorStateTest {
     void aButtonStateWinsOverMousePress() {
         String[] lines = {"idle-mode.indicator.mouse-press.color=#00FF00",
                 "idle-mode.indicator.left-mouse-press.color=#0000FF"};
-        assertEquals("#00FF00", mutatedHexColor(
+        assertEquals(Color.parse("#00FF00"), mutatedColor(
                 Set.of(BuiltInVirtualKey.IS_MOUSE_PRESSING,
                         BuiltInVirtualKey.IS_MIDDLE_MOUSE_PRESSING), lines));
-        assertEquals("#0000FF", mutatedHexColor(
+        assertEquals(Color.parse("#0000FF"), mutatedColor(
                 Set.of(BuiltInVirtualKey.IS_MOUSE_PRESSING,
                         BuiltInVirtualKey.IS_LEFT_MOUSE_PRESSING), lines));
     }
@@ -91,7 +91,7 @@ class DeprecatedIndicatorStateTest {
     @Test
     void theSamePropertyCannotBeGivenWithAndWithoutAState() {
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                () -> hexColor("idle-mode.indicator.color=#FF0000",
+                () -> color("idle-mode.indicator.color=#FF0000",
                         "idle-mode.indicator.wheel.color=#FFFF00"));
         assertTrue(e.getMessage().contains("both with and without a state"),
                 e.getMessage());
@@ -100,7 +100,7 @@ class DeprecatedIndicatorStateTest {
     @Test
     void aStateCannotBeGivenTwice() {
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                () -> hexColor("idle-mode.indicator.wheel.color=#FFFF00",
+                () -> color("idle-mode.indicator.wheel.color=#FFFF00",
                         "idle-mode.indicator.wheel.color=#00FF00"));
         assertTrue(e.getMessage().contains("defined twice"), e.getMessage());
     }
@@ -108,7 +108,7 @@ class DeprecatedIndicatorStateTest {
     @Test
     void aMouseStateCannotCarryBranches() {
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                () -> hexColor("idle-mode.indicator.idle.color=#FF0000",
+                () -> color("idle-mode.indicator.idle.color=#FF0000",
                         "idle-mode.indicator.wheel.color=#FFFF00 | _{leftshift} -> #FF00FF"));
         assertTrue(e.getMessage().contains("cannot carry branches"), e.getMessage());
     }
@@ -116,7 +116,7 @@ class DeprecatedIndicatorStateTest {
     @Test
     void anUnknownStateIsStillRejected() {
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                () -> hexColor("idle-mode.indicator.hover.color=#FFFF00"));
+                () -> color("idle-mode.indicator.hover.color=#FFFF00"));
         assertTrue(e.getMessage().contains("Invalid indicator property key"),
                 e.getMessage());
     }

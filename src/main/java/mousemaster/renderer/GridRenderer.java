@@ -39,7 +39,8 @@ public final class GridRenderer {
         return showing;
     }
 
-    public void setGrid(Grid grid, Rectangle desktopBounds, int lineThicknessPixels) {
+    public void setGrid(Grid grid, Rectangle desktopBounds, int lineThicknessPixels,
+                        String lastSelectedHintBoxHexColor) {
         boolean fadingOut = fadeAnimator != null && fadeAnimator.isFadingOut();
         if (!fadingOut && showing && currentGrid != null && currentGrid.equals(grid))
             return;
@@ -54,9 +55,9 @@ public final class GridRenderer {
         widget.show();
         showing = true;
         QColor background = grid.backgroundOpacity() > 0 ?
-                QtColorUtil.qColor(grid.backgroundHexColor(), grid.backgroundOpacity()) : null;
+                QtColorUtil.qColor(grid.backgroundColor().hexColor(lastSelectedHintBoxHexColor), grid.backgroundOpacity()) : null;
         widget.showGrid(grid, lineThicknessPixels,
-                QtColorUtil.qColor(grid.lineHexColor(), grid.lineOpacity()), background,
+                QtColorUtil.qColor(grid.lineColor().hexColor(lastSelectedHintBoxHexColor), grid.lineOpacity()), background,
                 grid.transitionAnimationEnabled() && wasShowing,
                 grid.transitionAnimationDuration());
         if (!wasShowing) {

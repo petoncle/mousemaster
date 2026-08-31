@@ -6086,15 +6086,15 @@
             "int",
             "java.util.List",
             "java.util.List",
-            "java.lang.String",
+            "mousemaster.HintGradientColor",
             "double",
             "double",
             "double",
-            "java.lang.String",
+            "mousemaster.Color",
             "double",
             "double",
-            "mousemaster.HintFontStyle",
-            "boolean"
+            "boolean",
+            "mousemaster.HintFontStyle"
           ]
         },
         {
@@ -6104,11 +6104,11 @@
             "int",
             "java.util.List",
             "java.util.List",
-            "java.lang.String",
+            "mousemaster.HintGradientColor",
             "double",
             "double",
             "double",
-            "java.lang.String",
+            "mousemaster.Color",
             "double",
             "double",
             "boolean",
@@ -6116,7 +6116,7 @@
           ]
         },
         {
-          "name": "boxBorderHexColor",
+          "name": "boxBorderColor",
           "parameterTypes": []
         },
         {
@@ -6140,7 +6140,7 @@
           "parameterTypes": []
         },
         {
-          "name": "boxHexColor",
+          "name": "boxColor",
           "parameterTypes": []
         },
         {
@@ -6182,17 +6182,17 @@
             "java.lang.String",
             "mousemaster.FontWeight",
             "double",
-            "java.lang.String",
+            "mousemaster.Color",
             "double",
             "double",
-            "java.lang.String",
+            "mousemaster.Color",
             "double",
             "mousemaster.Shadow",
             "mousemaster.FontVerticalAlignment"
           ]
         },
         {
-          "name": "hexColor",
+          "name": "color",
           "parameterTypes": []
         },
         {
@@ -6204,7 +6204,7 @@
           "parameterTypes": []
         },
         {
-          "name": "outlineHexColor",
+          "name": "outlineColor",
           "parameterTypes": []
         },
         {
@@ -6350,10 +6350,10 @@
             "int",
             "int",
             "boolean",
-            "java.lang.String",
+            "mousemaster.Color",
             "double",
             "double",
-            "java.lang.String",
+            "mousemaster.Color",
             "double",
             "boolean",
             "java.time.Duration",
@@ -6366,7 +6366,7 @@
           "parameterTypes": []
         },
         {
-          "name": "backgroundHexColor",
+          "name": "backgroundColor",
           "parameterTypes": []
         },
         {
@@ -6386,7 +6386,7 @@
           "parameterTypes": []
         },
         {
-          "name": "lineHexColor",
+          "name": "lineColor",
           "parameterTypes": []
         },
         {
@@ -6755,7 +6755,7 @@
             "double",
             "double",
             "double",
-            "java.lang.String",
+            "mousemaster.Color",
             "double",
             "double",
             "boolean",
@@ -6763,7 +6763,7 @@
             "boolean",
             "double",
             "double",
-            "java.lang.String",
+            "mousemaster.Color",
             "double",
             "boolean",
             "double",
@@ -6775,14 +6775,14 @@
             "java.time.Duration",
             "boolean",
             "java.time.Duration",
-            "java.lang.String",
+            "mousemaster.Color",
             "double",
             "double",
             "java.util.List"
           ]
         },
         {
-          "name": "backgroundHexColor",
+          "name": "backgroundColor",
           "parameterTypes": []
         },
         {
@@ -6794,7 +6794,7 @@
           "parameterTypes": []
         },
         {
-          "name": "boxBorderHexColor",
+          "name": "boxBorderColor",
           "parameterTypes": []
         },
         {
@@ -6866,7 +6866,7 @@
           "parameterTypes": []
         },
         {
-          "name": "prefixBoxBorderHexColor",
+          "name": "prefixBoxBorderColor",
           "parameterTypes": []
         },
         {
@@ -6992,7 +6992,7 @@
             "boolean",
             "int",
             "int",
-            "java.lang.String",
+            "mousemaster.Color",
             "double",
             "mousemaster.IndicatorOutline",
             "mousemaster.IndicatorOutline",
@@ -7040,7 +7040,7 @@
           "parameterTypes": []
         },
         {
-          "name": "hexColor",
+          "name": "color",
           "parameterTypes": []
         },
         {
@@ -7104,7 +7104,7 @@
           "name": "<init>",
           "parameterTypes": [
             "double",
-            "java.lang.String",
+            "mousemaster.Color",
             "double",
             "double",
             "double",
@@ -7124,7 +7124,7 @@
           "parameterTypes": []
         },
         {
-          "name": "hexColor",
+          "name": "color",
           "parameterTypes": []
         },
         {
@@ -7375,7 +7375,7 @@
           "name": "<init>",
           "parameterTypes": [
             "double",
-            "java.lang.String",
+            "mousemaster.Color",
             "double",
             "double",
             "double",
@@ -7387,7 +7387,7 @@
           "parameterTypes": []
         },
         {
-          "name": "hexColor",
+          "name": "color",
           "parameterTypes": []
         },
         {

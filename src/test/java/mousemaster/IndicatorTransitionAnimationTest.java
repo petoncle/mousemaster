@@ -63,7 +63,7 @@ class IndicatorTransitionAnimationTest {
     }
 
     private List<String> colorsAndSizes() {
-        return shown.stream().map(i -> i.hexColor() + " " + i.size()).toList();
+        return shown.stream().map(i -> i.color() + " " + i.size()).toList();
     }
 
     /** Switching at the start takes the new color from the very first frame. */
@@ -106,7 +106,7 @@ class IndicatorTransitionAnimationTest {
         changeMode(modes.get(Mode.IDLE_MODE_NAME));
         changeMode(modes.get("normal-mode"));
         tick(0.1);
-        assertEquals("#00FF00", shown.getLast().hexColor(), "still holding the old color");
+        assertEquals(Color.parse("#00FF00"), shown.getLast().color(), "still holding the old color");
         shown.clear();
 
         changeMode(modes.get("other-mode"));

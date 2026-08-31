@@ -95,7 +95,7 @@ public final class IndicatorRenderer {
     public void setIndicator(IndicatorConfiguration indicator,
                              IndicatorConfiguration transitionTo, boolean allowFade,
                              Rectangle mouseRectangle, Point cursorVisualCenter,
-                             Screen activeScreen, Zoom zoom) {
+                             Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
         IndicatorConfiguration oldIndicator = currentIndicator;
         if (showing && oldIndicator != null && oldIndicator.equals(indicator))
             return;
@@ -132,7 +132,8 @@ public final class IndicatorRenderer {
         if (created || sizeOrShadowOrPositionChanged)
             reposition(indicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
         double shadowScale = activeScreen.scale();
-        showIndicator(indicator, applyShadow, shadowScale, wasShowing, allowFade);
+        showIndicator(indicator, applyShadow, shadowScale, wasShowing, allowFade,
+                lastSelectedHintBoxHexColor);
     }
 
     /** Repositions/resizes the current indicator for the cursor, screen and zoom. */
@@ -218,7 +219,8 @@ public final class IndicatorRenderer {
 
     /** Renders the indicator's widget tree into a premultiplied-ARGB image for use as the
      *  system cursor, centered on the indicator's visual center. */
-    public CursorImage renderCursorImage(IndicatorConfiguration indicator, double scale) {
+    public CursorImage renderCursorImage(IndicatorConfiguration indicator, double scale,
+                                         String lastSelectedHintBoxHexColor) {
         int size = indicatorSize(indicator, scale);
         if (size <= 0)
             return null;
@@ -226,7 +228,7 @@ public final class IndicatorRenderer {
         int shadowPadding = indicatorShadowPadding(indicator, scale);
         int imageSize = size + 2 * (outlinePadding + shadowPadding);
         window();
-        applyIndicator(indicator, true, scale);
+        applyIndicator(indicator, true, scale, lastSelectedHintBoxHexColor);
         sizeWidgetsForRender(size, outlinePadding, shadowPadding, scale);
         QImage image = new QImage(imageSize, imageSize,
                 QImage.Format.Format_ARGB32_Premultiplied);
@@ -289,40 +291,41 @@ public final class IndicatorRenderer {
 
     /** Applies the indicator to the widgets (shape, outlines, shadow effect, label) without
      *  showing or positioning. Shared by the on-screen path and the offscreen cursor render. */
-    private void applyIndicator(IndicatorConfiguration indicator, boolean applyShadow, double shadowScale) {
+    private void applyIndicator(IndicatorConfiguration indicator, boolean applyShadow,
+                                double shadowScale, String lastSelectedHintBoxHexColor) {
         currentIndicator = indicator;
         if (applyShadow)
-            applyShadowEffect(shadowScale);
+            applyShadowEffect(shadowScale, lastSelectedHintBoxHexColor);
         widget.cleared = false;
         widget.setEdgeCount(indicator.edgeCount());
         widget.setColor(indicator.opacity() > 0
-                ? new QColor(indicator.hexColor()) : new QColor(0, 0, 0, 0));
+                ? QtColorUtil.qColor(indicator.color().hexColor(lastSelectedHintBoxHexColor), 1) : new QColor(0, 0, 0, 0));
         IndicatorOutline outer = indicator.outerOutline();
         IndicatorOutline inner = indicator.innerOutline();
         widget.setOutlines(
                 outer.thickness(),
-                outer.opacity() > 0 ? new QColor(outer.hexColor()) : new QColor(0, 0, 0, 0),
+                outer.opacity() > 0 ? QtColorUtil.qColor(outer.color().hexColor(lastSelectedHintBoxHexColor), 1) : new QColor(0, 0, 0, 0),
                 outer.fillPercent(),
                 outer.fillStartAngle(),
                 outer.fillDirection(),
                 inner.thickness(),
-                inner.opacity() > 0 ? new QColor(inner.hexColor()) : new QColor(0, 0, 0, 0),
+                inner.opacity() > 0 ? QtColorUtil.qColor(inner.color().hexColor(lastSelectedHintBoxHexColor), 1) : new QColor(0, 0, 0, 0),
                 inner.fillPercent(),
                 inner.fillStartAngle(),
                 inner.fillDirection());
         if (widget.customGraphicsEffect != null)
-            setIndicatorEffectColors(widget.customGraphicsEffect);
+            setIndicatorEffectColors(widget.customGraphicsEffect, lastSelectedHintBoxHexColor);
         if (indicator.labelEnabled() && indicator.labelText() != null &&
             indicator.labelFontStyle() != null) {
             FontStyle labelFontStyle = indicator.labelFontStyle();
             QFont labelFont = QtHintFont.qFont(labelFontStyle.name(), labelFontStyle.size(), labelFontStyle.weight());
-            QColor labelColor = QtColorUtil.qColor(labelFontStyle.hexColor(), labelFontStyle.opacity());
-            QColor labelOutlineColor = QtColorUtil.qColor(labelFontStyle.outlineHexColor(), labelFontStyle.outlineOpacity());
+            QColor labelColor = QtColorUtil.qColor(labelFontStyle.color().hexColor(lastSelectedHintBoxHexColor), labelFontStyle.opacity());
+            QColor labelOutlineColor = QtColorUtil.qColor(labelFontStyle.outlineColor().hexColor(lastSelectedHintBoxHexColor), labelFontStyle.outlineOpacity());
             labelWidget.setLabel(indicator.labelText(), labelFont, labelColor,
                     (int) Math.round(labelFontStyle.outlineThickness()), labelOutlineColor,
                     indicator.edgeCount());
             Shadow labelShadow = labelFontStyle.shadow();
-            QColor labelShadowColor = QtColorUtil.qColor(labelShadow.hexColor(), labelShadow.opacity());
+            QColor labelShadowColor = QtColorUtil.qColor(labelShadow.color().hexColor(lastSelectedHintBoxHexColor), labelShadow.opacity());
             if (labelShadowColor.alpha() != 0) {
                 StackedShadowEffect effect = new StackedShadowEffect();
                 effect.setBlurRadius(labelShadow.blurRadius() * shadowScale);
@@ -348,8 +351,8 @@ public final class IndicatorRenderer {
     /** Applies the indicator, then shows the window (with a fade-in on first appearance). */
     private void showIndicator(IndicatorConfiguration indicator, boolean applyShadow,
                                double shadowScale, boolean wasShowing,
-                               boolean allowFade) {
-        applyIndicator(indicator, applyShadow, shadowScale);
+                               boolean allowFade, String lastSelectedHintBoxHexColor) {
+        applyIndicator(indicator, applyShadow, shadowScale, lastSelectedHintBoxHexColor);
         window.show();
         widget.repaint();
         showing = true;
@@ -426,18 +429,19 @@ public final class IndicatorRenderer {
                (inner.thickness() > 0 && inner.opacity() < 1.0);
     }
 
-    private void setIndicatorEffectColors(IndicatorShadowEffect effect) {
+    private void setIndicatorEffectColors(IndicatorShadowEffect effect,
+                                          String lastSelectedHintBoxHexColor) {
         IndicatorOutline outer = currentIndicator.outerOutline();
         IndicatorOutline inner = currentIndicator.innerOutline();
         effect.setColors(
-                QtColorUtil.qColor(currentIndicator.hexColor(), currentIndicator.opacity()),
-                QtColorUtil.qColor(outer.hexColor(), outer.opacity()),
-                QtColorUtil.qColor(inner.hexColor(), inner.opacity()));
+                QtColorUtil.qColor(currentIndicator.color().hexColor(lastSelectedHintBoxHexColor), currentIndicator.opacity()),
+                QtColorUtil.qColor(outer.color().hexColor(lastSelectedHintBoxHexColor), outer.opacity()),
+                QtColorUtil.qColor(inner.color().hexColor(lastSelectedHintBoxHexColor), inner.opacity()));
     }
 
-    private void applyShadowEffect(double scale) {
+    private void applyShadowEffect(double scale, String lastSelectedHintBoxHexColor) {
         Shadow shadow = currentIndicator.shadow();
-        QColor baseColor = QtColorUtil.qColor(shadow.hexColor(), 1.0);
+        QColor baseColor = QtColorUtil.qColor(shadow.color().hexColor(lastSelectedHintBoxHexColor), 1.0);
         boolean hasShadow = shadow.opacity() > 0 && shadow.blurRadius() > 0;
         if (hasShadow) {
             // Reused rather than replaced: installing a graphics effect sets up Qt machinery
@@ -453,13 +457,13 @@ public final class IndicatorRenderer {
             effect.setColor(shadowColor);
             shadowColor.dispose();
             effect.setStackCount(shadow.stackCount());
-            setIndicatorEffectColors(effect);
+            setIndicatorEffectColors(effect, lastSelectedHintBoxHexColor);
             install(effect);
         }
         else if (indicatorHasTransparency()) {
             IndicatorShadowEffect effect = reusableShadowEffect();
             effect.setTransparencyOnly(true);
-            setIndicatorEffectColors(effect);
+            setIndicatorEffectColors(effect, lastSelectedHintBoxHexColor);
             install(effect);
         }
         else {
