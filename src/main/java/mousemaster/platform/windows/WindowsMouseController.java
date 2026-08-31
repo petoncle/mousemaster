@@ -593,8 +593,11 @@ public class WindowsMouseController implements MouseController {
         WinDef.HBITMAP colorBitmap = create32bppDib(canvasWidth, canvasHeight, bgra);
         if (colorBitmap == null)
             return;
-        WinDef.HBITMAP mask =
-                ExtendedGDI32.INSTANCE.CreateBitmap(canvasWidth, canvasHeight, 1, 1, null);
+        // Windows falls back to this mask when no pixel has alpha; all ones stays transparent.
+        byte[] andMask = new byte[(canvasWidth + 15) / 16 * 2 * canvasHeight];
+        Arrays.fill(andMask, (byte) 0xFF);
+        WinDef.HBITMAP mask = ExtendedGDI32.INSTANCE.CreateBitmap(canvasWidth, canvasHeight, 1,
+                1, andMask);
         WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
         iconInfo.fIcon = false;
         iconInfo.xHotspot = left;

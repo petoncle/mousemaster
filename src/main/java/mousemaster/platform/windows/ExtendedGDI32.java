@@ -3,7 +3,6 @@ package mousemaster.platform.windows;
 import mousemaster.*;
 
 import com.sun.jna.Native;
-import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.platform.win32.GDI32;
 import com.sun.jna.platform.win32.WinDef;
@@ -20,7 +19,7 @@ public interface ExtendedGDI32 extends GDI32 {
     boolean GdiFlush();
 
     WinDef.HBITMAP CreateBitmap(int nWidth, int nHeight, int nPlanes, int nBitCount,
-                               Pointer lpvBits);
+                               byte[] lpvBits);
 
     boolean PolyPolyline(WinDef.HDC hdc, WinDef.POINT[] ppt, int[] pc, int cPoly);
 
