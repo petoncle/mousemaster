@@ -121,7 +121,7 @@ permissions are needed.
 - **Grid mode**: Press _g_
 - **Hint mode**: Press _f_
 - **Recursive hint mode**: Press _r_
-- **UI Hint mode**: Press _leftalt + f_
+- **UI Hint mode**: Press _leftalt + ;_
 - **Screen selection**: Press _c_
 
 ![neo-mousekeys-ijkl layout](docs/assets/neo-mousekeys-ijkl-layout.png)

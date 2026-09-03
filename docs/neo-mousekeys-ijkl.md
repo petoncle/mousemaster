@@ -7,6 +7,7 @@
 - Press _leftalt + e_ or _leftalt + capslock_ to activate.
 - Press _i_, _j_, _k_, _l_ to move the mouse.
 - Press _q_ or _p_ to deactivate.
+- Press _leftalt + ;_ to show UI hints, whether mousemaster is activated or not.
 
 ![neo-mousekeys-ijkl layout](assets/neo-mousekeys-ijkl-layout.png)
 
@@ -59,12 +60,15 @@ _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the
 - Go back to normal mode with _esc_.
 - Set `virtual-key.showrecursivehintkeys` to `released` in [neo-mousekeys-ijkl.properties](../configuration/neo-mousekeys-ijkl.properties) to replace the keys drawn in each cell with a plus over the current area and a dot per cell.
 
-## UI Hint Mode (hold _leftalt_ then press _f_ in normal mode)
+## UI Hint Mode (hold _leftalt_ then press _;_, from anywhere)
 
+- The same chord works whether mousemaster is activated or not, so the hints are one chord
+away from ordinary typing.
 - Display labels on interactive UI elements (buttons, links, etc.) of the active window.
-- Select a hint to move the mouse to that UI element.
+- Select a hint to move the mouse to that UI element, and go to normal mode, where _;_ clicks it.
 - Undo an accidental key press with _backspace_.
-- Go back to normal mode with _esc_ or _backspace_.
+- Go back with _esc_ or _backspace_, to the mode the hints were opened from: opening them
+while mousemaster is disabled leaves it disabled.
 
 ## Screen Selection Mode (_c_ in normal mode)
 
