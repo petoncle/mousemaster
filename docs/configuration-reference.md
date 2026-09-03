@@ -425,6 +425,13 @@ composited on top, instead of into an overlay window that follows the pointer. N
 behind, since there is nothing to follow. Windows only (default false); it is ignored on macOS,
 where the indicator is always an overlay window.
 
+Because the indicator then *is* the cursor, anything that hides the cursor hides the indicator
+too. In particular, the Windows pointer option "Hide pointer while typing" (on by default)
+hides the cursor on every keystroke until the mouse moves, so with `render-as-cursor` the
+indicator disappears right after a key press and only comes back once the pointer is moved.
+Turn that option off (Mouse Properties > Pointer Options > Visibility) if you see this; the
+overlay indicator is not affected. See [#86](https://github.com/petoncle/mousemaster/issues/86).
+
 #### Fade animation
 
 When the indicator appears, disappears, or changes color (e.g. when switching modes), it fades in and out instead of popping abruptly.
