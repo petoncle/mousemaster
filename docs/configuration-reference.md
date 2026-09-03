@@ -620,12 +620,26 @@ knowing what an element is.
 ```properties
 ui-hint-mode.hint.type=ui-vision
 ui-hint-mode.hint.ui-area=active-screen
+ui-hint-mode.hint.vision-density=4
 ```
 
 Vision UI hints read the same **`ui-area`** as accessibility UI hints, and share every
 selection, click and appearance property with them. Detection runs off the keyboard hook, so
 mousemaster stays responsive while a scan is in progress, and `ishintmeshempty` is pressed when
 a scan finds nothing, exactly as for accessibility UI hints.
+
+- **`vision-density`**: How hard the detection looks, 1 to 8 (default 4). A higher value gives
+  more hints, on smaller things. It only applies to `hint.type=ui-vision`, and setting it on
+  another hint type is rejected.
+  - 1 to 6 look for **bounded regions** — a button, a field, a panel. Each step accepts a
+    narrower margin between a region's border and what it encloses, so it finds what the step
+    before it was too strict for.
+  - 7 and 8 look at the **ink** itself, parted at ever narrower gaps, so a line of text yields
+    a hint per word rather than one per line.
+
+  A hint means something was drawn there, not that it can be clicked: on a page of prose, most
+  of the labels at density 4 land on body text. Lower the density when the labels crowd what
+  you are reading, raise it when something clickable goes unhinted.
 
 On macOS the capture asks for the Screen Recording permission the first time a scan runs;
 hints appear once it is granted.
