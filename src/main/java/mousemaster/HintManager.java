@@ -259,11 +259,11 @@ public class HintManager implements ModeListener, MousePositionListener {
         boolean sameMode =
                 currentMode != null && newMode.name().equals(currentMode.name());
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
-        boolean sameUiHintArea = hintMeshConfiguration.enabled() &&
-                                 currentMode != null &&
-                                 sameUiHintArea(hintMeshConfiguration.type(),
-                                         currentMode.hintMesh().type());
-        if (pendingUiHintQuery != null && !sameUiHintArea) {
+        boolean sameUiElementQuery = hintMeshConfiguration.enabled() &&
+                                     currentMode != null &&
+                                     sameUiElementQuery(hintMeshConfiguration.type(),
+                                             currentMode.hintMesh().type());
+        if (pendingUiHintQuery != null && !sameUiElementQuery) {
             pendingUiHintQuery.future().cancel(false);
             pendingUiHintQuery = null;
         }
@@ -366,9 +366,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         HintMesh newHintMesh;
         if (hintMeshConfiguration.type() instanceof HintMeshType.UiAccessibilityHintMesh ||
             hintMeshConfiguration.type() instanceof HintMeshType.UiVisionHintMesh) {
-            // Do not recompute the elements when switching between two hint modes that
-            // look for them in the same area.
-            if (!sameUiHintArea) {
+            // Do not recompute the elements when the new mode looks for the same ones.
+            if (!sameUiElementQuery) {
                 pendingUiHintQuery = new PendingUiHintQuery(
                         startUiElementQuery(hintMeshConfiguration.type()),
                         hintMeshConfiguration, newZoom, newScreenFilter);
@@ -555,13 +554,14 @@ public class HintManager implements ModeListener, MousePositionListener {
                 areaCenter.x(), areaCenter.y()));
     }
 
-    private static boolean sameUiHintArea(HintMeshType type, HintMeshType currentType) {
+    private static boolean sameUiElementQuery(HintMeshType type, HintMeshType currentType) {
         if (type instanceof HintMeshType.UiAccessibilityHintMesh uiAccessibilityHintMesh)
             return currentType instanceof HintMeshType.UiAccessibilityHintMesh currentUiAccessibilityHintMesh &&
                    uiAccessibilityHintMesh.area() == currentUiAccessibilityHintMesh.area();
         return type instanceof HintMeshType.UiVisionHintMesh uiVisionHintMesh &&
                currentType instanceof HintMeshType.UiVisionHintMesh currentUiVisionHintMesh &&
-               uiVisionHintMesh.area() == currentUiVisionHintMesh.area();
+               uiVisionHintMesh.area() == currentUiVisionHintMesh.area() &&
+               uiVisionHintMesh.density() == currentUiVisionHintMesh.density();
     }
 
     private Future<List<UiElement>> startUiElementQuery(HintMeshType type) {
