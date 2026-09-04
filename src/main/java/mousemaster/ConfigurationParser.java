@@ -2354,7 +2354,7 @@ public class ConfigurationParser {
                 case "rotation" -> layer.rotation(parseDouble(propertyValue, true, -100_000, 100_000));
                 case "rotation-x" -> layer.rotationX(parseDouble(propertyValue, true, -100_000, 100_000));
                 case "rotation-y" -> layer.rotationY(parseDouble(propertyValue, true, -100_000, 100_000));
-                case "color" -> layer.hexColor(checkColorFormat(propertyValue));
+                case "color" -> layer.hexColor(effectHexColor(propertyValue));
                 case "opacity" -> layer.opacity(parseDouble(propertyValue, true, 0, 1));
                 case "filled" -> layer.filled(Boolean.parseBoolean(propertyValue));
                 case "thickness" -> layer.thickness(parseDouble(propertyValue, false, 0, 1_000));
@@ -2388,6 +2388,17 @@ public class ConfigurationParser {
     }
 
     /** A size is uniform ({@code 24}) or width-by-height ({@code 64x32}). */
+    /**
+     * Effect colors are plain hex colors: the renderer keeps the hex string, and the
+     * last-selected-hint-box-color keyword would need hint mesh state at render time.
+     */
+    private static String effectHexColor(String value) {
+        if (Color.parse(value) instanceof Color.HexColor hex)
+            return hex.hexColor();
+        throw new IllegalArgumentException(
+                "Invalid effect color " + value + ": an effect color should be in the #FFFFFF format");
+    }
+
     private static double[] parseEffectSize(String propertyValue) {
         // 0 is allowed: shrinking a layer to nothing is a legitimate keyframe.
         int xIndex = propertyValue.indexOf('x');
@@ -2465,7 +2476,7 @@ public class ConfigurationParser {
                     case "rotation-y" -> rotationY = parseDouble(tokenValue, true, -100_000, 100_000);
                     case "x" -> x = parseDouble(tokenValue, true, -10_000, 10_000);
                     case "y" -> y = parseDouble(tokenValue, true, -10_000, 10_000);
-                    case "color" -> hexColor = checkColorFormat(tokenValue);
+                    case "color" -> hexColor = effectHexColor(tokenValue);
                     case "easing" -> easing = parseEasing(tokenValue);
                     default -> throw new IllegalArgumentException(
                             "Invalid keyframe token " + token + " in " + context);
