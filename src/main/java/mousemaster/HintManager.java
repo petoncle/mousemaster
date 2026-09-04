@@ -502,6 +502,9 @@ public class HintManager implements ModeListener, MousePositionListener {
             return;
         }
         lastUiElements = uiElements;
+        // The query found other elements, which get other hints.
+        if (hintMesh != null)
+            hintMesh = hintMesh.builder().selectedKeySequence(List.of()).build();
         HintMeshConfiguration hintMeshConfiguration = pending.hintMeshConfiguration();
         ScreenFilter screenFilter = pending.screenFilter();
         ZoomConfiguration zoom = currentMode.zoom();
