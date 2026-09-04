@@ -1062,14 +1062,20 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
         // Give up trying to have (column prefix)(row suffix).
         // Just try to minimize the hint length.
-        // Find hintLength such that hintKeyCount^hintLength >= rowCount*columnCount
-        int hintLength = Math.max(1, (int) Math.ceil(
-                Math.log(hintCount) / Math.log(keyCount)));
-        List<Key> keySequence = new ArrayList<>();
-        for (int i = 0; i < hintLength; i++) {
-            keySequence.add(
-                    keys.get((int) (hintIndex / Math.pow(keyCount, i) % keyCount)));
+        int shortHintCount = keyCount;
+        int firstKeyDivisor = 1;
+        while ((long) shortHintCount * keyCount <= hintCount) {
+            shortHintCount *= keyCount;
+            firstKeyDivisor *= keyCount;
         }
+        shortHintCount -= Math.ceilDiv(hintCount - shortHintCount, keyCount - 1);
+        int shortHintIndex = hintIndex < shortHintCount ? hintIndex :
+                shortHintCount + (hintIndex - shortHintCount) / keyCount;
+        List<Key> keySequence = new ArrayList<>();
+        for (int divisor = firstKeyDivisor; divisor != 0; divisor /= keyCount)
+            keySequence.add(keys.get(shortHintIndex / divisor % keyCount));
+        if (hintIndex >= shortHintCount)
+            keySequence.add(keys.get((hintIndex - shortHintCount) % keyCount));
         return keySequence;
     }
 

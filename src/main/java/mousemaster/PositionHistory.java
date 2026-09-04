@@ -18,7 +18,6 @@ public class PositionHistory {
     /**
      * Used for deterministic hint key sequences.
      */
-    private int idCount = 0;
     private final Map<Point, Integer> idByPosition = new HashMap<>();
     private int cycleIndex = 0;
 
@@ -32,19 +31,15 @@ public class PositionHistory {
     }
 
     public int id(Point position) {
-        return idByPosition.get(position) % maxSize;
+        return idByPosition.get(position);
     }
 
     public void save(Point position) {
         if (positions.contains(position))
             return;
-        idByPosition.put(position, idCount);
-        if (idCount == Integer.MAX_VALUE)
-            idCount = 0;
-        else
-            idCount++;
         if (positions.size() == maxSize)
-            positions.removeFirst();
+            unsave(positions.getFirst());
+        idByPosition.put(position, positions.size());
         positions.add(position);
         cycleIndex = positions.size() - 1;
         logger.debug("Saved position (" + position.x() + ", " + position.y() + ") to " +
@@ -55,21 +50,14 @@ public class PositionHistory {
         if (!positions.remove(position))
             return;
         int id = idByPosition.remove(position);
-        Map<Point, Integer> newIdByPosition = new HashMap<>();
-        for (Map.Entry<Point, Integer> entry : idByPosition.entrySet()) {
-            int otherId = entry.getValue();
-            newIdByPosition.put(entry.getKey(), otherId < id ? otherId : otherId - 1);
-        }
-        idByPosition.clear();
-        idByPosition.putAll(newIdByPosition);
-        idCount--;
+        idByPosition.replaceAll(
+                (otherPosition, otherId) -> otherId < id ? otherId : otherId - 1);
         cycleIndex = positions.size() - 1;
     }
 
     public void clear() {
         positions.clear();
         idByPosition.clear();
-        idCount = 0;
         cycleIndex = 0;
         logger.debug("Reset " + key);
     }
