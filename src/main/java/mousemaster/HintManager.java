@@ -396,28 +396,34 @@ public class HintManager implements ModeListener, MousePositionListener {
             newHintMesh = buildHintMesh(hintMeshConfiguration, newMode.zoom(), newZoom,
                     newScreenFilter, null, screenManager.activeScreen());
         }
-        if (currentMode != null && newMode.hintMesh().equals(currentMode.hintMesh()) &&
-            newHintMesh.equals(hintMesh))
+        boolean hintMeshUnchanged =
+                newHintMesh.equals(hintMesh) && newZoom.equals(currentZoom);
+        if (hintMeshUnchanged && currentMode != null &&
+            hintMeshConfiguration.equals(currentMode.hintMesh()))
             return;
         currentMode = newMode;
         currentZoom = newZoom;
         screenFilter = newScreenFilter;
-        activateHintMesh(newMode, newHintMesh, hintMeshConfiguration, newScreenFilter, newZoom);
+        activateHintMesh(newMode, newHintMesh, hintMeshConfiguration, newScreenFilter,
+                newZoom, hintMeshUnchanged);
     }
 
     private void activateHintMesh(Mode newMode, HintMesh newHintMesh,
                                   HintMeshConfiguration hintMeshConfiguration,
-                                  ScreenFilter newScreenFilter, Zoom newZoom) {
+                                  ScreenFilter newScreenFilter, Zoom newZoom,
+                                  boolean hintMeshUnchanged) {
         List<Key> newSelectionKeys =
                 hintMeshConfiguration.keysByFilter().get(newScreenFilter).selectionKeys();
         hintMeshStates.put(new HintMeshKey(hintMeshConfiguration.type(), newSelectionKeys,
                         newMode.zoom()),
                 new HintMeshState(newHintMesh, lastSelectedHintPoint));
         hintMesh = newHintMesh;
-        if (hintMesh.hints().isEmpty())
-            overlay.hideHintMesh();
-        else
-            overlay.setHintMesh(hintMesh, newZoom);
+        if (!hintMeshUnchanged) {
+            if (hintMesh.hints().isEmpty())
+                overlay.hideHintMesh();
+            else
+                overlay.setHintMesh(hintMesh, newZoom);
+        }
         if (hintMeshConfiguration.mouseMovement() ==
             HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
             moveMouse(hintMeshCenter(hintMesh.hints(), hintMesh.selectedKeySequence()));
@@ -504,7 +510,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 zoom, pending.zoom(), screenFilter,
                 uiElements, screenManager.activeScreen());
         activateHintMesh(currentMode, newHintMesh, hintMeshConfiguration, screenFilter,
-                currentZoom);
+                currentZoom, false);
         overlay.runPendingHintMeshWork();
     }
 
