@@ -1,5 +1,6 @@
 package mousemaster;
 
+import ch.qos.logback.classic.AsyncAppender;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
@@ -88,7 +89,7 @@ public class MousemasterApplication {
     public static void enableLogToFile() {
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
         Logger rootLogger = context.getLogger(Logger.ROOT_LOGGER_NAME);
-        if (rootLogger.getAppender("FILE") != null)
+        if (rootLogger.getAppender("ASYNC_FILE") != null)
             return;
         PatternLayoutEncoder encoder = new PatternLayoutEncoder();
         encoder.setContext(context);
@@ -100,16 +101,23 @@ public class MousemasterApplication {
         fileAppender.setEncoder(encoder);
         fileAppender.setAppend(true);
         fileAppender.start();
-        rootLogger.addAppender(fileAppender);
+        AsyncAppender asyncAppender = new AsyncAppender();
+        asyncAppender.setName("ASYNC_FILE");
+        asyncAppender.setContext(context);
+        asyncAppender.setQueueSize(4096);
+        asyncAppender.setDiscardingThreshold(0);
+        asyncAppender.addAppender(fileAppender);
+        asyncAppender.start();
+        rootLogger.addAppender(asyncAppender);
     }
 
     public static void disableLogToFile() {
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
         Logger rootLogger = context.getLogger(Logger.ROOT_LOGGER_NAME);
-        Appender<ILoggingEvent> fileAppender = rootLogger.getAppender("FILE");
-        if (fileAppender != null) {
-            rootLogger.detachAppender(fileAppender);
-            fileAppender.stop();
+        Appender<ILoggingEvent> asyncAppender = rootLogger.getAppender("ASYNC_FILE");
+        if (asyncAppender != null) {
+            rootLogger.detachAppender(asyncAppender);
+            asyncAppender.stop();
         }
     }
 
@@ -126,12 +134,16 @@ public class MousemasterApplication {
         modeColumnWidth = width;
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
         Logger rootLogger = context.getLogger(Logger.ROOT_LOGGER_NAME);
-        for (Iterator<Appender<ILoggingEvent>> appenders =
-             rootLogger.iteratorForAppenders(); appenders.hasNext(); ) {
-            Appender<ILoggingEvent> appender = appenders.next();
-            if (appender instanceof OutputStreamAppender<ILoggingEvent> outputStreamAppender &&
-                outputStreamAppender.getEncoder() instanceof PatternLayoutEncoder encoder)
-                startWithCurrentPattern(encoder);
+        for (Iterator<Appender<ILoggingEvent>> asyncAppenders =
+             rootLogger.iteratorForAppenders(); asyncAppenders.hasNext(); ) {
+            for (Iterator<Appender<ILoggingEvent>> appenders =
+                 ((AsyncAppender) asyncAppenders.next()).iteratorForAppenders();
+                 appenders.hasNext(); ) {
+                Appender<ILoggingEvent> appender = appenders.next();
+                if (appender instanceof OutputStreamAppender<ILoggingEvent> outputStreamAppender &&
+                    outputStreamAppender.getEncoder() instanceof PatternLayoutEncoder encoder)
+                    startWithCurrentPattern(encoder);
+            }
         }
     }
 

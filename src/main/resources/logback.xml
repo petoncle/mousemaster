@@ -7,8 +7,14 @@
         </encoder>
     </appender>
 
-    <root level="INFO">
+    <appender name="ASYNC_CONSOLE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>4096</queueSize>
+        <discardingThreshold>0</discardingThreshold>
         <appender-ref ref="CONSOLE"/>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="ASYNC_CONSOLE"/>
     </root>
 
     <logger name="mousemaster" level="DEBUG"/>

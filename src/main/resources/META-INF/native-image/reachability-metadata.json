@@ -97,6 +97,32 @@
       ]
     },
     {
+      "type": "ch.qos.logback.classic.AsyncAppender",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.core.AsyncAppenderBase",
+      "methods": [
+        {
+          "name": "setDiscardingThreshold",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setQueueSize",
+          "parameterTypes": [
+            "int"
+          ]
+        }
+      ]
+    },
+    {
       "type": "ch.qos.logback.core.ConsoleAppender",
       "methods": [
         {

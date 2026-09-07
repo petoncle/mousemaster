@@ -62,6 +62,15 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"ch.qos.logback.classic.AsyncAppender",
+  "queryAllPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.core.AsyncAppenderBase",
+  "methods":[{"name":"setDiscardingThreshold","parameterTypes":["int"] }, {"name":"setQueueSize","parameterTypes":["int"] }]
+},
+{
   "name":"ch.qos.logback.core.ConsoleAppender",
   "queryAllPublicMethods":true,
   "methods":[{"name":"<init>","parameterTypes":[] }]
