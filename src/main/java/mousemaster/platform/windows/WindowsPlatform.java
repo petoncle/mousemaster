@@ -28,6 +28,9 @@ public class WindowsPlatform implements Platform {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsPlatform.class);
 
+    private static final long SLOW_HOOK_CALLBACK_MILLIS = 200;
+    private static final long LATE_HOOK_EVENT_MILLIS = 100;
+
     private final boolean keyRegurgitationEnabled;
     private final boolean ignoreInjectedEvents;
     private final WindowsKeyboardController keyboard = new WindowsKeyboardController();
@@ -539,7 +542,11 @@ public class WindowsPlatform implements Platform {
 
     private WinDef.LRESULT keyboardHookCallback(int nCode, WinDef.WPARAM wParam,
                                                 WinUser.KBDLLHOOKSTRUCT info) {
-        clock.setLastKeyboardHookEventRelativeTimeMillis(info.time);
+        long tickCount = ExtendedKernel32.INSTANCE.GetTickCount64();
+        // info.time is the low 32 bits of the tick count, as a signed int: masking the
+        // difference keeps both its sign bit and its wraparound out of the result.
+        long hookEventLagMillis = (tickCount - info.time) & 0xFFFFFFFFL;
+        clock.setLastKeyboardHookEventRelativeTimeMillis(tickCount - hookEventLagMillis);
         try {
             if (nCode >= 0) {
                 if (inKeyboardHookCallback) {
@@ -590,6 +597,8 @@ public class WindowsPlatform implements Platform {
                     return ExtendedUser32.INSTANCE.CallNextHookEx(keyboardHook, nCode, wParam, info);
                 }
                 inKeyboardHookCallback = true;
+                long hookCallbackBeginNanos = System.nanoTime();
+                KeyEvent hookCallbackKeyEvent = null;
                 try {
                     boolean eaten = false;
                     switch (wParam.intValue()) {
@@ -611,6 +620,7 @@ public class WindowsPlatform implements Platform {
                                                     WindowsVirtualKey.VK_LCONTROL.virtualKeyCode &&
                                                     info.scanCode == 0x21d;
                             KeyEvent keyEvent = buildKeyEvent(info, wParam, altgrLeftctrl);
+                            hookCallbackKeyEvent = keyEvent;
                             boolean injected = (info.flags & ExtendedUser32.LLKHF_INJECTED) == ExtendedUser32.LLKHF_INJECTED;
                             // mousemaster's own injected events (macros, regurgitation,
                             // key repeat) are tagged with a dwExtraInfo signature. They
@@ -683,6 +693,18 @@ public class WindowsPlatform implements Platform {
                 }
                 finally {
                     inKeyboardHookCallback = false;
+                    long hookCallbackMillis =
+                            (System.nanoTime() - hookCallbackBeginNanos) / 1_000_000;
+                    if (hookCallbackMillis >= SLOW_HOOK_CALLBACK_MILLIS ||
+                        hookEventLagMillis >= LATE_HOOK_EVENT_MILLIS)
+                        logger.warn("Keyboard hook callback for " +
+                                    keyRedactor.event(hookCallbackKeyEvent) +
+                                    " ran " + hookEventLagMillis + "ms after the event" +
+                                    " and took " + hookCallbackMillis + "ms" +
+                                    ", events Windows received meanwhile may have been" +
+                                    " dropped, last key events: " +
+                                    keyRedactor.keyEventAndEatens(
+                                            keyboardManager.lastKeyEvents()));
                 }
             }
             return ExtendedUser32.INSTANCE.CallNextHookEx(keyboardHook, nCode, wParam, info);
