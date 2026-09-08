@@ -268,14 +268,30 @@ public class WindowsMouseController implements MouseController {
     public void showCursor() {
         if (!cursorHidden && !indicatorCursorInstalled)
             return;
+        boolean wasHidden = cursorHidden;
         cursorHidden = false;
         indicatorCursorInstalled = false;
-        reloadSystemCursors();
+        for (long cursorId : SYSTEM_CURSOR_IDS) {
+            if (!wasHidden && !indicatorCursorBgraByCursorId.containsKey(cursorId))
+                continue;
+            OriginalCursor originalCursor = originalCursorByCursorId.get(cursorId);
+            WinNT.HANDLE imageHandle = originalCursor == null ? null :
+                    ExtendedUser32.INSTANCE.CopyImage(originalCursor.handle(),
+                            new WinDef.UINT(ExtendedUser32.IMAGE_CURSOR), 0, 0,
+                            new WinDef.UINT(0));
+            if (imageHandle == null) {
+                reloadSystemCursors();
+                return;
+            }
+            ExtendedUser32.INSTANCE.SetSystemCursor(imageHandle, new WinDef.UINT(cursorId));
+        }
+        indicatorCursorBgraByCursorId.clear();
+        currentCursorHandleByCursorId.clear();
     }
 
     public void reloadSystemCursors() {
-        installedCursorByCursorId.clear();
-        systemCursorByCursorId.clear();
+        indicatorCursorBgraByCursorId.clear();
+        currentCursorHandleByCursorId.clear();
         ExtendedUser32.INSTANCE.SystemParametersInfoA(
                 new WinDef.UINT(ExtendedUser32.SPI_SETCURSORS), new WinDef.UINT(0), null,
                 new WinDef.UINT(0));
@@ -286,6 +302,8 @@ public class WindowsMouseController implements MouseController {
         // User32 ShowCursor(false) always returns -1 and does not hide the cursor.
         if (cursorHidden)
             return;
+        if (originalCursorByCursorId.isEmpty())
+            snapshotOriginalCursors();
         cursorHidden = true;
         int cursorWidth = mouseSize().width();
         int cursorHeight = mouseSize().height();
@@ -308,20 +326,21 @@ public class WindowsMouseController implements MouseController {
             ExtendedUser32.INSTANCE.SetSystemCursor(imageHandle,
                     new WinDef.UINT(cursorId));
         }
-        installedCursorByCursorId.clear();
-        systemCursorByCursorId.clear();
+        indicatorCursorBgraByCursorId.clear();
+        currentCursorHandleByCursorId.clear();
         ExtendedUser32.INSTANCE.DestroyCursor(transparentCursor);
     }
 
-    /** A snapshot of an original system cursor glyph: premultiplied ARGB, hotspot, and
+    /** A copy of an original system cursor: its handle, premultiplied ARGB, hotspot, and
      *  the center of its opaque bounding box (where the indicator is centered). */
-    private record GlyphImage(int width, int height, int hotspotX, int hotspotY,
-                              int visualCenterX, int visualCenterY,
-                              int[] argbPremultiplied) {}
+    private record OriginalCursor(WinNT.HANDLE handle, int width, int height,
+                                  int hotspotX, int hotspotY,
+                                  int visualCenterX, int visualCenterY,
+                                  int[] argbPremultiplied) {}
 
-    private final Map<Long, GlyphImage> glyphByCursorId = new HashMap<>();
-    private final Map<Long, byte[]> installedCursorByCursorId = new HashMap<>();
-    private final Map<Long, WinNT.HANDLE> systemCursorByCursorId = new HashMap<>();
+    private final Map<Long, OriginalCursor> originalCursorByCursorId = new HashMap<>();
+    private final Map<Long, byte[]> indicatorCursorBgraByCursorId = new HashMap<>();
+    private final Map<Long, WinNT.HANDLE> currentCursorHandleByCursorId = new HashMap<>();
 
     /**
      * Installs the indicator (given as a premultiplied-ARGB image) as every system cursor, or
@@ -333,15 +352,15 @@ public class WindowsMouseController implements MouseController {
      */
     public void setIndicatorCursor(int[] indicatorArgb, int indicatorWidth, int indicatorHeight,
                                    boolean includeGlyph, boolean allCursors) {
-        if (glyphByCursorId.isEmpty())
-            snapshotSystemGlyphs();
+        if (originalCursorByCursorId.isEmpty())
+            snapshotOriginalCursors();
         long[] cursorIds = allCursors ? SYSTEM_CURSOR_IDS : new long[]{displayedCursorId()};
         for (long cursorId : cursorIds) {
-            GlyphImage glyph = glyphByCursorId.get(cursorId);
-            if (glyph == null)
+            OriginalCursor originalCursor = originalCursorByCursorId.get(cursorId);
+            if (originalCursor == null)
                 continue;
-            installCompositeCursor(cursorId, indicatorArgb, indicatorWidth, indicatorHeight,
-                    glyph, includeGlyph);
+            installIndicatorCursor(cursorId, indicatorArgb, indicatorWidth, indicatorHeight,
+                    originalCursor, includeGlyph);
         }
         cursorHidden = false;
         indicatorCursorInstalled = true;
@@ -352,23 +371,20 @@ public class WindowsMouseController implements MouseController {
         if (!ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo) || cursorInfo.hCursor == null)
             return 0;
         for (long cursorId : SYSTEM_CURSOR_IDS)
-            if (cursorInfo.hCursor.equals(systemCursor(cursorId)))
+            if (cursorInfo.hCursor.equals(currentCursorHandle(cursorId)))
                 return cursorId;
         return 0;
     }
 
-    private WinNT.HANDLE systemCursor(long cursorId) {
-        return systemCursorByCursorId.computeIfAbsent(cursorId,
+    private WinNT.HANDLE currentCursorHandle(long cursorId) {
+        return currentCursorHandleByCursorId.computeIfAbsent(cursorId,
                 id -> ExtendedUser32.INSTANCE.LoadImageW(null, new Pointer(id),
                         ExtendedUser32.IMAGE_CURSOR, 0, 0, ExtendedUser32.LR_SHARED));
     }
 
-    /**
-     * Snapshots every system cursor's glyph once. Restores the pristine system cursors
-     * first, so the snapshot captures the real glyphs even if a hidden/composite cursor is
-     * currently installed.
-     */
-    private void snapshotSystemGlyphs() {
+    /** Restores the system cursors first, so that a hidden or indicator one is not what
+     *  gets captured. */
+    private void snapshotOriginalCursors() {
         reloadSystemCursors();
         for (long cursorId : SYSTEM_CURSOR_IDS) {
             WinNT.HANDLE cursor = ExtendedUser32.INSTANCE.LoadImageW(null,
@@ -376,6 +392,9 @@ public class WindowsMouseController implements MouseController {
                     ExtendedUser32.LR_SHARED);
             if (cursor == null)
                 continue;
+            WinNT.HANDLE handle = ExtendedUser32.INSTANCE.CopyImage(cursor,
+                    new WinDef.UINT(ExtendedUser32.IMAGE_CURSOR), 0, 0,
+                    new WinDef.UINT(0));
             WinDef.HICON icon = new WinDef.HICON(cursor.getPointer());
             WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
             if (!ExtendedUser32.INSTANCE.GetIconInfo(icon, iconInfo))
@@ -396,9 +415,10 @@ public class WindowsMouseController implements MouseController {
                 int[] argb = rasterizeGlyph(icon, width, height);
                 if (argb != null) {
                     int[] center = opaqueBoundsCenter(argb, width, height);
-                    glyphByCursorId.put(cursorId, new GlyphImage(width, height,
-                            iconInfo.xHotspot, iconInfo.yHotspot,
-                            center[0], center[1], argb));
+                    originalCursorByCursorId.put(cursorId,
+                            new OriginalCursor(handle, width, height,
+                                    iconInfo.xHotspot, iconInfo.yHotspot,
+                                    center[0], center[1], argb));
                 }
             }
             finally {
@@ -521,27 +541,28 @@ public class WindowsMouseController implements MouseController {
      *  real hotspot so clicks still land correctly. When includeGlyph is false the glyph
      *  pixels are omitted (hide-cursor), but its hotspot and visual center still anchor the
      *  indicator, so the indicator stays put when the glyph is toggled. */
-    private void installCompositeCursor(long cursorId, int[] indicatorArgb, int indicatorWidth,
-                                        int indicatorHeight, GlyphImage glyph,
-                                        boolean includeGlyph) {
+    private void installIndicatorCursor(long cursorId, int[] indicatorArgb,
+                                     int indicatorWidth,
+                                     int indicatorHeight, OriginalCursor originalCursor,
+                                     boolean includeGlyph) {
         int indicatorCenterX = indicatorWidth / 2;
         int indicatorCenterY = indicatorHeight / 2;
         // Extents relative to the hotspot; the indicator is centered on the glyph's visual
         // center so it sits where the window overlay would place it.
-        int indicatorCenterRelX = glyph.visualCenterX - glyph.hotspotX;
-        int indicatorCenterRelY = glyph.visualCenterY - glyph.hotspotY;
-        int minX = Math.min(-glyph.hotspotX, indicatorCenterRelX - indicatorCenterX);
-        int minY = Math.min(-glyph.hotspotY, indicatorCenterRelY - indicatorCenterY);
-        int maxX = Math.max(glyph.width - glyph.hotspotX, indicatorCenterRelX + (indicatorWidth - indicatorCenterX));
-        int maxY = Math.max(glyph.height - glyph.hotspotY, indicatorCenterRelY + (indicatorHeight - indicatorCenterY));
+        int indicatorCenterRelX = originalCursor.visualCenterX - originalCursor.hotspotX;
+        int indicatorCenterRelY = originalCursor.visualCenterY - originalCursor.hotspotY;
+        int minX = Math.min(-originalCursor.hotspotX, indicatorCenterRelX - indicatorCenterX);
+        int minY = Math.min(-originalCursor.hotspotY, indicatorCenterRelY - indicatorCenterY);
+        int maxX = Math.max(originalCursor.width - originalCursor.hotspotX, indicatorCenterRelX + (indicatorWidth - indicatorCenterX));
+        int maxY = Math.max(originalCursor.height - originalCursor.hotspotY, indicatorCenterRelY + (indicatorHeight - indicatorCenterY));
         int canvasWidth = maxX - minX;
         int canvasHeight = maxY - minY;
         int left = -minX;
         int top = -minY;
         int indicatorOriginX = left + indicatorCenterRelX - indicatorCenterX;
         int indicatorOriginY = top + indicatorCenterRelY - indicatorCenterY;
-        int glyphOriginX = left - glyph.hotspotX;
-        int glyphOriginY = top - glyph.hotspotY;
+        int glyphOriginX = left - originalCursor.hotspotX;
+        int glyphOriginY = top - originalCursor.hotspotY;
         byte[] bgra = new byte[canvasWidth * canvasHeight * 4];
         for (int y = 0; y < canvasHeight; y++) {
             for (int x = 0; x < canvasWidth; x++) {
@@ -557,8 +578,8 @@ public class WindowsMouseController implements MouseController {
                 }
                 int glyphPremB = 0, glyphPremG = 0, glyphPremR = 0, glyphA = 0;
                 int gx = x - glyphOriginX, gy = y - glyphOriginY;
-                if (includeGlyph && gx >= 0 && gx < glyph.width && gy >= 0 && gy < glyph.height) {
-                    int p = glyph.argbPremultiplied[gy * glyph.width + gx];
+                if (includeGlyph && gx >= 0 && gx < originalCursor.width && gy >= 0 && gy < originalCursor.height) {
+                    int p = originalCursor.argbPremultiplied[gy * originalCursor.width + gx];
                     glyphA = (p >>> 24) & 0xFF;
                     glyphPremR = (p >>> 16) & 0xFF;
                     glyphPremG = (p >>> 8) & 0xFF;
@@ -587,9 +608,9 @@ public class WindowsMouseController implements MouseController {
                 }
             }
         }
-        if (Arrays.equals(bgra, installedCursorByCursorId.get(cursorId)))
+        if (Arrays.equals(bgra, indicatorCursorBgraByCursorId.get(cursorId)))
             return;
-        installedCursorByCursorId.put(cursorId, bgra);
+        indicatorCursorBgraByCursorId.put(cursorId, bgra);
         WinDef.HBITMAP colorBitmap = create32bppDib(canvasWidth, canvasHeight, bgra);
         if (colorBitmap == null)
             return;
@@ -604,13 +625,13 @@ public class WindowsMouseController implements MouseController {
         iconInfo.yHotspot = top;
         iconInfo.hbmMask = mask;
         iconInfo.hbmColor = colorBitmap;
-        WinDef.HICON composite = ExtendedUser32.INSTANCE.CreateIconIndirect(iconInfo);
+        WinDef.HICON indicatorCursor = ExtendedUser32.INSTANCE.CreateIconIndirect(iconInfo);
         GDI32.INSTANCE.DeleteObject(colorBitmap);
         GDI32.INSTANCE.DeleteObject(mask);
         // SetSystemCursor takes ownership of and destroys the icon we pass.
-        if (composite != null) {
-            ExtendedUser32.INSTANCE.SetSystemCursor(composite, new WinDef.UINT(cursorId));
-            systemCursorByCursorId.remove(cursorId);
+        if (indicatorCursor != null) {
+            ExtendedUser32.INSTANCE.SetSystemCursor(indicatorCursor, new WinDef.UINT(cursorId));
+            currentCursorHandleByCursorId.remove(cursorId);
         }
     }
 
