@@ -1,40 +1,40 @@
 package mousemaster;
 
+import java.time.Duration;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * One layer of an effect: a single shape with a position (relative to the effect
- * area's center, which follows the mouse), a size, and an optional keyframe
- * timeline animating it over the effect's cycle. Layers are drawn in declaration
- * order: layer1 first (bottom), then layer2 on top of it, and so on.
+ * One layer of an effect: a shape, a few settings that hold for the layer's whole
+ * life ({@code shape}, {@code filled}, {@code speed}, {@code delay}), and a table of
+ * {@link EffectProperty base values} that keyframes can animate. Layers are drawn in
+ * declaration order: layer1 first (bottom), then layer2 on top of it, and so on.
  *
  * <p>{@code sizeIsArea} marks {@code size=area}: the layer takes the size of the
  * whole effect area (a filled square layer sized to the area is the effect's
- * background).
+ * background). {@code delay} shifts the layer's whole timeline, so layers can be
+ * released one after another. {@code speed} runs the layer's timeline faster or
+ * slower than the effect's cycle.
  */
-public record EffectLayer(EffectShape shape, double x, double y,
-                          double sizeWidth, double sizeHeight, boolean sizeIsArea,
-                          double rotation, double rotationX, double rotationY,
-                          String hexColor, double opacity,
-                          boolean filled, double thickness, double speed,
+public record EffectLayer(EffectShape shape, boolean filled, double speed,
+                          Duration delay, boolean sizeIsArea,
+                          Map<EffectProperty, Object> base,
                           List<EffectKeyframe> keyframes) {
+
+    public EffectLayer {
+        base = Map.copyOf(base);
+        keyframes = List.copyOf(keyframes);
+    }
 
     public static class EffectLayerBuilder {
 
         private EffectShape shape;
-        private Double x;
-        private Double y;
-        private Double sizeWidth;
-        private Double sizeHeight;
-        private Boolean sizeIsArea;
-        private Double rotation;
-        private Double rotationX;
-        private Double rotationY;
-        private String hexColor;
-        private Double opacity;
         private Boolean filled;
-        private Double thickness;
         private Double speed;
+        private Duration delay;
+        private Boolean sizeIsArea;
+        private final Map<EffectProperty, Object> base = new EnumMap<>(EffectProperty.class);
         private List<EffectKeyframe> keyframes;
 
         public EffectLayerBuilder() {
@@ -49,61 +49,29 @@ public record EffectLayer(EffectShape shape, double x, double y,
             return shape;
         }
 
-        public EffectLayerBuilder x(Double x) {
-            this.x = x;
-            return this;
-        }
-
-        public EffectLayerBuilder y(Double y) {
-            this.y = y;
-            return this;
-        }
-
-        public EffectLayerBuilder size(Double sizeWidth, Double sizeHeight,
-                                       Boolean sizeIsArea) {
-            this.sizeWidth = sizeWidth;
-            this.sizeHeight = sizeHeight;
-            this.sizeIsArea = sizeIsArea;
-            return this;
-        }
-
-        public EffectLayerBuilder rotation(Double rotation) {
-            this.rotation = rotation;
-            return this;
-        }
-
-        public EffectLayerBuilder rotationX(Double rotationX) {
-            this.rotationX = rotationX;
-            return this;
-        }
-
-        public EffectLayerBuilder rotationY(Double rotationY) {
-            this.rotationY = rotationY;
-            return this;
-        }
-
-        public EffectLayerBuilder hexColor(String hexColor) {
-            this.hexColor = hexColor;
-            return this;
-        }
-
-        public EffectLayerBuilder opacity(Double opacity) {
-            this.opacity = opacity;
-            return this;
-        }
-
         public EffectLayerBuilder filled(Boolean filled) {
             this.filled = filled;
             return this;
         }
 
-        public EffectLayerBuilder thickness(Double thickness) {
-            this.thickness = thickness;
+        public EffectLayerBuilder speed(Double speed) {
+            this.speed = speed;
             return this;
         }
 
-        public EffectLayerBuilder speed(Double speed) {
-            this.speed = speed;
+        public EffectLayerBuilder delay(Duration delay) {
+            this.delay = delay;
+            return this;
+        }
+
+        public EffectLayerBuilder sizeIsArea(Boolean sizeIsArea) {
+            this.sizeIsArea = sizeIsArea;
+            return this;
+        }
+
+        /** Sets a base value; the value's type must match the property's kind. */
+        public EffectLayerBuilder set(EffectProperty property, Object value) {
+            base.put(property, value);
             return this;
         }
 
@@ -114,19 +82,12 @@ public record EffectLayer(EffectShape shape, double x, double y,
 
         public void extend(EffectLayerBuilder parent) {
             if (shape == null) shape = parent.shape;
-            if (x == null) x = parent.x;
-            if (y == null) y = parent.y;
-            if (sizeWidth == null) sizeWidth = parent.sizeWidth;
-            if (sizeHeight == null) sizeHeight = parent.sizeHeight;
-            if (sizeIsArea == null) sizeIsArea = parent.sizeIsArea;
-            if (rotation == null) rotation = parent.rotation;
-            if (rotationX == null) rotationX = parent.rotationX;
-            if (rotationY == null) rotationY = parent.rotationY;
-            if (hexColor == null) hexColor = parent.hexColor;
-            if (opacity == null) opacity = parent.opacity;
             if (filled == null) filled = parent.filled;
-            if (thickness == null) thickness = parent.thickness;
             if (speed == null) speed = parent.speed;
+            if (delay == null) delay = parent.delay;
+            if (sizeIsArea == null) sizeIsArea = parent.sizeIsArea;
+            for (Map.Entry<EffectProperty, Object> entry : parent.base.entrySet())
+                base.putIfAbsent(entry.getKey(), entry.getValue());
             if (keyframes == null) keyframes = parent.keyframes;
         }
 
@@ -135,21 +96,24 @@ public record EffectLayer(EffectShape shape, double x, double y,
                 throw new IllegalArgumentException(
                         "Effect " + effectName + " layer" + layerNumber +
                         " has no shape: expected effect." + effectName + ".layer" +
-                        layerNumber + "-shape=<dot|circle|square|triangle|line|cross>");
+                        layerNumber + "-shape=<" + EffectShape.names() + ">");
+            Map<EffectProperty, Object> values = new EnumMap<>(EffectProperty.class);
+            for (EffectProperty property : EffectProperty.values()) {
+                Object value = base.get(property);
+                if (value == null)
+                    value = property.defaultValue;
+                if (value != null)
+                    values.put(property, value);
+            }
+            // A uniform size sets the width only: the height follows it.
+            if (base.get(EffectProperty.WIDTH) != null && base.get(EffectProperty.HEIGHT) == null)
+                values.put(EffectProperty.HEIGHT, base.get(EffectProperty.WIDTH));
             return new EffectLayer(shape,
-                    x == null ? 0 : x,
-                    y == null ? 0 : y,
-                    sizeWidth == null ? 16 : sizeWidth,
-                    sizeHeight == null ? (sizeWidth == null ? 16 : sizeWidth) : sizeHeight,
-                    sizeIsArea != null && sizeIsArea,
-                    rotation == null ? 0 : rotation,
-                    rotationX == null ? 0 : rotationX,
-                    rotationY == null ? 0 : rotationY,
-                    hexColor == null ? "#FFFFFF" : hexColor,
-                    opacity == null ? 1.0 : opacity,
                     filled == null ? shape == EffectShape.DOT : filled,
-                    thickness == null ? 1 : thickness,
                     speed == null ? 1 : speed,
+                    delay == null ? Duration.ZERO : delay,
+                    sizeIsArea != null && sizeIsArea,
+                    values,
                     keyframes == null ? List.of() : keyframes);
         }
 
