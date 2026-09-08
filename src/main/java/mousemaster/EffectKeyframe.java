@@ -1,18 +1,21 @@
 package mousemaster;
 
+import java.util.Map;
+
 /**
  * One keyframe of an effect layer's timeline. {@code percent} is the position in the
- * effect's cycle (0-100). Fields left null are not constrained by this keyframe:
- * numeric fields are interpolated between the keyframes that do mention them, while
- * {@code visible} and {@code hexColor} switch when their keyframe is reached.
- * The layer's base values act as an implicit keyframe at 0%. {@code easing}
- * shapes the interpolation of the segment that ends at this keyframe (null =
- * linear).
+ * layer's cycle (0-100). {@code values} holds only the properties this keyframe
+ * pins (see {@link EffectProperty} for how each kind is interpolated); properties it
+ * does not mention are not constrained by it. {@code sizeIsArea} is the
+ * {@code size=area} keyword. The layer's base values act as an implicit keyframe at
+ * 0%. {@code easing} shapes the interpolation of the segment that ends at this
+ * keyframe (null = linear).
  */
-public record EffectKeyframe(double percent, Double sizeWidth, Double sizeHeight,
-                             Boolean sizeIsArea, Double opacity, Double rotation,
-                             Double rotationX, Double rotationY,
-                             Double x, Double y, Boolean visible, String hexColor,
-                             Easing easing) {
+public record EffectKeyframe(double percent, Map<EffectProperty, Object> values,
+                             Boolean sizeIsArea, Easing easing) {
+
+    public EffectKeyframe {
+        values = Map.copyOf(values);
+    }
 
 }

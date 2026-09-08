@@ -116,12 +116,21 @@ public record HintGradientColor(List<String> hexColors, HintGradientDirection di
             return Color.rgb(hexColor());
         double scaled = Math.clamp(t, 0, 1) * (hexColors.size() - 1);
         int index = Math.min((int) scaled, hexColors.size() - 2);
-        double[] from = oklab(Color.rgb(hexColors.get(index)));
-        double[] to = oklab(Color.rgb(hexColors.get(index + 1)));
-        double segmentPosition = scaled - index;
+        return mixRgb(Color.rgb(hexColors.get(index)),
+                Color.rgb(hexColors.get(index + 1)), scaled - index);
+    }
+
+    /** The color t of the way from one hex color to another, mixed in OkLab. */
+    public static String mix(String fromHexColor, String toHexColor, double t) {
+        return Color.hexColor(mixRgb(Color.rgb(fromHexColor), Color.rgb(toHexColor), t));
+    }
+
+    private static int mixRgb(int fromRgb, int toRgb, double t) {
+        double[] from = oklab(fromRgb);
+        double[] to = oklab(toRgb);
         double[] mixed = new double[3];
         for (int i = 0; i < 3; i++)
-            mixed[i] = from[i] + (to[i] - from[i]) * segmentPosition;
+            mixed[i] = from[i] + (to[i] - from[i]) * t;
         return rgb(mixed);
     }
 

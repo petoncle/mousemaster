@@ -2329,6 +2329,9 @@ public class ConfigurationParser {
     /**
      * Effect properties do not go through {@link #tryParseComboProperty}: combo-based
      * mutation is not supported for them (yet), and keyframes reuse the | separator.
+     * A layer key is either one of the few settings that hold for the layer's life
+     * (shape, filled, speed, delay, keyframes), a compound value (size, pivot), or a
+     * property of the {@link EffectProperty} table, parsed by its kind.
      */
     private static void parseEffectProperty(EffectConfigurationBuilder effect,
                                             String effectName, String key,
@@ -2341,27 +2344,34 @@ public class ConfigurationParser {
             switch (layerKey) {
                 // @formatter:off
                 case "shape" -> layer.shape(EffectShape.parse(propertyValue));
-                case "x" -> layer.x(parseDouble(propertyValue, true, -10_000, 10_000));
-                case "y" -> layer.y(parseDouble(propertyValue, true, -10_000, 10_000));
+                case "filled" -> layer.filled(Boolean.parseBoolean(propertyValue));
+                case "speed" -> layer.speed(parseDouble(propertyValue, false, 0, 1_000));
+                case "delay" -> layer.delay(parseDuration(propertyValue));
+                case "keyframes" -> layer.keyframes(parseEffectKeyframes(effectName, layerNumber, propertyValue));
                 case "size" -> {
                     if (propertyValue.equals("area"))
-                        layer.size(null, null, true);
+                        layer.sizeIsArea(true);
                     else {
                         double[] size = parseEffectSize(propertyValue);
-                        layer.size(size[0], size[1], false);
+                        layer.sizeIsArea(false);
+                        layer.set(EffectProperty.WIDTH, size[0]);
+                        layer.set(EffectProperty.HEIGHT, size[1]);
                     }
                 }
-                case "rotation" -> layer.rotation(parseDouble(propertyValue, true, -100_000, 100_000));
-                case "rotation-x" -> layer.rotationX(parseDouble(propertyValue, true, -100_000, 100_000));
-                case "rotation-y" -> layer.rotationY(parseDouble(propertyValue, true, -100_000, 100_000));
-                case "color" -> layer.hexColor(effectHexColor(propertyValue));
-                case "opacity" -> layer.opacity(parseDouble(propertyValue, true, 0, 1));
-                case "filled" -> layer.filled(Boolean.parseBoolean(propertyValue));
-                case "thickness" -> layer.thickness(parseDouble(propertyValue, false, 0, 1_000));
-                case "speed" -> layer.speed(parseDouble(propertyValue, false, 0, 1_000));
-                case "keyframes" -> layer.keyframes(parseEffectKeyframes(effectName, layerNumber, propertyValue));
-                default -> throw new IllegalArgumentException(
-                        "Invalid effect layer property key: " + key);
+                case "pivot" -> {
+                    double[] pivot = parseEffectPivot(propertyValue);
+                    layer.set(EffectProperty.PIVOT_X, pivot[0]);
+                    layer.set(EffectProperty.PIVOT_Y, pivot[1]);
+                }
+                default -> {
+                    EffectProperty property = EffectProperty.byKey(layerKey);
+                    if (property == null || property == EffectProperty.VISIBLE)
+                        throw new IllegalArgumentException(
+                                "Invalid effect layer property key " + key +
+                                ": expected shape, filled, speed, delay, keyframes, " +
+                                EffectProperty.keys());
+                    layer.set(property, parseEffectPropertyValue(property, propertyValue));
+                }
                 // @formatter:on
             }
             return;
@@ -2369,25 +2379,52 @@ public class ConfigurationParser {
         switch (key) {
             // @formatter:off
             case "duration-millis" -> effect.duration(parseDuration(propertyValue));
-            case "repeat" -> effect.loop(switch (propertyValue) {
-                case "once" -> false;
-                case "loop" -> true;
+            case "repeat" -> effect.repeatCount(switch (propertyValue) {
+                case "once" -> 1;
+                case "loop" -> EffectConfiguration.LOOP;
+                default -> {
+                    int count;
+                    try {
+                        count = Integer.parseInt(propertyValue);
+                    } catch (NumberFormatException e) {
+                        count = 0;
+                    }
+                    if (count < 1)
+                        throw new IllegalArgumentException(
+                                "Invalid effect repeat " + propertyValue +
+                                ": expected once, loop, or a number of cycles");
+                    yield count;
+                }
+            });
+            case "direction" -> effect.alternate(switch (propertyValue) {
+                case "forward" -> false;
+                case "alternate" -> true;
                 default -> throw new IllegalArgumentException(
-                        "Invalid effect repeat " + propertyValue +
-                        ": expected once or loop");
+                        "Invalid effect direction " + propertyValue +
+                        ": expected forward or alternate");
             });
             case "easing" -> effect.easing(parseEasing(propertyValue));
             case "area" -> {
                 double[] area = parseEffectSize(propertyValue);
                 effect.area((int) area[0], (int) area[1]);
             }
+            case "follow-mouse" -> effect.followMouse(Boolean.parseBoolean(propertyValue));
             default -> throw new IllegalArgumentException(
-                    "Invalid effect property key: " + key);
+                    "Invalid effect property key " + key + ": expected duration-millis, " +
+                    "repeat, direction, easing, area, follow-mouse or layer<n>-<key>");
             // @formatter:on
         }
     }
 
-    /** A size is uniform ({@code 24}) or width-by-height ({@code 64x32}). */
+    /** A property value parsed by the kind its table entry declares. */
+    private static Object parseEffectPropertyValue(EffectProperty property, String value) {
+        return switch (property.kind) {
+            case NUMBER -> parseDouble(value, true, property.min, property.max);
+            case COLOR -> effectHexColor(value);
+            case SWITCH -> Boolean.parseBoolean(value);
+        };
+    }
+
     /**
      * Effect colors are plain hex colors: the renderer keeps the hex string, and the
      * last-selected-hint-box-color keyword would need hint mesh state at render time.
@@ -2399,6 +2436,7 @@ public class ConfigurationParser {
                 "Invalid effect color " + value + ": an effect color should be in the #FFFFFF format");
     }
 
+    /** A size is uniform ({@code 24}) or width-by-height ({@code 64x32}). */
     private static double[] parseEffectSize(String propertyValue) {
         // 0 is allowed: shrinking a layer to nothing is a legitimate keyframe.
         int xIndex = propertyValue.indexOf('x');
@@ -2411,10 +2449,22 @@ public class ConfigurationParser {
                 parseDouble(propertyValue.substring(xIndex + 1), true, 0, 10_000)};
     }
 
+    /** A pivot is a point in effect coordinates ({@code 0,0} is the effect's center). */
+    private static double[] parseEffectPivot(String propertyValue) {
+        String[] parts = propertyValue.split(",");
+        if (parts.length != 2)
+            throw new IllegalArgumentException(
+                    "Invalid effect pivot " + propertyValue + ": expected <x>,<y>");
+        return new double[]{
+                parseDouble(parts[0].trim(), true, -10_000, 10_000),
+                parseDouble(parts[1].trim(), true, -10_000, 10_000)};
+    }
+
     /**
      * Keyframes are | separated, each one a cycle position in percent followed by the
      * values it pins: {@code 0 size=12 opacity=0.8 | 100 size=28 opacity=0}. The bare
-     * keywords {@code show} and {@code hide} toggle the layer's visibility.
+     * keywords {@code show} and {@code hide} toggle the layer's visibility; any
+     * {@link EffectProperty} key can be pinned, plus size, pivot and easing.
      */
     private static List<EffectKeyframe> parseEffectKeyframes(String effectName,
                                                              int layerNumber,
@@ -2440,18 +2490,16 @@ public class ConfigurationParser {
                         "Invalid keyframe in " + context +
                         ": keyframe positions must be increasing");
             previousPercent = percent;
-            Double sizeWidth = null, sizeHeight = null, opacity = null, rotation = null,
-                    rotationX = null, rotationY = null, x = null, y = null;
-            Boolean sizeIsArea = null, visible = null;
-            String hexColor = null;
+            Map<EffectProperty, Object> values = new EnumMap<>(EffectProperty.class);
+            Boolean sizeIsArea = null;
             Easing easing = null;
             for (int tokenIndex = 1; tokenIndex < tokens.length; tokenIndex++) {
                 String token = tokens[tokenIndex];
                 int equalIndex = token.indexOf('=');
                 if (equalIndex == -1) {
                     switch (token) {
-                        case "show" -> visible = true;
-                        case "hide" -> visible = false;
+                        case "show" -> values.put(EffectProperty.VISIBLE, true);
+                        case "hide" -> values.put(EffectProperty.VISIBLE, false);
                         default -> throw new IllegalArgumentException(
                                 "Invalid keyframe token " + token + " in " + context);
                     }
@@ -2466,26 +2514,30 @@ public class ConfigurationParser {
                             sizeIsArea = true;
                         else {
                             double[] size = parseEffectSize(tokenValue);
-                            sizeWidth = size[0];
-                            sizeHeight = size[1];
+                            sizeIsArea = false;
+                            values.put(EffectProperty.WIDTH, size[0]);
+                            values.put(EffectProperty.HEIGHT, size[1]);
                         }
                     }
-                    case "opacity" -> opacity = parseDouble(tokenValue, true, 0, 1);
-                    case "rotation" -> rotation = parseDouble(tokenValue, true, -100_000, 100_000);
-                    case "rotation-x" -> rotationX = parseDouble(tokenValue, true, -100_000, 100_000);
-                    case "rotation-y" -> rotationY = parseDouble(tokenValue, true, -100_000, 100_000);
-                    case "x" -> x = parseDouble(tokenValue, true, -10_000, 10_000);
-                    case "y" -> y = parseDouble(tokenValue, true, -10_000, 10_000);
-                    case "color" -> hexColor = effectHexColor(tokenValue);
+                    case "pivot" -> {
+                        double[] pivot = parseEffectPivot(tokenValue);
+                        values.put(EffectProperty.PIVOT_X, pivot[0]);
+                        values.put(EffectProperty.PIVOT_Y, pivot[1]);
+                    }
                     case "easing" -> easing = parseEasing(tokenValue);
-                    default -> throw new IllegalArgumentException(
-                            "Invalid keyframe token " + token + " in " + context);
+                    default -> {
+                        EffectProperty property = EffectProperty.byKey(tokenKey);
+                        if (property == null || property == EffectProperty.VISIBLE)
+                            throw new IllegalArgumentException(
+                                    "Invalid keyframe token " + token + " in " + context +
+                                    ": expected show, hide, easing=, " +
+                                    EffectProperty.keys());
+                        values.put(property, parseEffectPropertyValue(property, tokenValue));
+                    }
                     // @formatter:on
                 }
             }
-            keyframes.add(new EffectKeyframe(percent, sizeWidth, sizeHeight, sizeIsArea,
-                    opacity, rotation, rotationX, rotationY, x, y, visible, hexColor,
-                    easing));
+            keyframes.add(new EffectKeyframe(percent, values, sizeIsArea, easing));
         }
         return List.copyOf(keyframes);
     }

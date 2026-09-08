@@ -33,7 +33,7 @@ class EffectTest {
         assertEquals(1, blip.layers().size());
         EffectLayer layer = blip.layers().getFirst();
         assertEquals(EffectShape.CIRCLE, layer.shape());
-        assertEquals(16, layer.sizeWidth());
+        assertEquals(16d, layer.base().get(EffectProperty.WIDTH));
         assertFalse(layer.filled());
     }
 
@@ -63,15 +63,15 @@ class EffectTest {
         assertEquals(2, blip.layers().size());
         EffectLayer cross = blip.layers().getFirst();
         assertEquals(EffectShape.CROSS, cross.shape());
-        assertEquals(10, cross.x());
-        assertEquals(-10, cross.y());
-        assertEquals(45, cross.rotation());
-        assertEquals("#96A8FF", cross.hexColor());
-        assertEquals(0.5, cross.opacity());
-        assertEquals(2, cross.thickness());
+        assertEquals(10d, cross.base().get(EffectProperty.X));
+        assertEquals(-10d, cross.base().get(EffectProperty.Y));
+        assertEquals(45d, cross.base().get(EffectProperty.ROTATION));
+        assertEquals("#96A8FF", cross.base().get(EffectProperty.COLOR));
+        assertEquals(0.5, cross.base().get(EffectProperty.OPACITY));
+        assertEquals(2d, cross.base().get(EffectProperty.THICKNESS));
         assertEquals(4, cross.keyframes().size());
-        assertEquals(Boolean.FALSE, cross.keyframes().get(1).visible());
-        assertEquals(90, cross.keyframes().get(2).rotation());
+        assertEquals(Boolean.FALSE, cross.keyframes().get(1).values().get(EffectProperty.VISIBLE));
+        assertEquals(90d, cross.keyframes().get(2).values().get(EffectProperty.ROTATION));
         EffectLayer background = blip.layers().get(1);
         assertTrue(background.sizeIsArea());
         assertTrue(background.filled());
@@ -90,7 +90,7 @@ class EffectTest {
         EffectConfiguration inherited =
                 configuration.modeMap().get("other-mode").effects().get("blip");
         assertEquals(EffectShape.DOT, inherited.layers().getFirst().shape());
-        assertEquals("#FF0000", inherited.layers().getFirst().hexColor());
+        assertEquals("#FF0000", inherited.layers().getFirst().base().get(EffectProperty.COLOR));
     }
 
     @Test
@@ -128,7 +128,7 @@ class EffectTest {
                 "idle-mode.effect.blip.layer1-size=10",
                 "idle-mode.effect.blip.layer1-keyframes=0 size=10 opacity=1 | 100 size=40 opacity=0",
                 "idle-mode.start-effect.blip=+n");
-        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(blip);
+        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(blip, null);
         player.advance(0.1); // 50% of the 200ms cycle.
         EffectFrame frame = player.frame();
         EffectFrame.ResolvedEffectLayer layer = frame.layers().getFirst();
@@ -147,7 +147,7 @@ class EffectTest {
                 "idle-mode.effect.blip.layer1-size=10",
                 "idle-mode.effect.blip.layer1-keyframes=100 size=20",
                 "idle-mode.start-effect.blip=+n");
-        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(blip);
+        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(blip, null);
         player.advance(0.05);
         assertEquals(15, player.frame().layers().getFirst().width(), 1e-9);
     }
@@ -160,7 +160,7 @@ class EffectTest {
                 "idle-mode.effect.pulse.layer1-shape=square",
                 "idle-mode.effect.pulse.layer1-keyframes=0 rotation=0 | 100 rotation=90",
                 "idle-mode.start-effect.pulse=+n");
-        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(pulse);
+        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(pulse, null);
         player.advance(0.125); // 125% wraps to 25%.
         assertFalse(player.done());
         assertEquals(22.5, player.frame().layers().getFirst().rotation(), 1e-9);
@@ -174,8 +174,8 @@ class EffectTest {
                 "idle-mode.effect.flip.layer1-rotation-x=10",
                 "idle-mode.effect.flip.layer1-keyframes=0 rotation-y=0 | 100 rotation-y=-360",
                 "idle-mode.start-effect.flip=+n");
-        assertEquals(10, flip.layers().getFirst().rotationX());
-        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(flip);
+        assertEquals(10d, flip.layers().getFirst().base().get(EffectProperty.ROTATION_X));
+        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(flip, null);
         player.advance(0.025); // 25%: spinning backward toward -360.
         EffectFrame.ResolvedEffectLayer layer = player.frame().layers().getFirst();
         assertEquals(-90, layer.rotationY(), 1e-9);
@@ -190,7 +190,7 @@ class EffectTest {
                 "idle-mode.effect.spin.layer1-speed=2",
                 "idle-mode.effect.spin.layer1-keyframes=0 size=0 | 100 size=100",
                 "idle-mode.start-effect.spin=+n");
-        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(spin);
+        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(spin, null);
         player.advance(0.06); // 60% of the cycle, 120% of the layer timeline: wraps to 20%.
         assertEquals(20, player.frame().layers().getFirst().width(), 1e-9);
     }
@@ -202,7 +202,7 @@ class EffectTest {
                 "idle-mode.effect.grow.layer1-shape=dot",
                 "idle-mode.effect.grow.layer1-keyframes=0 size=0 | 100 size=100 easing=2",
                 "idle-mode.start-effect.grow=+n");
-        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(grow);
+        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(grow, null);
         player.advance(0.05); // 50% with a quadratic segment: t^2 = 0.25.
         assertEquals(25, player.frame().layers().getFirst().width(), 1e-9);
     }
@@ -214,7 +214,7 @@ class EffectTest {
                 "idle-mode.effect.wink.layer1-shape=cross",
                 "idle-mode.effect.wink.layer1-keyframes=0 show | 50 hide",
                 "idle-mode.start-effect.wink=+n");
-        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(wink);
+        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(wink, null);
         player.advance(0.06);
         assertTrue(player.frame().layers().isEmpty());
     }
