@@ -255,7 +255,7 @@ public class WindowsMouseController implements MouseController {
     private static final long[] SYSTEM_CURSOR_IDS = {32512, 32513, 32514, 32515, 32516,
             32642, 32643, 32644, 32645, 32646, 32648, 32649, 32650, 32651};
 
-    // A cursor glyph's XOR/inversion pixels (e.g. the mono I-beam) can't invert a static
+    // A cursor's XOR/inversion pixels (e.g. the mono I-beam) can't invert a static
     // bitmap, so they are drawn as a white core with a 1px black outline -- readable on any
     // background, the same trick the arrow cursor uses.
     private static final int INVERT_CORE = 255;   // white
@@ -344,14 +344,14 @@ public class WindowsMouseController implements MouseController {
 
     /**
      * Installs the indicator (given as a premultiplied-ARGB image) as every system cursor, or
-     * as the displayed one alone. When includeGlyph is set, each cursor's original glyph is
-     * composited on top so shape semantics are preserved; hide-cursor omits the glyph. Either
-     * way the indicator is anchored to the glyph's visual center and the glyph's real hotspot
-     * is kept, so toggling the glyph does not shift the indicator. The OS keeps switching
+     * as the displayed one alone. When includeOriginalCursor is set, each cursor's original image is
+     * composited on top so shape semantics are preserved; hide-cursor omits it. Either
+     * way the indicator is anchored to the original cursor's visual center and its real hotspot
+     * is kept, so toggling it does not shift the indicator. The OS keeps switching
      * cursors by context; we just replace each slot's image.
      */
     public void setIndicatorCursor(int[] indicatorArgb, int indicatorWidth, int indicatorHeight,
-                                   boolean includeGlyph, boolean allCursors) {
+                                   boolean includeOriginalCursor, boolean allCursors) {
         if (originalCursorByCursorId.isEmpty())
             snapshotOriginalCursors();
         long[] cursorIds = allCursors ? SYSTEM_CURSOR_IDS : new long[]{displayedCursorId()};
@@ -360,7 +360,7 @@ public class WindowsMouseController implements MouseController {
             if (originalCursor == null)
                 continue;
             installIndicatorCursor(cursorId, indicatorArgb, indicatorWidth, indicatorHeight,
-                    originalCursor, includeGlyph);
+                    originalCursor, includeOriginalCursor);
         }
         cursorHidden = false;
         indicatorCursorInstalled = true;
@@ -412,7 +412,7 @@ public class WindowsMouseController implements MouseController {
                     height /= 2;
                 if (width <= 0 || height <= 0)
                     continue;
-                int[] argb = rasterizeGlyph(icon, width, height);
+                int[] argb = rasterizeOriginalCursor(icon, width, height);
                 if (argb != null) {
                     int[] center = opaqueBoundsCenter(argb, width, height);
                     originalCursorByCursorId.put(cursorId,
@@ -431,12 +431,12 @@ public class WindowsMouseController implements MouseController {
     }
 
     /**
-     * Rasterizes a cursor glyph to premultiplied ARGB. Draws it onto a white and a black
+     * Rasterizes a cursor to premultiplied ARGB. Draws it onto a white and a black
      * background and recovers per-pixel alpha (alpha = 255 - (onWhite - onBlack), color =
      * onBlack). XOR/inversion pixels (brighter over black than white, e.g. the mono I-beam)
      * can't invert a static bitmap, so they are drawn as a white core with a black outline.
      */
-    private int[] rasterizeGlyph(WinDef.HICON icon, int width, int height) {
+    private int[] rasterizeOriginalCursor(WinDef.HICON icon, int width, int height) {
         WinGDI.BITMAPINFO bitmapInfo = new WinGDI.BITMAPINFO();
         bitmapInfo.bmiHeader.biSize = bitmapInfo.bmiHeader.size();
         bitmapInfo.bmiHeader.biWidth = width;
@@ -455,8 +455,8 @@ public class WindowsMouseController implements MouseController {
         WinNT.HANDLE previous = GDI32.INSTANCE.SelectObject(dc, dib);
         Pointer bits = bitsRef.getValue();
         long byteCount = (long) width * height * 4;
-        byte[] onWhite = drawGlyphOnBackground(dc, icon, bits, byteCount, (byte) 0xFF);
-        byte[] onBlack = drawGlyphOnBackground(dc, icon, bits, byteCount, (byte) 0x00);
+        byte[] onWhite = drawCursorOnBackground(dc, icon, bits, byteCount, (byte) 0xFF);
+        byte[] onBlack = drawCursorOnBackground(dc, icon, bits, byteCount, (byte) 0x00);
         GDI32.INSTANCE.SelectObject(dc, previous);
         GDI32.INSTANCE.DeleteObject(dib);
         GDI32.INSTANCE.DeleteDC(dc);
@@ -482,7 +482,7 @@ public class WindowsMouseController implements MouseController {
     }
 
     /** Paints a 1px outline around invert pixels: any clear pixel touching the invert core
-     *  becomes opaque outline ink, so an uninvertable glyph reads on any background. */
+     *  becomes opaque outline ink, so an uninvertable cursor reads on any background. */
     private void outlineInvertPixels(int[] argb, boolean[] invert, int width, int height) {
         int outline = (255 << 24) | (INVERT_OUTLINE << 16) | (INVERT_OUTLINE << 8) | INVERT_OUTLINE;
         for (int y = 0; y < height; y++) {
@@ -509,7 +509,7 @@ public class WindowsMouseController implements MouseController {
         return false;
     }
 
-    /** Center of the glyph's opaque bounding box, or the geometric center if fully clear. */
+    /** Center of the original cursor's opaque bounding box, or the geometric center if fully clear. */
     private int[] opaqueBoundsCenter(int[] argb, int width, int height) {
         int minX = width, maxX = -1, minY = height, maxY = -1;
         for (int y = 0; y < height; y++) {
@@ -527,7 +527,7 @@ public class WindowsMouseController implements MouseController {
         return new int[]{(minX + maxX + 1) / 2, (minY + maxY + 1) / 2};
     }
 
-    private byte[] drawGlyphOnBackground(WinDef.HDC dc, WinDef.HICON icon, Pointer bits,
+    private byte[] drawCursorOnBackground(WinDef.HDC dc, WinDef.HICON icon, Pointer bits,
                                          long byteCount, byte fill) {
         bits.setMemory(0, byteCount, fill);
         ExtendedUser32.INSTANCE.DrawIconEx(dc, 0, 0, icon, 0, 0, 0, null,
@@ -536,18 +536,18 @@ public class WindowsMouseController implements MouseController {
         return bits.getByteArray(0, (int) byteCount);
     }
 
-    /** Composites the indicator (centered on the glyph's visual center) under the glyph and
-     *  installs the result as the system cursor for the given id, keeping the glyph's
-     *  real hotspot so clicks still land correctly. When includeGlyph is false the glyph
+    /** Composites the indicator (centered on the original cursor's visual center) under it and
+     *  installs the result as the system cursor for the given id, keeping its
+     *  real hotspot so clicks still land correctly. When includeOriginalCursor is false its
      *  pixels are omitted (hide-cursor), but its hotspot and visual center still anchor the
-     *  indicator, so the indicator stays put when the glyph is toggled. */
+     *  indicator, so the indicator stays put when it is toggled. */
     private void installIndicatorCursor(long cursorId, int[] indicatorArgb,
                                      int indicatorWidth,
                                      int indicatorHeight, OriginalCursor originalCursor,
-                                     boolean includeGlyph) {
+                                     boolean includeOriginalCursor) {
         int indicatorCenterX = indicatorWidth / 2;
         int indicatorCenterY = indicatorHeight / 2;
-        // Extents relative to the hotspot; the indicator is centered on the glyph's visual
+        // Extents relative to the hotspot; the indicator is centered on the original cursor's visual
         // center so it sits where the window overlay would place it.
         int indicatorCenterRelX = originalCursor.visualCenterX - originalCursor.hotspotX;
         int indicatorCenterRelY = originalCursor.visualCenterY - originalCursor.hotspotY;
@@ -561,35 +561,37 @@ public class WindowsMouseController implements MouseController {
         int top = -minY;
         int indicatorOriginX = left + indicatorCenterRelX - indicatorCenterX;
         int indicatorOriginY = top + indicatorCenterRelY - indicatorCenterY;
-        int glyphOriginX = left - originalCursor.hotspotX;
-        int glyphOriginY = top - originalCursor.hotspotY;
+        int originalCursorOriginX = left - originalCursor.hotspotX;
+        int originalCursorOriginY = top - originalCursor.hotspotY;
         byte[] bgra = new byte[canvasWidth * canvasHeight * 4];
         for (int y = 0; y < canvasHeight; y++) {
             for (int x = 0; x < canvasWidth; x++) {
-                int indicatorPremB = 0, indicatorPremG = 0, indicatorPremR = 0, indicatorA = 0;
+                int indicatorPremultipliedB = 0, indicatorPremultipliedG = 0,
+                        indicatorPremultipliedR = 0, indicatorA = 0;
                 int dx = x - indicatorOriginX, dy = y - indicatorOriginY;
                 if (dx >= 0 && dx < indicatorWidth && dy >= 0 && dy < indicatorHeight) {
                     // indicatorArgb is already premultiplied.
                     int p = indicatorArgb[dy * indicatorWidth + dx];
                     indicatorA = (p >>> 24) & 0xFF;
-                    indicatorPremR = (p >>> 16) & 0xFF;
-                    indicatorPremG = (p >>> 8) & 0xFF;
-                    indicatorPremB = p & 0xFF;
+                    indicatorPremultipliedR = (p >>> 16) & 0xFF;
+                    indicatorPremultipliedG = (p >>> 8) & 0xFF;
+                    indicatorPremultipliedB = p & 0xFF;
                 }
-                int glyphPremB = 0, glyphPremG = 0, glyphPremR = 0, glyphA = 0;
-                int gx = x - glyphOriginX, gy = y - glyphOriginY;
-                if (includeGlyph && gx >= 0 && gx < originalCursor.width && gy >= 0 && gy < originalCursor.height) {
+                int originalPremultipliedB = 0, originalPremultipliedG = 0,
+                        originalPremultipliedR = 0, originalA = 0;
+                int gx = x - originalCursorOriginX, gy = y - originalCursorOriginY;
+                if (includeOriginalCursor && gx >= 0 && gx < originalCursor.width && gy >= 0 && gy < originalCursor.height) {
                     int p = originalCursor.argbPremultiplied[gy * originalCursor.width + gx];
-                    glyphA = (p >>> 24) & 0xFF;
-                    glyphPremR = (p >>> 16) & 0xFF;
-                    glyphPremG = (p >>> 8) & 0xFF;
-                    glyphPremB = p & 0xFF;
+                    originalA = (p >>> 24) & 0xFF;
+                    originalPremultipliedR = (p >>> 16) & 0xFF;
+                    originalPremultipliedG = (p >>> 8) & 0xFF;
+                    originalPremultipliedB = p & 0xFF;
                 }
-                int inv = 255 - glyphA;
-                int outPremB = glyphPremB + indicatorPremB * inv / 255;
-                int outPremG = glyphPremG + indicatorPremG * inv / 255;
-                int outPremR = glyphPremR + indicatorPremR * inv / 255;
-                int outA = glyphA + indicatorA * inv / 255;
+                int inv = 255 - originalA;
+                int outPremultipliedB = originalPremultipliedB + indicatorPremultipliedB * inv / 255;
+                int outPremultipliedG = originalPremultipliedG + indicatorPremultipliedG * inv / 255;
+                int outPremultipliedR = originalPremultipliedR + indicatorPremultipliedR * inv / 255;
+                int outA = originalA + indicatorA * inv / 255;
                 int o = (y * canvasWidth + x) * 4;
                 // Composite in premultiplied space, then store STRAIGHT (un-premultiplied)
                 // color: CreateIconIndirect alpha-blends the DIB as straight alpha, so
@@ -601,9 +603,9 @@ public class WindowsMouseController implements MouseController {
                     bgra[o + 3] = 0;
                 }
                 else {
-                    bgra[o] = (byte) Math.min(255, outPremB * 255 / outA);
-                    bgra[o + 1] = (byte) Math.min(255, outPremG * 255 / outA);
-                    bgra[o + 2] = (byte) Math.min(255, outPremR * 255 / outA);
+                    bgra[o] = (byte) Math.min(255, outPremultipliedB * 255 / outA);
+                    bgra[o + 1] = (byte) Math.min(255, outPremultipliedG * 255 / outA);
+                    bgra[o + 2] = (byte) Math.min(255, outPremultipliedR * 255 / outA);
                     bgra[o + 3] = (byte) outA;
                 }
             }

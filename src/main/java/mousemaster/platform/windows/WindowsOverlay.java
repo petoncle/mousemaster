@@ -33,7 +33,7 @@ public class WindowsOverlay implements Overlay {
     private boolean indicatorIsCursor;
     private IndicatorConfiguration currentCursorIndicator;
     private double currentCursorScale;
-    private boolean currentCursorIncludeGlyph;
+    private boolean currentIncludeOriginalCursor;
     private boolean mousePositionMissing;
     private GridRenderer gridRenderer;
     private WinDef.HWND gridHwnd;
@@ -374,7 +374,7 @@ public class WindowsOverlay implements Overlay {
     @Override
     public void setIndicator(IndicatorConfiguration indicator,
                              IndicatorConfiguration transitionTo, boolean allowFade,
-                             boolean includeCursorGlyph) {
+                             boolean includeOriginalCursor) {
         Objects.requireNonNull(indicator);
         boolean renderAsCursor = indicator.renderAsCursor();
         if (!renderAsCursor && !indicatorIsCursor && indicatorRenderer != null &&
@@ -393,7 +393,7 @@ public class WindowsOverlay implements Overlay {
             double scale = WindowsScreen.findActiveScreen(mousePosition).scale();
             if (indicatorIsCursor && indicator.equals(currentCursorIndicator) &&
                 scale == currentCursorScale &&
-                includeCursorGlyph == currentCursorIncludeGlyph)
+                includeOriginalCursor == currentIncludeOriginalCursor)
                 return;
             if (indicatorRenderer != null && indicatorRenderer.showing())
                 indicatorRenderer.hide(false);
@@ -405,11 +405,11 @@ public class WindowsOverlay implements Overlay {
             if (image == null)
                 return;
             mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
-                    includeCursorGlyph, indicator.equals(transitionTo));
+                    includeOriginalCursor, indicator.equals(transitionTo));
             indicatorIsCursor = true;
             currentCursorIndicator = indicator;
             currentCursorScale = scale;
-            currentCursorIncludeGlyph = includeCursorGlyph;
+            currentIncludeOriginalCursor = includeOriginalCursor;
             return;
         }
         if (indicatorIsCursor) {
@@ -606,7 +606,7 @@ public class WindowsOverlay implements Overlay {
                                 hintMeshRenderer.lastSelectedHintBoxHexColor());
                 if (image != null) {
                     mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
-                            currentCursorIncludeGlyph, true);
+                            currentIncludeOriginalCursor, true);
                     currentCursorScale = scale;
                 }
             }

@@ -32,7 +32,7 @@ public interface Overlay {
     /** {@code indicator} is what to draw now, {@code transitionTo} what it is animating to:
      *  the window is made big enough for both and never shrinks, so it is never resized. */
     void setIndicator(IndicatorConfiguration indicator, IndicatorConfiguration transitionTo,
-                      boolean allowFade, boolean includeCursorGlyph);
+                      boolean allowFade, boolean includeOriginalCursor);
 
     /** Captures the desktop inside bounds, excluding mousemaster's own windows. */
     DesktopCapture captureDesktop(Rectangle bounds, int scaledWidth, int scaledHeight);

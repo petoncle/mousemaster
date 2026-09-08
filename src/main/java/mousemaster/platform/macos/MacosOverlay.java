@@ -153,7 +153,7 @@ public class MacosOverlay implements Overlay {
     @Override
     public void setIndicator(IndicatorConfiguration indicator,
                              IndicatorConfiguration transitionTo, boolean allowFade,
-                             boolean includeCursorGlyph) {
+                             boolean includeOriginalCursor) {
         if (indicatorRenderer == null)
             createIndicatorWindow();
         QPoint mousePosition = mouse.findMousePosition();
