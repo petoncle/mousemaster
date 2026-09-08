@@ -22,7 +22,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class WindowsPlatform implements Platform {
 
@@ -52,7 +51,7 @@ public class WindowsPlatform implements Platform {
     private ZoomManager zoomManager;
     private IndicatorManager indicatorManager;
     private HintManager hintManager;
-    private final Map<Key, AtomicReference<Double>> currentlyPressedNotEatenKeys = new HashMap<>();
+    private final Set<Key> currentlyPressedNotEatenKeys = new HashSet<>();
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
     private final BlockingQueue<WinDef.POINT> mousePositionQueue = new LinkedBlockingDeque<>();
@@ -419,25 +418,17 @@ public class WindowsPlatform implements Platform {
     }
 
     /**
-     * On the Windows lock screen, hit space then enter the pin. Space press is recorded by the app but the
-     * corresponding release is never received. That is why we need to double-check if the key is still pressed
-     * with GetAsyncKeyState.
-     * Sometimes, it is the Win key (from Win + L) for which we do not receive the release event.
-     * getAsyncKeyStateResult is not working the way I expected: it returns not pressed for keys pressed
-     * after other keys: press left button, then move mouse: the key for press left shows as not pressed
-     * according to getAsyncKeyStateResult. That is why we consider not eaten keys only.
-     * The getAsyncKeyStateResult call could probably be taken out (it is useless) and replaced with
-     * a simple 10s expiration time.
+     * A release is sometimes never received. Eating a press keeps it out of the key
+     * state GetAsyncKeyState reads, so an eaten key always looks released and only not
+     * eaten keys can be checked this way.
      */
     private void sanityCheckCurrentlyPressedKeys(double delta) {
-        for (AtomicReference<Double> pressDuration : currentlyPressedNotEatenKeys.values())
-            pressDuration.set(pressDuration.get() + delta);
+        stuckKeyCheckTimer += delta;
+        if (stuckKeyCheckTimer < 1)
+            return;
+        stuckKeyCheckTimer = 0;
         Set<Key> keysThatDoNotSeemToBePressedAnymore = new HashSet<>();
-        for (Map.Entry<Key, AtomicReference<Double>> entry : currentlyPressedNotEatenKeys.entrySet()) {
-            Key key = entry.getKey();
-            AtomicReference<Double> pressDuration = entry.getValue();
-            if (pressDuration.get() < 10)
-                continue;
+        for (Key key : currentlyPressedNotEatenKeys) {
             WindowsVirtualKey windowsVirtualKey =
                     WindowsVirtualKey.windowsVirtualKeyFromKey(key,
                             keyboard.activeKeyboardLayout);
@@ -452,52 +443,43 @@ public class WindowsPlatform implements Platform {
             else {
                 short getAsyncKeyStateResult = User32.INSTANCE.GetAsyncKeyState(
                         windowsVirtualKey.virtualKeyCode);
-                boolean pressed = (getAsyncKeyStateResult & 0x8000) != 0;
-                if (!pressed)
+                if ((getAsyncKeyStateResult & 0x8000) == 0)
                     keysThatDoNotSeemToBePressedAnymore.add(key);
-                else
-                    // The key was legitimately pressed for 10s.
-                    pressDuration.set(0d);
             }
         }
         if (!keysThatDoNotSeemToBePressedAnymore.isEmpty()) {
             logger.info(
-                    "Resetting KeyboardManager and MouseController because the following currentlyPressedKeys are not pressed anymore according to GetAsyncKeyState: " +
+                    "Releasing the following currentlyPressedKeys because they are not pressed anymore according to GetAsyncKeyState: " +
                     keyRedactor.keys(keysThatDoNotSeemToBePressedAnymore) +
                     ", last key events: " +
                     keyRedactor.keyEventAndEatens(keyboardManager.lastKeyEvents()));
-            currentlyPressedNotEatenKeys.clear();
-            keyboardManager.reset();
-            mouseManager.reset();
+            for (Key key : keysThatDoNotSeemToBePressedAnymore)
+                keyEvent(new ReleaseKeyEvent(clock.now(), key), 0);
         }
-        stuckKeyCheckTimer += delta;
-        if (stuckKeyCheckTimer >= 1) {
-            stuckKeyCheckTimer = 0;
-            KeyboardLayout layout = keyboard.activeKeyboardLayout;
-            for (WindowsVirtualKey virtualKey : WindowsVirtualKey.values()) {
-                short state  = User32.INSTANCE.GetAsyncKeyState(virtualKey.virtualKeyCode);
-                boolean pressedAccordingToOs = (state & 0x8000) != 0;
-                if (!pressedAccordingToOs)
+        KeyboardLayout layout = keyboard.activeKeyboardLayout;
+        for (WindowsVirtualKey virtualKey : WindowsVirtualKey.values()) {
+            short state  = User32.INSTANCE.GetAsyncKeyState(virtualKey.virtualKeyCode);
+            boolean pressedAccordingToOs = (state & 0x8000) != 0;
+            if (!pressedAccordingToOs)
+                continue;
+            Key key = layout.keyFromVirtualKey(virtualKey);
+            if (key != null && keysPressedInHook.contains(key) &&
+                !currentlyPressedNotEatenKeys.contains(key)) {
+                if (key.equals(Key.leftctrl) &&
+                    currentlyPressedNotEatenKeys.contains(Key.rightalt)) {
+                    logger.debug("Skipping stuck leftctrl injection " +
+                                 "while rightalt is held (AltGr active)");
                     continue;
-                Key key = layout.keyFromVirtualKey(virtualKey);
-                if (key != null && keysPressedInHook.contains(key) &&
-                    !currentlyPressedNotEatenKeys.containsKey(key)) {
-                    if (key.equals(Key.leftctrl) &&
-                        currentlyPressedNotEatenKeys.containsKey(Key.rightalt)) {
-                        logger.debug("Skipping stuck leftctrl injection " +
-                                     "while rightalt is held (AltGr active)");
-                        continue;
-                    }
-                    logger.warn("Stuck key detected: " + keyRedactor.key(key) +
-                                " is pressed according to GetAsyncKeyState" +
-                                " but not in currentlyPressedNotEatenKeys" +
-                                ", injecting release" +
-                                ", last key events: " +
-                                keyRedactor.keyEventAndEatens(keyboardManager.lastKeyEvents()));
-                    keyboard.sendInputKeyRelease(
-                            virtualKey.virtualKeyCode,
-                            extendedKeys.contains(key));
                 }
+                logger.warn("Stuck key detected: " + keyRedactor.key(key) +
+                            " is pressed according to GetAsyncKeyState" +
+                            " but not in currentlyPressedNotEatenKeys" +
+                            ", injecting release" +
+                            ", last key events: " +
+                            keyRedactor.keyEventAndEatens(keyboardManager.lastKeyEvents()));
+                keyboard.sendInputKeyRelease(
+                        virtualKey.virtualKeyCode,
+                        extendedKeys.contains(key));
             }
         }
     }
@@ -587,7 +569,7 @@ public class WindowsPlatform implements Platform {
                         // to decide, so we check the eaten state directly).
                         boolean eaten = keyEvent.isPress() &&
                             keysPressedInHook.contains(keyEvent.key()) &&
-                            !currentlyPressedNotEatenKeys.containsKey(keyEvent.key());
+                            !currentlyPressedNotEatenKeys.contains(keyEvent.key());
                         reentrantKeyEvents.add(
                                 new ReentrantKeyEvent(keyEvent, info.flags, altgrLeftctrl, eaten));
                         if (eaten) {
@@ -726,8 +708,7 @@ public class WindowsPlatform implements Platform {
 
     private void trackNotEatenKey(KeyEvent keyEvent) {
         if (keyEvent.isPress())
-            currentlyPressedNotEatenKeys.computeIfAbsent(keyEvent.key(),
-                    key -> new AtomicReference<>(0d)).set(0d);
+            currentlyPressedNotEatenKeys.add(keyEvent.key());
         else
             currentlyPressedNotEatenKeys.remove(keyEvent.key());
     }
@@ -755,8 +736,7 @@ public class WindowsPlatform implements Platform {
             currentlyPressedNotEatenKeys.remove(keyEvent.key());
         KeyboardManager.EatAndRegurgitates eatAndRegurgitates = keyboardManager.keyEvent(keyEvent);
         if (keyEvent.isPress() && !eatAndRegurgitates.mustBeEaten()) {
-            currentlyPressedNotEatenKeys.computeIfAbsent(keyEvent.key(),
-                    key -> new AtomicReference<>(0d)).set(0d);
+            currentlyPressedNotEatenKeys.add(keyEvent.key());
         }
         boolean keyEventIsExtendedKey = (infoFlags & 1) == 1;
         if (keyEventIsExtendedKey)
@@ -781,8 +761,7 @@ public class WindowsPlatform implements Platform {
                 if (!regurgitate.alsoRelease()) {
                     // Press-only regurgitation: the key is now visible to the OS,
                     // so track it as not-eaten for stuck-key diagnostics.
-                    currentlyPressedNotEatenKeys.computeIfAbsent(regurgitate.key(),
-                            key -> new AtomicReference<>(0d)).set(0d);
+                    currentlyPressedNotEatenKeys.add(regurgitate.key());
                 }
             }
         }

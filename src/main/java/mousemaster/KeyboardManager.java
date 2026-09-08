@@ -20,6 +20,9 @@ public class KeyboardManager {
 
     private final ComboWatcher comboWatcher;
     private final KeyRegurgitator keyRegurgitator;
+    private final Clock clock;
+    private static final Duration maxOsAutoRepeatDelay = Duration.ofSeconds(1);
+    private KeyEvent lastOsAutoRepeat;
     private static final Duration lastKeyEventsRetainDuration = Duration.ofSeconds(15);
     private static final int lastKeyEventsMinRetainCount = 128;
     private final List<KeyEventAndEaten> lastKeyEvents = new ArrayList<>();
@@ -46,9 +49,10 @@ public class KeyboardManager {
     }
 
     public KeyboardManager(ComboWatcher comboWatcher, HintManager hintManager,
-                           KeyRegurgitator keyRegurgitator) {
+                           KeyRegurgitator keyRegurgitator, Clock clock) {
         this.comboWatcher = comboWatcher;
         this.keyRegurgitator = keyRegurgitator;
+        this.clock = clock;
     }
 
     public void setMacroPlayer(MacroPlayer macroPlayer) {
@@ -61,6 +65,7 @@ public class KeyboardManager {
             reset();
         }
         else {
+            releaseKeyTheOsStoppedRepeating();
             ComboWatcherUpdateResult watcherUpdateResult = comboWatcher.update(delta);
             if (!watcherUpdateResult.completedCombos().isEmpty()) {
                 markOtherKeysOfTheseCombosAsCompleted(
@@ -103,9 +108,21 @@ public class KeyboardManager {
             regurgitatePressedKeys();
         currentlyPressedKeys.clear();
         eatenKeys.clear();
+        lastOsAutoRepeat = null;
         unhandledKeyJustPressedInCurrentMode = false;
         comboWatcher.reset();
         macroPlayer.reset();
+    }
+
+    private void releaseKeyTheOsStoppedRepeating() {
+        if (lastOsAutoRepeat == null ||
+            !lastOsAutoRepeat.time().plus(maxOsAutoRepeatDelay).isBefore(clock.now()))
+            return;
+        logger.info("Releasing a key the OS stopped repeating");
+        EatAndRegurgitates eatAndRegurgitates = keyEvent(
+                new KeyEvent.ReleaseKeyEvent(clock.now(), lastOsAutoRepeat.key()));
+        for (Regurgitate regurgitate : eatAndRegurgitates.regurgitates())
+            keyRegurgitator.regurgitate(regurgitate, !regurgitate.alsoRelease());
     }
 
     public void regurgitatePressedKeys() {
@@ -130,6 +147,7 @@ public class KeyboardManager {
     public EatAndRegurgitates keyEvent(KeyEvent keyEvent) {
         boolean osAutoRepeat = keyEvent.isPress() &&
                                currentlyPressedKeys.containsKey(keyEvent.key());
+        lastOsAutoRepeat = osAutoRepeat ? keyEvent : null;
         EatAndRegurgitates eatAndRegurgitates = singleKeyEvent(keyEvent);
         if (!osAutoRepeat) {
             lastKeyEvents.add(

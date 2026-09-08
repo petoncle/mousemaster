@@ -250,7 +250,8 @@ public class Mousemaster {
                         configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys());
         KeyRegurgitator keyRegurgitator =
                 new KeyRegurgitator(platform.keyboard(), keyRedactor);
-        keyboardManager = new KeyboardManager(comboWatcher, hintManager, keyRegurgitator);
+        keyboardManager = new KeyboardManager(comboWatcher, hintManager, keyRegurgitator,
+                platform.clock());
         macroPlayer = new MacroPlayer(platform.clock(), comboWatcher, keyboardManager,
                 platform.keyboard(), keyRedactor);
         keyboardManager.setMacroPlayer(macroPlayer);
