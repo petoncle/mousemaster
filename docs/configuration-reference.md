@@ -502,15 +502,21 @@ zoom-mode.zoom.animation-duration-millis=300
 
 ### Effect properties
 
-Effects are short, named animations drawn in an area that follows the mouse: a stack of
-simple shape layers (dot, circle, square, triangle, line, cross) animated over one cycle
-with keyframes. They are started and stopped by combos, so an effect can play on a click,
-loop exactly while a key is held, or flash on a release — without touching the indicator.
+Effects are short, named animations drawn in an area around the mouse: a stack of
+simple shape layers animated over one cycle with keyframes. They are started and
+stopped by combos, so an effect can play on a click, loop exactly while a key is held,
+or flash on a release — without touching the indicator.
+
+The model fits in one sentence: **an effect is layers of shapes; every layer value is
+written once, and any number or color among them can be animated with keyframes**
+(`| <percent> <key>=<value>`).
 
 ```properties
-# A calm click ripple: a circle that expands and fades over 250ms.
+# A calm click ripple: a circle that expands and fades over 250ms, staying where
+# the click happened.
 normal-mode.effect.click-ripple.duration-millis=250
 normal-mode.effect.click-ripple.area=48
+normal-mode.effect.click-ripple.follow-mouse=false
 normal-mode.effect.click-ripple.layer1-shape=circle
 normal-mode.effect.click-ripple.layer1-size=10
 normal-mode.effect.click-ripple.layer1-color=#96A8FF
@@ -519,70 +525,126 @@ normal-mode.effect.click-ripple.layer1-keyframes=0 size=10 opacity=0.8 | 100 siz
 normal-mode.start-effect.click-ripple=-leftbutton
 ```
 
-- **`effect.<name>.duration-millis`**: One cycle in milliseconds (default `250`).
-- **`effect.<name>.repeat`**: `once` (default) removes the effect at the end of its cycle;
-  `loop` wraps around until `stop-effect` stops it.
-- **`effect.<name>.easing`**: Easing applied to the cycle progress, same values as
-  `zoom.animation-easing` (default linear).
-- **`effect.<name>.area`**: The effect's region, centered on the mouse position: a size
-  (`48`) or width-by-height (`64x32`), in logical pixels (default `100`). Layers are
-  clipped to it.
+#### Effect settings
 
-Each layer is one shape, drawn in declaration order (layer1 at the bottom):
+| Property | Meaning | Default |
+|---|---|---|
+| `effect.<name>.duration-millis` | One cycle, in milliseconds | `250` |
+| `effect.<name>.repeat` | `once`, `loop` (until `stop-effect`), or a number of cycles (`3`) | `once` |
+| `effect.<name>.direction` | `forward`, or `alternate` to play every other cycle backwards (a loop swings instead of jumping back) | `forward` |
+| `effect.<name>.easing` | Easing of each cycle, same values as `zoom.animation-easing` | linear |
+| `effect.<name>.area` | The region drawn: a size (`48`) or width-by-height (`64x32`), in logical pixels. Layers are clipped to it | `100` |
+| `effect.<name>.follow-mouse` | `true` keeps the area centered on the mouse; `false` leaves it where the mouse was when the effect started | `true` |
 
-- **`layer<n>-shape`**: `dot` (filled circle), `circle`, `square`, `triangle`, `line`, or
-  `cross` (a diagonal ×; rotate by 45 for a +).
-- **`layer<n>-x`** / **`layer<n>-y`**: Offset from the area center (default `0`).
-- **`layer<n>-size`**: A size (`24`), width-by-height (`24x12`), or `area` to take the
-  size of the whole area — a filled square layer sized to the area is the effect's
-  background (default `16`).
-- **`layer<n>-rotation`**: Degrees, in the screen plane (default `0`).
-- **`layer<n>-rotation-x`** / **`layer<n>-rotation-y`**: Degrees of 3D-projected tilt
-  around the layer's horizontal / vertical axis (default `0`) — animating `rotation-y`
-  from 0 to 360 flips the shape like a card. The sign picks the spin direction on every
-  axis: animating toward a negative angle spins the other way.
-- **`layer<n>-color`** / **`layer<n>-opacity`**: Layer color (default `#FFFFFF`) and
-  opacity (default `1`).
-- **`layer<n>-filled`**: Filled or outline (default: filled for `dot`, outline otherwise).
-- **`layer<n>-thickness`**: Outline/stroke width (default `1`).
-- **`layer<n>-speed`**: How fast this layer's timeline runs relative to the effect's
-  cycle (default `1`): `2` plays it twice per cycle, `0.5` at half speed. Lets one
-  layer spin fast while another breathes slowly in the same effect.
+#### Layer settings
+
+Each layer is one shape, drawn in declaration order (layer1 at the bottom). Four
+settings hold for the layer's whole life:
+
+| Property | Meaning | Default |
+|---|---|---|
+| `layer<n>-shape` | `dot` (filled circle), `circle`, `square`, `triangle`, `polygon`, `line`, `cross` (a diagonal ×; rotate by 45 for a +), `arc` | required |
+| `layer<n>-filled` | Filled or outline | filled for `dot`, outline otherwise |
+| `layer<n>-speed` | How fast the layer's timeline runs relative to the cycle: `2` plays it twice per cycle, `0.5` at half speed | `1` |
+| `layer<n>-delay` | Milliseconds before the layer's timeline starts. Delayed layers release one after another; a one-shot effect lives until its last layer has finished | `0` |
+
+#### Layer values
+
+Every value below is set once as `layer<n>-<key>=` and can be pinned by keyframes
+as `<key>=<value>`. Numbers interpolate linearly between the keyframes that mention
+them, colors interpolate in OkLab (the same mixing as hint box gradients), and the
+layer's base value acts as an implicit keyframe at 0%.
+
+| Key | Meaning | Default |
+|---|---|---|
+| `x`, `y` | Offset from the area center, in logical pixels | `0` |
+| `size` | A size (`24`), width-by-height (`24x12`), or `area` to take the size of the whole area — a filled square sized to the area is the effect's background | `16` |
+| `scale` | Multiplies the size (not the thickness): `0.2` to `1` grows a layer in from afar | `1` |
+| `rotation` | Degrees, clockwise, about the pivot | `0` |
+| `rotation-x`, `rotation-y` | Degrees of 3D-projected tilt around the layer's horizontal / vertical axis: animating `rotation-y` from 0 to 360 flips the shape like a card; the sign picks the direction | `0` |
+| `pivot` | The point `rotation` turns about, as `<x>,<y>` in area coordinates: `0,0` is the area center, so a layer at `x=20` with `pivot=0,0` orbits the mouse | the layer's own position |
+| `color` | `#RRGGBB` | `#FFFFFF` |
+| `opacity` | 0 to 1 | `1` |
+| `thickness` | Outline / stroke width, in logical pixels | `1` |
+| `corner-radius` | Rounds a `square`'s corners, in logical pixels | `0` |
+| `edge-count` | A `polygon`'s edges, with the indicator's convention: 3 triangle, 4 square, 6 hexagon, 100 and above a circle | `6` |
+| `arc-start` | Where an `arc` begins, in degrees: 0 is 12 o'clock, 90 is 3 o'clock, clockwise (the indicator's fill start angle convention) | `0` |
+| `arc-sweep` | How far the `arc` goes, in degrees, clockwise; negative goes counterclockwise. `filled=true` draws a pie slice | `270` |
+
 - **`layer<n>-keyframes`**: The layer's timeline: `|`-separated keyframes, each a cycle
-  position in percent followed by the values it pins. `size`, `opacity`, `rotation`,
-  `rotation-x`, `rotation-y`, `x`
-  and `y` are interpolated between the keyframes that mention them (the layer's base
-  values act as an implicit keyframe at 0%), while `color` and the bare keywords
-  `show`/`hide` switch when their keyframe is reached. Speed between keyframes is set
-  by their spacing (the same change over fewer percent runs faster), and an
-  `easing=<value>` token (same values as `zoom.animation-easing`) shapes the
-  acceleration of the segment that ends at that keyframe:
-  `0 size=10 | 100 size=40 easing=smootherstep` eases the growth in and out.
+  position in percent followed by the values it pins. The bare keywords `show` and
+  `hide` toggle the layer. Speed between keyframes is set by their spacing (the same
+  change over fewer percent runs faster), and an `easing=<value>` token (same values as
+  `zoom.animation-easing`) shapes the acceleration of the segment that ends at that
+  keyframe: `0 size=10 | 100 size=40 easing=smootherstep` eases the growth in and out.
+
+#### Recipes
+
+```properties
+# Orbit: two dots circling the mouse while a key is held (pivot at the area center).
+normal-mode.effect.orbit.repeat=loop
+normal-mode.effect.orbit.duration-millis=1200
+normal-mode.effect.orbit.layer1-shape=dot
+normal-mode.effect.orbit.layer1-size=5
+normal-mode.effect.orbit.layer1-x=18
+normal-mode.effect.orbit.layer1-pivot=0,0
+normal-mode.effect.orbit.layer1-keyframes=0 rotation=0 | 100 rotation=360
+normal-mode.effect.orbit.layer2-shape=dot
+normal-mode.effect.orbit.layer2-size=3
+normal-mode.effect.orbit.layer2-x=-12
+normal-mode.effect.orbit.layer2-pivot=0,0
+normal-mode.effect.orbit.layer2-speed=2
+normal-mode.effect.orbit.layer2-keyframes=0 rotation=0 | 100 rotation=360
+normal-mode.start-effect.orbit=+n
+normal-mode.stop-effect.orbit=-n
+
+# Spinner: an arc chasing its own tail, looping while a key is held.
+normal-mode.effect.spinner.repeat=loop
+normal-mode.effect.spinner.duration-millis=900
+normal-mode.effect.spinner.layer1-shape=arc
+normal-mode.effect.spinner.layer1-size=22
+normal-mode.effect.spinner.layer1-thickness=2
+normal-mode.effect.spinner.layer1-keyframes=0 arc-start=0 arc-sweep=60 | 50 arc-sweep=240 | 100 arc-start=360 arc-sweep=60
+
+# Sonar: three rings released 120ms apart with delay, each expanding and fading.
+normal-mode.effect.sonar.duration-millis=600
+normal-mode.effect.sonar.area=80
+normal-mode.effect.sonar.layer1-shape=circle
+normal-mode.effect.sonar.layer1-keyframes=0 size=8 opacity=0.9 | 100 size=56 opacity=0
+normal-mode.effect.sonar.layer2-shape=circle
+normal-mode.effect.sonar.layer2-delay=120
+normal-mode.effect.sonar.layer2-keyframes=0 size=8 opacity=0.9 | 100 size=56 opacity=0
+normal-mode.effect.sonar.layer3-shape=circle
+normal-mode.effect.sonar.layer3-delay=240
+normal-mode.effect.sonar.layer3-keyframes=0 size=8 opacity=0.9 | 100 size=56 opacity=0
+
+# Swing: a hexagon rocking back and forth, with a color that warms up on each swing.
+normal-mode.effect.swing.repeat=loop
+normal-mode.effect.swing.direction=alternate
+normal-mode.effect.swing.duration-millis=700
+normal-mode.effect.swing.easing=smootherstep
+normal-mode.effect.swing.layer1-shape=polygon
+normal-mode.effect.swing.layer1-edge-count=6
+normal-mode.effect.swing.layer1-size=20
+normal-mode.effect.swing.layer1-keyframes=0 rotation=-20 color=#96A8FF | 100 rotation=20 color=#FFB070
+
+# Double tap: two quick pulses, then gone (repeat=2).
+normal-mode.effect.double-tap.repeat=2
+normal-mode.effect.double-tap.duration-millis=180
+normal-mode.effect.double-tap.layer1-shape=square
+normal-mode.effect.double-tap.layer1-corner-radius=4
+normal-mode.effect.double-tap.layer1-keyframes=0 scale=0.6 opacity=0.9 | 100 scale=1.4 opacity=0
+```
 
 Combos start and stop effects like any other command:
 
-```properties
-# A quiet pulse looping exactly while n (a mouse button key) is held: a square
-# outline rotating a quarter turn per cycle, over a breathing dot.
-normal-mode.effect.hold-pulse.repeat=loop
-normal-mode.effect.hold-pulse.duration-millis=1400
-normal-mode.effect.hold-pulse.layer1-shape=square
-normal-mode.effect.hold-pulse.layer1-size=22
-normal-mode.effect.hold-pulse.layer1-opacity=0.35
-normal-mode.effect.hold-pulse.layer1-keyframes=0 rotation=0 | 100 rotation=90
-normal-mode.effect.hold-pulse.layer2-shape=dot
-normal-mode.effect.hold-pulse.layer2-keyframes=0 size=4 | 50 size=7 | 100 size=4
-normal-mode.start-effect.hold-pulse=+n
-normal-mode.stop-effect.hold-pulse=-n
-```
-
-- **`start-effect.<name>`**: Starts the effect (restarting its cycle if it is already
-  running). The effect must be defined in the same mode.
+- **`start-effect.<name>`**: Starts the effect (restarting its cycle, and re-anchoring
+  it, if it is already running). The effect must be defined in the same mode.
 - **`stop-effect.<name>`**: Stops it immediately.
 
-A one-shot effect keeps playing to the end of its cycle when the mode changes; a looping
-effect is stopped by a mode change, because its `stop-effect` combo may not exist in the
-new mode. Effect properties do not support [mutation branches](#mode-property-mutation)
+A one-shot effect keeps playing to the end when the mode changes; a looping effect is
+stopped by a mode change, because its `stop-effect` combo may not exist in the new
+mode. Effect properties do not support [mutation branches](#mode-property-mutation)
 (the `|` separator belongs to keyframes); start different effects from different combos
 instead.
 
