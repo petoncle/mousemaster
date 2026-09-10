@@ -239,7 +239,7 @@ class EffectTest {
     void keyframePositionsCanBeWrittenInMilliseconds() {
         EffectConfiguration blink = effect("blink",
                 "idle-mode.effect.blink.layer1-shape=dot",
-                "idle-mode.effect.blink.layer1-keyframes=0 hide | 150ms show | 75 hide",
+                "idle-mode.effect.blink.layer1-keyframes=0 hide | 150ms show | 90 hide",
                 "idle-mode.effect.blink.duration-millis=200", // written after the keyframes
                 "idle-mode.start-effect.blink=+n");
         EffectLayer layer = blink.layers().getFirst();

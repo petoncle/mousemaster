@@ -1,0 +1,145 @@
+package mousemaster;
+
+import mousemaster.platform.Overlay;
+import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/** The effect manager's lifecycle: start, restart, stop, mode changes, and the overlay calls. */
+class EffectManagerTest {
+
+    private final List<List<EffectFrame>> frames = new ArrayList<>();
+    private int hides;
+    private final Overlay overlay = (Overlay) Proxy.newProxyInstance(
+            Overlay.class.getClassLoader(), new Class<?>[]{Overlay.class},
+            (proxy, method, args) -> {
+                switch (method.getName()) {
+                    case "setEffects" -> {
+                        @SuppressWarnings("unchecked")
+                        List<EffectFrame> effectFrames = (List<EffectFrame>) args[0];
+                        frames.add(effectFrames);
+                    }
+                    case "hideEffects" -> hides++;
+                    default -> {
+                    }
+                }
+                Class<?> returned = method.getReturnType();
+                if (returned == boolean.class) return false;
+                if (returned == int.class) return 0;
+                if (returned == double.class) return 0d;
+                if (returned == long.class) return 0L;
+                return null;
+            });
+
+    private static Mode mode(String modeName, String... lines) {
+        return ConfigurationParser.parse(List.of(lines),
+                KeyboardLayout.keyboardLayout("00000409", null)).modeMap().get(modeName);
+    }
+
+    private static final String[] TWO_EFFECTS = {
+            "idle-mode.effect.shot.duration-millis=100",
+            "idle-mode.effect.shot.follow-mouse=false",
+            "idle-mode.effect.shot.layer1-shape=dot",
+            "idle-mode.effect.shot.layer1-keyframes=0 size=10 | 100 size=20",
+            "idle-mode.start-effect.shot=+a",
+            "idle-mode.effect.loop.duration-millis=100",
+            "idle-mode.effect.loop.repeat=loop",
+            "idle-mode.effect.loop.layer1-shape=dot",
+            "idle-mode.start-effect.loop=+b",
+            "idle-mode.stop-effect.loop=-b",
+            "idle-mode.to.other-mode=+d",
+            "other-mode.to.idle-mode=+e",
+    };
+
+    @Test
+    void restartingAnEffectRestartsItsCycleAndReAnchorsIt() {
+        EffectManager manager = new EffectManager(overlay);
+        manager.modeChanged(mode("idle-mode", TWO_EFFECTS));
+        manager.mouseMoved(100, 100);
+        manager.startEffect("shot");
+        manager.update(0.05);
+        EffectFrame first = frames.getLast().getFirst();
+        assertEquals(100, first.anchor().x(), 1e-9);
+        assertEquals(15, first.layers().getFirst().width(), 1e-9);
+        manager.mouseMoved(300, 300);
+        manager.startEffect("shot");
+        manager.update(0.01);
+        EffectFrame restarted = frames.getLast().getFirst();
+        assertEquals(300, restarted.anchor().x(), 1e-9);
+        assertEquals(11, restarted.layers().getFirst().width(), 1e-9);
+    }
+
+    @Test
+    void theOverlayIsHiddenOnceWhenTheLastEffectEndsAndNotTouchedWhileIdle() {
+        EffectManager manager = new EffectManager(overlay);
+        manager.modeChanged(mode("idle-mode", TWO_EFFECTS));
+        manager.update(0.01);
+        assertEquals(0, hides);
+        assertTrue(frames.isEmpty());
+        manager.startEffect("loop");
+        manager.startEffect("shot");
+        manager.update(0.05);
+        assertEquals(2, frames.getLast().size());
+        manager.update(0.06); // the one-shot is over, the loop stays
+        assertEquals(1, frames.getLast().size());
+        manager.stopEffect("loop");
+        manager.update(0.01);
+        assertEquals(1, hides);
+        manager.update(0.01);
+        assertEquals(1, hides, "hideEffects is not repeated while nothing runs");
+        manager.stopEffect("loop"); // stopping a stopped effect is a no-op
+        manager.startEffect("unknown"); // an unknown name is logged, not thrown
+        manager.update(0.01);
+        assertEquals(1, hides);
+    }
+
+    @Test
+    void aModeChangeStopsLoopsButLetsOneShotsFinish() {
+        EffectManager manager = new EffectManager(overlay);
+        manager.modeChanged(mode("idle-mode", TWO_EFFECTS));
+        manager.startEffect("loop");
+        manager.startEffect("shot");
+        manager.update(0.01);
+        manager.modeChanged(mode("other-mode", TWO_EFFECTS));
+        manager.update(0.01);
+        assertEquals(1, frames.getLast().size());
+        manager.update(0.1);
+        assertEquals(1, hides);
+    }
+
+    @Test
+    void resolutionDependsOnlyOnElapsedTime() {
+        String[] lines = {
+                "idle-mode.effect.d.duration-millis=300",
+                "idle-mode.effect.d.repeat=loop",
+                "idle-mode.effect.d.direction=alternate",
+                "idle-mode.effect.d.easing=smootherstep",
+                "idle-mode.effect.d.layer1-shape=arc",
+                "idle-mode.effect.d.layer1-speed=1.5",
+                "idle-mode.effect.d.layer1-keyframes=0 arc-length=0 color=#000000 | 40 arc-length=200 easing=2 | 100 arc-length=360 color=#FFFFFF",
+                "idle-mode.effect.d.layer2-shape=dot",
+                "idle-mode.effect.d.layer2-delay=70",
+                "idle-mode.effect.d.layer2-keyframes=0 size=0 | 100 size=50",
+                "idle-mode.start-effect.d=+n",
+        };
+        EffectConfiguration effect = mode("idle-mode", lines).effects().get("d");
+        EffectManager.EffectPlayer coarse = new EffectManager.EffectPlayer(effect, null);
+        EffectManager.EffectPlayer fine = new EffectManager.EffectPlayer(effect, null);
+        coarse.advance(0.4);
+        for (int i = 0; i < 40; i++)
+            fine.advance(0.01);
+        List<EffectFrame.ResolvedEffectLayer> a = coarse.frame().layers();
+        List<EffectFrame.ResolvedEffectLayer> b = fine.frame().layers();
+        assertEquals(a.size(), b.size());
+        for (int i = 0; i < a.size(); i++) {
+            assertEquals(a.get(i).arcLength(), b.get(i).arcLength(), 1e-6);
+            assertEquals(a.get(i).width(), b.get(i).width(), 1e-6);
+            assertEquals(a.get(i).hexColor(), b.get(i).hexColor());
+        }
+    }
+
+}
