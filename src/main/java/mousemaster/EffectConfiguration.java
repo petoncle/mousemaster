@@ -98,6 +98,7 @@ public record EffectConfiguration(Duration duration, int repeatCount, boolean al
                 throw new IllegalArgumentException(
                         "Effect " + effectName + " has no layers: expected at least " +
                         "effect." + effectName + ".layer1-shape=<shape>");
+            Duration cycle = duration == null ? Duration.ofMillis(250) : duration;
             List<EffectLayer> layers = new ArrayList<>();
             List<Integer> layerNumbers =
                     layerByNumber.keySet().stream().sorted().toList();
@@ -107,10 +108,10 @@ public record EffectConfiguration(Duration duration, int repeatCount, boolean al
                     throw new IllegalArgumentException(
                             "Effect " + effectName + " layer numbers must be " +
                             "consecutive starting at 1, but found layer" + layerNumber);
-                layers.add(layerByNumber.get(layerNumber).build(effectName, layerNumber));
+                layers.add(layerByNumber.get(layerNumber).build(effectName, layerNumber, cycle));
             }
             return new EffectConfiguration(
-                    duration == null ? Duration.ofMillis(250) : duration,
+                    cycle,
                     repeatCount == null ? 1 : repeatCount,
                     alternate != null && alternate,
                     easing == null ? new Easing.Polynomial(1) : easing,
