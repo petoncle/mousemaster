@@ -2357,6 +2357,8 @@ public class ConfigurationParser {
                 }
                 case "font-italic" -> layer.text().italic(parseEffectBoolean("font-italic", propertyValue));
                 case "text-align" -> layer.text().align(EffectText.Align.parse(propertyValue));
+                case "max-width" -> layer.text().maxWidth(parseEffectNumber("max-width", propertyValue, true, 0, 100_000));
+                case "keep-on-screen" -> layer.text().keepOnScreen(parseEffectBoolean("keep-on-screen", propertyValue));
                 case "filled" -> layer.filled(parseEffectBoolean("filled", propertyValue));
                 case "speed" -> layer.speed(parseEffectNumber("speed", propertyValue, false, 0, 1_000));
                 case "delay" -> layer.delay(parseEffectMillis("delay", propertyValue));
@@ -2388,7 +2390,8 @@ public class ConfigurationParser {
                                 "Unknown effect layer setting " + layerKey + " in " + key +
                                 ": a layer (layer1-, layer2-...) can set shape, filled, speed," +
                                 " delay, keyframes, text, font-name, font-weight, font-italic," +
-                                " text-align, and the values " + EffectProperty.keys());
+                                " text-align, max-width, keep-on-screen, and the values " +
+                                EffectProperty.keys());
                     layer.set(property, parseEffectPropertyValue(property, propertyValue));
                 }
                 // @formatter:on
@@ -2470,6 +2473,8 @@ public class ConfigurationParser {
             Map.entry("font-weight", new String[]{"how bold a text layer is", "layer1-font-weight=bold"}),
             Map.entry("font-italic", new String[]{"whether a text layer is italic", "layer1-font-italic=true"}),
             Map.entry("text-align", new String[]{"which point of the text sits on the layer's x: its left edge, its center, or its right edge", "layer1-text-align=left"}),
+            Map.entry("max-width", new String[]{"the width, in pixels, past which a text layer wraps onto more lines at its spaces (0 = one line)", "layer1-max-width=160"}),
+            Map.entry("keep-on-screen", new String[]{"whether a text layer is moved inwards when its box would leave the screen, so it stays readable at the edges", "layer1-keep-on-screen=false"}),
             Map.entry("position", new String[]{"where in the cycle a keyframe is: a percent (0-100) or a time in milliseconds (150ms)", "0 size=10 | 100 size=40"}));
 
     /** "Invalid <key> value <value>: <key> is <meaning>; expected <expected>, for example <example>". */

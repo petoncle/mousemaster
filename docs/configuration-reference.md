@@ -634,9 +634,11 @@ pixels: they scale with the screen like the indicator's.
 | `filled` | `true` fills the shape, `false` draws its outline, `thickness` wide (a filled `arc` is a pie slice) | filled for `dot`, outline otherwise |
 | `speed` | How fast the layer's timeline runs relative to the cycle: `2` plays it twice per cycle, `0.5` at half speed | `1` |
 | `delay` | Milliseconds before the layer's timeline starts | `0` |
-| `text` | What a `text` layer says (required for `text`). `{key}` in it is replaced by the key that completed the `start-effect` combo, `{keys}` by every key that started or restarted the effect while it was running (a keycast, see the recipes) | |
+| `text` | What a `text` layer says (required for `text`). `{key}` in it is replaced by the key that completed the `start-effect` combo, `{keys}` by every key that started or restarted the effect while it was running (a keycast, see the recipes); `{move}` and `{moves}` say the same with the combo's `+` (press) or `-` (release) in front | |
 | `font-name`, `font-weight`, `font-italic` | A `text` layer's font family (falls back to the hint font if missing), weight (same values as `hint.font-weight`) and style | hint font, `normal`, `false` |
 | `text-align` | Which point of the text sits on the layer's `x`: `left` (its left edge), `center`, or `right` | `center` |
+| `max-width` | Wraps the text onto more lines at its spaces past this width in logical pixels, for a text that varies in length (`{keys}`); `0` keeps one line | `0` |
+| `keep-on-screen` | Moves the text (with its box) inwards when it would leave the screen, so a label stays readable at the edges; shapes are not moved | `true` |
 
 #### Reference: layer values
 
@@ -798,16 +800,19 @@ normal-mode.effect.double-tap.layer1-shape=rect
 normal-mode.effect.double-tap.layer1-corner-radius=4
 normal-mode.effect.double-tap.layer1-keyframes=0 scale=0.6 opacity=0.9 | 100 scale=1.4 opacity=0
 
-# Keycast: the keys you press, shown beside the mouse. {key} is the key that completed
-# the combo; {keys} the history of the keys that (re)started the effect while it was
-# showing, so a burst of typing reads as one line. Useful to check what you typed, and
-# to show the keys in a screen recording (a bug report, a demo). Only the keys the mode
-# lists in the combo are shown, and a mode's hint selection keys are taken by the hint.
+# Keycast: the keys you press, shown beside the mouse. {keys} is the history of the
+# keys that (re)started the effect while it was showing, so a burst of typing reads as
+# one line ({key} is the last one only; {moves} and {move} add the + or - of the combo,
+# so +a -a shows a press and its release). Useful to check what you typed, and to show
+# the keys in a screen recording (a bug report, a demo). Only the keys the mode lists
+# in the combo are shown, and a mode's hint selection keys are taken by the hint. The
+# text wraps past max-width, and is kept on screen at the edges (the default).
 key-alias.castkey=a b c d e f g h i j k l m n o p q r s t u v w x y z space leftctrl leftalt
 normal-mode.effect.keycast.duration-millis=1500
 normal-mode.effect.keycast.area=260x80
 normal-mode.effect.keycast.layer1-shape=text
-normal-mode.effect.keycast.layer1-text={keys}
+normal-mode.effect.keycast.layer1-text={moves}
+normal-mode.effect.keycast.layer1-max-width=200
 normal-mode.effect.keycast.layer1-font-name=Consolas
 normal-mode.effect.keycast.layer1-font-size=11
 normal-mode.effect.keycast.layer1-background-color=#202020
@@ -815,7 +820,7 @@ normal-mode.effect.keycast.layer1-padding=4
 normal-mode.effect.keycast.layer1-corner-radius=4
 normal-mode.effect.keycast.layer1-y=30
 normal-mode.effect.keycast.layer1-keyframes=0 opacity=1 | 70 opacity=1 | 100 opacity=0
-normal-mode.start-effect.keycast=+castkey
+normal-mode.start-effect.keycast=+castkey | -castkey
 ```
 
 #### Starting and stopping
@@ -862,6 +867,8 @@ normal-mode.start-effect.keycast=+castkey
 - Is a loop being stopped at once? A loop started by a combo that also switches mode
   ends with the switch; define it in the target mode.
 - Is it `enabled=false`? Then `start-effect` logs `Effect <name> is disabled` and stops there.
+- Is the mouse at a screen edge? Shapes are cut at the edge like anything else drawn
+  there; a text layer is moved inwards to stay readable unless `keep-on-screen=false`.
 - Is it hidden under the indicator? With `indicator.render-as-cursor=true` the indicator
   is part of the mouse cursor, which the system draws above every window, so an
   effect drawn under the cursor is covered by it. Leave the cursor clear: rings wider

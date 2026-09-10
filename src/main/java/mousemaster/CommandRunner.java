@@ -32,6 +32,15 @@ public class CommandRunner {
     }
 
     public void run(Command command, Key eventKey) {
+        run(command, eventKey, true);
+    }
+
+    /** Runs a command for the key event that completed its combo (null for none). */
+    public void run(Command command, KeyEvent event) {
+        run(command, event == null ? null : event.key(), event == null || event.isPress());
+    }
+
+    private void run(Command command, Key eventKey, boolean eventIsPress) {
         switch (command) {
             // @formatter:off
             case SwitchMode switchMode -> modeController.switchMode(switchMode.modeName());
@@ -93,7 +102,7 @@ public class CommandRunner {
             case CycleNextPosition(String positionHistoryName) -> hintManager.cyclePosition(positionHistoryName, 1);
             case CyclePreviousPosition(String positionHistoryName) -> hintManager.cyclePosition(positionHistoryName, -1);
 
-            case StartEffect(String effectName) -> effectManager.startEffect(effectName, eventKey);
+            case StartEffect(String effectName) -> effectManager.startEffect(effectName, eventKey, eventIsPress);
             case StopEffect(String effectName) -> effectManager.stopEffect(effectName);
 
             case MacroCommand(Macro macro, AliasResolution aliasResolution) ->
