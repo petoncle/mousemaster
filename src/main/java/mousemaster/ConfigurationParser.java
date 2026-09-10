@@ -2347,17 +2347,17 @@ public class ConfigurationParser {
                 case "text" -> layer.text().text(propertyValue);
                 case "font-name" -> layer.text().fontName(propertyValue);
                 case "font-weight" -> layer.text().weight(FontWeight.of(propertyValue));
-                case "font-italic" -> layer.text().italic(Boolean.parseBoolean(propertyValue));
+                case "font-italic" -> layer.text().italic(parseEffectBoolean("font-italic", propertyValue));
                 case "text-align" -> layer.text().align(EffectText.Align.parse(propertyValue));
-                case "filled" -> layer.filled(Boolean.parseBoolean(propertyValue));
-                case "speed" -> layer.speed(parseDouble(propertyValue, false, 0, 1_000));
-                case "delay" -> layer.delay(parseDuration(propertyValue));
+                case "filled" -> layer.filled(parseEffectBoolean("filled", propertyValue));
+                case "speed" -> layer.speed(parseEffectNumber("speed", propertyValue, false, 0, 1_000));
+                case "delay" -> layer.delay(parseEffectMillis("delay", propertyValue));
                 case "keyframes" -> layer.keyframes(parseEffectKeyframes(effectName, layerNumber, propertyValue));
                 case "size" -> {
                     if (propertyValue.equals("area"))
                         layer.sizeIsArea(true);
                     else {
-                        double[] size = parseEffectSize(propertyValue);
+                        double[] size = parseEffectSize("size", propertyValue);
                         layer.sizeIsArea(false);
                         layer.set(EffectProperty.WIDTH, size[0]);
                         layer.set(EffectProperty.HEIGHT, size[1]);
@@ -2389,7 +2389,7 @@ public class ConfigurationParser {
         }
         switch (key) {
             // @formatter:off
-            case "duration-millis" -> effect.duration(parseDuration(propertyValue));
+            case "duration-millis" -> effect.duration(parseEffectMillis("duration-millis", propertyValue));
             case "repeat" -> effect.repeatCount(switch (propertyValue) {
                 case "once" -> 1;
                 case "loop" -> EffectConfiguration.LOOP;
@@ -2414,12 +2414,12 @@ public class ConfigurationParser {
                         "Invalid effect direction " + propertyValue +
                         ": expected forward or alternate");
             });
-            case "easing" -> effect.easing(parseEasing(propertyValue));
+            case "easing" -> effect.easing(parseEffectEasing("easing", propertyValue));
             case "area" -> {
-                double[] area = parseEffectSize(propertyValue);
+                double[] area = parseEffectSize("area", propertyValue);
                 effect.area((int) area[0], (int) area[1]);
             }
-            case "follow-mouse" -> effect.followMouse(Boolean.parseBoolean(propertyValue));
+            case "follow-mouse" -> effect.followMouse(parseEffectBoolean("follow-mouse", propertyValue));
             default -> throw new IllegalArgumentException(
                     "Invalid effect property key " + key + ": expected duration-millis, " +
                     "repeat, direction, easing, area, follow-mouse or layer<n>-<key>");
@@ -2430,9 +2430,9 @@ public class ConfigurationParser {
     /** A property value parsed by the kind its table entry declares. */
     private static Object parseEffectPropertyValue(EffectProperty property, String value) {
         return switch (property.kind) {
-            case NUMBER -> parseDouble(value, true, property.min, property.max);
-            case COLOR -> effectHexColor(value);
-            case SWITCH -> Boolean.parseBoolean(value);
+            case NUMBER -> parseEffectNumber(property.key, value, true, property.min, property.max);
+            case COLOR -> effectHexColor(property.key, value);
+            case SWITCH -> parseEffectBoolean(property.key, value);
         };
     }
 
@@ -2440,35 +2440,108 @@ public class ConfigurationParser {
      * Effect colors are plain hex colors: the renderer keeps the hex string, and the
      * last-selected-hint-box-color keyword would need hint mesh state at render time.
      */
-    private static String effectHexColor(String value) {
-        if (Color.parse(value) instanceof Color.HexColor hex)
-            return hex.hexColor();
+    private static String effectHexColor(String key, String value) {
+        try {
+            if (Color.parse(value) instanceof Color.HexColor hex)
+                return hex.hexColor();
+        } catch (IllegalArgumentException e) {
+            // Reworded below: the color parser's wording is about hint colors.
+        }
         throw new IllegalArgumentException(
-                "Invalid effect color " + value + ": an effect color should be in the #FFFFFF format");
+                "Invalid " + key + " value " + value + ": expected a color in the #RRGGBB format" +
+                " (opacity is a separate property)");
+    }
+
+    /** A number in the property's range, with the range in the message rather than a NumberFormatException. */
+    private static double parseEffectNumber(String key, String value, boolean minIncluded,
+                                            double min, double max) {
+        double number;
+        try {
+            number = Double.parseDouble(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "Invalid " + key + " value " + value + ": expected a number" +
+                    effectRange(minIncluded, min, max));
+        }
+        if (number < min || number == min && !minIncluded || number > max || Double.isNaN(number))
+            throw new IllegalArgumentException(
+                    "Invalid " + key + " value " + value + ": expected a number" +
+                    effectRange(minIncluded, min, max));
+        return number;
+    }
+
+    private static String effectRange(boolean minIncluded, double min, double max) {
+        String low = min == (long) min ? String.valueOf((long) min) : String.valueOf(min);
+        String high = max == (long) max ? String.valueOf((long) max) : String.valueOf(max);
+        return minIncluded ? " between " + low + " and " + high :
+                " greater than " + low + " and at most " + high;
+    }
+
+    private static Easing parseEffectEasing(String key, String value) {
+        try {
+            return parseEasing(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "Invalid " + key + " value " + value + ": expected smoothstep, smootherstep," +
+                    " logarithmic, exponential, or a number (the exponent: 1 linear, 2 quadratic)");
+        }
+    }
+
+    private static boolean parseEffectBoolean(String key, String value) {
+        return switch (value) {
+            case "true" -> true;
+            case "false" -> false;
+            default -> throw new IllegalArgumentException(
+                    "Invalid " + key + " value " + value + ": expected true or false");
+        };
+    }
+
+    /** A whole number of milliseconds, 0 or more. */
+    private static Duration parseEffectMillis(String key, String value) {
+        try {
+            return Duration.ofMillis(Integer.parseUnsignedInt(value));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "Invalid " + key + " value " + value +
+                    ": expected a whole number of milliseconds (0 or more)");
+        }
     }
 
     /** A size is uniform ({@code 24}) or width-by-height ({@code 64x32}). */
-    private static double[] parseEffectSize(String propertyValue) {
+    private static double[] parseEffectSize(String key, String propertyValue) {
         // 0 is allowed: shrinking a layer to nothing is a legitimate keyframe.
         int xIndex = propertyValue.indexOf('x');
-        if (xIndex == -1) {
-            double size = parseDouble(propertyValue, true, 0, 10_000);
-            return new double[]{size, size};
+        try {
+            if (xIndex == -1) {
+                double size = parseEffectNumber(key, propertyValue, true, 0, 10_000);
+                return new double[]{size, size};
+            }
+            return new double[]{
+                    parseEffectNumber(key, propertyValue.substring(0, xIndex), true, 0, 10_000),
+                    parseEffectNumber(key, propertyValue.substring(xIndex + 1), true, 0, 10_000)};
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    "Invalid " + key + " " + propertyValue + ": expected one number (24) or" +
+                    " width-by-height (64x32), between 0 and 10000" +
+                    (key.equals("size") ? ", or area" : ""));
         }
-        return new double[]{
-                parseDouble(propertyValue.substring(0, xIndex), true, 0, 10_000),
-                parseDouble(propertyValue.substring(xIndex + 1), true, 0, 10_000)};
     }
 
     /** A pivot is a point in effect coordinates ({@code 0,0} is the effect's center). */
     private static double[] parseEffectPivot(String propertyValue) {
         String[] parts = propertyValue.split(",");
+        String expected = "Invalid pivot " + propertyValue +
+                          ": expected <x>,<y> in effect coordinates (0,0 is the area center)," +
+                          " numbers between -10000 and 10000";
         if (parts.length != 2)
-            throw new IllegalArgumentException(
-                    "Invalid effect pivot " + propertyValue + ": expected <x>,<y>");
-        return new double[]{
-                parseDouble(parts[0].trim(), true, -10_000, 10_000),
-                parseDouble(parts[1].trim(), true, -10_000, 10_000)};
+            throw new IllegalArgumentException(expected);
+        try {
+            return new double[]{
+                    parseEffectNumber("pivot", parts[0].trim(), true, -10_000, 10_000),
+                    parseEffectNumber("pivot", parts[1].trim(), true, -10_000, 10_000)};
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(expected);
+        }
     }
 
     /** {@code dash=<on>,<off>} in pixels, or {@code solid}. */
@@ -2476,13 +2549,18 @@ public class ConfigurationParser {
         if (propertyValue.equals("solid"))
             return new double[]{0, 0};
         String[] parts = propertyValue.split(",");
+        String expected = "Invalid dash " + propertyValue +
+                          ": expected <dash length>,<gap length> in pixels (both greater" +
+                          " than 0, at most 10000), or solid";
         if (parts.length != 2)
-            throw new IllegalArgumentException(
-                    "Invalid effect dash " + propertyValue +
-                    ": expected <dash length>,<gap length> in pixels, or solid");
-        return new double[]{
-                parseDouble(parts[0].trim(), false, 0, 10_000),
-                parseDouble(parts[1].trim(), false, 0, 10_000)};
+            throw new IllegalArgumentException(expected);
+        try {
+            return new double[]{
+                    parseEffectNumber("dash", parts[0].trim(), false, 0, 10_000),
+                    parseEffectNumber("dash", parts[1].trim(), false, 0, 10_000)};
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(expected);
+        }
     }
 
     /**
@@ -2509,13 +2587,13 @@ public class ConfigurationParser {
             double position;
             try {
                 position = inMillis ?
-                        parseDouble(tokens[0].substring(0, tokens[0].length() - 2), true, 0, 3_600_000) :
-                        parseDouble(tokens[0], true, 0, 100);
-            } catch (NumberFormatException e) {
+                        parseEffectNumber("position", tokens[0].substring(0, tokens[0].length() - 2), true, 0, 3_600_000) :
+                        parseEffectNumber("position", tokens[0], true, 0, 100);
+            } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException(
-                        "Invalid keyframe in " + context +
-                        ": a keyframe begins with its cycle position, in percent (0-100) or" +
-                        " in milliseconds (120ms)");
+                        "Invalid keyframe position " + tokens[0] + " in " + context +
+                        ": a keyframe begins with its position in the cycle, in percent" +
+                        " (0-100) or in milliseconds (120ms), followed by the values it sets");
             }
             Map<EffectProperty, Object> values = new EnumMap<>(EffectProperty.class);
             Boolean sizeIsArea = null;
@@ -2534,13 +2612,14 @@ public class ConfigurationParser {
                 }
                 String tokenKey = token.substring(0, equalIndex);
                 String tokenValue = token.substring(equalIndex + 1);
+                try {
                 switch (tokenKey) {
                     // @formatter:off
                     case "size" -> {
                         if (tokenValue.equals("area"))
                             sizeIsArea = true;
                         else {
-                            double[] size = parseEffectSize(tokenValue);
+                            double[] size = parseEffectSize("size", tokenValue);
                             sizeIsArea = false;
                             values.put(EffectProperty.WIDTH, size[0]);
                             values.put(EffectProperty.HEIGHT, size[1]);
@@ -2556,7 +2635,7 @@ public class ConfigurationParser {
                         values.put(EffectProperty.DASH_LENGTH, dash[0]);
                         values.put(EffectProperty.DASH_GAP, dash[1]);
                     }
-                    case "easing" -> easing = parseEasing(tokenValue);
+                    case "easing" -> easing = parseEffectEasing("easing", tokenValue);
                     default -> {
                         EffectProperty property = EffectProperty.byKey(tokenKey);
                         if (property == null || property == EffectProperty.VISIBLE)
@@ -2567,6 +2646,11 @@ public class ConfigurationParser {
                         values.put(property, parseEffectPropertyValue(property, tokenValue));
                     }
                     // @formatter:on
+                }
+                } catch (IllegalArgumentException e) {
+                    // The value parsers name the key and the expected form; add where.
+                    throw new IllegalArgumentException(
+                            e.getMessage() + " (keyframe token " + token + " in " + context + ")");
                 }
             }
             keyframes.add(new EffectKeyframe(position, inMillis, values, sizeIsArea, easing));
