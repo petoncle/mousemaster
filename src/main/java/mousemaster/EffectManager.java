@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Runs the mode's effects: {@code start-effect} snapshots the effect's
@@ -26,11 +27,23 @@ public class EffectManager implements ModeListener, MousePositionListener {
 
     private static final Logger logger = LoggerFactory.getLogger(EffectManager.class);
 
+    /**
+     * A main-loop stall (a long iteration, a sleep) is not animation time: an effect
+     * never advances more than this per tick, so a one-shot is still seen after a
+     * hiccup instead of having vanished, and a loop slows down rather than jumping.
+     */
+    static final double maxDeltaSeconds = 0.1;
+
     private final Overlay overlay;
     private Mode currentMode;
     private final Map<String, EffectPlayer> players = new LinkedHashMap<>();
     private boolean showing;
     private Point mousePosition;
+    // What the overlay last drew, to skip the repaint when nothing changed (a hold
+    // keyframe, a delay, a hidden layer): the frames, and the mouse position for the
+    // effects that follow it.
+    private List<EffectFrame> lastFrames;
+    private Point lastFramesMousePosition;
 
     public EffectManager(Overlay overlay) {
         this.overlay = overlay;
@@ -55,25 +68,51 @@ public class EffectManager implements ModeListener, MousePositionListener {
     }
 
     public void update(double delta) {
-        List<EffectFrame> frames = new ArrayList<>();
-        for (Iterator<EffectPlayer> iterator =
-             players.values().iterator(); iterator.hasNext(); ) {
-            EffectPlayer player = iterator.next();
-            player.advance(delta);
-            if (player.done()) {
-                iterator.remove();
-                continue;
-            }
-            frames.add(player.frame());
-        }
-        if (frames.isEmpty()) {
+        if (players.isEmpty()) {
             if (showing) {
                 showing = false;
+                lastFrames = null;
                 overlay.hideEffects();
             }
             return;
         }
+        delta = Math.min(Math.max(0, delta), maxDeltaSeconds);
+        List<EffectFrame> frames = new ArrayList<>(players.size());
+        boolean anyFollowsMouse = false;
+        for (Iterator<Map.Entry<String, EffectPlayer>> iterator =
+             players.entrySet().iterator(); iterator.hasNext(); ) {
+            Map.Entry<String, EffectPlayer> entry = iterator.next();
+            EffectPlayer player = entry.getValue();
+            try {
+                player.advance(delta);
+                if (player.done()) {
+                    iterator.remove();
+                    continue;
+                }
+                frames.add(player.frame());
+            } catch (RuntimeException e) {
+                // One broken effect must not take the main loop down: drop it and say so.
+                logger.error("Effect " + entry.getKey() + " failed and was stopped", e);
+                iterator.remove();
+                continue;
+            }
+            anyFollowsMouse |= player.effect.followMouse();
+        }
+        if (frames.isEmpty()) {
+            if (showing) {
+                showing = false;
+                lastFrames = null;
+                overlay.hideEffects();
+            }
+            return;
+        }
+        boolean unchanged = showing && frames.equals(lastFrames) &&
+                            (!anyFollowsMouse || Objects.equals(mousePosition, lastFramesMousePosition));
+        if (unchanged)
+            return;
         showing = true;
+        lastFrames = frames;
+        lastFramesMousePosition = mousePosition;
         overlay.setEffects(frames);
     }
 
@@ -235,7 +274,9 @@ public class EffectManager implements ModeListener, MousePositionListener {
                     new java.util.EnumMap<>(EffectProperty.class);
             for (EffectProperty property : EffectProperty.values()) {
                 Object base = layer.base().get(property);
-                Object value = resolve(layer.keyframes(), percent, property, base);
+                // Only the properties some keyframe mentions can differ from the base.
+                Object value = layer.animated().contains(property) ?
+                        resolve(layer.keyframes(), percent, property, base) : base;
                 if (value != null)
                     resolved.put(property, value);
             }

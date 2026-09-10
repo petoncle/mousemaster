@@ -684,7 +684,10 @@ A one-shot effect keeps playing to the end when the mode changes; a looping effe
 stopped by a mode change, because its `stop-effect` combo may not exist in the new
 mode (so a loop started by the very combo that switches mode ends at once: start it
 from the target mode instead). A [mutation](#mode-property-mutation) of the current
-mode is not a mode change and leaves loops running. Effect properties do not support [mutation branches](#mode-property-mutation)
+mode is not a mode change and leaves loops running. A stall of the main loop never
+advances an effect by more than 100ms per tick, so a one-shot is still seen after a
+hiccup instead of having vanished, and the overlay is only redrawn when a value or,
+for a following effect, the mouse position changed. Effect properties do not support [mutation branches](#mode-property-mutation)
 (the `|` separator belongs to keyframes); start different effects from different combos
 instead.
 
