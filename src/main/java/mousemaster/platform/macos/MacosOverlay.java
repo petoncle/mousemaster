@@ -217,6 +217,11 @@ public class MacosOverlay implements Overlay {
     }
 
     @Override
+    public boolean effectFollowingMouse() {
+        return effectRenderer != null && effectRenderer.followingMouse();
+    }
+
+    @Override
     public void setGrid(Grid grid) {
         if (gridRenderer == null) {
             gridRenderer = new GridRenderer();

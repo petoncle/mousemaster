@@ -50,6 +50,10 @@ public interface Overlay {
 
     void hideEffects();
 
+    /** Whether a shown effect follows the mouse: the platform then moves it with the
+     *  mouse between iterations, so it trails the cursor as little as possible. */
+    boolean effectFollowingMouse();
+
     void setGrid(Grid grid);
 
     void hideGrid();
