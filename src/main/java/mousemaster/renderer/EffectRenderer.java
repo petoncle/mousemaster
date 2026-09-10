@@ -2,7 +2,11 @@ package mousemaster.renderer;
 
 import io.qt.core.Qt;
 import io.qt.gui.QBrush;
+import io.qt.core.QPointF;
+import io.qt.core.QRect;
 import io.qt.gui.QColor;
+import io.qt.gui.QFont;
+import io.qt.gui.QFontMetrics;
 import io.qt.gui.QPaintEvent;
 import io.qt.gui.QPainter;
 import io.qt.gui.QPainterPath;
@@ -14,6 +18,7 @@ import mousemaster.EffectShape;
 import mousemaster.Os;
 import mousemaster.Screen;
 import mousemaster.qt.QtColorUtil;
+import mousemaster.qt.QtHintFont;
 import mousemaster.qt.TransparentWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -214,6 +219,11 @@ public final class EffectRenderer {
                 painter.setWorldTransform(tilt, true);
                 tilt.dispose();
             }
+            if (layer.shape() == EffectShape.TEXT) {
+                drawText(painter, layer);
+                painter.restore();
+                return;
+            }
             QColor color = QtColorUtil.qColor(layer.hexColor(), layer.opacity());
             QPainterPath path = layerPath(layer, width, height);
             boolean stroke = layer.shape() == EffectShape.LINE ||
@@ -246,6 +256,65 @@ public final class EffectRenderer {
             path.dispose();
             color.dispose();
             painter.restore();
+        }
+
+        /**
+         * Text at the layer's position: the font from the hint font machinery (same
+         * family lookup and antialiasing as hints and the indicator label), aligned
+         * on x by text-align and centered on y like the indicator label, over an
+         * optional background box and with an optional glyph outline.
+         */
+        private void drawText(QPainter painter, EffectFrame.ResolvedEffectLayer layer) {
+            String text = layer.text().text();
+            QFont font = QtHintFont.qFont(layer.text().fontName(),
+                    layer.fontSize() * layer.scale() * drawScale, layer.text().weight());
+            font.setItalic(layer.text().italic());
+            QFontMetrics metrics = new QFontMetrics(font);
+            double advance = metrics.horizontalAdvance(text);
+            QRect tight = metrics.tightBoundingRect(text);
+            double textX = switch (layer.text().align()) {
+                case LEFT -> 0;
+                case CENTER -> -advance / 2;
+                case RIGHT -> -advance;
+            };
+            double textY = -tight.y() - tight.height() / 2.0;
+            if (layer.backgroundHexColor() != null) {
+                double padding = layer.padding() * drawScale;
+                double radius = layer.cornerRadius() * drawScale;
+                QPainterPath box = new QPainterPath();
+                box.addRoundedRect(textX + tight.x() - padding, textY + tight.y() - padding,
+                        tight.width() + 2 * padding, tight.height() + 2 * padding,
+                        radius, radius);
+                QColor backgroundColor =
+                        QtColorUtil.qColor(layer.backgroundHexColor(), layer.opacity());
+                QBrush backgroundBrush = new QBrush(backgroundColor);
+                painter.fillPath(box, backgroundBrush);
+                backgroundBrush.dispose();
+                backgroundColor.dispose();
+                box.dispose();
+            }
+            tight.dispose();
+            metrics.dispose();
+            if (layer.outlineHexColor() != null && layer.thickness() > 0) {
+                QColor outlineColor = QtColorUtil.qColor(layer.outlineHexColor(), layer.opacity());
+                QPen outlinePen = new QPen(outlineColor);
+                outlinePen.setWidthF(layer.thickness() * drawScale);
+                outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
+                painter.setPen(outlinePen);
+                painter.setBrush(QtColorUtil.noBrush());
+                QPainterPath glyphs = new QPainterPath();
+                glyphs.addText(textX, textY, font, text);
+                painter.drawPath(glyphs);
+                glyphs.dispose();
+                outlinePen.dispose();
+                outlineColor.dispose();
+            }
+            QColor color = QtColorUtil.qColor(layer.hexColor(), layer.opacity());
+            painter.setPen(color);
+            painter.setFont(font);
+            painter.drawText(new QPointF(textX, textY), text);
+            color.dispose();
+            font.dispose();
         }
 
         private QPainterPath layerPath(EffectFrame.ResolvedEffectLayer layer,

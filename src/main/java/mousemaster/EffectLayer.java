@@ -19,7 +19,7 @@ import java.util.Map;
  * slower than the effect's cycle.
  */
 public record EffectLayer(EffectShape shape, boolean filled, double speed,
-                          Duration delay, boolean sizeIsArea,
+                          Duration delay, boolean sizeIsArea, EffectText text,
                           Map<EffectProperty, Object> base,
                           List<EffectKeyframe> keyframes) {
 
@@ -35,6 +35,7 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
         private Double speed;
         private Duration delay;
         private Boolean sizeIsArea;
+        private final EffectText.EffectTextBuilder text = new EffectText.EffectTextBuilder();
         private final Map<EffectProperty, Object> base = new EnumMap<>(EffectProperty.class);
         private List<EffectKeyframe> keyframes;
 
@@ -53,6 +54,11 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
         public EffectLayerBuilder filled(Boolean filled) {
             this.filled = filled;
             return this;
+        }
+
+        /** The text settings (text, font-name, font-weight, font-italic, text-align). */
+        public EffectText.EffectTextBuilder text() {
+            return text;
         }
 
         public EffectLayerBuilder speed(Double speed) {
@@ -87,6 +93,7 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
             if (speed == null) speed = parent.speed;
             if (delay == null) delay = parent.delay;
             if (sizeIsArea == null) sizeIsArea = parent.sizeIsArea;
+            text.extend(parent.text);
             for (Map.Entry<EffectProperty, Object> entry : parent.base.entrySet())
                 base.putIfAbsent(entry.getKey(), entry.getValue());
             if (keyframes == null) keyframes = parent.keyframes;
@@ -110,6 +117,16 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
             // A uniform size sets the width only: the height follows it.
             if (base.get(EffectProperty.WIDTH) != null && base.get(EffectProperty.HEIGHT) == null)
                 values.put(EffectProperty.HEIGHT, base.get(EffectProperty.WIDTH));
+            if (shape == EffectShape.TEXT && text.build().text() == null)
+                throw new IllegalArgumentException(
+                        "Effect " + effectName + " layer" + layerNumber +
+                        " is a text layer without text: expected effect." + effectName +
+                        ".layer" + layerNumber + "-text=<text>");
+            if (shape != EffectShape.TEXT && !text.isEmpty())
+                throw new IllegalArgumentException(
+                        "Effect " + effectName + " layer" + layerNumber +
+                        " has text settings (text, font-name, font-weight, font-italic, " +
+                        "text-align) but its shape is not text");
             List<EffectKeyframe> resolvedKeyframes = new ArrayList<>();
             double previousPercent = -1;
             for (EffectKeyframe keyframe : keyframes == null ? List.<EffectKeyframe>of() : keyframes) {
@@ -136,6 +153,7 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
                     speed == null ? 1 : speed,
                     delay == null ? Duration.ZERO : delay,
                     sizeIsArea != null && sizeIsArea,
+                    shape == EffectShape.TEXT ? text.build() : null,
                     values,
                     resolvedKeyframes);
         }

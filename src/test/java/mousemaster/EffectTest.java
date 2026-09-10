@@ -257,4 +257,35 @@ class EffectTest {
                         "idle-mode.effect.blink.duration-millis=200"));
     }
 
+    @Test
+    void textLayersCarryTheirTextSettingsAndAnimateTheirFontSize() {
+        EffectConfiguration toast = effect("toast",
+                "idle-mode.effect.toast.duration-millis=100",
+                "idle-mode.effect.toast.layer1-shape=text",
+                "idle-mode.effect.toast.layer1-text=Copied to clipboard",
+                "idle-mode.effect.toast.layer1-font-name=Segoe UI",
+                "idle-mode.effect.toast.layer1-font-weight=bold",
+                "idle-mode.effect.toast.layer1-font-italic=true",
+                "idle-mode.effect.toast.layer1-text-align=left",
+                "idle-mode.effect.toast.layer1-background-color=#202020",
+                "idle-mode.effect.toast.layer1-keyframes=0 font-size=10 | 100 font-size=20",
+                "idle-mode.start-effect.toast=+n");
+        EffectLayer layer = toast.layers().getFirst();
+        assertEquals(EffectShape.TEXT, layer.shape());
+        assertEquals(new EffectText("Copied to clipboard", "Segoe UI", FontWeight.BOLD, true,
+                EffectText.Align.LEFT), layer.text());
+        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(toast, null);
+        player.advance(0.05);
+        EffectFrame.ResolvedEffectLayer resolved = player.frame().layers().getFirst();
+        assertEquals(15, resolved.fontSize(), 1e-9);
+        assertEquals("#202020", resolved.backgroundHexColor());
+        assertNull(resolved.outlineHexColor());
+        // A text layer needs its text; text settings need a text layer.
+        assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.effect.toast.layer1-shape=text"));
+        assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.effect.toast.layer1-shape=dot",
+                        "idle-mode.effect.toast.layer1-text=oops"));
+    }
+
 }

@@ -192,7 +192,11 @@ public class EffectManager implements ModeListener, MousePositionListener {
                     number(values, EffectProperty.ARC_SWEEP),
                     number(values, EffectProperty.DASH_LENGTH),
                     number(values, EffectProperty.DASH_GAP),
-                    number(values, EffectProperty.DASH_OFFSET));
+                    number(values, EffectProperty.DASH_OFFSET), layer.text(),
+                    number(values, EffectProperty.FONT_SIZE),
+                    (String) values.get(EffectProperty.BACKGROUND_COLOR),
+                    (String) values.get(EffectProperty.OUTLINE_COLOR),
+                    number(values, EffectProperty.PADDING), scale);
         }
 
         private static double number(Map<EffectProperty, Object> values,
