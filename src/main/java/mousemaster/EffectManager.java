@@ -84,10 +84,15 @@ public class EffectManager implements ModeListener, MousePositionListener {
 
     @Override
     public void modeChanged(Mode newMode) {
+        // ModeListeners are also told about mutations of the current mode (a property
+        // branch such as _{isleftmousepressing} -> ... switching): that is the same mode
+        // with the same combos, so its loops keep running. Only a switch to another mode
+        // stops them: a looping effect is stopped by its mode's stop-effect combo, which
+        // the new mode may not have.
+        boolean otherMode = currentMode == null || !currentMode.name().equals(newMode.name());
         currentMode = newMode;
-        // A looping effect is stopped by its mode's stop-effect combo, which the new
-        // mode may not have: stop the loops rather than leaving them running forever.
-        players.values().removeIf(player -> player.effect.loop());
+        if (otherMode)
+            players.values().removeIf(player -> player.effect.loop());
     }
 
     @Override
