@@ -10,6 +10,11 @@ package mousemaster;
 public record EffectText(String text, String fontName, FontWeight weight, boolean italic,
                          Align align) {
 
+    /** The same text settings saying something else (a placeholder filled in). */
+    public EffectText withText(String text) {
+        return new EffectText(text, fontName, weight, italic, align);
+    }
+
     /** Where the layer's x sits on the text: its left edge, its center, or its right edge. */
     public enum Align {
         LEFT, CENTER, RIGHT;
