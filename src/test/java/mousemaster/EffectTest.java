@@ -288,4 +288,23 @@ class EffectTest {
                         "idle-mode.effect.toast.layer1-text=oops"));
     }
 
+    @Test
+    void badValuesAreConfigurationErrorsThatNameTheKeyAndTheExpectedForm() {
+        IllegalArgumentException outOfRange = assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.effect.blip.layer1-shape=polygon",
+                        "idle-mode.effect.blip.layer1-edge-count=1001"));
+        assertTrue(outOfRange.getMessage().contains("edge-count value 1001") &&
+                   outOfRange.getMessage().contains("between 3 and 1000"), outOfRange.getMessage());
+        IllegalArgumentException notANumber = assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.effect.blip.layer1-shape=dot",
+                        "idle-mode.effect.blip.layer1-keyframes=50 opacity=high"));
+        assertTrue(notANumber.getMessage().contains("opacity value high") &&
+                   notANumber.getMessage().contains("keyframe token opacity=high") &&
+                   !notANumber.getMessage().contains("For input string"), notANumber.getMessage());
+        IllegalArgumentException notABoolean = assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.effect.blip.layer1-shape=dot",
+                        "idle-mode.effect.blip.layer1-filled=yes"));
+        assertTrue(notABoolean.getMessage().contains("expected true or false"), notABoolean.getMessage());
+    }
+
 }
