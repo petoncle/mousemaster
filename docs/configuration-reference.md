@@ -513,7 +513,9 @@ written once, and any number or color among them can be animated with keyframes*
 
 ```properties
 # A calm click ripple: a circle that expands and fades over 250ms, staying where
-# the click happened.
+# the click happened. leftbutton is the key alias the shipped configurations
+# click with (key-alias.leftbutton=...); use your own click key.
+key-alias.leftbutton=space
 normal-mode.effect.click-ripple.duration-millis=250
 normal-mode.effect.click-ripple.area=48
 normal-mode.effect.click-ripple.follow-mouse=false
