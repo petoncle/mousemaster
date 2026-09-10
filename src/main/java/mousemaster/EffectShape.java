@@ -24,10 +24,12 @@ public enum EffectShape {
     /** A diagonal cross (×); rotate by 45 for a plus (+). */
     CROSS,
     /** A part of a circle, from arc-start over arc-sweep degrees; filled=true draws a pie slice. */
-    ARC;
+    ARC,
+    /** A line of text (layer<n>-text), in font-name / font-size / font-weight, with an optional background. */
+    TEXT;
 
     public static String names() {
-        return "dot, circle, square, triangle, polygon, line, cross, arc";
+        return "dot, circle, square, triangle, polygon, line, cross, arc, text";
     }
 
     public static EffectShape parse(String string) {
@@ -40,6 +42,7 @@ public enum EffectShape {
             case "line" -> LINE;
             case "cross" -> CROSS;
             case "arc" -> ARC;
+            case "text" -> TEXT;
             default -> throw new IllegalArgumentException(
                     "Invalid effect shape " + string + ": expected one of " + names());
         };
