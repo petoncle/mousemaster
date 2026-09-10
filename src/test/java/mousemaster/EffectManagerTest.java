@@ -160,6 +160,22 @@ class EffectManagerTest {
     }
 
     @Test
+    void anEffectStartedAfterItsComboSwitchedModeIsFoundInThePreviousMode() {
+        // A combo that switches mode and starts an effect runs its start-effect after the
+        // switch when it waits behind an atomic command (a hint selection moving the
+        // mouse): the effect is then looked up in the mode the combo came from.
+        EffectManager manager = new EffectManager(overlay);
+        manager.modeChanged(mode("idle-mode", TWO_EFFECTS));
+        manager.modeChanged(mode("other-mode", TWO_EFFECTS));
+        manager.startEffect("shot");
+        manager.update(0.01);
+        assertEquals(1, frames.getLast().size(), "shot is idle-mode's, started from other-mode");
+        manager.startEffect("nope");
+        manager.update(0.01);
+        assertEquals(1, frames.getLast().size(), "an unknown name is still ignored");
+    }
+
+    @Test
     void theOverlayIsOnlyRedrawnWhenSomethingChanged() {
         EffectManager manager = new EffectManager(overlay);
         manager.modeChanged(mode("idle-mode",
