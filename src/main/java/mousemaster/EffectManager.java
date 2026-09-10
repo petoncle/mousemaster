@@ -189,13 +189,14 @@ public class EffectManager implements ModeListener, MousePositionListener {
                     number(values, EffectProperty.CORNER_RADIUS),
                     (int) Math.round(number(values, EffectProperty.EDGE_COUNT)),
                     number(values, EffectProperty.ARC_START),
-                    number(values, EffectProperty.ARC_SWEEP),
+                    number(values, EffectProperty.ARC_LENGTH),
                     number(values, EffectProperty.DASH_LENGTH),
                     number(values, EffectProperty.DASH_GAP),
                     number(values, EffectProperty.DASH_OFFSET), layer.text(),
                     number(values, EffectProperty.FONT_SIZE),
                     (String) values.get(EffectProperty.BACKGROUND_COLOR),
                     (String) values.get(EffectProperty.OUTLINE_COLOR),
+                    number(values, EffectProperty.OUTLINE_THICKNESS),
                     number(values, EffectProperty.PADDING), scale);
         }
 

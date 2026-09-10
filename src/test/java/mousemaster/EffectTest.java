@@ -52,7 +52,7 @@ class EffectTest {
                 "idle-mode.effect.blip.layer1-opacity=0.5",
                 "idle-mode.effect.blip.layer1-thickness=2",
                 "idle-mode.effect.blip.layer1-keyframes=0 size=24 show | 50 hide | 80 show rotation=90 | 100 opacity=0",
-                "idle-mode.effect.blip.layer2-shape=square",
+                "idle-mode.effect.blip.layer2-shape=rect",
                 "idle-mode.effect.blip.layer2-size=area",
                 "idle-mode.effect.blip.layer2-filled=true",
                 "idle-mode.start-effect.blip=+n");
@@ -157,7 +157,7 @@ class EffectTest {
         EffectConfiguration pulse = effect("pulse",
                 "idle-mode.effect.pulse.duration-millis=100",
                 "idle-mode.effect.pulse.repeat=loop",
-                "idle-mode.effect.pulse.layer1-shape=square",
+                "idle-mode.effect.pulse.layer1-shape=rect",
                 "idle-mode.effect.pulse.layer1-keyframes=0 rotation=0 | 100 rotation=90",
                 "idle-mode.start-effect.pulse=+n");
         EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(pulse, null);
@@ -170,7 +170,7 @@ class EffectTest {
     void axisRotationsInterpolateWithSignedDirection() {
         EffectConfiguration flip = effect("flip",
                 "idle-mode.effect.flip.duration-millis=100",
-                "idle-mode.effect.flip.layer1-shape=square",
+                "idle-mode.effect.flip.layer1-shape=rect",
                 "idle-mode.effect.flip.layer1-rotation-x=10",
                 "idle-mode.effect.flip.layer1-keyframes=0 rotation-y=0 | 100 rotation-y=-360",
                 "idle-mode.start-effect.flip=+n");

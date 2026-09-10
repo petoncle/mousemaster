@@ -295,10 +295,10 @@ public final class EffectRenderer {
             }
             tight.dispose();
             metrics.dispose();
-            if (layer.outlineHexColor() != null && layer.thickness() > 0) {
+            if (layer.outlineHexColor() != null && layer.outlineThickness() > 0) {
                 QColor outlineColor = QtColorUtil.qColor(layer.outlineHexColor(), layer.opacity());
                 QPen outlinePen = new QPen(outlineColor);
-                outlinePen.setWidthF(layer.thickness() * drawScale);
+                outlinePen.setWidthF(layer.outlineThickness() * drawScale);
                 outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
                 painter.setPen(outlinePen);
                 painter.setBrush(QtColorUtil.noBrush());
@@ -323,7 +323,7 @@ public final class EffectRenderer {
             switch (layer.shape()) {
                 case DOT, CIRCLE ->
                         path.addEllipse(-width / 2, -height / 2, width, height);
-                case SQUARE -> {
+                case RECT -> {
                     double radius = layer.cornerRadius() * drawScale;
                     if (radius > 0)
                         path.addRoundedRect(-width / 2, -height / 2, width, height,
@@ -358,7 +358,7 @@ public final class EffectRenderer {
                     // Config angles are clockwise from 12 o'clock (the indicator's fill
                     // angle convention); Qt's are counterclockwise from 3 o'clock.
                     double qtStart = 90 - layer.arcStart();
-                    double qtSweep = -layer.arcSweep();
+                    double qtSweep = -layer.arcLength();
                     if (layer.filled()) {
                         path.moveTo(0, 0);
                         path.arcTo(-width / 2, -height / 2, width, height, qtStart, qtSweep);
