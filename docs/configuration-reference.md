@@ -682,7 +682,9 @@ Combos start and stop effects like any other command:
 
 A one-shot effect keeps playing to the end when the mode changes; a looping effect is
 stopped by a mode change, because its `stop-effect` combo may not exist in the new
-mode. Effect properties do not support [mutation branches](#mode-property-mutation)
+mode (so a loop started by the very combo that switches mode ends at once: start it
+from the target mode instead). A [mutation](#mode-property-mutation) of the current
+mode is not a mode change and leaves loops running. Effect properties do not support [mutation branches](#mode-property-mutation)
 (the `|` separator belongs to keyframes); start different effects from different combos
 instead.
 
