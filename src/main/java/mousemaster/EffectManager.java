@@ -54,6 +54,15 @@ public class EffectManager implements ModeListener, MousePositionListener {
     }
 
     public void startEffect(String effectName) {
+        startEffect(effectName, null);
+    }
+
+    /**
+     * Starts (or restarts) an effect; the key is the one that completed the combo,
+     * shown by a text layer's {@code {key}} and, as a history across restarts of a
+     * running effect, {@code {keys}}.
+     */
+    public void startEffect(String effectName, Key key) {
         EffectConfiguration effect = currentMode == null ? null :
                 currentMode.effects().get(effectName);
         if (effect == null && previousMode != null) {
@@ -73,9 +82,13 @@ public class EffectManager implements ModeListener, MousePositionListener {
             return;
         }
         logger.debug("Starting effect " + effectName);
-        // Re-starting an already running effect restarts its cycle (and re-anchors it).
-        players.put(effectName,
-                new EffectPlayer(effect, effect.followMouse() ? null : mousePosition));
+        // Re-starting an already running effect restarts its cycle (and re-anchors it),
+        // but keeps its key history: a keycast shows what was typed while it showed.
+        EffectPlayer running = players.get(effectName);
+        EffectPlayer player =
+                new EffectPlayer(effect, effect.followMouse() ? null : mousePosition,
+                        running == null ? List.of() : running.keys, key);
+        players.put(effectName, player);
     }
 
     public void stopEffect(String effectName) {
@@ -158,13 +171,41 @@ public class EffectManager implements ModeListener, MousePositionListener {
 
     static final class EffectPlayer {
 
+        /** How many keys {@code {keys}} remembers: enough for a line of typing. */
+        static final int maxKeys = 16;
+
         private final EffectConfiguration effect;
         private final Point anchor;
+        // The keys that started this effect and its running predecessors, oldest
+        // first, for the {key} and {keys} placeholders of text layers.
+        private final List<String> keys;
         private double elapsed;
 
         EffectPlayer(EffectConfiguration effect, Point anchor) {
+            this(effect, anchor, List.of(), null);
+        }
+
+        EffectPlayer(EffectConfiguration effect, Point anchor, List<String> previousKeys,
+                     Key key) {
             this.effect = effect;
             this.anchor = anchor;
+            List<String> keys = new ArrayList<>(previousKeys);
+            if (key != null)
+                keys.add(key.name());
+            if (keys.size() > maxKeys)
+                keys = new ArrayList<>(keys.subList(keys.size() - maxKeys, keys.size()));
+            this.keys = keys;
+        }
+
+        /** The text of a text layer with its placeholders filled in. */
+        private EffectText text(EffectLayer layer) {
+            EffectText text = layer.text();
+            if (text == null || text.text().indexOf('{') == -1)
+                return text;
+            String filled = text.text()
+                                .replace("{key}", keys.isEmpty() ? "" : keys.getLast())
+                                .replace("{keys}", String.join(" ", keys));
+            return filled.equals(text.text()) ? text : text.withText(filled);
         }
 
         void advance(double delta) {
@@ -253,7 +294,7 @@ public class EffectManager implements ModeListener, MousePositionListener {
                     number(values, EffectProperty.ARC_LENGTH),
                     number(values, EffectProperty.DASH_LENGTH),
                     number(values, EffectProperty.DASH_GAP),
-                    number(values, EffectProperty.DASH_OFFSET), layer.text(),
+                    number(values, EffectProperty.DASH_OFFSET), text(layer),
                     number(values, EffectProperty.FONT_SIZE),
                     (String) values.get(EffectProperty.BACKGROUND_COLOR),
                     (String) values.get(EffectProperty.OUTLINE_COLOR),
