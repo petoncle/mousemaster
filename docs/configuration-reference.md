@@ -840,6 +840,11 @@ normal-mode.effect.double-tap.layer1-keyframes=0 scale=0.6 opacity=0.9 | 100 sca
 - Is a loop being stopped at once? A loop started by a combo that also switches mode
   ends with the switch; define it in the target mode.
 - Is it `enabled=false`? Then `start-effect` logs `Effect <name> is disabled` and stops there.
+- Is it hidden under the indicator? With `indicator.render-as-cursor=true` the indicator
+  is part of the mouse cursor, which the system draws above every window, so an
+  effect drawn under the cursor is covered by it. Leave the cursor clear: rings wider
+  than the indicator (`size` larger than `indicator.size`), or shapes offset from it
+  (`y=-34`). A window indicator (`render-as-cursor=false`) sits below the effects.
 - Run with `logging.level=DEBUG`: `Starting effect <name>` is logged on every start, so
   you can tell "the combo did not fire" from "it fired but drew nothing".
 
