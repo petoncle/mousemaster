@@ -47,7 +47,7 @@ public final class EffectRenderer {
     private boolean showing;
     // The window only grows while showing, so it is not resized (and cleared)
     // frame after frame; it is reset when hidden.
-    private int windowLeft, windowTop, windowRight, windowBottom;
+    private int windowWidth, windowHeight;
     private int setEffectsCalls;
 
     /** Lazily creates the window and its widget; the host styles winId() afterwards. */
@@ -69,6 +69,70 @@ public final class EffectRenderer {
     public void setEffects(List<EffectFrame> frames, int mouseXPixels,
                            int mouseYPixels, Screen screen) {
         window();
+        boolean firstFrame = setEffectsCalls == 0;
+        if (firstFrame)
+            logger.debug("Effects first frame: moving the window");
+        layout(frames, mouseXPixels, mouseYPixels, screen);
+        if (firstFrame)
+            logger.debug("Effects first frame: window moved, showing it");
+        if (!showing) {
+            showing = true;
+            window.show();
+            widget.show();
+        }
+        if (firstFrame)
+            logger.debug("Effects first frame: shown, repainting");
+        widget.repaint();
+        setEffectsCalls++;
+        if (setEffectsCalls <= 3)
+            logger.debug("Effects frame " + setEffectsCalls + ": " + frames.size() +
+                         " effect(s), mouse (" + mouseXPixels + "," + mouseYPixels +
+                         "), scale " + screen.scale() + ", window " +
+                         window.x() + "," + window.y() + " " + window.width() + "x" +
+                         window.height() + " visible=" + window.isVisible() +
+                         ", widget " + widget.width() + "x" + widget.height() +
+                         " visible=" + widget.isVisible() + ", paints=" +
+                         paintCount);
+    }
+
+    /** Whether a shown frame is centered on the mouse (rather than on its anchor). */
+    public boolean followingMouse() {
+        if (!showing || frames == null)
+            return false;
+        for (EffectFrame frame : frames)
+            if (frame.anchor() == null)
+                return true;
+        return false;
+    }
+
+    /**
+     * Moves the frames that follow the mouse to a new mouse position, without
+     * waiting for the next tick's frames: the platform calls this as soon as it
+     * learns of a mouse move, like it repositions the indicator, so a following
+     * effect trails the cursor by as little as the indicator does.
+     */
+    public void mouseMoved(int mouseXPixels, int mouseYPixels, Screen screen) {
+        if (!followingMouse())
+            return;
+        // A following frame keeps its place in the window, which moves as a whole; only
+        // an anchored frame sharing the window has to be redrawn at its new place in it.
+        boolean anyAnchored = false;
+        for (EffectFrame frame : frames)
+            anyAnchored |= frame.anchor() != null;
+        layout(frames, mouseXPixels, mouseYPixels, screen);
+        if (anyAnchored)
+            widget.repaint();
+    }
+
+    /**
+     * Places the window over the union of the frames' areas and records where each
+     * frame is drawn in it. The window keeps the largest size it has had while
+     * showing rather than being resized frame after frame (a resize shows the old
+     * surface at the new size for a frame, and a following effect would otherwise
+     * leave a growing window behind it); it is reset when hidden.
+     */
+    private void layout(List<EffectFrame> frames, int mouseXPixels, int mouseYPixels,
+                        Screen screen) {
         double scale = screen.scale();
         // Each frame's center in screen pixels, and the union of their areas.
         List<int[]> centers = new ArrayList<>();
@@ -86,22 +150,18 @@ public final class EffectRenderer {
             bottom = Math.max(bottom, centerY + halfHeight);
         }
         if (!showing) {
-            windowLeft = left;
-            windowTop = top;
-            windowRight = right;
-            windowBottom = bottom;
+            windowWidth = right - left;
+            windowHeight = bottom - top;
         }
         else {
-            windowLeft = Math.min(windowLeft, left);
-            windowTop = Math.min(windowTop, top);
-            windowRight = Math.max(windowRight, right);
-            windowBottom = Math.max(windowBottom, bottom);
+            windowWidth = Math.max(windowWidth, right - left);
+            windowHeight = Math.max(windowHeight, bottom - top);
         }
-        boolean firstFrame = setEffectsCalls == 0;
-        if (firstFrame)
-            logger.debug("Effects first frame: moving the window");
-        window.moveAndResizeInPixels(screen, windowLeft, windowTop,
-                windowRight - windowLeft, windowBottom - windowTop);
+        // The union sits in the middle of the (possibly larger) window.
+        int windowLeft = (left + right) / 2 - windowWidth / 2;
+        int windowTop = (top + bottom) / 2 - windowHeight / 2;
+        window.moveAndResizeInPixels(screen, windowLeft, windowTop, windowWidth,
+                windowHeight);
         widget.setGeometry(0, 0, window.width(), window.height());
         // Frame centers in the window's own pixel coordinates.
         List<Point> windowCenters = new ArrayList<>();
@@ -109,26 +169,6 @@ public final class EffectRenderer {
             windowCenters.add(new Point(center[0] - windowLeft, center[1] - windowTop));
         // Qt units are pixels on Windows and points on macOS: draw scaled on Windows.
         showFrames(frames, windowCenters, Os.windows ? scale : 1);
-        if (firstFrame)
-            logger.debug("Effects first frame: window moved, showing it");
-        if (!showing) {
-            showing = true;
-            window.show();
-            widget.show();
-        }
-        if (firstFrame)
-            logger.debug("Effects first frame: shown, repainting");
-        widget.repaint();
-        setEffectsCalls++;
-        if (setEffectsCalls <= 3)
-            logger.debug("Effects frame " + setEffectsCalls + ": " + frames.size() +
-                         " effect(s), mouse (" + mouseXPixels + "," + mouseYPixels +
-                         "), scale " + scale + ", window " +
-                         window.x() + "," + window.y() + " " + window.width() + "x" +
-                         window.height() + " visible=" + window.isVisible() +
-                         ", widget " + widget.width() + "x" + widget.height() +
-                         " visible=" + widget.isVisible() + ", paints=" +
-                         paintCount);
     }
 
     public void hide() {
