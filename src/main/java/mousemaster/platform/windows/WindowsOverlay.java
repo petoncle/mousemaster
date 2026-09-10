@@ -568,6 +568,11 @@ public class WindowsOverlay implements Overlay {
     }
 
     @Override
+    public boolean effectFollowingMouse() {
+        return effectRenderer != null && effectRenderer.followingMouse();
+    }
+
+    @Override
     public void setGrid(Grid grid) {
         Objects.requireNonNull(grid);
         boolean firstCreation = gridHwnd == null;
@@ -648,6 +653,9 @@ public class WindowsOverlay implements Overlay {
     }
 
     void mouseMoved(WinDef.POINT mousePosition) {
+        if (effectRenderer != null && effectRenderer.followingMouse())
+            effectRenderer.mouseMoved(mousePosition.x, mousePosition.y,
+                    WindowsScreen.findActiveScreen(mousePosition));
         if (indicatorIsCursor) {
             // The OS moves the cursor; only re-install when the screen scale changes
             // (cursors don't auto-scale per-monitor DPI).
