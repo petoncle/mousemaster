@@ -36,6 +36,10 @@ public class EffectManager implements ModeListener, MousePositionListener {
 
     private final Overlay overlay;
     private Mode currentMode;
+    // The mode before the last switch: a combo that switches mode and starts an effect
+    // runs its start-effect after the switch when it waits behind an atomic command (a
+    // hint selection moving the mouse), so the effect is looked up there as a fallback.
+    private Mode previousMode;
     private final Map<String, EffectPlayer> players = new LinkedHashMap<>();
     private boolean showing;
     private Point mousePosition;
@@ -52,6 +56,13 @@ public class EffectManager implements ModeListener, MousePositionListener {
     public void startEffect(String effectName) {
         EffectConfiguration effect = currentMode == null ? null :
                 currentMode.effects().get(effectName);
+        if (effect == null && previousMode != null) {
+            effect = previousMode.effects().get(effectName);
+            if (effect != null && logger.isDebugEnabled())
+                logger.debug("Effect " + effectName + " is not defined in mode " +
+                             currentMode.name() + ", using the definition of " +
+                             previousMode.name() + " (the mode of the combo that started it)");
+        }
         if (effect == null) {
             logger.warn("Effect " + effectName + " is not defined in mode " +
                         (currentMode == null ? "(no mode)" : currentMode.name()));
@@ -133,6 +144,8 @@ public class EffectManager implements ModeListener, MousePositionListener {
         // stops them: a looping effect is stopped by its mode's stop-effect combo, which
         // the new mode may not have.
         boolean otherMode = currentMode == null || !currentMode.name().equals(newMode.name());
+        if (otherMode)
+            previousMode = currentMode;
         currentMode = newMode;
         if (otherMode)
             players.values().removeIf(player -> player.effect.loop());
