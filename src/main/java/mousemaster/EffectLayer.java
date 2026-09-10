@@ -1,7 +1,10 @@
 package mousemaster;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -21,11 +24,22 @@ import java.util.Map;
 public record EffectLayer(EffectShape shape, boolean filled, double speed,
                           Duration delay, boolean sizeIsArea, EffectText text,
                           Map<EffectProperty, Object> base,
-                          List<EffectKeyframe> keyframes) {
+                          List<EffectKeyframe> keyframes,
+                          Set<EffectProperty> animated) {
 
     public EffectLayer {
         base = Map.copyOf(base);
         keyframes = List.copyOf(keyframes);
+        animated = Collections.unmodifiableSet(animated.isEmpty() ?
+                EnumSet.noneOf(EffectProperty.class) : EnumSet.copyOf(animated));
+    }
+
+    /** The properties at least one keyframe mentions: the only ones worth interpolating per frame. */
+    public static Set<EffectProperty> animatedProperties(List<EffectKeyframe> keyframes) {
+        Set<EffectProperty> animated = EnumSet.noneOf(EffectProperty.class);
+        for (EffectKeyframe keyframe : keyframes)
+            animated.addAll(keyframe.values().keySet());
+        return animated;
     }
 
     public static class EffectLayerBuilder {
@@ -158,7 +172,8 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
                     sizeIsArea != null && sizeIsArea,
                     shape == EffectShape.TEXT ? text.build() : null,
                     values,
-                    resolvedKeyframes);
+                    resolvedKeyframes,
+                    animatedProperties(resolvedKeyframes));
         }
 
     }

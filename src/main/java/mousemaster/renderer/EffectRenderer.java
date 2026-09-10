@@ -24,7 +24,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Cross-platform Qt rendering of the effects: one transparent window covering the
@@ -145,6 +147,19 @@ public final class EffectRenderer {
         private List<double[]> centers;
         private double drawScale = 1;
         private int paintCount;
+        // Fonts are looked up by family in the font database: cache them per
+        // (family, size, weight, italic), bounded since an animated font-size makes
+        // many sizes.
+        private final Map<String, QFont> fontCache = new LinkedHashMap<>(64, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, QFont> eldest) {
+                if (size() <= 128)
+                    return false;
+                eldest.getValue().dispose();
+                return true;
+            }
+        };
+        private boolean drawFailureLogged;
 
         EffectWidget(QWidget parent) {
             super(parent);
@@ -191,8 +206,19 @@ public final class EffectRenderer {
             painter.setClipRect((int) Math.round(centerX - areaWidth / 2),
                     (int) Math.round(centerY - areaHeight / 2),
                     (int) Math.round(areaWidth), (int) Math.round(areaHeight));
-            for (EffectFrame.ResolvedEffectLayer layer : frame.layers())
-                drawLayer(painter, layer, centerX, centerY);
+            for (EffectFrame.ResolvedEffectLayer layer : frame.layers()) {
+                try {
+                    drawLayer(painter, layer, centerX, centerY);
+                } catch (RuntimeException e) {
+                    // A layer that cannot be drawn is skipped, once loudly, then quietly:
+                    // a paint callback is no place to take the process down.
+                    if (!drawFailureLogged) {
+                        drawFailureLogged = true;
+                        logger.error("Effect layer could not be drawn (skipped from now on): " +
+                                     layer, e);
+                    }
+                }
+            }
             painter.restore();
         }
 
@@ -202,6 +228,7 @@ public final class EffectRenderer {
             double width = layer.width() * drawScale;
             double height = layer.height() * drawScale;
             painter.save();
+            try {
             // Rotate about the pivot, then place the layer relative to it: with the
             // pivot at the layer's own center (the default) this is a spin in place,
             // with the pivot elsewhere it is an orbit.
@@ -221,7 +248,6 @@ public final class EffectRenderer {
             }
             if (layer.shape() == EffectShape.TEXT) {
                 drawText(painter, layer);
-                painter.restore();
                 return;
             }
             QColor color = QtColorUtil.qColor(layer.hexColor(), layer.opacity());
@@ -255,7 +281,9 @@ public final class EffectRenderer {
             }
             path.dispose();
             color.dispose();
-            painter.restore();
+            } finally {
+                painter.restore();
+            }
         }
 
         /**
@@ -266,9 +294,7 @@ public final class EffectRenderer {
          */
         private void drawText(QPainter painter, EffectFrame.ResolvedEffectLayer layer) {
             String text = layer.text().text();
-            QFont font = QtHintFont.qFont(layer.text().fontName(),
-                    layer.fontSize() * layer.scale() * drawScale, layer.text().weight());
-            font.setItalic(layer.text().italic());
+            QFont font = font(layer);
             QFontMetrics metrics = new QFontMetrics(font);
             double advance = metrics.horizontalAdvance(text);
             QRect tight = metrics.tightBoundingRect(text);
@@ -314,7 +340,19 @@ public final class EffectRenderer {
             painter.setFont(font);
             painter.drawText(new QPointF(textX, textY), text);
             color.dispose();
-            font.dispose();
+        }
+
+        private QFont font(EffectFrame.ResolvedEffectLayer layer) {
+            double size = layer.fontSize() * layer.scale() * drawScale;
+            String key = layer.text().fontName() + "|" + size + "|" + layer.text().weight() +
+                         "|" + layer.text().italic();
+            QFont font = fontCache.get(key);
+            if (font == null) {
+                font = QtHintFont.qFont(layer.text().fontName(), size, layer.text().weight());
+                font.setItalic(layer.text().italic());
+                fontCache.put(key, font);
+            }
+            return font;
         }
 
         private QPainterPath layerPath(EffectFrame.ResolvedEffectLayer layer,

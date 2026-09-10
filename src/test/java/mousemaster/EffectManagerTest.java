@@ -159,4 +159,59 @@ class EffectManagerTest {
         assertEquals(1, hides, "the loop stops on a switch to another mode");
     }
 
+    @Test
+    void theOverlayIsOnlyRedrawnWhenSomethingChanged() {
+        EffectManager manager = new EffectManager(overlay);
+        manager.modeChanged(mode("idle-mode",
+                "idle-mode.effect.hold.duration-millis=1000",
+                "idle-mode.effect.hold.repeat=loop",
+                "idle-mode.effect.hold.follow-mouse=false",
+                "idle-mode.effect.hold.layer1-shape=dot",
+                "idle-mode.effect.hold.layer1-keyframes=0 size=10 | 10 size=20 | 100 size=20",
+                "idle-mode.start-effect.hold=+a",
+                "idle-mode.effect.follow.repeat=loop",
+                "idle-mode.effect.follow.layer1-shape=dot",
+                "idle-mode.start-effect.follow=+b"));
+        manager.mouseMoved(10, 10);
+        manager.startEffect("hold");
+        manager.update(0.05);
+        manager.update(0.05);
+        manager.update(0.05); // 150ms: the size holds at 20 from here on
+        int drawn = frames.size();
+        for (int i = 0; i < 10; i++)
+            manager.update(0.05);
+        assertEquals(drawn, frames.size(), "a held value is not redrawn");
+        manager.mouseMoved(20, 20);
+        manager.update(0.05);
+        assertEquals(drawn, frames.size(), "an anchored effect ignores mouse moves");
+        manager.startEffect("follow");
+        manager.update(0.05);
+        drawn = frames.size();
+        manager.update(0.05);
+        assertEquals(drawn, frames.size(), "still nothing changed");
+        manager.mouseMoved(30, 30);
+        manager.update(0.05);
+        assertEquals(drawn + 1, frames.size(), "a following effect is redrawn when the mouse moves");
+    }
+
+    @Test
+    void aStallAdvancesAnEffectByAtMost100ms() {
+        EffectConfiguration shot = mode("idle-mode",
+                "idle-mode.effect.shot.duration-millis=300",
+                "idle-mode.effect.shot.layer1-shape=dot",
+                "idle-mode.effect.shot.layer1-keyframes=0 size=0 | 100 size=300",
+                "idle-mode.start-effect.shot=+c").effects().get("shot");
+        EffectManager manager = new EffectManager(overlay);
+        manager.modeChanged(mode("idle-mode",
+                "idle-mode.effect.shot.duration-millis=300",
+                "idle-mode.effect.shot.layer1-shape=dot",
+                "idle-mode.effect.shot.layer1-keyframes=0 size=0 | 100 size=300",
+                "idle-mode.start-effect.shot=+c"));
+        manager.startEffect("shot");
+        manager.update(1.0); // a one-second stall
+        assertEquals(100, frames.getLast().getFirst().layers().getFirst().width(), 1e-9);
+        assertEquals(1, frames.size());
+        assertNotNull(shot);
+    }
+
 }
