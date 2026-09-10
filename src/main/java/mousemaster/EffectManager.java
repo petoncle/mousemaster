@@ -54,15 +54,16 @@ public class EffectManager implements ModeListener, MousePositionListener {
     }
 
     public void startEffect(String effectName) {
-        startEffect(effectName, null);
+        startEffect(effectName, null, true);
     }
 
     /**
      * Starts (or restarts) an effect; the key is the one that completed the combo,
-     * shown by a text layer's {@code {key}} and, as a history across restarts of a
-     * running effect, {@code {keys}}.
+     * pressed or released, shown by a text layer's {@code {key}} ({@code {move}} with
+     * its + or -) and, as a history across restarts of a running effect,
+     * {@code {keys}} ({@code {moves}}).
      */
-    public void startEffect(String effectName, Key key) {
+    public void startEffect(String effectName, Key key, boolean pressed) {
         EffectConfiguration effect = currentMode == null ? null :
                 currentMode.effects().get(effectName);
         if (effect == null && previousMode != null) {
@@ -87,7 +88,7 @@ public class EffectManager implements ModeListener, MousePositionListener {
         EffectPlayer running = players.get(effectName);
         EffectPlayer player =
                 new EffectPlayer(effect, effect.followMouse() ? null : mousePosition,
-                        running == null ? List.of() : running.keys, key);
+                        running == null ? List.of() : running.keys, key, pressed);
         players.put(effectName, player);
     }
 
@@ -176,22 +177,23 @@ public class EffectManager implements ModeListener, MousePositionListener {
 
         private final EffectConfiguration effect;
         private final Point anchor;
-        // The keys that started this effect and its running predecessors, oldest
-        // first, for the {key} and {keys} placeholders of text layers.
+        // The key moves that started this effect and its running predecessors, oldest
+        // first, as combo moves ("+a", "-a"), for the {key}, {keys}, {move} and {moves}
+        // placeholders of text layers.
         private final List<String> keys;
         private double elapsed;
 
         EffectPlayer(EffectConfiguration effect, Point anchor) {
-            this(effect, anchor, List.of(), null);
+            this(effect, anchor, List.of(), null, true);
         }
 
         EffectPlayer(EffectConfiguration effect, Point anchor, List<String> previousKeys,
-                     Key key) {
+                     Key key, boolean pressed) {
             this.effect = effect;
             this.anchor = anchor;
             List<String> keys = new ArrayList<>(previousKeys);
             if (key != null)
-                keys.add(key.name());
+                keys.add((pressed ? "+" : "-") + key.name());
             if (keys.size() > maxKeys)
                 keys = new ArrayList<>(keys.subList(keys.size() - maxKeys, keys.size()));
             this.keys = keys;
@@ -202,9 +204,19 @@ public class EffectManager implements ModeListener, MousePositionListener {
             EffectText text = layer.text();
             if (text == null || text.text().indexOf('{') == -1)
                 return text;
-            String filled = text.text()
-                                .replace("{key}", keys.isEmpty() ? "" : keys.getLast())
-                                .replace("{keys}", String.join(" ", keys));
+            String filled = text.text();
+            if (filled.contains("{key}"))
+                filled = filled.replace("{key}", keys.isEmpty() ? "" : keys.getLast().substring(1));
+            if (filled.contains("{move}"))
+                filled = filled.replace("{move}", keys.isEmpty() ? "" : keys.getLast());
+            if (filled.contains("{keys}")) {
+                StringBuilder names = new StringBuilder();
+                for (String move : keys)
+                    names.append(names.isEmpty() ? "" : " ").append(move.substring(1));
+                filled = filled.replace("{keys}", names.toString());
+            }
+            if (filled.contains("{moves}"))
+                filled = filled.replace("{moves}", String.join(" ", keys));
             return filled.equals(text.text()) ? text : text.withText(filled);
         }
 

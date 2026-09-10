@@ -8,11 +8,16 @@ package mousemaster;
  * {@link EffectProperty} table like every other layer.
  */
 public record EffectText(String text, String fontName, FontWeight weight, boolean italic,
-                         Align align) {
+                         Align align, double maxWidth, boolean keepOnScreen) {
 
     /** The same text settings saying something else (a placeholder filled in). */
     public EffectText withText(String text) {
-        return new EffectText(text, fontName, weight, italic, align);
+        return new EffectText(text, fontName, weight, italic, align, maxWidth, keepOnScreen);
+    }
+
+    /** Whether the text wraps: a max-width of 0 means a single line. */
+    public boolean wraps() {
+        return maxWidth > 0;
     }
 
     /** Where the layer's x sits on the text: its left edge, its center, or its right edge. */
@@ -38,7 +43,11 @@ public record EffectText(String text, String fontName, FontWeight weight, boolea
         private FontWeight weight;
         private Boolean italic;
         private Align align;
+        private Double maxWidth;
+        private Boolean keepOnScreen;
 
+        public EffectTextBuilder maxWidth(Double maxWidth) { this.maxWidth = maxWidth; return this; }
+        public EffectTextBuilder keepOnScreen(Boolean keepOnScreen) { this.keepOnScreen = keepOnScreen; return this; }
         public EffectTextBuilder text(String text) { this.text = text; return this; }
         public EffectTextBuilder fontName(String fontName) { this.fontName = fontName; return this; }
         public EffectTextBuilder weight(FontWeight weight) { this.weight = weight; return this; }
@@ -47,7 +56,7 @@ public record EffectText(String text, String fontName, FontWeight weight, boolea
 
         public boolean isEmpty() {
             return text == null && fontName == null && weight == null && italic == null &&
-                   align == null;
+                   align == null && maxWidth == null && keepOnScreen == null;
         }
 
         /** Inherits what this builder leaves unset. */
@@ -57,6 +66,8 @@ public record EffectText(String text, String fontName, FontWeight weight, boolea
             if (weight == null) weight = parent.weight;
             if (italic == null) italic = parent.italic;
             if (align == null) align = parent.align;
+            if (maxWidth == null) maxWidth = parent.maxWidth;
+            if (keepOnScreen == null) keepOnScreen = parent.keepOnScreen;
         }
 
         public EffectText build() {
@@ -64,7 +75,9 @@ public record EffectText(String text, String fontName, FontWeight weight, boolea
                     fontName == null ? FontStyle.defaultName : fontName,
                     weight == null ? FontWeight.NORMAL : weight,
                     italic != null && italic,
-                    align == null ? Align.CENTER : align);
+                    align == null ? Align.CENTER : align,
+                    maxWidth == null ? 0 : maxWidth,
+                    keepOnScreen == null || keepOnScreen);
         }
     }
 
