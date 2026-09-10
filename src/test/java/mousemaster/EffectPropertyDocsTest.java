@@ -24,6 +24,7 @@ class EffectPropertyDocsTest {
             String documentedAs = switch (property) {
                 case WIDTH, HEIGHT -> "`size`";
                 case PIVOT_X, PIVOT_Y -> "`pivot`";
+                case DASH_LENGTH, DASH_GAP -> "`dash`";
                 case VISIBLE -> "`show`";
                 default -> "`" + property.key + "`";
             };

@@ -219,4 +219,20 @@ class EffectTest {
         assertTrue(player.frame().layers().isEmpty());
     }
 
+    @Test
+    void dashesAreParsedAsLengthsAndTheOffsetAnimates() {
+        EffectConfiguration marquee = effect("marquee",
+                "idle-mode.effect.marquee.duration-millis=100",
+                "idle-mode.effect.marquee.layer1-shape=circle",
+                "idle-mode.effect.marquee.layer1-dash=6,4",
+                "idle-mode.effect.marquee.layer1-keyframes=0 dash-offset=0 | 100 dash-offset=10",
+                "idle-mode.start-effect.marquee=+n");
+        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(marquee, null);
+        player.advance(0.05);
+        EffectFrame.ResolvedEffectLayer layer = player.frame().layers().getFirst();
+        assertEquals(6, layer.dashLength(), 1e-9);
+        assertEquals(4, layer.dashGap(), 1e-9);
+        assertEquals(5, layer.dashOffset(), 1e-9);
+    }
+
 }
