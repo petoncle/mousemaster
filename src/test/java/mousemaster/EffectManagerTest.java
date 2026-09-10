@@ -214,4 +214,17 @@ class EffectManagerTest {
         assertNotNull(shot);
     }
 
+    @Test
+    void aDisabledEffectIsDefinedButDoesNothing() {
+        EffectManager manager = new EffectManager(overlay);
+        manager.modeChanged(mode("idle-mode",
+                "idle-mode.effect.off.enabled=false",
+                "idle-mode.effect.off.layer1-shape=dot",
+                "idle-mode.start-effect.off=+n"));
+        manager.startEffect("off");
+        manager.update(0.01);
+        assertTrue(frames.isEmpty());
+        assertEquals(0, hides);
+    }
+
 }

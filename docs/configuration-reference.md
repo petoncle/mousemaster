@@ -622,6 +622,7 @@ pixels: they scale with the screen like the indicator's.
 | `easing` | Shapes the acceleration of every cycle; same values as `zoom.animation-easing` | linear |
 | `area` | The region the effect is drawn in, in logical pixels: a size (`48`) or width x height (`64x32`). Layers are clipped to it, so make it large enough for the biggest keyframe | `100` |
 | `follow-mouse` | `true` keeps the area centered on the mouse; `false` leaves it where the mouse was when the effect started | `true` |
+| `enabled` | `false` switches the effect off without removing its lines: its `start-effect` does nothing. Handy while trying things out, like `indicator.enabled` | `true` |
 
 #### Reference: layer settings
 
@@ -838,6 +839,7 @@ normal-mode.effect.double-tap.layer1-keyframes=0 scale=0.6 opacity=0.9 | 100 sca
   starts invisible on purpose.
 - Is a loop being stopped at once? A loop started by a combo that also switches mode
   ends with the switch; define it in the target mode.
+- Is it `enabled=false`? Then `start-effect` logs `Effect <name> is disabled` and stops there.
 - Run with `logging.level=DEBUG`: `Starting effect <name>` is logged on every start, so
   you can tell "the combo did not fire" from "it fired but drew nothing".
 
