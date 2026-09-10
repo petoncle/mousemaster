@@ -2489,26 +2489,28 @@ public class ConfigurationParser {
                                                              int layerNumber,
                                                              String propertyValue) {
         List<EffectKeyframe> keyframes = new ArrayList<>();
-        double previousPercent = -1;
         for (String keyframeString : propertyValue.split("\\|")) {
             String[] tokens = keyframeString.trim().split("\\s+");
             String context = "effect " + effectName + " layer" + layerNumber +
                              " keyframe \"" + keyframeString.trim() + "\"";
             if (tokens.length == 0 || tokens[0].isEmpty())
                 throw new IllegalArgumentException("Empty keyframe in " + context);
-            double percent;
+            // A position is a percent of the cycle (0-100) or a time in ms (120ms);
+            // ms positions are converted, and the order checked, once the effect's
+            // duration is known (EffectLayerBuilder.build), since duration-millis
+            // may be written after the keyframes.
+            boolean inMillis = tokens[0].endsWith("ms");
+            double position;
             try {
-                percent = parseDouble(tokens[0], true, 0, 100);
+                position = inMillis ?
+                        parseDouble(tokens[0].substring(0, tokens[0].length() - 2), true, 0, 3_600_000) :
+                        parseDouble(tokens[0], true, 0, 100);
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException(
                         "Invalid keyframe in " + context +
-                        ": a keyframe begins with its cycle position in percent (0-100)");
+                        ": a keyframe begins with its cycle position, in percent (0-100) or" +
+                        " in milliseconds (120ms)");
             }
-            if (percent <= previousPercent)
-                throw new IllegalArgumentException(
-                        "Invalid keyframe in " + context +
-                        ": keyframe positions must be increasing");
-            previousPercent = percent;
             Map<EffectProperty, Object> values = new EnumMap<>(EffectProperty.class);
             Boolean sizeIsArea = null;
             Easing easing = null;
@@ -2561,7 +2563,7 @@ public class ConfigurationParser {
                     // @formatter:on
                 }
             }
-            keyframes.add(new EffectKeyframe(percent, values, sizeIsArea, easing));
+            keyframes.add(new EffectKeyframe(position, inMillis, values, sizeIsArea, easing));
         }
         return List.copyOf(keyframes);
     }

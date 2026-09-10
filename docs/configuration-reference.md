@@ -574,7 +574,10 @@ layer's base value acts as an implicit keyframe at 0%.
 | `arc-sweep` | How far the `arc` goes, in degrees, clockwise; negative goes counterclockwise. `filled=true` draws a pie slice | `270` |
 
 - **`layer<n>-keyframes`**: The layer's timeline: `|`-separated keyframes, each a cycle
-  position in percent followed by the values it pins. The bare keywords `show` and
+  position followed by the values it pins. A position is a percent of the cycle (`60`)
+  or a time in milliseconds (`150ms`), and the two can be mixed: `0 hide | 150ms show |
+  75 hide` shows the layer from 150ms until three quarters of the cycle. A time beyond
+  `duration-millis` is an error. The bare keywords `show` and
   `hide` toggle the layer. Speed between keyframes is set by their spacing (the same
   change over fewer percent runs faster), and an `easing=<value>` token (same values as
   `zoom.animation-easing`) shapes the acceleration of the segment that ends at that
