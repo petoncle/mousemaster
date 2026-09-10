@@ -57,6 +57,10 @@ public class EffectManager implements ModeListener, MousePositionListener {
                         (currentMode == null ? "(no mode)" : currentMode.name()));
             return;
         }
+        if (!effect.enabled()) {
+            logger.debug("Effect " + effectName + " is disabled (enabled=false)");
+            return;
+        }
         logger.debug("Starting effect " + effectName);
         // Re-starting an already running effect restarts its cycle (and re-anchors it).
         players.put(effectName,
