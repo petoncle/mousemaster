@@ -24,11 +24,11 @@ public record EffectFrame(int areaWidth, int areaHeight, Point anchor,
                                       double rotationY, double pivotX, double pivotY,
                                       String hexColor, double opacity, boolean filled,
                                       double thickness, double cornerRadius,
-                                      int edgeCount, double arcStart, double arcSweep,
+                                      int edgeCount, double arcStart, double arcLength,
                                       double dashLength, double dashGap,
                                       double dashOffset, EffectText text,
                                       double fontSize, String backgroundHexColor,
-                                      String outlineHexColor, double padding,
+                                      String outlineHexColor, double outlineThickness, double padding,
                                       double scale) {
 
     }

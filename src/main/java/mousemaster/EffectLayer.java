@@ -13,7 +13,7 @@ import java.util.Map;
  * declaration order: layer1 first (bottom), then layer2 on top of it, and so on.
  *
  * <p>{@code sizeIsArea} marks {@code size=area}: the layer takes the size of the
- * whole effect area (a filled square layer sized to the area is the effect's
+ * whole effect area (a filled rect layer sized to the area is the effect's
  * background). {@code delay} shifts the layer's whole timeline, so layers can be
  * released one after another. {@code speed} runs the layer's timeline faster or
  * slower than the effect's cycle.

@@ -543,7 +543,7 @@ settings hold for the layer's whole life:
 
 | Property | Meaning | Default |
 |---|---|---|
-| `layer<n>-shape` | `dot` (filled circle), `circle`, `square`, `triangle`, `polygon`, `line`, `cross` (a diagonal ×; rotate by 45 for a +), `arc`, `text` | required |
+| `layer<n>-shape` | `rect` (a square, or a rectangle with `size=WxH`; `corner-radius` rounds it), `polygon` (`edge-count` edges), `line`, `cross` (a diagonal ×; rotate by 45 for a +), `arc`, `text`; and the aliases `circle` (a 100-edge polygon), `dot` (a filled circle), `triangle` (a 3-edge polygon) | required |
 | `layer<n>-filled` | Filled or outline | filled for `dot`, outline otherwise |
 | `layer<n>-speed` | How fast the layer's timeline runs relative to the cycle: `2` plays it twice per cycle, `0.5` at half speed | `1` |
 | `layer<n>-delay` | Milliseconds before the layer's timeline starts. Delayed layers release one after another; a one-shot effect lives until its last layer has finished | `0` |
@@ -561,7 +561,7 @@ layer's base value acts as an implicit keyframe at 0%.
 | Key | Meaning | Default |
 |---|---|---|
 | `x`, `y` | Offset from the area center, in logical pixels | `0` |
-| `size` | A size (`24`), width-by-height (`24x12`), or `area` to take the size of the whole area — a filled square sized to the area is the effect's background | `16` |
+| `size` | A size (`24`), width-by-height (`24x12`), or `area` to take the size of the whole area — a filled rect sized to the area is the effect's background | `16` |
 | `scale` | Multiplies the size (not the thickness): `0.2` to `1` grows a layer in from afar | `1` |
 | `rotation` | Degrees, clockwise, about the pivot | `0` |
 | `rotation-x`, `rotation-y` | Degrees of 3D-projected tilt around the layer's horizontal / vertical axis: animating `rotation-y` from 0 to 360 flips the shape like a card; the sign picks the direction | `0` |
@@ -571,13 +571,13 @@ layer's base value acts as an implicit keyframe at 0%.
 | `thickness` | Outline / stroke width, in logical pixels | `1` |
 | `dash` | Dashes an outline, line, cross or arc: `<dash>,<gap>` lengths in logical pixels (`6,4`), or `solid` | `solid` |
 | `dash-offset` | Where the dash pattern starts along the outline, in logical pixels: animate it (`0 dash-offset=0 \| 100 dash-offset=20`) to make the dashes travel, a marquee | `0` |
-| `corner-radius` | Rounds a `square`'s corners, in logical pixels | `0` |
+| `corner-radius` | Rounds a `rect`'s corners (and a `text` layer's background box), in logical pixels | `0` |
 | `edge-count` | A `polygon`'s edges, with the indicator's convention: 3 triangle, 4 square, 6 hexagon, 100 and above a circle | `6` |
 | `arc-start` | Where an `arc` begins, in degrees: 0 is 12 o'clock, 90 is 3 o'clock, clockwise (the indicator's fill start angle convention) | `0` |
-| `arc-sweep` | How far the `arc` goes, in degrees, clockwise; negative goes counterclockwise. `filled=true` draws a pie slice | `270` |
+| `arc-length` | How far the `arc` goes, in degrees, clockwise; negative goes counterclockwise. `filled=true` draws a pie slice | `270` |
 | `font-size` | A `text` layer's font size, in points; animate it to grow or shrink the text (or use `scale`) | `12` |
 | `background-color` | A box behind a `text` layer, `#RRGGBB`; rounded by `corner-radius`, grown by `padding` around the text. Unset draws no box | none |
-| `outline-color` | An outline around a `text` layer's glyphs, `thickness` wide. Unset draws no outline | none |
+| `outline-color`, `outline-thickness` | An outline around a `text` layer's glyphs (like the indicator's), and its width in logical pixels. Unset color draws no outline | none, `1` |
 | `padding` | The space between a `text` layer and its background box, in logical pixels | `4` |
 
 - **`layer<n>-keyframes`**: The layer's timeline: `|`-separated keyframes, each a cycle
@@ -616,7 +616,7 @@ normal-mode.effect.spinner.duration-millis=900
 normal-mode.effect.spinner.layer1-shape=arc
 normal-mode.effect.spinner.layer1-size=22
 normal-mode.effect.spinner.layer1-thickness=2
-normal-mode.effect.spinner.layer1-keyframes=0 arc-start=0 arc-sweep=60 | 50 arc-sweep=240 | 100 arc-start=360 arc-sweep=60
+normal-mode.effect.spinner.layer1-keyframes=0 arc-start=0 arc-length=60 | 50 arc-length=240 | 100 arc-start=360 arc-length=60
 
 # Sonar: three rings released 120ms apart with delay, each expanding and fading.
 normal-mode.effect.sonar.duration-millis=600
@@ -667,7 +667,7 @@ normal-mode.start-effect.toast=+c
 # Double tap: two quick pulses, then gone (repeat=2).
 normal-mode.effect.double-tap.repeat=2
 normal-mode.effect.double-tap.duration-millis=180
-normal-mode.effect.double-tap.layer1-shape=square
+normal-mode.effect.double-tap.layer1-shape=rect
 normal-mode.effect.double-tap.layer1-corner-radius=4
 normal-mode.effect.double-tap.layer1-keyframes=0 scale=0.6 opacity=0.9 | 100 scale=1.4 opacity=0
 ```

@@ -44,8 +44,8 @@ public enum EffectProperty {
     EDGE_COUNT("edge-count", Kind.NUMBER, 6d, 3, 1_000),
     /** Arc start, in degrees: 0 is 12 o'clock, 90 is 3 o'clock, clockwise (like the indicator's fill start angle). */
     ARC_START("arc-start", Kind.NUMBER, 0d, -100_000, 100_000),
-    /** Arc length in degrees, clockwise; negative sweeps counterclockwise. */
-    ARC_SWEEP("arc-sweep", Kind.NUMBER, 270d, -360, 360),
+    /** Arc length in degrees, clockwise; negative goes counterclockwise. */
+    ARC_LENGTH("arc-length", Kind.NUMBER, 270d, -360, 360),
     /** Set through {@code dash=<on>,<off>} in pixels; a zero length means a solid line. */
     DASH_LENGTH("dash-length", Kind.NUMBER, 0d, 0, 10_000),
     DASH_GAP("dash-gap", Kind.NUMBER, 0d, 0, 10_000),
@@ -56,8 +56,10 @@ public enum EffectProperty {
     FONT_SIZE("font-size", Kind.NUMBER, 12d, 1, 1_000),
     /** Text layers: a box behind the text (rounded by corner-radius, grown by padding); unset = none. */
     BACKGROUND_COLOR("background-color", Kind.COLOR, null, 0, 0),
-    /** Text layers: an outline around the glyphs, thickness wide; unset = none. */
+    /** Text layers: an outline around the glyphs (like the indicator's outline-color); unset = none. */
     OUTLINE_COLOR("outline-color", Kind.COLOR, null, 0, 0),
+    /** Text layers: the outline's width, in pixels. */
+    OUTLINE_THICKNESS("outline-thickness", Kind.NUMBER, 1d, 0, 1_000),
     /** Text layers: the space between the text and its background box, in pixels. */
     PADDING("padding", Kind.NUMBER, 4d, 0, 1_000),
     /** Written as the bare keyframe keywords {@code show} and {@code hide}. */
