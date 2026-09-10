@@ -6,8 +6,8 @@ import io.qt.core.*;
 import io.qt.gui.*;
 import io.qt.widgets.*;
 import mousemaster.*;
-import mousemaster.HintGradientColor.HintGradientArea;
-import mousemaster.HintGradientColor.HintGradientStep;
+import mousemaster.GradientColor.GradientArea;
+import mousemaster.GradientColor.GradientStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1434,9 +1434,9 @@ public final class HintMeshRenderer {
         boolean hasForegroundPrefixKeys = !style.prefixInBackground() && hintMesh.prefixLength() != -1;
         HintFontStyle prefixFontStyle = hasForegroundPrefixKeys ? style.prefixFontStyle() : null;
         QtHintFontStyle labelFontStyle = QtHintFont.qtHintFontStyle(style.fontStyle(), prefixFontStyle, screenScale, lastSelectedHintBoxHexColor);
-        HintGradientColor boxColor = style.boxColor();
+        GradientColor boxColor = style.boxColor();
         boolean boxSweptPerHint = style.boxOpacity() != 0 && boxColor.gradient() &&
-                                  boxColor.area() != HintGradientArea.HINT;
+                                  boxColor.area() != GradientArea.ELEMENT;
         Rectangle boxGradientArea =
                 boxSweptPerHint ? gradientArea(boxColor.area(), hintMeshWindow, hintMesh) : null;
         QBrush boxBrush = boxSweptPerHint ? null : fillBrush(boxColor, style.boxOpacity());
@@ -1539,7 +1539,7 @@ public final class HintMeshRenderer {
                     new HintBox(hint, boxBorderLength,
                             boxBorderThickness,
                             boxSweptPerHint &&
-                            boxColor.step() != HintGradientStep.PIXEL ?
+                            boxColor.step() != GradientStep.PIXEL ?
                                     sampledBrush(boxColor, style.boxOpacity(), boxGradientArea,
                                             hintGroup, hint) : boxBrush,
                             boxBorderColor,
@@ -1715,7 +1715,7 @@ public final class HintMeshRenderer {
             hintBox.move(hintBox.x() - offsetX, hintBox.y() - offsetY);
             HintLabel hintLabel = hintLabels.get(hintIndex);
             hintLabel.move(hintBox.x(), hintBox.y());
-            if (boxSweptPerHint && boxColor.step() == HintGradientStep.PIXEL)
+            if (boxSweptPerHint && boxColor.step() == GradientStep.PIXEL)
                 hintBox.setColor(sweptBrush(boxColor, style.boxOpacity(),
                         areaNarrowedToGroup(boxColor, boxGradientArea,
                                 hintGroupOf(hintMesh, hintGroupByPrefix, hintBox.hint)),
@@ -1846,12 +1846,12 @@ public final class HintMeshRenderer {
         return opacity == 0 ? null : QtColorUtil.qBrush(QtColorUtil.rgba(rgb, opacity));
     }
 
-    private static QBrush fillBrush(HintGradientColor color, double opacity) {
+    private static QBrush fillBrush(GradientColor color, double opacity) {
         return opacity == 0 || !color.gradient() ? fillBrush(color.rgbAt(0), opacity) :
                 QtColorUtil.qBrush(color, opacity);
     }
 
-    private Rectangle gradientArea(HintGradientArea area, HintMeshWindow hintMeshWindow,
+    private Rectangle gradientArea(GradientArea area, HintMeshWindow hintMeshWindow,
                                    HintMesh hintMesh) {
         return switch (area) {
             case SCREEN -> screenArea(hintMeshWindow.window());
@@ -1859,8 +1859,8 @@ public final class HintMeshRenderer {
                     .map(window -> screenArea(window.window())).toList());
             case AREA -> hintMesh.area();
             // A subgrid narrows this to its own bounds per box.
-            case ALL_HINTS, SUBGRID -> centerArea(hintMeshWindow.hints());
-            case HINT -> null;
+            case ALL_ELEMENTS, GROUP -> centerArea(hintMeshWindow.hints());
+            case ELEMENT -> null;
         };
     }
 
@@ -1883,7 +1883,7 @@ public final class HintMeshRenderer {
                 (int) Math.round(right - left), (int) Math.round(bottom - top));
     }
 
-    private static QBrush sweptBrush(HintGradientColor color, double opacity, Rectangle area,
+    private static QBrush sweptBrush(GradientColor color, double opacity, Rectangle area,
                                      Point origin) {
         Point start = color.direction().start(area);
         Point end = color.direction().end(area);
@@ -1898,16 +1898,16 @@ public final class HintMeshRenderer {
                 hint.keySequence().subList(0, hintMesh.prefixLength()));
     }
 
-    private static Rectangle areaNarrowedToGroup(HintGradientColor color, Rectangle area,
+    private static Rectangle areaNarrowedToGroup(GradientColor color, Rectangle area,
                                                  HintGroup hintGroup) {
-        return color.area() == HintGradientArea.SUBGRID && hintGroup != null ?
+        return color.area() == GradientArea.GROUP && hintGroup != null ?
                 hintGroup.centerArea() : area;
     }
 
-    private static QBrush sampledBrush(HintGradientColor color, double opacity, Rectangle area,
+    private static QBrush sampledBrush(GradientColor color, double opacity, Rectangle area,
                                        HintGroup hintGroup, Hint hint) {
         Rectangle sampledArea = areaNarrowedToGroup(color, area, hintGroup);
-        Point sampled = color.step() == HintGradientStep.SUBGRID && hintGroup != null ?
+        Point sampled = color.step() == GradientStep.GROUP && hintGroup != null ?
                 hintGroup.centerArea().center() :
                 new Point(hint.centerX(), hint.centerY());
         return QtColorUtil.qBrush(color, opacity,
@@ -3762,10 +3762,10 @@ public final class HintMeshRenderer {
         HintMesh lastHintMeshKey = hintMeshWindow.lastHintMeshKeyReference().get();
         HintMeshStyle style =
                 lastHintMeshKey.styleByFilter().get(ScreenFilter.of(screen));
-        HintGradientColor boxColor = style.boxColor();
+        GradientColor boxColor = style.boxColor();
         Rectangle boxColorArea = gradientArea(boxColor.area(), hintMeshWindow, lastHintMeshKey);
         lastSelectedHintBoxHexColor = Color.hexColor(boxColorArea == null ?
-                boxColor.rgbAt(HintGradientColor.unitArea, 0.5, 0.5) :
+                boxColor.rgbAt(GradientColor.unitArea, 0.5, 0.5) :
                 boxColor.rgbAt(boxColorArea, hint.centerX(), hint.centerY()));
         if (!style.transitionAnimationEnabled())
             return;

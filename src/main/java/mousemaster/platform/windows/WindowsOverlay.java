@@ -401,7 +401,9 @@ public class WindowsOverlay implements Overlay {
                 indicatorRenderer = new IndicatorRenderer();
             IndicatorRenderer.CursorImage image =
                     indicatorRenderer.renderCursorImage(indicator, scale,
-                            hintMeshRenderer.lastSelectedHintBoxHexColor());
+                            hintMeshRenderer.lastSelectedHintBoxHexColor(),
+                            mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
+                            WindowsScreen.findActiveScreen(mousePosition));
             if (image == null)
                 return;
             mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
@@ -603,7 +605,9 @@ public class WindowsOverlay implements Overlay {
             if (scale != currentCursorScale && currentCursorIndicator != null) {
                 IndicatorRenderer.CursorImage image =
                         indicatorRenderer.renderCursorImage(currentCursorIndicator, scale,
-                                hintMeshRenderer.lastSelectedHintBoxHexColor());
+                                hintMeshRenderer.lastSelectedHintBoxHexColor(),
+                                mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
+                                WindowsScreen.findActiveScreen(mousePosition));
                 if (image != null) {
                     mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
                             currentIncludeOriginalCursor, true);

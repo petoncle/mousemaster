@@ -7,7 +7,7 @@ import java.util.List;
 public record HintMeshStyle(HintFontStyle fontStyle,
                             boolean prefixInBackground,
                             HintFontStyle prefixFontStyle,
-                            HintGradientColor boxColor,
+                            GradientColor boxColor,
                             double boxOpacity,
                             double boxBorderThickness,
                             double boxBorderLength,
@@ -44,7 +44,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private HintFontStyle.HintFontStyleBuilder fontStyle = new HintFontStyle.HintFontStyleBuilder();
         private Boolean prefixInBackground;
         private HintFontStyle.HintFontStyleBuilder prefixFontStyle = new HintFontStyle.HintFontStyleBuilder();
-        private HintGradientColor boxColor;
+        private GradientColor boxColor;
         private Double boxOpacity;
         private Double boxBorderThickness;
         private Double boxBorderLength;
@@ -123,7 +123,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
-        public HintMeshStyleBuilder boxColor(HintGradientColor boxColor) {
+        public HintMeshStyleBuilder boxColor(GradientColor boxColor) {
             this.boxColor = boxColor;
             return this;
         }
@@ -278,7 +278,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return prefixFontStyle;
         }
 
-        public HintGradientColor boxColor() {
+        public GradientColor boxColor() {
             return boxColor;
         }
 

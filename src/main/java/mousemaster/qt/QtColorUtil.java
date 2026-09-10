@@ -3,7 +3,7 @@ package mousemaster.qt;
 import io.qt.core.Qt;
 import io.qt.gui.*;
 import mousemaster.Color;
-import mousemaster.HintGradientColor;
+import mousemaster.GradientColor;
 import mousemaster.Point;
 import mousemaster.Rectangle;
 import mousemaster.Shadow;
@@ -49,21 +49,21 @@ public final class QtColorUtil {
         });
     }
 
-    private record GradientKey(HintGradientColor color, double opacity, double startX,
+    private record GradientKey(GradientColor color, int alpha, double startX,
                                double startY, double endX, double endY) {
     }
 
     private static final Map<GradientKey, QBrush> brushByGradient = new HashMap<>();
 
     /** One sweep inside every shape it fills, whatever that shape's size and position. */
-    public static QBrush qBrush(HintGradientColor color, double opacity) {
-        Rectangle unit = HintGradientColor.unitArea;
+    public static QBrush qBrush(GradientColor color, double opacity) {
+        Rectangle unit = GradientColor.unitArea;
         return gradientQBrush(color, opacity, color.direction().start(unit),
                 color.direction().end(unit), QGradient.CoordinateMode.ObjectBoundingMode);
     }
 
     /** A round sweep takes its extent from the second point: a radius, or two semi-axes. */
-    private static QGradient gradient(HintGradientColor color, double startX, double startY,
+    private static QGradient gradient(GradientColor color, double startX, double startY,
                                       double endX, double endY) {
         return switch (color.direction().shape()) {
             case STRAIGHT -> new QLinearGradient(startX, startY, endX, endY);
@@ -76,9 +76,9 @@ public final class QtColorUtil {
     }
 
     /** Qt has no elliptical gradient, so a circular one is squashed onto the area's shape. */
-    private static void fitToArea(QBrush brush, HintGradientColor color, double startX,
+    private static void fitToArea(QBrush brush, GradientColor color, double startX,
                                   double startY, double endX, double endY) {
-        if (color.direction().shape() != HintGradientColor.HintGradientShape.ELLIPSE ||
+        if (color.direction().shape() != GradientColor.GradientShape.ELLIPSE ||
             endX == startX || endY == startY)
             return;
         QTransform transform = new QTransform();
@@ -90,51 +90,57 @@ public final class QtColorUtil {
     }
 
     /** One sweep between two points of the painter's space, which shapes take their slice of. */
-    public static QBrush qBrush(HintGradientColor color, double opacity, Point start,
+    public static QBrush qBrush(GradientColor color, double opacity, Point start,
                                 Point end) {
         return gradientQBrush(color, opacity, start, end,
                 QGradient.CoordinateMode.LogicalMode);
     }
 
-    private static QBrush gradientQBrush(HintGradientColor color, double opacity, Point start,
+    private static QBrush gradientQBrush(GradientColor color, double opacity, Point start,
                                          Point end, QGradient.CoordinateMode coordinateMode) {
         return brushByGradient.computeIfAbsent(
-                new GradientKey(color, opacity, start.x(), start.y(), end.x(), end.y()), key -> {
-                    QGradient gradient = gradient(color, key.startX(), key.startY(), key.endX(),
-                            key.endY());
-                    gradient.setCoordinateMode(coordinateMode);
-                    // Qt runs a round sweep outward whatever its points, so it reverses its colors.
-                    boolean reversed = color.direction().inverted();
-                    // Qt copies what it is given, so the temporaries are freed here rather than
-                    // on the cleanup thread.
-                    QColor stopColor = new QColor();
-                    for (int step = 0; step < HintGradientColor.rampSteps; step++) {
-                        double sweepPosition =
-                                (double) step / (HintGradientColor.rampSteps - 1);
-                        stopColor.setRgba(rgba(
-                                color.rgbAt(reversed ? 1 - sweepPosition : sweepPosition),
-                                opacity));
-                        gradient.setColorAt(sweepPosition, stopColor);
-                    }
-                    stopColor.dispose();
-                    QBrush brush = new QBrush(gradient);
-                    gradient.dispose();
-                    fitToArea(brush, color, key.startX(), key.startY(), key.endX(), key.endY());
-                    return brush;
-                });
+                new GradientKey(color, alpha(opacity), start.x(), start.y(), end.x(), end.y()),
+                key -> gradientBrush(color, key.alpha(), key.startX(), key.startY(), key.endX(),
+                        key.endY(), coordinateMode));
     }
 
-    private record SweepKey(HintGradientColor color, double opacity, int step) {
+    private static QBrush gradientBrush(GradientColor color, int alpha, double startX,
+                                        double startY, double endX, double endY,
+                                        QGradient.CoordinateMode coordinateMode) {
+        QGradient gradient = gradient(color, startX, startY, endX,
+                endY);
+        gradient.setCoordinateMode(coordinateMode);
+        // Qt runs a round sweep outward whatever its points, so it reverses its colors.
+        boolean reversed = color.direction().inverted();
+        // Qt copies what it is given, so the temporaries are freed here rather than
+        // on the cleanup thread.
+        QColor stopColor = new QColor();
+        for (int step = 0; step < GradientColor.rampSteps; step++) {
+            double sweepPosition =
+                    (double) step / (GradientColor.rampSteps - 1);
+            stopColor.setRgba(rgba(
+                    color.rgbAt(reversed ? 1 - sweepPosition : sweepPosition),
+                    alpha));
+            gradient.setColorAt(sweepPosition, stopColor);
+        }
+        stopColor.dispose();
+        QBrush brush = new QBrush(gradient);
+        gradient.dispose();
+        fitToArea(brush, color, startX, startY, endX, endY);
+        return brush;
+    }
+
+    private record SweepKey(GradientColor color, int alpha, int step) {
     }
 
     private static final Map<SweepKey, QBrush> brushBySweepStep = new HashMap<>();
 
-    public static QBrush qBrush(HintGradientColor color, double opacity, double sweepPosition) {
+    public static QBrush qBrush(GradientColor color, double opacity, double sweepPosition) {
         int step = (int) Math.round(Math.clamp(sweepPosition, 0, 1) *
-                                   (HintGradientColor.rampSteps - 1));
-        return brushBySweepStep.computeIfAbsent(new SweepKey(color, opacity, step),
+                                   (GradientColor.rampSteps - 1));
+        return brushBySweepStep.computeIfAbsent(new SweepKey(color, alpha(opacity), step),
                 key -> qBrush(rgba(color.rgbAt(
-                        (double) step / (HintGradientColor.rampSteps - 1)), opacity)));
+                        (double) step / (GradientColor.rampSteps - 1)), key.alpha())));
     }
 
     /** Dropped rather than freed outright: shown hint boxes hold these, so Qt frees each only once
@@ -187,8 +193,15 @@ public final class QtColorUtil {
     }
 
     public static int rgba(int rgb, double opacity) {
-        int alpha = opacity > 0 ? Math.max(1, (int) (opacity * 255) & 0xFF) : 0;
+        return rgba(rgb, alpha(opacity));
+    }
+
+    public static int rgba(int rgb, int alpha) {
         return (alpha << 24) | (rgb & 0xFFFFFF);
+    }
+
+    public static int alpha(double opacity) {
+        return opacity > 0 ? Math.max(1, (int) (opacity * 255) & 0xFF) : 0;
     }
 
     public static int alphaMultiplied(int color, double opacity) {

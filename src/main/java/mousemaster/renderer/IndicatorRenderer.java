@@ -6,6 +6,8 @@ import io.qt.core.*;
 import io.qt.gui.*;
 import io.qt.widgets.*;
 import mousemaster.*;
+import mousemaster.GradientColor.GradientArea;
+import mousemaster.GradientColor.GradientStep;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -24,6 +26,9 @@ public final class IndicatorRenderer {
     private IndicatorWidget widget;
     private IndicatorLabelWidget labelWidget;
     private IndicatorConfiguration currentIndicator;
+    private Rectangle gradientArea;
+    private Point gradientPoint;
+    private Point widgetOrigin;
     private int maxIndicatorWindowSize;
     private FadeAnimator fadeAnimator;
     private boolean showing;
@@ -61,6 +66,34 @@ public final class IndicatorRenderer {
         return currentIndicator;
     }
 
+    private void setGradientSampling(Rectangle mouseRectangle, Point cursorVisualCenter,
+                                     Screen activeScreen) {
+        gradientArea = activeScreen.rectangle();
+        gradientPoint = new Point(mouseRectangle.x() + cursorVisualCenter.x(),
+                mouseRectangle.y() + cursorVisualCenter.y());
+    }
+
+    private String hex(Color color, String lastSelectedHintBoxHexColor) {
+        return sweep(color) == null && color instanceof GradientColor gradientColor &&
+               gradientColor.gradient() ?
+                Color.hexColor(gradientColor.rgbAt(gradientArea, gradientPoint.x(),
+                        gradientPoint.y())) :
+                color.hexColor(lastSelectedHintBoxHexColor);
+    }
+
+    /** The sweep is cached per extent, and a screen wide ramp shifted by less than this is
+     *  not a different one. */
+    private static final int sweepGrid = 64;
+
+    private static int snapped(double coordinate) {
+        return (int) Math.round(coordinate / sweepGrid) * sweepGrid;
+    }
+
+    private static GradientColor sweep(Color color) {
+        return color instanceof GradientColor gradientColor && gradientColor.gradient() &&
+               gradientColor.step() == GradientStep.PIXEL ? gradientColor : null;
+    }
+
     private int indicatorSize(IndicatorConfiguration indicator, double screenScale) {
         // An odd size puts the center of a centered indicator half a pixel off, so it would
         // shift as the size changes parity.
@@ -96,6 +129,7 @@ public final class IndicatorRenderer {
                              IndicatorConfiguration transitionTo, boolean allowFade,
                              Rectangle mouseRectangle, Point cursorVisualCenter,
                              Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
+        setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
         IndicatorConfiguration oldIndicator = currentIndicator;
         if (showing && oldIndicator != null && oldIndicator.equals(indicator))
             return;
@@ -220,13 +254,19 @@ public final class IndicatorRenderer {
     /** Renders the indicator's widget tree into a premultiplied-ARGB image for use as the
      *  system cursor, centered on the indicator's visual center. */
     public CursorImage renderCursorImage(IndicatorConfiguration indicator, double scale,
-                                         String lastSelectedHintBoxHexColor) {
+                                         String lastSelectedHintBoxHexColor,
+                                         Rectangle mouseRectangle, Point cursorVisualCenter,
+                                         Screen activeScreen) {
+        setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
         int size = indicatorSize(indicator, scale);
         if (size <= 0)
             return null;
         int outlinePadding = indicatorOutlinePadding(indicator, scale);
         int shadowPadding = indicatorShadowPadding(indicator, scale);
         int imageSize = size + 2 * (outlinePadding + shadowPadding);
+        int widgetSize = size + 2 * outlinePadding;
+        widgetOrigin = new Point(gradientPoint.x() - widgetSize / 2.0,
+                gradientPoint.y() - widgetSize / 2.0);
         window();
         applyIndicator(indicator, true, scale, lastSelectedHintBoxHexColor);
         sizeWidgetsForRender(size, outlinePadding, shadowPadding, scale);
@@ -296,20 +336,26 @@ public final class IndicatorRenderer {
         currentIndicator = indicator;
         if (applyShadow)
             applyShadowEffect(shadowScale, lastSelectedHintBoxHexColor);
+        widget.setSweepArea(new Rectangle(snapped(gradientArea.x() - widgetOrigin.x()),
+                snapped(gradientArea.y() - widgetOrigin.y()),
+                gradientArea.width(), gradientArea.height()));
         widget.cleared = false;
         widget.setEdgeCount(indicator.edgeCount());
         widget.setColor(indicator.opacity() > 0
-                ? QtColorUtil.qColor(indicator.color().hexColor(lastSelectedHintBoxHexColor), 1) : new QColor(0, 0, 0, 0));
+                ? QtColorUtil.qColor(hex(indicator.color(), lastSelectedHintBoxHexColor), 1) : new QColor(0, 0, 0, 0),
+                sweep(indicator.color()));
         IndicatorOutline outer = indicator.outerOutline();
         IndicatorOutline inner = indicator.innerOutline();
         widget.setOutlines(
                 outer.thickness(),
-                outer.opacity() > 0 ? QtColorUtil.qColor(outer.color().hexColor(lastSelectedHintBoxHexColor), 1) : new QColor(0, 0, 0, 0),
+                outer.opacity() > 0 ? QtColorUtil.qColor(hex(outer.color(), lastSelectedHintBoxHexColor), 1) : new QColor(0, 0, 0, 0),
+                sweep(outer.color()),
                 outer.fillPercent(),
                 outer.fillStartAngle(),
                 outer.fillDirection(),
                 inner.thickness(),
-                inner.opacity() > 0 ? QtColorUtil.qColor(inner.color().hexColor(lastSelectedHintBoxHexColor), 1) : new QColor(0, 0, 0, 0),
+                inner.opacity() > 0 ? QtColorUtil.qColor(hex(inner.color(), lastSelectedHintBoxHexColor), 1) : new QColor(0, 0, 0, 0),
+                sweep(inner.color()),
                 inner.fillPercent(),
                 inner.fillStartAngle(),
                 inner.fillDirection());
@@ -319,13 +365,13 @@ public final class IndicatorRenderer {
             indicator.labelFontStyle() != null) {
             FontStyle labelFontStyle = indicator.labelFontStyle();
             QFont labelFont = QtHintFont.qFont(labelFontStyle.name(), labelFontStyle.size(), labelFontStyle.weight());
-            QColor labelColor = QtColorUtil.qColor(labelFontStyle.color().hexColor(lastSelectedHintBoxHexColor), labelFontStyle.opacity());
-            QColor labelOutlineColor = QtColorUtil.qColor(labelFontStyle.outlineColor().hexColor(lastSelectedHintBoxHexColor), labelFontStyle.outlineOpacity());
+            QColor labelColor = QtColorUtil.qColor(hex(labelFontStyle.color(), lastSelectedHintBoxHexColor), labelFontStyle.opacity());
+            QColor labelOutlineColor = QtColorUtil.qColor(hex(labelFontStyle.outlineColor(), lastSelectedHintBoxHexColor), labelFontStyle.outlineOpacity());
             labelWidget.setLabel(indicator.labelText(), labelFont, labelColor,
                     (int) Math.round(labelFontStyle.outlineThickness()), labelOutlineColor,
                     indicator.edgeCount());
             Shadow labelShadow = labelFontStyle.shadow();
-            QColor labelShadowColor = QtColorUtil.qColor(labelShadow.color().hexColor(lastSelectedHintBoxHexColor), labelShadow.opacity());
+            QColor labelShadowColor = QtColorUtil.qColor(hex(labelShadow.color(), lastSelectedHintBoxHexColor), labelShadow.opacity());
             if (labelShadowColor.alpha() != 0) {
                 StackedShadowEffect effect = new StackedShadowEffect();
                 effect.setBlurRadius(labelShadow.blurRadius() * shadowScale);
@@ -370,6 +416,7 @@ public final class IndicatorRenderer {
                                int visualTopLeftX, int visualTopLeftY,
                                int size, int outlinePadding, int shadowPadding,
                                double outlineScale) {
+        widgetOrigin = new Point(visualTopLeftX, visualTopLeftY);
         widget.setOutlineScale(outlineScale);
         // Never resize the window: the DWM compositor would show the old surface at the new
         // size for one frame, mispositioning the indicator. It fits the largest indicator drawn
@@ -434,14 +481,14 @@ public final class IndicatorRenderer {
         IndicatorOutline outer = currentIndicator.outerOutline();
         IndicatorOutline inner = currentIndicator.innerOutline();
         effect.setColors(
-                QtColorUtil.qColor(currentIndicator.color().hexColor(lastSelectedHintBoxHexColor), currentIndicator.opacity()),
-                QtColorUtil.qColor(outer.color().hexColor(lastSelectedHintBoxHexColor), outer.opacity()),
-                QtColorUtil.qColor(inner.color().hexColor(lastSelectedHintBoxHexColor), inner.opacity()));
+                QtColorUtil.qColor(hex(currentIndicator.color(), lastSelectedHintBoxHexColor), currentIndicator.opacity()),
+                QtColorUtil.qColor(hex(outer.color(), lastSelectedHintBoxHexColor), outer.opacity()),
+                QtColorUtil.qColor(hex(inner.color(), lastSelectedHintBoxHexColor), inner.opacity()));
     }
 
     private void applyShadowEffect(double scale, String lastSelectedHintBoxHexColor) {
         Shadow shadow = currentIndicator.shadow();
-        QColor baseColor = QtColorUtil.qColor(shadow.color().hexColor(lastSelectedHintBoxHexColor), 1.0);
+        QColor baseColor = QtColorUtil.qColor(hex(shadow.color(), lastSelectedHintBoxHexColor), 1.0);
         boolean hasShadow = shadow.opacity() > 0 && shadow.blurRadius() > 0;
         if (hasShadow) {
             // Reused rather than replaced: installing a graphics effect sets up Qt machinery
@@ -496,6 +543,10 @@ public final class IndicatorRenderer {
         private FillDirection outerOutlineFillDirection;
         private double innerOutlineThickness;
         private QColor innerOutlineColor;
+        private GradientColor sweep;
+        private GradientColor outerOutlineSweep;
+        private GradientColor innerOutlineSweep;
+        private Rectangle sweepArea;
         private double innerOutlineFillPercent;
         private double innerOutlineFillStartAngle;
         private FillDirection innerOutlineFillDirection;
@@ -511,10 +562,11 @@ public final class IndicatorRenderer {
             this.outlineScale = outlineScale;
         }
 
-        void setColor(QColor color) {
+        void setColor(QColor color, GradientColor sweep) {
             if (this.color != null)
                 this.color.dispose();
             this.color = color;
+            this.sweep = sweep;
         }
 
         void setEdgeCount(int edgeCount) {
@@ -522,10 +574,12 @@ public final class IndicatorRenderer {
         }
 
         void setOutlines(double outerOutlineThickness, QColor outerOutlineColor,
+                         GradientColor outerOutlineSweep,
                          double outerOutlineFillPercent,
                          double outerOutlineFillStartAngle,
                          FillDirection outerOutlineFillDirection,
                          double innerOutlineThickness, QColor innerOutlineColor,
+                         GradientColor innerOutlineSweep,
                          double innerOutlineFillPercent,
                          double innerOutlineFillStartAngle,
                          FillDirection innerOutlineFillDirection) {
@@ -535,11 +589,13 @@ public final class IndicatorRenderer {
                 this.innerOutlineColor.dispose();
             this.outerOutlineThickness = outerOutlineThickness;
             this.outerOutlineColor = outerOutlineColor;
+            this.outerOutlineSweep = outerOutlineSweep;
             this.outerOutlineFillPercent = outerOutlineFillPercent;
             this.outerOutlineFillStartAngle = outerOutlineFillStartAngle;
             this.outerOutlineFillDirection = outerOutlineFillDirection;
             this.innerOutlineThickness = innerOutlineThickness;
             this.innerOutlineColor = innerOutlineColor;
+            this.innerOutlineSweep = innerOutlineSweep;
             this.innerOutlineFillPercent = innerOutlineFillPercent;
             this.innerOutlineFillStartAngle = innerOutlineFillStartAngle;
             this.innerOutlineFillDirection = innerOutlineFillDirection;
@@ -580,6 +636,19 @@ public final class IndicatorRenderer {
         private double correctedOutlineThickness(double visualThickness) {
             double cos = Math.cos(Math.PI / edgeCount);
             return (2 * visualThickness - (1 - cos)) / (1 + cos);
+        }
+
+        private QBrush brush(QColor color, GradientColor sweep) {
+            if (sweep == null)
+                return QtColorUtil.qBrush(color);
+            if (sweep.area() == GradientArea.ELEMENT)
+                return QtColorUtil.qBrush(sweep, color.alphaF());
+            return QtColorUtil.qBrush(sweep, color.alphaF(),
+                    sweep.direction().start(sweepArea), sweep.direction().end(sweepArea));
+        }
+
+        void setSweepArea(Rectangle sweepArea) {
+            this.sweepArea = sweepArea;
         }
 
         double maxOutlineThickness() {
@@ -808,7 +877,7 @@ public final class IndicatorRenderer {
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
             QColor clearColor = new QColor(0, 0, 0);
             drawOutline(painter, centerX, centerY, fillRadius,
-                    thickness, clearColor, fillPercent,
+                    thickness, clearColor, null, fillPercent,
                     fillStartAngle, fillDirection, 1.0);
             clearColor.dispose();
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
@@ -816,6 +885,7 @@ public final class IndicatorRenderer {
 
         private void drawOutline(QPainter painter, double centerX, double centerY,
                                  double fillRadius, double thickness, QColor color,
+                                 GradientColor sweep,
                                  double fillPercent, double fillStartAngle,
                                  FillDirection fillDirection, double inwardOverlap) {
             if (thickness <= 0 || color == null || color.alpha() == 0 || fillPercent <= 0)
@@ -825,6 +895,8 @@ public final class IndicatorRenderer {
             // rather than with a different-colored outline underneath.
             double effectiveThickness = thickness + inwardOverlap;
             QPen pen = new QPen(color);
+            if (sweep != null)
+                pen.setBrush(brush(color, sweep));
             pen.setWidthF(effectiveThickness);
             pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin);
             painter.setBrush(Qt.BrushStyle.NoBrush);
@@ -896,19 +968,15 @@ public final class IndicatorRenderer {
                     painter.setCompositionMode(
                             QPainter.CompositionMode.CompositionMode_Source);
                     painter.setPen(Qt.PenStyle.NoPen);
-                    QBrush fillBrush = new QBrush(fillColor);
-                    painter.setBrush(fillBrush);
+                    painter.setBrush(brush(fillColor, sweep));
                     painter.drawPath(fillPath);
-                    fillBrush.dispose();
                     painter.setCompositionMode(
                             QPainter.CompositionMode.CompositionMode_SourceOver);
                 }
                 else {
                     painter.setPen(Qt.PenStyle.NoPen);
-                    QBrush fillBrush = new QBrush(fillColor);
-                    painter.setBrush(fillBrush);
+                    painter.setBrush(brush(fillColor, sweep));
                     painter.drawPath(fillPath);
-                    fillBrush.dispose();
                 }
             }
             // Draw outer outline on top of fill.
@@ -922,7 +990,7 @@ public final class IndicatorRenderer {
                         outerOutlineFillStartAngle, outerOutlineFillDirection);
             }
             drawOutline(painter, centerX, centerY, fillRadius,
-                    correctedOuter, outerOutlineColor, outerOutlineFillPercent,
+                    correctedOuter, outerOutlineColor, outerOutlineSweep, outerOutlineFillPercent,
                     outerOutlineFillStartAngle, outerOutlineFillDirection, 1.0);
             // Draw inner outline on top of outer outline. Compute a larger
             // inwardOverlap so the inner outline's inner miter tip extends
@@ -952,7 +1020,7 @@ public final class IndicatorRenderer {
                         innerOutlineFillStartAngle, innerOutlineFillDirection);
             }
             drawOutline(painter, centerX, centerY, fillRadius,
-                    correctedInner, innerOutlineColor, innerOutlineFillPercent,
+                    correctedInner, innerOutlineColor, innerOutlineSweep, innerOutlineFillPercent,
                     innerOutlineFillStartAngle, innerOutlineFillDirection, innerInwardOverlap);
             fillPath.dispose();
         }

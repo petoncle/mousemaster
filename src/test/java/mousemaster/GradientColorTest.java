@@ -3,9 +3,9 @@ package mousemaster;
 import io.qt.core.Qt;
 import io.qt.gui.QImage;
 import io.qt.gui.QPainter;
-import mousemaster.HintGradientColor.HintGradientArea;
-import mousemaster.HintGradientColor.HintGradientDirection;
-import mousemaster.HintGradientColor.HintGradientStep;
+import mousemaster.GradientColor.GradientArea;
+import mousemaster.GradientColor.GradientDirection;
+import mousemaster.GradientColor.GradientStep;
 import mousemaster.qt.QtColorUtil;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -19,13 +19,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-class HintGradientColorTest {
+class GradientColorTest {
 
     private static final Rectangle area = new Rectangle(100, 200, 400, 800);
 
     @Test
     void oneColorIsSolid() {
-        HintGradientColor color = HintGradientColor.parse("#FF00AA");
+        GradientColor color = GradientColor.parse("#FF00AA");
         assertFalse(color.gradient());
         assertEquals("#FF00AA", color.hexColor());
         assertEquals(0xFF00AA, color.rgbAt(area, 300, 1000));
@@ -33,25 +33,25 @@ class HintGradientColorTest {
 
     @Test
     void keywordsAreOrderFree() {
-        HintGradientColor color =
-                HintGradientColor.parse("#FF0000 per-subgrid #0000FF across-screen right-to-left");
+        GradientColor color =
+                GradientColor.parse("#FF0000 per-subgrid #0000FF across-screen right-to-left");
         assertEquals(List.of("#FF0000", "#0000FF"), color.hexColors());
-        assertEquals(HintGradientDirection.RIGHT_TO_LEFT, color.direction());
-        assertEquals(HintGradientArea.SCREEN, color.area());
-        assertEquals(HintGradientStep.SUBGRID, color.step());
+        assertEquals(GradientDirection.RIGHT_TO_LEFT, color.direction());
+        assertEquals(GradientArea.SCREEN, color.area());
+        assertEquals(GradientStep.GROUP, color.step());
     }
 
     @Test
     void defaultsAreAreaTopToBottomPerHint() {
-        HintGradientColor color = HintGradientColor.parse("#FF0000 #0000FF");
-        assertEquals(HintGradientDirection.TOP_TO_BOTTOM, color.direction());
-        assertEquals(HintGradientArea.AREA, color.area());
-        assertEquals(HintGradientStep.HINT, color.step());
+        GradientColor color = GradientColor.parse("#FF0000 #0000FF");
+        assertEquals(GradientDirection.TOP_TO_BOTTOM, color.direction());
+        assertEquals(GradientArea.AREA, color.area());
+        assertEquals(GradientStep.ELEMENT, color.step());
     }
 
     @Test
     void stopsSitAtTheAreaEdgesAndAreEvenlySpaced() {
-        HintGradientColor color = HintGradientColor.parse("#FF0000 #00FF00 #0000FF");
+        GradientColor color = GradientColor.parse("#FF0000 #00FF00 #0000FF");
         assertEquals(0xFF0000, color.rgbAt(area, 300, 200));
         assertEquals(0x00FF00, color.rgbAt(area, 300, 600));
         assertEquals(0x0000FF, color.rgbAt(area, 300, 1000));
@@ -60,21 +60,21 @@ class HintGradientColorTest {
     /** Through OkLab, so red to green passes through gold rather than through olive mud. */
     @Test
     void betweenTwoColorsTheSweepKeepsItsLightness() {
-        assertEquals(0xD0A800, HintGradientColor.parse("#FF0000 #00FF00").rgbAt(0.5));
-        assertEquals(0x6CABC7, HintGradientColor.parse("#FFFF00 #0000FF").rgbAt(0.5));
-        assertEquals(0x636363, HintGradientColor.parse("#000000 #FFFFFF").rgbAt(0.5));
+        assertEquals(0xD0A800, GradientColor.parse("#FF0000 #00FF00").rgbAt(0.5));
+        assertEquals(0x6CABC7, GradientColor.parse("#FFFF00 #0000FF").rgbAt(0.5));
+        assertEquals(0x636363, GradientColor.parse("#000000 #FFFFFF").rgbAt(0.5));
     }
 
     @Test
     void aPointOutsideTheAreaClampsToAStop() {
-        HintGradientColor color = HintGradientColor.parse("#FF0000 #0000FF");
+        GradientColor color = GradientColor.parse("#FF0000 #0000FF");
         assertEquals(0xFF0000, color.rgbAt(area, 300, -5000));
         assertEquals(0x0000FF, color.rgbAt(area, 300, 5000));
     }
 
     @Test
     void aDirectionPicksItsAxis() {
-        HintGradientColor color = HintGradientColor.parse("left-to-right #FF0000 #0000FF");
+        GradientColor color = GradientColor.parse("left-to-right #FF0000 #0000FF");
         assertEquals(0xFF0000, color.rgbAt(area, 100, 600));
         assertEquals(0x0000FF, color.rgbAt(area, 500, 600));
         assertEquals(0xFF0000, color.rgbAt(area, 100, 1000));
@@ -82,8 +82,8 @@ class HintGradientColorTest {
 
     @Test
     void aRoundSweepRunsOutFromTheAreaCenter() {
-        HintGradientColor color = HintGradientColor.parse("center-to-corner #FF0000 #0000FF");
-        assertEquals(HintGradientColor.HintGradientShape.CIRCLE, color.direction().shape());
+        GradientColor color = GradientColor.parse("center-to-corner #FF0000 #0000FF");
+        assertEquals(GradientColor.GradientShape.CIRCLE, color.direction().shape());
         assertEquals(0xFF0000, color.rgbAt(area, 300, 600));
         assertEquals(0x0000FF, color.rgbAt(area, 500, 1000));
         assertEquals(0x0000FF, color.rgbAt(area, 100, 200));
@@ -95,8 +95,8 @@ class HintGradientColorTest {
      *  short axis never traverses the whole sweep. This area is 400x800, so that axis is x. */
     @Test
     void anEllipticalSweepReachesEveryEdge() {
-        HintGradientColor circle = HintGradientColor.parse("center-to-corner #FF0000 #0000FF");
-        HintGradientColor ellipse = HintGradientColor.parse("center-to-edge #FF0000 #0000FF");
+        GradientColor circle = GradientColor.parse("center-to-corner #FF0000 #0000FF");
+        GradientColor ellipse = GradientColor.parse("center-to-edge #FF0000 #0000FF");
         assertEquals(0.45, circle.sweepPosition(area, 100, 600), 0.01);
         assertEquals(0.89, circle.sweepPosition(area, 300, 200), 0.01);
         assertEquals(1, ellipse.sweepPosition(area, 300, 200), 0.001);
@@ -110,7 +110,7 @@ class HintGradientColorTest {
     /** A group is one column wide under the default layout, so a flat area is the common case. */
     @Test
     void anAreaFlatOnOneAxisLeavesThatAxisNothingToSay() {
-        HintGradientColor ellipse = HintGradientColor.parse("center-to-edge #FF0000 #0000FF");
+        GradientColor ellipse = GradientColor.parse("center-to-edge #FF0000 #0000FF");
         Rectangle column = new Rectangle(100, 200, 0, 800);
         assertEquals(0xFF0000, ellipse.rgbAt(column, 100, 600));
         assertEquals(0x0000FF, ellipse.rgbAt(column, 100, 1000));
@@ -123,7 +123,7 @@ class HintGradientColorTest {
     @Test
     void aFlatAreaStillRampsWhenQtPaintsIt() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
-        HintGradientColor ellipse = HintGradientColor.parse("center-to-edge #FF0000 #0000FF");
+        GradientColor ellipse = GradientColor.parse("center-to-edge #FF0000 #0000FF");
         for (Rectangle flat : new Rectangle[] {new Rectangle(0, 0, 0, 32),
                 new Rectangle(0, 0, 64, 0)}) {
             QImage image = new QImage(64, 32, QImage.Format.Format_ARGB32_Premultiplied);
@@ -140,47 +140,47 @@ class HintGradientColorTest {
 
     @Test
     void aRoundSweepReverses() {
-        HintGradientColor circle = HintGradientColor.parse("corner-to-center #FF0000 #0000FF");
+        GradientColor circle = GradientColor.parse("corner-to-center #FF0000 #0000FF");
         assertEquals(0x0000FF, circle.rgbAt(area, 300, 600));
         assertEquals(0xFF0000, circle.rgbAt(area, 500, 1000));
-        HintGradientColor ellipse = HintGradientColor.parse("edge-to-center #FF0000 #0000FF");
+        GradientColor ellipse = GradientColor.parse("edge-to-center #FF0000 #0000FF");
         assertEquals(0x0000FF, ellipse.rgbAt(area, 300, 600));
         assertEquals(0xFF0000, ellipse.rgbAt(area, 300, 200));
     }
 
     @Test
     void perPixelParses() {
-        HintGradientColor color = HintGradientColor.parse("per-pixel #FF0000 #0000FF");
-        assertEquals(HintGradientStep.PIXEL, color.step());
+        GradientColor color = GradientColor.parse("per-pixel #FF0000 #0000FF");
+        assertEquals(GradientStep.PIXEL, color.step());
     }
 
     @Test
     void acrossAreaParses() {
-        HintGradientColor color = HintGradientColor.parse("across-area #FF0000 #0000FF");
-        assertEquals(HintGradientArea.AREA, color.area());
+        GradientColor color = GradientColor.parse("across-area #FF0000 #0000FF");
+        assertEquals(GradientArea.AREA, color.area());
     }
 
     @Test
     void anInvalidTokenIsRejected() {
         assertThrows(IllegalArgumentException.class,
-                () -> HintGradientColor.parse("#FF0000 sideways #0000FF"));
+                () -> GradientColor.parse("#FF0000 sideways #0000FF"));
         assertThrows(IllegalArgumentException.class,
-                () -> HintGradientColor.parse("across-screen"));
+                () -> GradientColor.parse("across-screen"));
         assertThrows(IllegalArgumentException.class,
-                () -> HintGradientColor.parse("across-hint per-subgrid #FF0000 #0000FF"));
+                () -> GradientColor.parse("across-hint per-subgrid #FF0000 #0000FF"));
         assertThrows(IllegalArgumentException.class,
-                () -> HintGradientColor.parse("across-subgrid per-subgrid #FF0000 #0000FF"));
+                () -> GradientColor.parse("across-subgrid per-subgrid #FF0000 #0000FF"));
     }
 
     @Test
     void oneKeywordPerAxis() {
-        assertThrows(IllegalArgumentException.class, () -> HintGradientColor.parse(
+        assertThrows(IllegalArgumentException.class, () -> GradientColor.parse(
                 "right-to-left corner-to-center #FF0000 #0000FF"));
-        assertThrows(IllegalArgumentException.class, () -> HintGradientColor.parse(
+        assertThrows(IllegalArgumentException.class, () -> GradientColor.parse(
                 "across-screen across-all-hints #FF0000 #0000FF"));
-        assertThrows(IllegalArgumentException.class, () -> HintGradientColor.parse(
+        assertThrows(IllegalArgumentException.class, () -> GradientColor.parse(
                 "per-pixel per-hint #FF0000 #0000FF"));
-        assertThrows(IllegalArgumentException.class, () -> HintGradientColor.parse(
+        assertThrows(IllegalArgumentException.class, () -> GradientColor.parse(
                 "top-to-bottom top-to-bottom #FF0000 #0000FF"));
     }
 
@@ -216,8 +216,8 @@ class HintGradientColorTest {
     }
 
     private static void assertSampledMatchesPainted(String direction) {
-        HintGradientColor color =
-                HintGradientColor.parse(direction + " #FF0000 #00FF00 #0000FF");
+        GradientColor color =
+                GradientColor.parse(direction + " #FF0000 #00FF00 #0000FF");
         Rectangle imageArea = new Rectangle(0, 0, 64, 32);
         QImage image = new QImage(imageArea.width(), imageArea.height(),
                 QImage.Format.Format_ARGB32_Premultiplied);

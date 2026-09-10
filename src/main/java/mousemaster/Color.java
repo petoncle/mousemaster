@@ -1,19 +1,21 @@
 package mousemaster;
 
-public sealed interface Color {
+import java.util.Map;
+
+public sealed interface Color permits GradientColor, Color.LastSelectedHintBoxColor {
 
     String lastSelectedHintBoxColor = "last-selected-hint-box-color";
 
     String hexColor(String lastSelectedHintBoxHexColor);
 
-    static Color parse(String value) {
+    static Color parse(String value, Map<String, GradientColor> colorAliases) {
         if (value.equals(lastSelectedHintBoxColor))
             return new LastSelectedHintBoxColor();
-        if (!value.matches("^#?([a-fA-F0-9]{6})$"))
-            throw new IllegalArgumentException(
-                    "Invalid color " + value + ": a color should be in the #FFFFFF format or " +
-                    lastSelectedHintBoxColor);
-        return new HexColor(value.startsWith("#") ? value : "#" + value);
+        return GradientColor.parse(value, colorAliases);
+    }
+
+    static Color parse(String value) {
+        return parse(value, Map.of());
     }
 
     static int rgb(String hexColor) {
@@ -23,20 +25,6 @@ public sealed interface Color {
 
     static String hexColor(int rgb) {
         return String.format("#%06X", rgb);
-    }
-
-    record HexColor(String hexColor) implements Color {
-
-        @Override
-        public String hexColor(String lastSelectedHintBoxHexColor) {
-            return hexColor;
-        }
-
-        @Override
-        public String toString() {
-            return hexColor;
-        }
-
     }
 
     record LastSelectedHintBoxColor() implements Color {

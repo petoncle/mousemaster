@@ -10,7 +10,7 @@ import java.util.List;
  */
 public record Decoration(int maxRowCount, int maxColumnCount,
                          List<Key> labelKeys, List<Key> labelOverride,
-                         HintGradientColor boxColor, double boxOpacity,
+                         GradientColor boxColor, double boxOpacity,
                          double boxBorderThickness, double boxBorderLength,
                          Color boxBorderColor, double boxBorderOpacity,
                          double boxBorderRadius, boolean boxFramed,
@@ -25,7 +25,7 @@ public record Decoration(int maxRowCount, int maxColumnCount,
         private Integer maxColumnCount;
         private List<Key> labelKeys;
         private List<Key> labelOverride;
-        private HintGradientColor boxColor;
+        private GradientColor boxColor;
         private Double boxOpacity;
         private Double boxBorderThickness;
         private Double boxBorderLength;
@@ -71,7 +71,7 @@ public record Decoration(int maxRowCount, int maxColumnCount,
             return labelOverride;
         }
 
-        public HintGradientColor boxColor() {
+        public GradientColor boxColor() {
             return boxColor;
         }
 
@@ -127,7 +127,7 @@ public record Decoration(int maxRowCount, int maxColumnCount,
             return this;
         }
 
-        public DecorationBuilder boxColor(HintGradientColor boxColor) {
+        public DecorationBuilder boxColor(GradientColor boxColor) {
             this.boxColor = boxColor;
             return this;
         }

@@ -36,21 +36,21 @@ public class LastSelectedHintBoxColorTest {
     @Test
     void aHexColorIgnoresTheSelectedBox() throws IOException {
         Color color = indicatorColor(parse("#FF8800"));
-        assertEquals(new Color.HexColor("#FF8800"), color);
+        assertEquals(GradientColor.parse("#FF8800"), color);
         assertEquals("#FF8800", color.hexColor("#123456"));
     }
 
     @Test
     void aGradientIsSampledAtTheCenterOfTheBox() {
-        HintGradientColor color = HintGradientColor.parse("left-to-right #FF0000 #0000FF");
+        GradientColor color = GradientColor.parse("left-to-right #FF0000 #0000FF");
         assertEquals(color.rgbAt(0.5), color.rgbAt(new Rectangle(0, 0, 100, 100), 50, 50));
     }
 
     @Test
-    void anAcrossHintGradientStartsAtTheCenterOfTheBox() {
-        HintGradientColor color =
-                HintGradientColor.parse("across-hint center-to-edge #FF0000 #0000FF");
+    void anAcrossGradientStartsAtTheCenterOfTheBox() {
+        GradientColor color =
+                GradientColor.parse("across-hint center-to-edge #FF0000 #0000FF");
         assertEquals(0xFF0000,
-                color.rgbAt(HintGradientColor.unitArea, 0.5, 0.5));
+                color.rgbAt(GradientColor.unitArea, 0.5, 0.5));
     }
 }
