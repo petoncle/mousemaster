@@ -24,7 +24,9 @@ public record EffectFrame(int areaWidth, int areaHeight, Point anchor,
                                       double rotationY, double pivotX, double pivotY,
                                       String hexColor, double opacity, boolean filled,
                                       double thickness, double cornerRadius,
-                                      int edgeCount, double arcStart, double arcSweep) {
+                                      int edgeCount, double arcStart, double arcSweep,
+                                      double dashLength, double dashGap,
+                                      double dashOffset) {
 
     }
 

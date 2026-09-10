@@ -1,0 +1,8 @@
+-d
+/tmp/stubout2
+-implicit:class
+-sourcepath
+/tmp/qtstub2:/tmp/qtstub:/tmp/junitstub:src/main/java:src/test/java
+src/test/java/mousemaster/EffectTest.java
+src/test/java/mousemaster/EffectPropertyDocsTest.java
+src/main/java/mousemaster/renderer/EffectRenderer.java

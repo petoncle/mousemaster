@@ -2363,6 +2363,11 @@ public class ConfigurationParser {
                     layer.set(EffectProperty.PIVOT_X, pivot[0]);
                     layer.set(EffectProperty.PIVOT_Y, pivot[1]);
                 }
+                case "dash" -> {
+                    double[] dash = parseEffectDash(propertyValue);
+                    layer.set(EffectProperty.DASH_LENGTH, dash[0]);
+                    layer.set(EffectProperty.DASH_GAP, dash[1]);
+                }
                 default -> {
                     EffectProperty property = EffectProperty.byKey(layerKey);
                     if (property == null || property == EffectProperty.VISIBLE)
@@ -2460,11 +2465,25 @@ public class ConfigurationParser {
                 parseDouble(parts[1].trim(), true, -10_000, 10_000)};
     }
 
+    /** {@code dash=<on>,<off>} in pixels, or {@code solid}. */
+    private static double[] parseEffectDash(String propertyValue) {
+        if (propertyValue.equals("solid"))
+            return new double[]{0, 0};
+        String[] parts = propertyValue.split(",");
+        if (parts.length != 2)
+            throw new IllegalArgumentException(
+                    "Invalid effect dash " + propertyValue +
+                    ": expected <dash length>,<gap length> in pixels, or solid");
+        return new double[]{
+                parseDouble(parts[0].trim(), false, 0, 10_000),
+                parseDouble(parts[1].trim(), false, 0, 10_000)};
+    }
+
     /**
      * Keyframes are | separated, each one a cycle position in percent followed by the
      * values it pins: {@code 0 size=12 opacity=0.8 | 100 size=28 opacity=0}. The bare
      * keywords {@code show} and {@code hide} toggle the layer's visibility; any
-     * {@link EffectProperty} key can be pinned, plus size, pivot and easing.
+     * {@link EffectProperty} key can be pinned, plus size, pivot, dash and easing.
      */
     private static List<EffectKeyframe> parseEffectKeyframes(String effectName,
                                                              int layerNumber,
@@ -2523,6 +2542,11 @@ public class ConfigurationParser {
                         double[] pivot = parseEffectPivot(tokenValue);
                         values.put(EffectProperty.PIVOT_X, pivot[0]);
                         values.put(EffectProperty.PIVOT_Y, pivot[1]);
+                    }
+                    case "dash" -> {
+                        double[] dash = parseEffectDash(tokenValue);
+                        values.put(EffectProperty.DASH_LENGTH, dash[0]);
+                        values.put(EffectProperty.DASH_GAP, dash[1]);
                     }
                     case "easing" -> easing = parseEasing(tokenValue);
                     default -> {

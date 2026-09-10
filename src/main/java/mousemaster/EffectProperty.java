@@ -46,6 +46,11 @@ public enum EffectProperty {
     ARC_START("arc-start", Kind.NUMBER, 0d, -100_000, 100_000),
     /** Arc length in degrees, clockwise; negative sweeps counterclockwise. */
     ARC_SWEEP("arc-sweep", Kind.NUMBER, 270d, -360, 360),
+    /** Set through {@code dash=<on>,<off>} in pixels; a zero length means a solid line. */
+    DASH_LENGTH("dash-length", Kind.NUMBER, 0d, 0, 10_000),
+    DASH_GAP("dash-gap", Kind.NUMBER, 0d, 0, 10_000),
+    /** Where the dash pattern starts along the outline, in pixels: animate it to make the dashes travel. */
+    DASH_OFFSET("dash-offset", Kind.NUMBER, 0d, -1_000_000, 1_000_000),
     COLOR("color", Kind.COLOR, "#FFFFFF", 0, 0),
     /** Written as the bare keyframe keywords {@code show} and {@code hide}. */
     VISIBLE("visible", Kind.SWITCH, true, 0, 0);
@@ -91,13 +96,14 @@ public enum EffectProperty {
         StringBuilder keys = new StringBuilder();
         for (EffectProperty property : values()) {
             if (property == WIDTH || property == HEIGHT || property == PIVOT_X ||
-                property == PIVOT_Y || property == VISIBLE)
+                property == PIVOT_Y || property == DASH_LENGTH || property == DASH_GAP ||
+                property == VISIBLE)
                 continue;
             if (!keys.isEmpty())
                 keys.append(", ");
             keys.append(property.key);
         }
-        return keys + ", size, pivot";
+        return keys + ", size, pivot, dash";
     }
 
     public static double number(Map<EffectProperty, Object> values, EffectProperty property,
