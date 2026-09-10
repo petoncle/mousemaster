@@ -22,7 +22,9 @@ class EffectRecipesDocsTest {
 
     @Test
     void everyEffectRecipeInTheReferenceParses() throws IOException {
-        String reference = Files.readString(Path.of("docs/configuration-reference.md"));
+        // A Windows checkout may have CRLF line endings: normalize before matching.
+        String reference = Files.readString(Path.of("docs/configuration-reference.md"))
+                                .replace("\r\n", "\n");
         Matcher blocks = Pattern.compile("```properties\\n(.*?)```", Pattern.DOTALL).matcher(reference);
         int effectBlocks = 0;
         List<String> failures = new ArrayList<>();
