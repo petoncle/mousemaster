@@ -104,8 +104,9 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
             if (shape == null)
                 throw new IllegalArgumentException(
                         "Effect " + effectName + " layer" + layerNumber +
-                        " has no shape: expected effect." + effectName + ".layer" +
-                        layerNumber + "-shape=<" + EffectShape.names() + ">");
+                        " has no shape: every layer needs one, write effect." + effectName +
+                        ".layer" + layerNumber + "-shape=<shape> with one of " +
+                        EffectShape.names());
             Map<EffectProperty, Object> values = new EnumMap<>(EffectProperty.class);
             for (EffectProperty property : EffectProperty.values()) {
                 Object value = base.get(property);
@@ -120,13 +121,14 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
             if (shape == EffectShape.TEXT && text.build().text() == null)
                 throw new IllegalArgumentException(
                         "Effect " + effectName + " layer" + layerNumber +
-                        " is a text layer without text: expected effect." + effectName +
-                        ".layer" + layerNumber + "-text=<text>");
+                        " is a text layer but has nothing to say: add effect." + effectName +
+                        ".layer" + layerNumber + "-text=<the text to show>");
             if (shape != EffectShape.TEXT && !text.isEmpty())
                 throw new IllegalArgumentException(
                         "Effect " + effectName + " layer" + layerNumber +
-                        " has text settings (text, font-name, font-weight, font-italic, " +
-                        "text-align) but its shape is not text");
+                        " has text settings (text, font-name, font-weight, font-italic," +
+                        " text-align) but draws a " + shape.name().toLowerCase() + ": those" +
+                        " settings only apply to layer" + layerNumber + "-shape=text");
             List<EffectKeyframe> resolvedKeyframes = new ArrayList<>();
             double previousPercent = -1;
             for (EffectKeyframe keyframe : keyframes == null ? List.<EffectKeyframe>of() : keyframes) {
@@ -135,16 +137,17 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
                     percent = 100 * keyframe.percent() / Math.max(1, cycle.toMillis());
                     if (percent > 100)
                         throw new IllegalArgumentException(
-                                "Effect " + effectName + " layer" + layerNumber + " keyframe at " +
-                                (long) keyframe.percent() + "ms is beyond the effect's " +
-                                "duration-millis=" + cycle.toMillis());
+                                "Effect " + effectName + " layer" + layerNumber + " has a keyframe at " +
+                                (long) keyframe.percent() + "ms, but one cycle of the effect only" +
+                                " lasts duration-millis=" + cycle.toMillis() + ": move the keyframe" +
+                                " earlier or make the duration longer");
                 }
                 if (percent <= previousPercent)
                     throw new IllegalArgumentException(
                             "Effect " + effectName + " layer" + layerNumber +
-                            " keyframe positions must be increasing (found " +
-                            (keyframe.inMillis() ? (long) keyframe.percent() + "ms" : keyframe.percent()) +
-                            " after " + previousPercent + "%)");
+                            " keyframes must be in time order, each later than the previous:" +
+                            " found " + (keyframe.inMillis() ? (long) keyframe.percent() + "ms" :
+                            keyframe.percent() + "%") + " after " + previousPercent + "%");
                 previousPercent = percent;
                 resolvedKeyframes.add(keyframe.atPercent(percent));
             }
