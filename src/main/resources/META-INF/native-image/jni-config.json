@@ -805,7 +805,7 @@
 },
 {
   "name":"mousemaster.renderer.EffectRenderer$EffectWidget",
-  "methods":[{"name":"clearFrames","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"showFrames","parameterTypes":["java.util.List","double"] }]
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
 },
 {
   "name":"mousemaster.renderer.GridRenderer$GridWidget",
