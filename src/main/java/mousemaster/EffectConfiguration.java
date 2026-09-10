@@ -96,8 +96,8 @@ public record EffectConfiguration(Duration duration, int repeatCount, boolean al
         public EffectConfiguration build(String effectName) {
             if (layerByNumber.isEmpty())
                 throw new IllegalArgumentException(
-                        "Effect " + effectName + " has no layers: expected at least " +
-                        "effect." + effectName + ".layer1-shape=<shape>");
+                        "Effect " + effectName + " has nothing to draw: an effect is made of" +
+                        " layers, add at least effect." + effectName + ".layer1-shape=<shape>");
             Duration cycle = duration == null ? Duration.ofMillis(250) : duration;
             List<EffectLayer> layers = new ArrayList<>();
             List<Integer> layerNumbers =
@@ -106,8 +106,8 @@ public record EffectConfiguration(Duration duration, int repeatCount, boolean al
                 int layerNumber = layerNumbers.get(i);
                 if (layerNumber != i + 1)
                     throw new IllegalArgumentException(
-                            "Effect " + effectName + " layer numbers must be " +
-                            "consecutive starting at 1, but found layer" + layerNumber);
+                            "Effect " + effectName + " has a layer" + layerNumber + " but no layer" +
+                            (i + 1) + ": layers are numbered 1, 2, 3... without gaps");
                 layers.add(layerByNumber.get(layerNumber).build(effectName, layerNumber, cycle));
             }
             return new EffectConfiguration(
