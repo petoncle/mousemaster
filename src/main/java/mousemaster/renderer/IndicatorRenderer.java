@@ -129,7 +129,7 @@ public final class IndicatorRenderer {
         maxIndicatorWindowSize = Math.max(maxIndicatorWindowSize,
                 indicatorWindowSize(transitionTo, activeScreen.scale()));
         // Position the (hidden) window before showIndicator shows it.
-        if (created || sizeOrShadowOrPositionChanged)
+        if (!wasShowing || sizeOrShadowOrPositionChanged)
             reposition(indicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
         double shadowScale = activeScreen.scale();
         showIndicator(indicator, applyShadow, shadowScale, wasShowing, allowFade,
