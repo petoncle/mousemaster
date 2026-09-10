@@ -36,7 +36,7 @@ public enum EffectShape {
 
     public static EffectShape parse(String string) {
         return switch (string) {
-            case "rect", "square" -> RECT;
+            case "rect" -> RECT;
             case "polygon" -> POLYGON;
             case "dot" -> DOT;
             case "circle" -> CIRCLE;
