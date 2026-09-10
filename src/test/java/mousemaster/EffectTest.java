@@ -235,4 +235,26 @@ class EffectTest {
         assertEquals(5, layer.dashOffset(), 1e-9);
     }
 
+    @Test
+    void keyframePositionsCanBeWrittenInMilliseconds() {
+        EffectConfiguration blink = effect("blink",
+                "idle-mode.effect.blink.layer1-shape=dot",
+                "idle-mode.effect.blink.layer1-keyframes=0 hide | 150ms show | 75 hide",
+                "idle-mode.effect.blink.duration-millis=200", // written after the keyframes
+                "idle-mode.start-effect.blink=+n");
+        EffectLayer layer = blink.layers().getFirst();
+        assertEquals(75, layer.keyframes().get(1).percent(), 1e-9);
+        assertFalse(layer.keyframes().get(1).inMillis());
+        // 150ms -> 75% is not before 75%: rejected as not increasing.
+        assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.effect.blink.layer1-shape=dot",
+                        "idle-mode.effect.blink.layer1-keyframes=150ms show | 75 hide",
+                        "idle-mode.effect.blink.duration-millis=200"));
+        // Beyond the duration is rejected too.
+        assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.effect.blink.layer1-shape=dot",
+                        "idle-mode.effect.blink.layer1-keyframes=300ms show",
+                        "idle-mode.effect.blink.duration-millis=200"));
+    }
+
 }

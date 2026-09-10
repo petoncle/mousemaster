@@ -2,6 +2,7 @@ package mousemaster;
 
 import java.time.Duration;
 import java.util.EnumMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -91,7 +92,8 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
             if (keyframes == null) keyframes = parent.keyframes;
         }
 
-        public EffectLayer build(String effectName, int layerNumber) {
+        /** The cycle resolves keyframes written in milliseconds and lets the order be checked. */
+        public EffectLayer build(String effectName, int layerNumber, Duration cycle) {
             if (shape == null)
                 throw new IllegalArgumentException(
                         "Effect " + effectName + " layer" + layerNumber +
@@ -108,13 +110,34 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
             // A uniform size sets the width only: the height follows it.
             if (base.get(EffectProperty.WIDTH) != null && base.get(EffectProperty.HEIGHT) == null)
                 values.put(EffectProperty.HEIGHT, base.get(EffectProperty.WIDTH));
+            List<EffectKeyframe> resolvedKeyframes = new ArrayList<>();
+            double previousPercent = -1;
+            for (EffectKeyframe keyframe : keyframes == null ? List.<EffectKeyframe>of() : keyframes) {
+                double percent = keyframe.percent();
+                if (keyframe.inMillis()) {
+                    percent = 100 * keyframe.percent() / Math.max(1, cycle.toMillis());
+                    if (percent > 100)
+                        throw new IllegalArgumentException(
+                                "Effect " + effectName + " layer" + layerNumber + " keyframe at " +
+                                (long) keyframe.percent() + "ms is beyond the effect's " +
+                                "duration-millis=" + cycle.toMillis());
+                }
+                if (percent <= previousPercent)
+                    throw new IllegalArgumentException(
+                            "Effect " + effectName + " layer" + layerNumber +
+                            " keyframe positions must be increasing (found " +
+                            (keyframe.inMillis() ? (long) keyframe.percent() + "ms" : keyframe.percent()) +
+                            " after " + previousPercent + "%)");
+                previousPercent = percent;
+                resolvedKeyframes.add(keyframe.atPercent(percent));
+            }
             return new EffectLayer(shape,
                     filled == null ? shape == EffectShape.DOT : filled,
                     speed == null ? 1 : speed,
                     delay == null ? Duration.ZERO : delay,
                     sizeIsArea != null && sizeIsArea,
                     values,
-                    keyframes == null ? List.of() : keyframes);
+                    resolvedKeyframes);
         }
 
     }
