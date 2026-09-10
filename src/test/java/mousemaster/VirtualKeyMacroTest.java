@@ -99,6 +99,23 @@ class VirtualKeyMacroTest {
     }
 
     @Test
+    void aSlowUpdateDoesNotShortenTheWaitItStarts() {
+        load("virtual-keys=flag",
+                "idle-mode.macro.x=+a -> #flag wait-100 ~flag",
+                "idle-mode.indicator.color=#FF0000 | _{flag} -> #00FF00");
+        submit("x");
+        // The 80ms of this update elapsed before the macro was submitted.
+        macroPlayer.update(0.08);
+        assertEquals(Color.parse("#00FF00"), color());
+
+        macroPlayer.update(0.08);
+        assertEquals(Color.parse("#00FF00"), color(), "the wait had 100ms to run, not 20ms");
+
+        macroPlayer.update(0.03);
+        assertEquals(Color.parse("#FF0000"), color());
+    }
+
+    @Test
     void aResetReleasesWhatIsStillPressed() {
         load("virtual-keys=flag",
                 "idle-mode.macro.x=+a -> #flag wait-100 ~flag",

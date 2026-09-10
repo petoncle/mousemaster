@@ -47,6 +47,7 @@ public class Mousemaster {
 
     public void run() throws InterruptedException {
         long previousIterationBeginTime = System.nanoTime();
+        long previousMacroPlayerUpdateTime = previousIterationBeginTime;
         while (true) {
             long iterationBeginTime = System.nanoTime();
             long deltaNanos = iterationBeginTime - previousIterationBeginTime;
@@ -108,7 +109,9 @@ public class Mousemaster {
             platform.pumpEvents();
             timeBeforeOp = System.nanoTime();
             pumpEventsNanos += timeBeforeOp - timeAfterOp;
-            macroPlayer.update(delta);
+            macroPlayer.update(
+                    (timeBeforeOp - previousMacroPlayerUpdateTime) / 1e9d);
+            previousMacroPlayerUpdateTime = timeBeforeOp;
             timeAfterOp = System.nanoTime();
             long macroPlayerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             long iterationEndTime = System.nanoTime();

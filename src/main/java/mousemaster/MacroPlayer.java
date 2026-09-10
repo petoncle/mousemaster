@@ -68,6 +68,7 @@ public class MacroPlayer {
         private final ResolvedMacro macro;
         private int currentIndex = -1;
         private double remainingWait;
+        private boolean advanced;
 
         private MacroInProgress(ResolvedMacro macro) {
             this.macro = macro;
@@ -272,7 +273,12 @@ public class MacroPlayer {
     /** Plays the parallel the wait was for, and returns false once there is none left. */
     private boolean advance(MacroInProgress inProgress, double delta,
                             boolean playElapsedParallels) {
-        inProgress.remainingWait -= delta;
+        // The delta of the update that plays a macro's first parallel elapsed before the
+        // macro was submitted, so the wait that parallel starts does not pay for it.
+        if (inProgress.advanced)
+            inProgress.remainingWait -= delta;
+        else
+            inProgress.advanced = true;
         do {
             if (inProgress.remainingWait > 0)
                 return true;
