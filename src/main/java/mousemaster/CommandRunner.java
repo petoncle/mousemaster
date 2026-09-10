@@ -31,16 +31,18 @@ public class CommandRunner {
         return mouseManager.jumping();
     }
 
-    public void run(Command command, Key eventKey) {
-        run(command, eventKey, true);
-    }
+    // Whether the key event of the combo being run is a press: kept beside the key
+    // rather than passed along, so that run(Command, Key) stays the one method to
+    // override (the tests do) and the combo watcher's calls still reach it.
+    private boolean eventIsPress = true;
 
     /** Runs a command for the key event that completed its combo (null for none). */
     public void run(Command command, KeyEvent event) {
-        run(command, event == null ? null : event.key(), event == null || event.isPress());
+        eventIsPress = event == null || event.isPress();
+        run(command, event == null ? null : event.key());
     }
 
-    private void run(Command command, Key eventKey, boolean eventIsPress) {
+    public void run(Command command, Key eventKey) {
         switch (command) {
             // @formatter:off
             case SwitchMode switchMode -> modeController.switchMode(switchMode.modeName());
