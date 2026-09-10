@@ -18,7 +18,8 @@ class EffectPropertyDocsTest {
 
     @Test
     void everyEffectPropertyIsDocumented() throws IOException {
-        String reference = Files.readString(Path.of("docs/configuration-reference.md"));
+        String reference = Files.readString(Path.of("docs/configuration-reference.md"))
+                                .replace("\r\n", "\n");
         List<String> missing = new ArrayList<>();
         for (EffectProperty property : EffectProperty.values()) {
             String documentedAs = switch (property) {
