@@ -2344,6 +2344,11 @@ public class ConfigurationParser {
             switch (layerKey) {
                 // @formatter:off
                 case "shape" -> layer.shape(EffectShape.parse(propertyValue));
+                case "text" -> layer.text().text(propertyValue);
+                case "font-name" -> layer.text().fontName(propertyValue);
+                case "font-weight" -> layer.text().weight(FontWeight.of(propertyValue));
+                case "font-italic" -> layer.text().italic(Boolean.parseBoolean(propertyValue));
+                case "text-align" -> layer.text().align(EffectText.Align.parse(propertyValue));
                 case "filled" -> layer.filled(Boolean.parseBoolean(propertyValue));
                 case "speed" -> layer.speed(parseDouble(propertyValue, false, 0, 1_000));
                 case "delay" -> layer.delay(parseDuration(propertyValue));
@@ -2373,7 +2378,8 @@ public class ConfigurationParser {
                     if (property == null || property == EffectProperty.VISIBLE)
                         throw new IllegalArgumentException(
                                 "Invalid effect layer property key " + key +
-                                ": expected shape, filled, speed, delay, keyframes, " +
+                                ": expected shape, filled, speed, delay, keyframes, text, " +
+                                "font-name, font-weight, font-italic, text-align, " +
                                 EffectProperty.keys());
                     layer.set(property, parseEffectPropertyValue(property, propertyValue));
                 }

@@ -26,7 +26,10 @@ public record EffectFrame(int areaWidth, int areaHeight, Point anchor,
                                       double thickness, double cornerRadius,
                                       int edgeCount, double arcStart, double arcSweep,
                                       double dashLength, double dashGap,
-                                      double dashOffset) {
+                                      double dashOffset, EffectText text,
+                                      double fontSize, String backgroundHexColor,
+                                      String outlineHexColor, double padding,
+                                      double scale) {
 
     }
 

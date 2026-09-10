@@ -543,10 +543,13 @@ settings hold for the layer's whole life:
 
 | Property | Meaning | Default |
 |---|---|---|
-| `layer<n>-shape` | `dot` (filled circle), `circle`, `square`, `triangle`, `polygon`, `line`, `cross` (a diagonal ×; rotate by 45 for a +), `arc` | required |
+| `layer<n>-shape` | `dot` (filled circle), `circle`, `square`, `triangle`, `polygon`, `line`, `cross` (a diagonal ×; rotate by 45 for a +), `arc`, `text` | required |
 | `layer<n>-filled` | Filled or outline | filled for `dot`, outline otherwise |
 | `layer<n>-speed` | How fast the layer's timeline runs relative to the cycle: `2` plays it twice per cycle, `0.5` at half speed | `1` |
 | `layer<n>-delay` | Milliseconds before the layer's timeline starts. Delayed layers release one after another; a one-shot effect lives until its last layer has finished | `0` |
+| `layer<n>-text` | What a `text` layer says (required for `text`) | |
+| `layer<n>-font-name`, `layer<n>-font-weight`, `layer<n>-font-italic` | The text's font family (falls back like hint fonts), weight (same values as `hint.font-weight`) and style | default hint font, `normal`, `false` |
+| `layer<n>-text-align` | Which point of the text sits on the layer's `x`: `left` (its left edge), `center`, or `right` | `center` |
 
 #### Layer values
 
@@ -572,6 +575,10 @@ layer's base value acts as an implicit keyframe at 0%.
 | `edge-count` | A `polygon`'s edges, with the indicator's convention: 3 triangle, 4 square, 6 hexagon, 100 and above a circle | `6` |
 | `arc-start` | Where an `arc` begins, in degrees: 0 is 12 o'clock, 90 is 3 o'clock, clockwise (the indicator's fill start angle convention) | `0` |
 | `arc-sweep` | How far the `arc` goes, in degrees, clockwise; negative goes counterclockwise. `filled=true` draws a pie slice | `270` |
+| `font-size` | A `text` layer's font size, in points; animate it to grow or shrink the text (or use `scale`) | `12` |
+| `background-color` | A box behind a `text` layer, `#RRGGBB`; rounded by `corner-radius`, grown by `padding` around the text. Unset draws no box | none |
+| `outline-color` | An outline around a `text` layer's glyphs, `thickness` wide. Unset draws no outline | none |
+| `padding` | The space between a `text` layer and its background box, in logical pixels | `4` |
 
 - **`layer<n>-keyframes`**: The layer's timeline: `|`-separated keyframes, each a cycle
   position followed by the values it pins. A position is a percent of the cycle (`60`)
@@ -641,6 +648,21 @@ normal-mode.effect.marquee.layer1-size=28
 normal-mode.effect.marquee.layer1-thickness=2
 normal-mode.effect.marquee.layer1-dash=6,4
 normal-mode.effect.marquee.layer1-keyframes=0 dash-offset=0 | 100 dash-offset=10
+
+# Toast: a label that pops up above the mouse, holds, and fades.
+normal-mode.effect.toast.duration-millis=900
+normal-mode.effect.toast.area=160x60
+normal-mode.effect.toast.layer1-shape=text
+normal-mode.effect.toast.layer1-text=Copied
+normal-mode.effect.toast.layer1-font-name=Segoe UI
+normal-mode.effect.toast.layer1-font-weight=bold
+normal-mode.effect.toast.layer1-font-size=11
+normal-mode.effect.toast.layer1-color=#FFFFFF
+normal-mode.effect.toast.layer1-background-color=#202020
+normal-mode.effect.toast.layer1-padding=5
+normal-mode.effect.toast.layer1-corner-radius=6
+normal-mode.effect.toast.layer1-keyframes=0 y=-10 opacity=0 | 15 y=-24 opacity=1 | 70 opacity=1 | 100 y=-30 opacity=0
+normal-mode.start-effect.toast=+c
 
 # Double tap: two quick pulses, then gone (repeat=2).
 normal-mode.effect.double-tap.repeat=2

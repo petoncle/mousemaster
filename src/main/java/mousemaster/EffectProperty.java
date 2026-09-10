@@ -52,6 +52,14 @@ public enum EffectProperty {
     /** Where the dash pattern starts along the outline, in pixels: animate it to make the dashes travel. */
     DASH_OFFSET("dash-offset", Kind.NUMBER, 0d, -1_000_000, 1_000_000),
     COLOR("color", Kind.COLOR, "#FFFFFF", 0, 0),
+    /** Text layers: the font size in points. */
+    FONT_SIZE("font-size", Kind.NUMBER, 12d, 1, 1_000),
+    /** Text layers: a box behind the text (rounded by corner-radius, grown by padding); unset = none. */
+    BACKGROUND_COLOR("background-color", Kind.COLOR, null, 0, 0),
+    /** Text layers: an outline around the glyphs, thickness wide; unset = none. */
+    OUTLINE_COLOR("outline-color", Kind.COLOR, null, 0, 0),
+    /** Text layers: the space between the text and its background box, in pixels. */
+    PADDING("padding", Kind.NUMBER, 4d, 0, 1_000),
     /** Written as the bare keyframe keywords {@code show} and {@code hide}. */
     VISIBLE("visible", Kind.SWITCH, true, 0, 0);
 
