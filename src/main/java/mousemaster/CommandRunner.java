@@ -93,7 +93,7 @@ public class CommandRunner {
             case CycleNextPosition(String positionHistoryName) -> hintManager.cyclePosition(positionHistoryName, 1);
             case CyclePreviousPosition(String positionHistoryName) -> hintManager.cyclePosition(positionHistoryName, -1);
 
-            case StartEffect(String effectName) -> effectManager.startEffect(effectName);
+            case StartEffect(String effectName) -> effectManager.startEffect(effectName, eventKey);
             case StopEffect(String effectName) -> effectManager.stopEffect(effectName);
 
             case MacroCommand(Macro macro, AliasResolution aliasResolution) ->

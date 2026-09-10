@@ -634,7 +634,7 @@ pixels: they scale with the screen like the indicator's.
 | `filled` | `true` fills the shape, `false` draws its outline, `thickness` wide (a filled `arc` is a pie slice) | filled for `dot`, outline otherwise |
 | `speed` | How fast the layer's timeline runs relative to the cycle: `2` plays it twice per cycle, `0.5` at half speed | `1` |
 | `delay` | Milliseconds before the layer's timeline starts | `0` |
-| `text` | What a `text` layer says (required for `text`) | |
+| `text` | What a `text` layer says (required for `text`). `{key}` in it is replaced by the key that completed the `start-effect` combo, `{keys}` by every key that started or restarted the effect while it was running (a keycast, see the recipes) | |
 | `font-name`, `font-weight`, `font-italic` | A `text` layer's font family (falls back to the hint font if missing), weight (same values as `hint.font-weight`) and style | hint font, `normal`, `false` |
 | `text-align` | Which point of the text sits on the layer's `x`: `left` (its left edge), `center`, or `right` | `center` |
 
@@ -797,6 +797,25 @@ normal-mode.effect.double-tap.duration-millis=180
 normal-mode.effect.double-tap.layer1-shape=rect
 normal-mode.effect.double-tap.layer1-corner-radius=4
 normal-mode.effect.double-tap.layer1-keyframes=0 scale=0.6 opacity=0.9 | 100 scale=1.4 opacity=0
+
+# Keycast: the keys you press, shown beside the mouse. {key} is the key that completed
+# the combo; {keys} the history of the keys that (re)started the effect while it was
+# showing, so a burst of typing reads as one line. Useful to check what you typed, and
+# to show the keys in a screen recording (a bug report, a demo). Only the keys the mode
+# lists in the combo are shown, and a mode's hint selection keys are taken by the hint.
+key-alias.castkey=a b c d e f g h i j k l m n o p q r s t u v w x y z space leftctrl leftalt
+normal-mode.effect.keycast.duration-millis=1500
+normal-mode.effect.keycast.area=260x80
+normal-mode.effect.keycast.layer1-shape=text
+normal-mode.effect.keycast.layer1-text={keys}
+normal-mode.effect.keycast.layer1-font-name=Consolas
+normal-mode.effect.keycast.layer1-font-size=11
+normal-mode.effect.keycast.layer1-background-color=#202020
+normal-mode.effect.keycast.layer1-padding=4
+normal-mode.effect.keycast.layer1-corner-radius=4
+normal-mode.effect.keycast.layer1-y=30
+normal-mode.effect.keycast.layer1-keyframes=0 opacity=1 | 70 opacity=1 | 100 opacity=0
+normal-mode.start-effect.keycast=+castkey
 ```
 
 #### Starting and stopping
