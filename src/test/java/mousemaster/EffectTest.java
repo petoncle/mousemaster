@@ -307,4 +307,45 @@ class EffectTest {
         assertTrue(notABoolean.getMessage().contains("expected true or false"), notABoolean.getMessage());
     }
 
+    @Test
+    void rangeEdgesAreAcceptedAndOneStepOutsideIsRejected() {
+        EffectConfiguration edges = effect("edges",
+                "idle-mode.effect.edges.layer1-shape=polygon",
+                "idle-mode.effect.edges.layer1-edge-count=1000",
+                "idle-mode.effect.edges.layer1-opacity=0",
+                "idle-mode.effect.edges.layer1-arc-length=-360",
+                "idle-mode.effect.edges.layer1-keyframes=0 size=0 | 100 scale=100",
+                "idle-mode.start-effect.edges=+n");
+        assertEquals(1000d, edges.layers().getFirst().base().get(EffectProperty.EDGE_COUNT));
+        for (String outside : new String[]{"edge-count=1001", "edge-count=2", "opacity=1.001",
+                "opacity=-0.001", "arc-length=361", "scale=100.5", "opacity=NaN", "font-size=0.5"})
+            assertThrows(IllegalArgumentException.class,
+                    () -> parse("idle-mode.effect.edges.layer1-shape=polygon",
+                            "idle-mode.effect.edges.layer1-" + outside), outside);
+    }
+
+    @Test
+    void emptyAndDanglingKeyframesAreRejected() {
+        assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.effect.blip.layer1-shape=dot",
+                        "idle-mode.effect.blip.layer1-keyframes=50"));
+        assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.effect.blip.layer1-shape=dot",
+                        "idle-mode.effect.blip.layer1-keyframes=50 size=1 |"));
+    }
+
+    @Test
+    void aOneShotEndsOnItsFinalValueAndIsGoneRightAfter() {
+        EffectConfiguration blip = effect("blip",
+                "idle-mode.effect.blip.duration-millis=100",
+                "idle-mode.effect.blip.layer1-shape=dot",
+                "idle-mode.effect.blip.layer1-keyframes=0 size=50 | 100 size=60",
+                "idle-mode.start-effect.blip=+n");
+        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(blip, null);
+        player.advance(0.0999);
+        assertEquals(59.99, player.frame().layers().getFirst().width(), 1e-6);
+        player.advance(0.0002);
+        assertTrue(player.done());
+    }
+
 }
