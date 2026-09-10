@@ -220,8 +220,17 @@ public final class EffectRenderer {
                              layer.shape() == EffectShape.CROSS || !layer.filled();
             if (stroke) {
                 QPen pen = new QPen(color);
-                pen.setWidthF(Math.max(1, layer.thickness() * drawScale));
+                double penWidth = Math.max(1, layer.thickness() * drawScale);
+                pen.setWidthF(penWidth);
                 pen.setCapStyle(Qt.PenCapStyle.FlatCap);
+                if (layer.dashLength() > 0) {
+                    // Qt measures dash patterns in pen widths; the config is in pixels.
+                    List<Double> pattern = new ArrayList<>();
+                    pattern.add(layer.dashLength() * drawScale / penWidth);
+                    pattern.add(Math.max(0.01, layer.dashGap() * drawScale / penWidth));
+                    pen.setDashPattern(pattern);
+                    pen.setDashOffset(layer.dashOffset() * drawScale / penWidth);
+                }
                 painter.setPen(pen);
                 painter.setBrush(QtColorUtil.noBrush());
                 painter.drawPath(path);

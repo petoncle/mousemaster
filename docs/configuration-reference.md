@@ -566,6 +566,8 @@ layer's base value acts as an implicit keyframe at 0%.
 | `color` | `#RRGGBB` | `#FFFFFF` |
 | `opacity` | 0 to 1 | `1` |
 | `thickness` | Outline / stroke width, in logical pixels | `1` |
+| `dash` | Dashes an outline, line, cross or arc: `<dash>,<gap>` lengths in logical pixels (`6,4`), or `solid` | `solid` |
+| `dash-offset` | Where the dash pattern starts along the outline, in logical pixels: animate it (`0 dash-offset=0 \| 100 dash-offset=20`) to make the dashes travel, a marquee | `0` |
 | `corner-radius` | Rounds a `square`'s corners, in logical pixels | `0` |
 | `edge-count` | A `polygon`'s edges, with the indicator's convention: 3 triangle, 4 square, 6 hexagon, 100 and above a circle | `6` |
 | `arc-start` | Where an `arc` begins, in degrees: 0 is 12 o'clock, 90 is 3 o'clock, clockwise (the indicator's fill start angle convention) | `0` |
@@ -627,6 +629,15 @@ normal-mode.effect.swing.layer1-shape=polygon
 normal-mode.effect.swing.layer1-edge-count=6
 normal-mode.effect.swing.layer1-size=20
 normal-mode.effect.swing.layer1-keyframes=0 rotation=-20 color=#96A8FF | 100 rotation=20 color=#FFB070
+
+# Marquee: a dashed ring whose dashes travel around the mouse while a key is held.
+normal-mode.effect.marquee.repeat=loop
+normal-mode.effect.marquee.duration-millis=600
+normal-mode.effect.marquee.layer1-shape=circle
+normal-mode.effect.marquee.layer1-size=28
+normal-mode.effect.marquee.layer1-thickness=2
+normal-mode.effect.marquee.layer1-dash=6,4
+normal-mode.effect.marquee.layer1-keyframes=0 dash-offset=0 | 100 dash-offset=10
 
 # Double tap: two quick pulses, then gone (repeat=2).
 normal-mode.effect.double-tap.repeat=2
