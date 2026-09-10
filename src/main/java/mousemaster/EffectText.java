@@ -20,7 +20,9 @@ public record EffectText(String text, String fontName, FontWeight weight, boolea
                 case "center" -> CENTER;
                 case "right" -> RIGHT;
                 default -> throw new IllegalArgumentException(
-                        "Invalid effect text-align " + value + ": expected left, center or right");
+                        "Invalid text-align value " + value + ": text-align is which point of the" +
+                        " text sits on the layer's x (its left edge, its center, or its right" +
+                        " edge); expected left, center or right, for example layer1-text-align=left");
             };
         }
     }

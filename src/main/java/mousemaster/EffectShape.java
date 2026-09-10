@@ -46,7 +46,10 @@ public enum EffectShape {
             case "arc" -> ARC;
             case "text" -> TEXT;
             default -> throw new IllegalArgumentException(
-                    "Invalid effect shape " + string + ": expected one of " + names());
+                    "Invalid shape value " + string + ": shape is what the layer draws; expected " +
+                    "rect (a square or rectangle), polygon (edge-count sides), line, cross (an x)," +
+                    " arc (part of a circle), text (letters, see layer1-text), or the shorthands" +
+                    " dot (filled circle), circle, triangle, for example layer1-shape=circle");
         };
     }
 
