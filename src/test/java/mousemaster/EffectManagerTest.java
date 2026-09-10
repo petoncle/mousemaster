@@ -142,4 +142,21 @@ class EffectManagerTest {
         }
     }
 
+    @Test
+    void aMutationOfTheCurrentModeDoesNotStopItsLoops() {
+        // A property branch flipping (_{isleftmousepressing} -> ...) re-announces the same
+        // mode to the listeners; only another mode stops the loops.
+        EffectManager manager = new EffectManager(overlay);
+        Mode idle = mode("idle-mode", TWO_EFFECTS);
+        manager.modeChanged(idle);
+        manager.startEffect("loop");
+        manager.update(0.01);
+        manager.modeChanged(mode("idle-mode", TWO_EFFECTS)); // same name, another instance: a mutation
+        manager.update(0.01);
+        assertEquals(1, frames.getLast().size(), "the loop survives a mutation of its own mode");
+        manager.modeChanged(mode("other-mode", TWO_EFFECTS));
+        manager.update(0.01);
+        assertEquals(1, hides, "the loop stops on a switch to another mode");
+    }
+
 }
