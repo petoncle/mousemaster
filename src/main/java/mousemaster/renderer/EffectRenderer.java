@@ -15,8 +15,10 @@ import io.qt.gui.QTransform;
 import io.qt.widgets.QWidget;
 import mousemaster.EffectFrame;
 import mousemaster.EffectShape;
+import mousemaster.EffectText;
 import mousemaster.Os;
 import mousemaster.Point;
+import mousemaster.Rectangle;
 import mousemaster.Screen;
 import mousemaster.qt.QtColorUtil;
 import mousemaster.qt.QtHintFont;
@@ -134,10 +136,14 @@ public final class EffectRenderer {
     private void layout(List<EffectFrame> frames, int mouseXPixels, int mouseYPixels,
                         Screen screen) {
         double scale = screen.scale();
+        this.screenScale = scale;
+        this.drawScale = Os.windows ? scale : 1;
         // Each frame's center in screen pixels, and the union of their areas.
         List<int[]> centers = new ArrayList<>();
         int left = Integer.MAX_VALUE, top = Integer.MAX_VALUE;
         int right = Integer.MIN_VALUE, bottom = Integer.MIN_VALUE;
+        Map<EffectFrame.ResolvedEffectLayer, double[]> shifts = new HashMap<>();
+        Rectangle screenRectangle = screen.rectangle();
         for (EffectFrame frame : frames) {
             int centerX = frame.anchor() == null ? mouseXPixels : (int) Math.round(frame.anchor().x());
             int centerY = frame.anchor() == null ? mouseYPixels : (int) Math.round(frame.anchor().y());
@@ -148,7 +154,37 @@ public final class EffectRenderer {
             top = Math.min(top, centerY - halfHeight);
             right = Math.max(right, centerX + halfWidth);
             bottom = Math.max(bottom, centerY + halfHeight);
+            // A text layer kept on screen: its box (in screen pixels, rotation aside)
+            // is pushed inwards by what would stick out, and the window grows to it.
+            for (EffectFrame.ResolvedEffectLayer layer : frame.layers()) {
+                if (layer.shape() != EffectShape.TEXT || !layer.text().keepOnScreen())
+                    continue;
+                TextBlock block = textBlock(layer);
+                double pixelsPerDrawUnit = scale / drawScale;
+                double padding = layer.backgroundHexColor() == null ? 0 : layer.padding() * scale;
+                double boxLeft = centerX + layer.x() * scale + block.x0 * pixelsPerDrawUnit - padding;
+                double boxTop = centerY + layer.y() * scale + block.y0 * pixelsPerDrawUnit - padding;
+                double boxRight = boxLeft + block.width * pixelsPerDrawUnit + 2 * padding;
+                double boxBottom = boxTop + block.height * pixelsPerDrawUnit + 2 * padding;
+                double shiftX = 0, shiftY = 0;
+                if (boxLeft < screenRectangle.x())
+                    shiftX = screenRectangle.x() - boxLeft;
+                else if (boxRight > screenRectangle.x() + screenRectangle.width())
+                    shiftX = screenRectangle.x() + screenRectangle.width() - boxRight;
+                if (boxTop < screenRectangle.y())
+                    shiftY = screenRectangle.y() - boxTop;
+                else if (boxBottom > screenRectangle.y() + screenRectangle.height())
+                    shiftY = screenRectangle.y() + screenRectangle.height() - boxBottom;
+                if (shiftX != 0 || shiftY != 0) {
+                    shifts.put(layer, new double[]{shiftX, shiftY});
+                    left = Math.min(left, (int) Math.floor(boxLeft + shiftX) - 1);
+                    top = Math.min(top, (int) Math.floor(boxTop + shiftY) - 1);
+                    right = Math.max(right, (int) Math.ceil(boxRight + shiftX) + 1);
+                    bottom = Math.max(bottom, (int) Math.ceil(boxBottom + shiftY) + 1);
+                }
+            }
         }
+        this.textShifts = shifts;
         if (!showing) {
             windowWidth = right - left;
             windowHeight = bottom - top;
@@ -168,7 +204,7 @@ public final class EffectRenderer {
         for (int[] center : centers)
             windowCenters.add(new Point(center[0] - windowLeft, center[1] - windowTop));
         // Qt units are pixels on Windows and points on macOS: draw scaled on Windows.
-        showFrames(frames, windowCenters, Os.windows ? scale : 1);
+        showFrames(frames, windowCenters, drawScale);
     }
 
     public void hide() {
@@ -208,11 +244,16 @@ public final class EffectRenderer {
     private List<EffectFrame> frames;
     private List<Point> centers;
     private double drawScale = 1;
+    // The active screen's scale: screen pixels per logical pixel.
+    private double screenScale = 1;
     private int paintCount;
     // Fonts are looked up by family in the font database: cache them per
     // (family, size, weight, italic), cleared when it grows past a bound, since an
     // animated font-size makes many sizes.
     private final Map<String, QFont> fontCache = new HashMap<>();
+    // Where a text layer kept on screen is drawn instead of at its position, in
+    // screen pixels (see layout).
+    private Map<EffectFrame.ResolvedEffectLayer, double[]> textShifts = Map.of();
     private boolean drawFailureLogged;
 
     private void showFrames(List<EffectFrame> frames, List<Point> centers, double drawScale) {
@@ -277,6 +318,11 @@ public final class EffectRenderer {
         double height = layer.height() * drawScale;
         painter.save();
         try {
+        double[] shift = textShifts.get(layer);
+        if (shift != null) {
+            double drawUnitsPerPixel = drawScale / Math.max(1e-9, screenScale);
+            painter.translate(shift[0] * drawUnitsPerPixel, shift[1] * drawUnitsPerPixel);
+        }
         // Rotate about the pivot, then place the layer relative to it: with the
         // pivot at the layer's own center (the default) this is a spin in place,
         // with the pivot elsewhere it is an orbit.
@@ -341,24 +387,14 @@ public final class EffectRenderer {
      * optional background box and with an optional glyph outline.
      */
     private void drawText(QPainter painter, EffectFrame.ResolvedEffectLayer layer) {
-        String text = layer.text().text();
+        TextBlock block = textBlock(layer);
         QFont font = font(layer);
-        QFontMetrics metrics = new QFontMetrics(font);
-        double advance = metrics.horizontalAdvance(text);
-        QRect tight = metrics.tightBoundingRect(text);
-        double textX = switch (layer.text().align()) {
-            case LEFT -> 0;
-            case CENTER -> -advance / 2;
-            case RIGHT -> -advance;
-        };
-        double textY = -tight.y() - tight.height() / 2.0;
         if (layer.backgroundHexColor() != null) {
             double padding = layer.padding() * drawScale;
             double radius = layer.cornerRadius() * drawScale;
             QPainterPath box = new QPainterPath();
-            box.addRoundedRect(textX + tight.x() - padding, textY + tight.y() - padding,
-                    tight.width() + 2 * padding, tight.height() + 2 * padding,
-                    radius, radius);
+            box.addRoundedRect(block.x0 - padding, block.y0 - padding,
+                    block.width + 2 * padding, block.height + 2 * padding, radius, radius);
             QColor backgroundColor =
                     QtColorUtil.qColor(layer.backgroundHexColor(), layer.opacity());
             QBrush backgroundBrush = new QBrush(backgroundColor);
@@ -367,8 +403,6 @@ public final class EffectRenderer {
             backgroundColor.dispose();
             box.dispose();
         }
-        tight.dispose();
-        metrics.dispose();
         if (layer.outlineHexColor() != null && layer.outlineThickness() > 0) {
             QColor outlineColor = QtColorUtil.qColor(layer.outlineHexColor(), layer.opacity());
             QPen outlinePen = new QPen(outlineColor);
@@ -377,7 +411,8 @@ public final class EffectRenderer {
             painter.setPen(outlinePen);
             painter.setBrush(QtColorUtil.noBrush());
             QPainterPath glyphs = new QPainterPath();
-            glyphs.addText(textX, textY, font, text);
+            for (int i = 0; i < block.lines.size(); i++)
+                glyphs.addText(block.lineX(i), block.baselineY(i), font, block.lines.get(i));
             painter.drawPath(glyphs);
             glyphs.dispose();
             outlinePen.dispose();
@@ -386,8 +421,75 @@ public final class EffectRenderer {
         QColor color = QtColorUtil.qColor(layer.hexColor(), layer.opacity());
         painter.setPen(color);
         painter.setFont(font);
-        painter.drawText(new QPointF(textX, textY), text);
+        for (int i = 0; i < block.lines.size(); i++)
+            painter.drawText(new QPointF(block.lineX(i), block.baselineY(i)), block.lines.get(i));
         color.dispose();
+    }
+
+    /**
+     * A text layer's lines and their box, in draw units, relative to the layer's
+     * position: one line, or several when max-width wraps the text at its spaces.
+     * The box is aligned on x by text-align and centered on y like the indicator
+     * label; each line is aligned the same way inside the box.
+     */
+    private record TextBlock(List<String> lines, List<Double> advances, double width,
+                             double height, double lineHeight, double ascent, double x0,
+                             double y0, EffectText.Align align) {
+
+        double lineX(int i) {
+            double advance = advances.get(i);
+            return switch (align) {
+                case LEFT -> x0;
+                case CENTER -> x0 + (width - advance) / 2;
+                case RIGHT -> x0 + width - advance;
+            };
+        }
+
+        double baselineY(int i) {
+            return y0 + ascent + i * lineHeight;
+        }
+    }
+
+    private TextBlock textBlock(EffectFrame.ResolvedEffectLayer layer) {
+        QFont font = font(layer);
+        QFontMetrics metrics = new QFontMetrics(font);
+        List<String> lines = new ArrayList<>();
+        String text = layer.text().text();
+        double maxWidth = layer.text().maxWidth() * drawScale;
+        if (!layer.text().wraps() || text.indexOf(' ') == -1)
+            lines.add(text);
+        else {
+            // Greedy wrap at spaces: a word longer than the width stays on its own line.
+            StringBuilder line = new StringBuilder();
+            for (String word : text.split(" ")) {
+                String candidate = line.isEmpty() ? word : line + " " + word;
+                if (!line.isEmpty() && metrics.horizontalAdvance(candidate) > maxWidth) {
+                    lines.add(line.toString());
+                    line = new StringBuilder(word);
+                }
+                else
+                    line = new StringBuilder(candidate);
+            }
+            lines.add(line.toString());
+        }
+        List<Double> advances = new ArrayList<>(lines.size());
+        double width = 0;
+        for (String line : lines) {
+            double advance = metrics.horizontalAdvance(line);
+            advances.add(advance);
+            width = Math.max(width, advance);
+        }
+        double lineHeight = metrics.height();
+        double ascent = metrics.ascent();
+        double height = lineHeight * lines.size();
+        metrics.dispose();
+        double x0 = switch (layer.text().align()) {
+            case LEFT -> 0;
+            case CENTER -> -width / 2;
+            case RIGHT -> -width;
+        };
+        return new TextBlock(lines, advances, width, height, lineHeight, ascent, x0,
+                -height / 2, layer.text().align());
     }
 
     private QFont font(EffectFrame.ResolvedEffectLayer layer) {

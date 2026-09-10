@@ -179,28 +179,29 @@ class EffectManagerTest {
     void aTextLayerShowsTheKeyThatStartedTheEffectAndTheKeysThatRestartedIt() {
         // {key} is the key that completed the start-effect combo; {keys} the keys of
         // every start while the effect was running: a keycast that shows what was typed.
+        // {move} and {moves} say the same with the combo's + (press) or - (release).
         EffectManager manager = new EffectManager(overlay);
         manager.modeChanged(mode("idle-mode",
                 "idle-mode.effect.cast.duration-millis=500",
                 "idle-mode.effect.cast.layer1-shape=text",
-                "idle-mode.effect.cast.layer1-text=[{key}] {keys}",
+                "idle-mode.effect.cast.layer1-text=[{key}] {keys} / {move} {moves}",
                 "idle-mode.start-effect.cast=+a"));
-        manager.startEffect("cast", Key.ofName("a"));
+        manager.startEffect("cast", Key.ofName("a"), true);
         manager.update(0.01);
-        assertEquals("[a] a", frames.getLast().getFirst().layers().getFirst().text().text());
-        manager.startEffect("cast", Key.ofName("space"));
+        assertEquals("[a] a / +a +a", frames.getLast().getFirst().layers().getFirst().text().text());
+        manager.startEffect("cast", Key.ofName("space"), false);
         manager.update(0.01);
-        assertEquals("[space] a space",
+        assertEquals("[space] a space / -space +a -space",
                 frames.getLast().getFirst().layers().getFirst().text().text());
         for (int i = 0; i < 6; i++) // a tick is clamped to 100ms: the one-shot ends here
             manager.update(0.1);
         // The effect has ended: the next start begins a new history.
-        manager.startEffect("cast", Key.ofName("b"));
+        manager.startEffect("cast", Key.ofName("b"), true);
         manager.update(0.01);
-        assertEquals("[b] b", frames.getLast().getFirst().layers().getFirst().text().text());
+        assertEquals("[b] b / +b +b", frames.getLast().getFirst().layers().getFirst().text().text());
         manager.startEffect("cast"); // started without a key (a test, a future caller)
         manager.update(0.01);
-        assertEquals("[b] b", frames.getLast().getFirst().layers().getFirst().text().text());
+        assertEquals("[b] b / +b +b", frames.getLast().getFirst().layers().getFirst().text().text());
     }
 
     @Test

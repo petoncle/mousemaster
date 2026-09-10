@@ -267,13 +267,15 @@ class EffectTest {
                 "idle-mode.effect.toast.layer1-font-weight=bold",
                 "idle-mode.effect.toast.layer1-font-italic=true",
                 "idle-mode.effect.toast.layer1-text-align=left",
+                "idle-mode.effect.toast.layer1-max-width=120",
+                "idle-mode.effect.toast.layer1-keep-on-screen=false",
                 "idle-mode.effect.toast.layer1-background-color=#202020",
                 "idle-mode.effect.toast.layer1-keyframes=0 font-size=10 | 100 font-size=20",
                 "idle-mode.start-effect.toast=+n");
         EffectLayer layer = toast.layers().getFirst();
         assertEquals(EffectShape.TEXT, layer.shape());
         assertEquals(new EffectText("Copied to clipboard", "Segoe UI", FontWeight.BOLD, true,
-                EffectText.Align.LEFT), layer.text());
+                EffectText.Align.LEFT, 120, false), layer.text());
         EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(toast, null);
         player.advance(0.05);
         EffectFrame.ResolvedEffectLayer resolved = player.frame().layers().getFirst();

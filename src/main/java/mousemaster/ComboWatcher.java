@@ -1161,7 +1161,6 @@ public class ComboWatcher {
     private void runCommands(List<Command> commandsToRun) {
         if (commandsToRun.isEmpty())
             return;
-        Key lastEventKey = lastKeyEvent == null ? null : lastKeyEvent.key();
         List<Command> commands = new ArrayList<>(commandsToRun);
         // Run hint selection/unselection commands first, before variable and
         // mutation commands. If a hint command supersedes other commands,
@@ -1170,7 +1169,7 @@ public class ComboWatcher {
             Command command = commands.get(i);
             if (command instanceof Command.SelectHintKey ||
                 command instanceof Command.UnselectHintKey) {
-                commandRunner.run(command, lastEventKey);
+                commandRunner.run(command, lastKeyEvent);
                 commands.remove(i);
                 i--;
                 if (hintManager.pollLastHintCommandSupercedesOtherCommands()) {
@@ -1242,7 +1241,7 @@ public class ComboWatcher {
         while (!commands.isEmpty() && !commandRunner.runningAtomicCommand()) {
             Command command = commands.removeFirst();
             long commandBefore = System.nanoTime();
-            commandRunner.run(command, lastEventKey);
+            commandRunner.run(command, lastKeyEvent);
             long commandMs = (System.nanoTime() - commandBefore) / 1_000_000;
             if (commandMs > 1)
                 logger.trace("Slow command: " + commandMs + "ms for " + command);
@@ -1253,7 +1252,7 @@ public class ComboWatcher {
             if (command instanceof Command.BreakComboPreparation ||
                 command instanceof Command.SwitchMode) {
                 long commandBefore = System.nanoTime();
-                commandRunner.run(command, lastEventKey);
+                commandRunner.run(command, lastKeyEvent);
                 long commandMs = (System.nanoTime() - commandBefore) / 1_000_000;
                 if (commandMs > 1)
                     logger.trace("Slow deferred command: " + commandMs + "ms for " + command);
