@@ -2611,12 +2611,14 @@ public class ConfigurationParser {
                                                              int layerNumber,
                                                              String propertyValue) {
         List<EffectKeyframe> keyframes = new ArrayList<>();
-        for (String keyframeString : propertyValue.split("\\|")) {
+        for (String keyframeString : propertyValue.split("\\|", -1)) {
             String[] tokens = keyframeString.trim().split("\\s+");
             String context = "effect " + effectName + " layer" + layerNumber +
                              " keyframe \"" + keyframeString.trim() + "\"";
             if (tokens.length == 0 || tokens[0].isEmpty())
-                throw new IllegalArgumentException("Empty keyframe in " + context);
+                throw new IllegalArgumentException(
+                        "Empty keyframe in " + context + ": keyframes are separated by |, and" +
+                        " there is nothing between two separators (or after the last one)");
             // A position is a percent of the cycle (0-100) or a time in ms (120ms);
             // ms positions are converted, and the order checked, once the effect's
             // duration is known (EffectLayerBuilder.build), since duration-millis
@@ -2696,6 +2698,11 @@ public class ConfigurationParser {
                             e.getMessage() + " (keyframe token " + token + " in " + context + ")");
                 }
             }
+            if (values.isEmpty() && sizeIsArea == null && easing == null)
+                throw new IllegalArgumentException(
+                        "Keyframe \"" + keyframeString.trim() + "\" in " + context +
+                        " sets nothing: after its position, a keyframe lists the values it" +
+                        " sets, for example " + tokens[0] + " size=20 opacity=0.5");
             keyframes.add(new EffectKeyframe(position, inMillis, values, sizeIsArea, easing));
         }
         return List.copyOf(keyframes);
