@@ -818,7 +818,10 @@ normal-mode.effect.double-tap.layer1-keyframes=0 scale=0.6 opacity=0.9 | 100 sca
   change, because its `stop-effect` combo may not exist in the new mode; so a loop
   started by the very combo that switches mode ends at once (start it from the target
   mode instead). A [mutation](#mode-property-mutation) of the current mode is not a
-  mode change and leaves loops running.
+  mode change and leaves loops running. A one-shot started by a combo that switches
+  mode is the effect of the mode the combo is in, even when the start waits for the
+  switch (a hint selection key that also switches mode: the effect starts after the
+  hint has moved the mouse), and it is drawn where the mouse is by then.
 - Effect properties do not take [mutation branches](#mode-property-mutation) (the `|`
   separator belongs to keyframes); start different effects from different combos.
 - A stall of the main loop never advances an effect by more than 100ms per tick, so a
