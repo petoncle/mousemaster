@@ -58,14 +58,17 @@ final class WindowsEffectWindow implements EffectRenderer.NativeSink {
 
     @Override
     public void show(int leftPixels, int topPixels, int width, int height,
-                     ByteBuffer bgraPremultiplied) {
+                     ByteBuffer bgraPremultiplied, int strideBytes) {
         ensureDib(width, height);
-        int byteCount = width * height * 4;
-        if (copyBuffer.length < byteCount)
-            copyBuffer = new byte[byteCount];
-        bgraPremultiplied.rewind();
-        bgraPremultiplied.get(copyBuffer, 0, byteCount);
-        dibBits.write(0, copyBuffer, 0, byteCount);
+        int rowBytes = width * 4;
+        if (copyBuffer.length < rowBytes * height)
+            copyBuffer = new byte[rowBytes * height];
+        // Row by row: the DIB rows are exactly width * 4 bytes, Qt's may be padded.
+        for (int y = 0; y < height; y++) {
+            bgraPremultiplied.position(y * strideBytes);
+            bgraPremultiplied.get(copyBuffer, y * rowBytes, rowBytes);
+        }
+        dibBits.write(0, copyBuffer, 0, rowBytes * height);
         if (leftPixels != left || topPixels != top || width != this.width ||
             height != this.height) {
             left = leftPixels;
@@ -78,10 +81,10 @@ final class WindowsEffectWindow implements EffectRenderer.NativeSink {
         WinUser.SIZE size = new WinUser.SIZE(width, height);
         WinDef.POINT source = new WinDef.POINT(0, 0);
         WinUser.BLENDFUNCTION blend = new WinUser.BLENDFUNCTION();
-        blend.BlendOp = WinUser.AC_SRC_OVER;
+        blend.BlendOp = (byte) WinUser.AC_SRC_OVER;
         blend.BlendFlags = 0;
         blend.SourceConstantAlpha = (byte) 255;
-        blend.AlphaFormat = WinUser.AC_SRC_ALPHA;
+        blend.AlphaFormat = (byte) WinUser.AC_SRC_ALPHA;
         // No destination point: the window is not moved, so the cursor under it is
         // left alone.
         User32.INSTANCE.UpdateLayeredWindow(hwnd, null, null, size, memoryDc, source, 0,
