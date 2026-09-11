@@ -290,6 +290,11 @@ public class MouseManager implements ModeListener, MousePositionListener {
                 double u = Math.min(1, duration / T);
                 yield initialVelocity + range * s.apply(u);
             }
+            case Easing.ExponentialOut e -> {
+                double T = range / acceleration;
+                double u = Math.min(1, duration / T);
+                yield initialVelocity + range * e.apply(u);
+            }
         };
     }
 
@@ -337,6 +342,13 @@ public class MouseManager implements ModeListener, MousePositionListener {
                     u = Math.max(0, Math.min(1, u));
                 }
                 yield u * T;
+            }
+            case Easing.ExponentialOut e -> {
+                double range = maxVelocity - initialVelocity;
+                double T = range / acceleration;
+                double normalizedV = Math.min(1, (velocity - initialVelocity) / range);
+                yield Math.min(T, -Math.log(1 - normalizedV) /
+                                  (Math.log(2) * e.halvings()) * T);
             }
         };
     }
