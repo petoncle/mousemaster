@@ -629,15 +629,15 @@ public class WindowsOverlay implements Overlay {
 
 
     /**
-     * Captures the desktop inside bounds and downscales it for detection, leaving the hints
+     * Captures the desktop inside bounds and downscales it for detection, leaving the overlays
      * that are on screen out of the frame. Runs on the Qt main thread.
      */
     @Override
     public DesktopCapture captureDesktop(Rectangle bounds, int scaledWidth,
                                          int scaledHeight) {
-        boolean concealHintMesh = currentZoom == null && hintMeshRenderer.showing();
-        if (concealHintMesh)
-            setHintMeshExcludedFromCapture(true);
+        boolean conceal = currentZoom == null;
+        if (conceal)
+            setOverlaysExcludedFromCapture(true);
         try {
             WindowsDesktopFrameCapture capture = captureCovering(bounds);
             WindowsDesktopFrameCapture.Frame frame = duplicatedFrame(capture);
@@ -651,16 +651,19 @@ public class WindowsOverlay implements Overlay {
             return new DesktopCapture(bounds, scaledBytes, scaledWidth, scaledHeight);
         }
         finally {
-            if (concealHintMesh)
-                setHintMeshExcludedFromCapture(false);
+            if (conceal)
+                setOverlaysExcludedFromCapture(false);
         }
     }
 
-    private void setHintMeshExcludedFromCapture(boolean excluded) {
-        for (TransparentWindow window : hintMeshRenderer.windows())
-            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd(window),
-                    excluded ? ExtendedUser32.WDA_EXCLUDEFROMCAPTURE
-                             : ExtendedUser32.WDA_NONE);
+    private void setOverlaysExcludedFromCapture(boolean excluded) {
+        int affinity = excluded ? ExtendedUser32.WDA_EXCLUDEFROMCAPTURE
+                                : ExtendedUser32.WDA_NONE;
+        if (hintMeshRenderer.showing())
+            for (TransparentWindow window : hintMeshRenderer.windows())
+                ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd(window), affinity);
+        if (indicatorHwnd != null && indicatorRenderer.showing())
+            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(indicatorHwnd, affinity);
         if (excluded)
             Dwmapi.INSTANCE.DwmFlush();
     }
