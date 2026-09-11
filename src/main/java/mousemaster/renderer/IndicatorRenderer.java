@@ -94,6 +94,22 @@ public final class IndicatorRenderer {
                gradientColor.step() == GradientStep.PIXEL ? gradientColor : null;
     }
 
+    /** The screen a sweep runs over, relative to the indicator the brush spans. */
+    private Rectangle sweepArea() {
+        return new Rectangle(snapped(gradientArea.x() - widgetOrigin.x()),
+                snapped(gradientArea.y() - widgetOrigin.y()),
+                gradientArea.width(), gradientArea.height());
+    }
+
+    private static QBrush brush(QColor color, GradientColor sweep, Rectangle sweepArea) {
+        if (sweep == null)
+            return QtColorUtil.qBrush(color);
+        if (sweep.area() == GradientArea.ELEMENT)
+            return QtColorUtil.qBrush(sweep, color.alphaF());
+        return QtColorUtil.qBrush(sweep, color.alphaF(),
+                sweep.direction().start(sweepArea), sweep.direction().end(sweepArea));
+    }
+
     private int indicatorSize(IndicatorConfiguration indicator, double screenScale) {
         // An odd size puts the center of a centered indicator half a pixel off, so it would
         // shift as the size changes parity.
@@ -336,9 +352,7 @@ public final class IndicatorRenderer {
         currentIndicator = indicator;
         if (applyShadow)
             applyShadowEffect(shadowScale, lastSelectedHintBoxHexColor);
-        widget.setSweepArea(new Rectangle(snapped(gradientArea.x() - widgetOrigin.x()),
-                snapped(gradientArea.y() - widgetOrigin.y()),
-                gradientArea.width(), gradientArea.height()));
+        widget.setSweepArea(sweepArea());
         widget.cleared = false;
         widget.setEdgeCount(indicator.edgeCount());
         widget.setColor(indicator.opacity() > 0
@@ -502,6 +516,9 @@ public final class IndicatorRenderer {
             QColor shadowColor = new QColor(baseColor.red(), baseColor.green(),
                     baseColor.blue(), alpha);
             effect.setColor(shadowColor);
+            GradientColor shadowSweep = sweep(shadow.color());
+            effect.setShadowBrush(shadowSweep == null ? null :
+                    brush(shadowColor, shadowSweep, sweepArea()));
             shadowColor.dispose();
             effect.setStackCount(shadow.stackCount());
             setIndicatorEffectColors(effect, lastSelectedHintBoxHexColor);
@@ -639,12 +656,7 @@ public final class IndicatorRenderer {
         }
 
         private QBrush brush(QColor color, GradientColor sweep) {
-            if (sweep == null)
-                return QtColorUtil.qBrush(color);
-            if (sweep.area() == GradientArea.ELEMENT)
-                return QtColorUtil.qBrush(sweep, color.alphaF());
-            return QtColorUtil.qBrush(sweep, color.alphaF(),
-                    sweep.direction().start(sweepArea), sweep.direction().end(sweepArea));
+            return IndicatorRenderer.brush(color, sweep, sweepArea);
         }
 
         void setSweepArea(Rectangle sweepArea) {

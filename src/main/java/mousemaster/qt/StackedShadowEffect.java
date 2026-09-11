@@ -71,11 +71,23 @@ public class StackedShadowEffect extends QtDropShadowEffect {
         QImage sourceImage = sourcePixmap.toImage();
         int w = sourceImage.width();
         int h = sourceImage.height();
-        QColor shadowColor = color();
+        // A brush supplies both color and opacity, so the silhouette it tints is rendered
+        // opaque and stacking shapes the alpha alone.
+        boolean brushed = shadowBrush() != null;
+        QColor shadowColor = brushed ? new QColor(255, 255, 255) : color();
         ShadowImage shadow = renderShadowOnly(sourceImage, shadowColor,
                 blurRadius(), xOffset(), yOffset(), w, h);
         shadowColor.dispose();
         QImage stackedShadow = bakeStacking(shadow.image(), stackCount);
+        if (brushed) {
+            QPainter tintPainter = new QPainter(stackedShadow);
+            tintPainter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn);
+            QRect stackedRect = stackedShadow.rect();
+            tint(tintPainter, stackedRect);
+            stackedRect.dispose();
+            tintPainter.end();
+            tintPainter.dispose();
+        }
         QTransform savedTransform = painter.worldTransform();
         QTransform identity = new QTransform();
         painter.setWorldTransform(identity);

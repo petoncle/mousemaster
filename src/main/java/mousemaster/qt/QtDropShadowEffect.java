@@ -12,6 +12,7 @@ import io.qt.core.QPoint;
 import io.qt.core.QPointF;
 import io.qt.core.QRect;
 import io.qt.core.Qt;
+import io.qt.gui.QBrush;
 import io.qt.gui.QColor;
 import io.qt.gui.QImage;
 import io.qt.gui.QPainter;
@@ -25,6 +26,28 @@ import io.qt.widgets.QGraphicsDropShadowEffect;
  * bit-exact.
  */
 public class QtDropShadowEffect extends QGraphicsDropShadowEffect {
+
+    private QBrush shadowBrush;
+
+    /** Tints the shadow with a brush instead of {@link #color()}, so it can be a gradient. */
+    public void setShadowBrush(QBrush shadowBrush) {
+        this.shadowBrush = shadowBrush;
+    }
+
+    protected QBrush shadowBrush() {
+        return shadowBrush;
+    }
+
+    /** Brushes are cached and shared, so this fills with one rather than disposing it. */
+    protected void tint(QPainter painter, QRect rect) {
+        if (shadowBrush != null) {
+            painter.fillRect(rect, shadowBrush);
+            return;
+        }
+        QColor shadowColor = color();
+        painter.fillRect(rect, shadowColor);
+        shadowColor.dispose();
+    }
 
     protected void drawBlurredShadow(QPainter painter) {
         if (blurRadius() <= 0 && xOffset() == 0 && yOffset() == 0) {
@@ -81,11 +104,9 @@ public class QtDropShadowEffect extends QGraphicsDropShadowEffect {
 
         QPainter colorPainter = new QPainter(shadow);
         colorPainter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn);
-        QColor shadowColor = color();
         QRect shadowRect = shadow.rect();
-        colorPainter.fillRect(shadowRect, shadowColor);
+        tint(colorPainter, shadowRect);
         shadowRect.dispose();
-        shadowColor.dispose();
         colorPainter.end();
         colorPainter.dispose();
 
