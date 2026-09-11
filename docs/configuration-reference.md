@@ -630,7 +630,7 @@ pixels: they scale with the screen like the indicator's.
 
 | Setting | Meaning | Default |
 |---|---|---|
-| `shape` | `rect` (a square, or a rectangle with `size=WxH`; `corner-radius` rounds it), `polygon` (`edge-count` sides), `line`, `cross` (a diagonal ×; rotate by 45 for a +), `arc` (part of a circle, see `arc-start` and `arc-length`), `text` (see `text`); and the shorthands `circle` (an outline), `dot` (a filled circle), `triangle` | required |
+| `shape` | `rect` (a square, or a rectangle with `size=WxH`; `corner-radius` rounds it), `polygon` (`edge-count` sides), `star` (`edge-count` points, 5 by default when you set `edge-count=5`; the default `edge-count` of 6 gives a six-point star), `line`, `cross` (a diagonal ×; rotate by 45 for a +), `arc` (part of a circle, see `arc-start` and `arc-length`), `text` (see `text`); and the shorthands `circle` (an outline), `dot` (a filled circle), `triangle` | required |
 | `filled` | `true` fills the shape, `false` draws its outline, `thickness` wide (a filled `arc` is a pie slice) | filled for `dot`, outline otherwise |
 | `speed` | How fast the layer's timeline runs relative to the cycle: `2` plays it twice per cycle, `0.5` at half speed | `1` |
 | `delay` | Milliseconds before the layer's timeline starts | `0` |
@@ -676,7 +676,7 @@ keyframes (`<key>=<value>`). Grouped by what they do:
 
 | Key | Meaning | Default |
 |---|---|---|
-| `edge-count` | A `polygon`'s sides: 3 triangle, 4 square, 6 hexagon, 100 or more looks like a circle (the indicator's convention) | `6` |
+| `edge-count` | A `polygon`'s sides: 3 triangle, 4 square, 6 hexagon, 100 or more looks like a circle (the indicator's convention); a `star`'s points | `6` |
 | `arc-start` | Where an `arc` begins, in degrees clockwise from 12 o'clock (90 is 3 o'clock; the indicator's fill start angle convention) | `0` |
 | `arc-length` | How far the `arc` goes, in degrees, clockwise; negative goes counterclockwise | `270` |
 

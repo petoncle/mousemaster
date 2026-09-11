@@ -41,7 +41,7 @@ public enum EffectProperty {
     /** Square corners, in pixels. */
     CORNER_RADIUS("corner-radius", Kind.NUMBER, 0d, 0, 10_000, "how rounded a rect's corners (or a text background's) are, in pixels (0 = sharp)", "corner-radius=4"),
     /** Polygon edges, with the indicator's convention: 3 triangle, 4 square, 6 hexagon, 100+ circle. */
-    EDGE_COUNT("edge-count", Kind.NUMBER, 6d, 3, 1_000, "the number of sides of a polygon: 3 triangle, 4 square, 6 hexagon, 100 or more looks like a circle", "edge-count=6"),
+    EDGE_COUNT("edge-count", Kind.NUMBER, 6d, 3, 1_000, "the number of sides of a polygon (3 triangle, 4 square, 6 hexagon, 100 or more looks like a circle) or of points of a star", "edge-count=6"),
     /** Arc start, in degrees: 0 is 12 o'clock, 90 is 3 o'clock, clockwise (like the indicator's fill start angle). */
     ARC_START("arc-start", Kind.NUMBER, 0d, -100_000, 100_000, "where an arc begins, in degrees clockwise from 12 o'clock (90 = 3 o'clock)", "arc-start=90"),
     /** Arc length in degrees, clockwise; negative goes counterclockwise. */
