@@ -56,8 +56,10 @@ public final class EffectRenderer {
      * and the arrow.
      */
     public interface NativeSink {
-        /** Shows the image at the given screen position (pixels); called every frame drawn. */
-        void show(int leftPixels, int topPixels, int width, int height, ByteBuffer bgraPremultiplied);
+        /** Shows the image at the given screen position (pixels); called every frame drawn.
+         *  Rows are strideBytes apart in the buffer (Qt pads scanlines to 4 bytes). */
+        void show(int leftPixels, int topPixels, int width, int height,
+                  ByteBuffer bgraPremultiplied, int strideBytes);
         /** Moves the window without redrawing it (a following effect after a mouse move). */
         void move(int leftPixels, int topPixels);
         void hide();
@@ -156,7 +158,8 @@ public final class EffectRenderer {
         paint(painter, new QRect(0, 0, image.width(), image.height()));
         painter.end();
         painter.dispose();
-        sink.show(placedLeft, placedTop, windowWidth, windowHeight, image.constBits());
+        sink.show(placedLeft, placedTop, windowWidth, windowHeight, image.bits(),
+                (int) image.bytesPerLine());
     }
 
     // Effects are centered on the cursor's visual center, the point the indicator marks,
