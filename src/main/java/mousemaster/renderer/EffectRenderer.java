@@ -552,6 +552,20 @@ public final class EffectRenderer {
                 }
                 path.closeSubpath();
             }
+            case PATH -> {
+                // The layer's own corners, in pixels from its center; the size is not
+                // used, but scale (and rotation, like any layer) applies.
+                double factor = layer.scale() * drawScale;
+                List<Point> points = layer.points();
+                for (int i = 0; i < points.size(); i++) {
+                    double x = points.get(i).x() * factor, y = points.get(i).y() * factor;
+                    if (i == 0)
+                        path.moveTo(x, y);
+                    else
+                        path.lineTo(x, y);
+                }
+                path.closeSubpath();
+            }
             case LINE -> {
                 path.moveTo(-width / 2, 0);
                 path.lineTo(width / 2, 0);

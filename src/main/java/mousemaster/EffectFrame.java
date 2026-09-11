@@ -29,7 +29,7 @@ public record EffectFrame(int areaWidth, int areaHeight, Point anchor,
                                       double dashOffset, EffectText text,
                                       double fontSize, String backgroundHexColor,
                                       String outlineHexColor, double outlineThickness, double padding,
-                                      double scale) {
+                                      double scale, List<Point> points) {
 
     }
 
