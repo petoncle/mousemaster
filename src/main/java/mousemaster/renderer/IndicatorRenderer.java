@@ -1011,7 +1011,7 @@ public final class IndicatorRenderer {
                 innerInwardOverlap = Math.max(innerInwardOverlap, 1.0);
             }
             else {
-                innerInwardOverlap = 1.0;
+                innerInwardOverlap = fillColor.alpha() == 0 ? 0 : 1.0;
             }
             if (!clearFullArea && innerOutlineColor != null && innerOutlineColor.alpha() > 0
                     && innerOutlineColor.alpha() < 255) {
