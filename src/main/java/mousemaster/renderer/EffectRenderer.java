@@ -97,6 +97,17 @@ public final class EffectRenderer {
                          paintCount);
     }
 
+    // Effects are centered on the cursor's visual center, the point the indicator marks,
+    // not on the hotspot (the arrow's tip, at its top left): this is the offset between
+    // them, in screen pixels, for the cursor currently shown.
+    private double originOffsetX, originOffsetY;
+
+    /** The offset from the mouse position to the cursor's visual center, in screen pixels. */
+    public void setOriginOffset(double offsetX, double offsetY) {
+        originOffsetX = offsetX;
+        originOffsetY = offsetY;
+    }
+
     /** Whether a shown frame is centered on the mouse (rather than on its anchor). */
     public boolean followingMouse() {
         if (!showing || frames == null)
@@ -145,8 +156,8 @@ public final class EffectRenderer {
         Map<EffectFrame.ResolvedEffectLayer, double[]> shifts = new HashMap<>();
         Rectangle screenRectangle = screen.rectangle();
         for (EffectFrame frame : frames) {
-            int centerX = frame.anchor() == null ? mouseXPixels : (int) Math.round(frame.anchor().x());
-            int centerY = frame.anchor() == null ? mouseYPixels : (int) Math.round(frame.anchor().y());
+            int centerX = (int) Math.round((frame.anchor() == null ? mouseXPixels : frame.anchor().x()) + originOffsetX);
+            int centerY = (int) Math.round((frame.anchor() == null ? mouseYPixels : frame.anchor().y()) + originOffsetY);
             centers.add(new int[]{centerX, centerY});
             int halfWidth = (int) Math.ceil(frame.areaWidth() * scale / 2);
             int halfHeight = (int) Math.ceil(frame.areaHeight() * scale / 2);
