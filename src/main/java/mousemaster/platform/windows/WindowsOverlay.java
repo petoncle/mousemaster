@@ -38,7 +38,7 @@ public class WindowsOverlay implements Overlay {
     private GridRenderer gridRenderer;
     private WinDef.HWND gridHwnd;
     private EffectRenderer effectRenderer;
-    private boolean effectWindowExcludedFromCapture;
+    private WindowsEffectWindow effectWindow;
     private WinDef.HWND effectHwnd;
     /** Owns no QWidget, so it can be created eagerly (no QtJambi native-load ordering). */
     private final HintMeshRenderer hintMeshRenderer;
@@ -504,8 +504,7 @@ public class WindowsOverlay implements Overlay {
             applyCaptureExclusion(gridHwnd);
         if (indicatorHwnd != null)
             applyCaptureExclusion(indicatorHwnd);
-        if (effectHwnd != null)
-            applyCaptureExclusion(effectHwnd);
+        updateEffectCaptureExclusion();
         for (TransparentWindow window : hintMeshRenderer.windows())
             applyCaptureExclusion(hwnd(window));
     }
@@ -532,10 +531,11 @@ public class WindowsOverlay implements Overlay {
      *  window dispatches native messages, which mid-loop can re-enter the low-level
      *  keyboard hook and hang the main thread. */
     private void createEffectWindow() {
-        if (effectRenderer == null)
-            effectRenderer = new EffectRenderer();
-        effectHwnd = new WinDef.HWND(new Pointer(effectRenderer.window().winId()));
-        applyOverlayExStyles(effectHwnd);
+        if (effectRenderer == null) {
+            effectWindow = new WindowsEffectWindow();
+            effectRenderer = new EffectRenderer(effectWindow);
+        }
+        effectHwnd = effectWindow.hwnd();
         updateCaptureExclusions();
     }
 
@@ -570,17 +570,32 @@ public class WindowsOverlay implements Overlay {
         boolean excludeFromCapture = false;
         for (EffectFrame frame : effectFrames)
             excludeFromCapture |= frame.excludeFromCapture();
-        if (excludeFromCapture != effectWindowExcludedFromCapture) {
-            effectWindowExcludedFromCapture = excludeFromCapture;
-            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(effectHwnd, excludeFromCapture ?
-                    ExtendedUser32.WDA_EXCLUDEFROMCAPTURE : ExtendedUser32.WDA_NONE);
-        }
+        effectsAskExclusionFromCapture = excludeFromCapture;
+        updateEffectCaptureExclusion();
+    }
+
+    // Excluded while zooming (like every overlay, or the zoom would mirror it) or while
+    // an effect asks for it; the affinity is only set when it changes.
+    private boolean effectsAskExclusionFromCapture;
+    private Boolean effectWindowExcludedFromCapture;
+
+    private void updateEffectCaptureExclusion() {
+        if (effectHwnd == null)
+            return;
+        boolean exclude = currentZoom != null || effectsAskExclusionFromCapture;
+        if (effectWindowExcludedFromCapture != null && effectWindowExcludedFromCapture == exclude)
+            return;
+        effectWindowExcludedFromCapture = exclude;
+        ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(effectHwnd, exclude ?
+                ExtendedUser32.WDA_EXCLUDEFROMCAPTURE : ExtendedUser32.WDA_NONE);
     }
 
     @Override
     public void hideEffects() {
         if (effectRenderer != null)
             effectRenderer.hide();
+        effectsAskExclusionFromCapture = false;
+        updateEffectCaptureExclusion();
     }
 
     @Override

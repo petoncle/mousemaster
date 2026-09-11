@@ -855,6 +855,19 @@
       "allDeclaredFields": true
     },
     {
+      "type": "com.sun.jna.platform.win32.WinUser$SIZE",
+      "allDeclaredFields": true,
+      "allPublicFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.sun.jna.Pointer"
+          ]
+        }
+      ]
+    },
+    {
       "type": "com.sun.jna.platform.win32.WinUser$HARDWAREINPUT",
       "allDeclaredFields": true,
       "methods": [
