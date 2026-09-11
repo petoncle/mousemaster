@@ -651,7 +651,7 @@ keyframes (`<key>=<value>`). Grouped by what they do:
 
 | Key | Meaning | Default |
 |---|---|---|
-| `x`, `y` | Offset from the area center, in logical pixels (`y` negative is up) | `0` |
+| `x`, `y` | Offset from the area center, in logical pixels (`y` negative is up). The area is centered on the cursor's visual center (the point the indicator marks), not on the arrow's tip, so `y=-30` and `y=30` sit at the same distance from the cursor | `0` |
 | `size` | One number (`24`), width x height (`24x12`), or `area` for the whole area (a filled `rect` sized to the area is a background) | `16` |
 | `scale` | Multiplies the size, not the thickness: animating `0.2` to `1` grows a layer in from afar | `1` |
 
