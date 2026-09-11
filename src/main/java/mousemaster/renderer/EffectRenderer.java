@@ -7,6 +7,7 @@ import io.qt.core.QRect;
 import io.qt.gui.QColor;
 import io.qt.gui.QFont;
 import io.qt.gui.QFontMetrics;
+import io.qt.gui.QImage;
 import io.qt.gui.QPaintEvent;
 import io.qt.gui.QPainter;
 import io.qt.gui.QPainterPath;
@@ -26,6 +27,7 @@ import mousemaster.qt.TransparentWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,9 +46,38 @@ public final class EffectRenderer {
 
     private static final Logger logger = LoggerFactory.getLogger(EffectRenderer.class);
 
+    /**
+     * A platform window the renderer paints into itself rather than through a Qt
+     * widget: it receives each frame as a premultiplied BGRA image and places it on
+     * the screen. On Windows the overlay uses one so it can update the layered window
+     * in place (UpdateLayeredWindow without a position): a Qt widget flush passes the
+     * window's position along, which Windows treats as a move and re-picks the cursor
+     * for, and an animation over a window edge flickered between the resize cursor
+     * and the arrow.
+     */
+    public interface NativeSink {
+        /** Shows the image at the given screen position (pixels); called every frame drawn. */
+        void show(int leftPixels, int topPixels, int width, int height, ByteBuffer bgraPremultiplied);
+        /** Moves the window without redrawing it (a following effect after a mouse move). */
+        void move(int leftPixels, int topPixels);
+        void hide();
+    }
+
+    private final NativeSink sink;
     private TransparentWindow window;
     private EffectWidget widget;
+    private QImage image;
     private boolean showing;
+
+    /** A renderer drawing through a Qt window (macOS). */
+    public EffectRenderer() {
+        this(null);
+    }
+
+    /** A renderer drawing into the given platform window (Windows). */
+    public EffectRenderer(NativeSink sink) {
+        this.sink = sink;
+    }
     // The window only grows while showing, so it is not resized (and cleared)
     // frame after frame; it is reset when hidden.
     private int windowWidth, windowHeight;
@@ -73,6 +104,19 @@ public final class EffectRenderer {
      *  Windows, and are Qt points as-is on macOS. */
     public void setEffects(List<EffectFrame> frames, int mouseXPixels,
                            int mouseYPixels, Screen screen) {
+        if (sink != null) {
+            layout(frames, mouseXPixels, mouseYPixels, screen);
+            showing = true;
+            present();
+            setEffectsCalls++;
+            if (setEffectsCalls <= 3)
+                logger.debug("Effects frame " + setEffectsCalls + ": " + frames.size() +
+                             " effect(s), mouse (" + mouseXPixels + "," + mouseYPixels +
+                             "), scale " + screen.scale() + ", window " + placedLeft +
+                             "," + placedTop + " " + windowWidth + "x" + windowHeight +
+                             ", paints=" + paintCount);
+            return;
+        }
         window();
         boolean firstFrame = setEffectsCalls == 0;
         if (firstFrame)
@@ -98,6 +142,21 @@ public final class EffectRenderer {
                          ", widget " + widget.width() + "x" + widget.height() +
                          " visible=" + widget.isVisible() + ", paints=" +
                          paintCount);
+    }
+
+    /** Paints the frames into the image and hands it to the sink. */
+    private void present() {
+        if (image == null || image.width() != windowWidth || image.height() != windowHeight) {
+            if (image != null)
+                image.dispose();
+            image = new QImage(Math.max(1, windowWidth), Math.max(1, windowHeight),
+                    QImage.Format.Format_ARGB32_Premultiplied);
+        }
+        QPainter painter = new QPainter(image);
+        paint(painter, new QRect(0, 0, image.width(), image.height()));
+        painter.end();
+        painter.dispose();
+        sink.show(placedLeft, placedTop, windowWidth, windowHeight, image.constBits());
     }
 
     // Effects are centered on the cursor's visual center, the point the indicator marks,
@@ -135,7 +194,15 @@ public final class EffectRenderer {
         boolean anyAnchored = false;
         for (EffectFrame frame : frames)
             anyAnchored |= frame.anchor() != null;
+        int before = placedLeft, beforeTop = placedTop;
         layout(frames, mouseXPixels, mouseYPixels, screen);
+        if (sink != null) {
+            if (anyAnchored)
+                present();
+            else if (placedLeft != before || placedTop != beforeTop)
+                sink.move(placedLeft, placedTop);
+            return;
+        }
         if (anyAnchored)
             widget.repaint();
     }
@@ -217,9 +284,11 @@ public final class EffectRenderer {
         if (windowLeft != placedLeft || windowTop != placedTop ||
             windowWidth != placedWidth || windowHeight != placedHeight ||
             !screen.equals(placedScreen)) {
-            window.moveAndResizeInPixels(screen, windowLeft, windowTop, windowWidth,
-                    windowHeight);
-            widget.setGeometry(0, 0, window.width(), window.height());
+            if (sink == null) {
+                window.moveAndResizeInPixels(screen, windowLeft, windowTop, windowWidth,
+                        windowHeight);
+                widget.setGeometry(0, 0, window.width(), window.height());
+            }
             placedLeft = windowLeft;
             placedTop = windowTop;
             placedWidth = windowWidth;
@@ -241,7 +310,10 @@ public final class EffectRenderer {
         clearFrames();
         placedLeft = Integer.MIN_VALUE;
         placedScreen = null;
-        window.hide();
+        if (sink != null)
+            sink.hide();
+        else
+            window.hide();
         logger.debug("Effects hidden after " + setEffectsCalls + " frames, " +
                      paintCount + " paints");
         setEffectsCalls = 0;
@@ -297,11 +369,18 @@ public final class EffectRenderer {
     }
 
     private void paint(QWidget widget, QPaintEvent event) {
-        paintCount++;
         QPainter painter = new QPainter(widget);
+        paint(painter, event.rect());
+        painter.end();
+        painter.dispose();
+    }
+
+    /** Clears the rectangle to transparent and draws the frames over it. */
+    private void paint(QPainter painter, QRect rect) {
+        paintCount++;
         QColor transparent = new QColor(0, 0, 0, 0);
         painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
-        painter.fillRect(event.rect(), transparent);
+        painter.fillRect(rect, transparent);
         transparent.dispose();
         if (frames != null) {
             painter.setCompositionMode(
@@ -310,8 +389,6 @@ public final class EffectRenderer {
             for (int i = 0; i < frames.size(); i++)
                 drawFrame(painter, frames.get(i), centers.get(i).x(), centers.get(i).y());
         }
-        painter.end();
-        painter.dispose();
     }
 
     private void drawFrame(QPainter painter, EffectFrame frame, double centerX,
