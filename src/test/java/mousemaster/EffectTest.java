@@ -291,6 +291,21 @@ class EffectTest {
     }
 
     @Test
+    void aStarIsAShapeWhosePointsAreItsEdgeCount() {
+        EffectConfiguration twinkle = effect("twinkle",
+                "idle-mode.effect.twinkle.layer1-shape=star",
+                "idle-mode.effect.twinkle.layer1-edge-count=5",
+                "idle-mode.effect.twinkle.layer1-filled=true",
+                "idle-mode.start-effect.twinkle=+n");
+        EffectLayer layer = twinkle.layers().getFirst();
+        assertEquals(EffectShape.STAR, layer.shape());
+        assertEquals(5d, layer.base().get(EffectProperty.EDGE_COUNT));
+        IllegalArgumentException unknown = assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.effect.twinkle.layer1-shape=sparkle"));
+        assertTrue(unknown.getMessage().contains("star"), unknown.getMessage());
+    }
+
+    @Test
     void badValuesAreConfigurationErrorsThatNameTheKeyAndTheExpectedForm() {
         IllegalArgumentException outOfRange = assertThrows(IllegalArgumentException.class,
                 () -> parse("idle-mode.effect.blip.layer1-shape=polygon",
