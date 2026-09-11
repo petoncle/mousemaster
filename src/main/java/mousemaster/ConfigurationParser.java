@@ -2432,7 +2432,7 @@ public class ConfigurationParser {
             case "transition-animation-easing" -> ModePropertyHandler.of(prefix.append("transitionAnimationEasing"), v -> parseEasing(v), v -> indicator.transitionAnimationEasing(v));
             case "transition-animation-switch-at" -> ModePropertyHandler.of(prefix.append("transitionAnimationSwitchAt"), v -> IndicatorSwitchAt.fromString(v), v -> indicator.transitionAnimationSwitchAt(v));
             case "render-as-cursor" -> ModePropertyHandler.of(prefix.append("renderAsCursor"), v -> Boolean.parseBoolean(v), v -> indicator.renderAsCursor(v));
-            case "size" -> ModePropertyHandler.of(prefix.append("size"), v -> parseUnsignedInteger(v, 1, 100), v -> indicator.size(v));
+            case "size" -> ModePropertyHandler.of(prefix.append("size"), v -> parseUnsignedInteger(v, 1, 1000), v -> indicator.size(v));
             case "edge-count" -> ModePropertyHandler.of(prefix.append("edgeCount"), v -> parseUnsignedInteger(v, 3, 1000), v -> indicator.edgeCount(v));
             case "color" -> ModePropertyHandler.of(prefix.append("color"), v -> Color.parse(v, colorAliases), v -> indicator.color(v));
             case "opacity" -> ModePropertyHandler.of(prefix.append("opacity"), v -> parseDouble(v, true, 0, 1), v -> indicator.opacity(v));
