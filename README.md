@@ -38,11 +38,11 @@ https://github.com/user-attachments/assets/cfba2c70-7edd-44bf-b63e-ded1613368da
 ### Recursive hint grid
 https://github.com/user-attachments/assets/9140b3be-6109-4a90-a842-0a22c7e0e562
 
+### UI hints
+https://github.com/user-attachments/assets/f90d5438-6bfe-45d6-bd33-5d6cbd90c42b
+
 ### Recursive grid
 https://github.com/user-attachments/assets/b395505e-9a06-4ec8-b361-81323c7b3fb4
-
-### UI hints
-https://github.com/user-attachments/assets/91eef554-bf68-44a7-8d16-5e4d5d353fe0
 
 ### Continuous mouse movement
 https://github.com/user-attachments/assets/7300bf36-6a02-4615-b068-30c38571fc24
