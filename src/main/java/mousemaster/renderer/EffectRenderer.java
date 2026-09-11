@@ -50,6 +50,9 @@ public final class EffectRenderer {
     // The window only grows while showing, so it is not resized (and cleared)
     // frame after frame; it is reset when hidden.
     private int windowWidth, windowHeight;
+    // Where the native window was last placed, to skip a move that changes nothing.
+    private int placedLeft = Integer.MIN_VALUE, placedTop, placedWidth, placedHeight;
+    private Screen placedScreen;
     private int setEffectsCalls;
 
     /** Lazily creates the window and its widget; the host styles winId() afterwards. */
@@ -207,9 +210,22 @@ public final class EffectRenderer {
         // The union sits in the middle of the (possibly larger) window.
         int windowLeft = (left + right) / 2 - windowWidth / 2;
         int windowTop = (top + bottom) / 2 - windowHeight / 2;
-        window.moveAndResizeInPixels(screen, windowLeft, windowTop, windowWidth,
-                windowHeight);
-        widget.setGeometry(0, 0, window.width(), window.height());
+        // Only touch the native window when its place or size changed: a SetWindowPos
+        // under the mouse makes Windows re-pick the cursor, and doing that every frame
+        // of an animation over a window edge flickered between the resize cursor and
+        // the arrow.
+        if (windowLeft != placedLeft || windowTop != placedTop ||
+            windowWidth != placedWidth || windowHeight != placedHeight ||
+            !screen.equals(placedScreen)) {
+            window.moveAndResizeInPixels(screen, windowLeft, windowTop, windowWidth,
+                    windowHeight);
+            widget.setGeometry(0, 0, window.width(), window.height());
+            placedLeft = windowLeft;
+            placedTop = windowTop;
+            placedWidth = windowWidth;
+            placedHeight = windowHeight;
+            placedScreen = screen;
+        }
         // Frame centers in the window's own pixel coordinates.
         List<Point> windowCenters = new ArrayList<>();
         for (int[] center : centers)
@@ -223,6 +239,8 @@ public final class EffectRenderer {
             return;
         showing = false;
         clearFrames();
+        placedLeft = Integer.MIN_VALUE;
+        placedScreen = null;
         window.hide();
         logger.debug("Effects hidden after " + setEffectsCalls + " frames, " +
                      paintCount + " paints");
