@@ -893,6 +893,9 @@ normal-mode.start-effect.keycast=+castkey | -castkey
   effect drawn under the cursor is covered by it. Leave the cursor clear: rings wider
   than the indicator (`size` larger than `indicator.size`), or shapes offset from it
   (`y=-34`). A window indicator (`render-as-cursor=false`) sits below the effects.
+- Is the key well-formed? A property key with an extra `.` in it (a paste that doubled a
+  prefix, `normal-mode.effect.x.normal-mode.effect.x.layer1-size`) does not look like a
+  mode property to the parser and is skipped without an error, like any unknown key.
 - Run with `logging.level=DEBUG`: `Starting effect <name>` is logged on every start, so
   you can tell "the combo did not fire" from "it fired but drew nothing".
 
