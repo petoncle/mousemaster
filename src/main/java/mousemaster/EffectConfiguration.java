@@ -22,6 +22,7 @@ import java.util.Map;
 public record EffectConfiguration(Duration duration, int repeatCount, boolean alternate,
                                   Easing easing, int areaWidth, int areaHeight,
                                   boolean followMouse, boolean enabled,
+                                  boolean excludeFromCapture,
                                   List<EffectLayer> layers) {
 
     public static final int LOOP = -1;
@@ -40,6 +41,7 @@ public record EffectConfiguration(Duration duration, int repeatCount, boolean al
         private Integer areaHeight;
         private Boolean followMouse;
         private Boolean enabled;
+        private Boolean excludeFromCapture;
         private final Map<Integer, EffectLayer.EffectLayerBuilder> layerByNumber =
                 new LinkedHashMap<>();
 
@@ -72,6 +74,12 @@ public record EffectConfiguration(Duration duration, int repeatCount, boolean al
             return this;
         }
 
+        /** Whether the effect is kept out of screenshots and recordings while it runs. */
+        public EffectConfigurationBuilder excludeFromCapture(Boolean excludeFromCapture) {
+            this.excludeFromCapture = excludeFromCapture;
+            return this;
+        }
+
         public EffectConfigurationBuilder enabled(Boolean enabled) {
             this.enabled = enabled;
             return this;
@@ -96,6 +104,7 @@ public record EffectConfiguration(Duration duration, int repeatCount, boolean al
             if (areaHeight == null) areaHeight = parent.areaHeight;
             if (followMouse == null) followMouse = parent.followMouse;
             if (enabled == null) enabled = parent.enabled;
+            if (excludeFromCapture == null) excludeFromCapture = parent.excludeFromCapture;
             for (Map.Entry<Integer, EffectLayer.EffectLayerBuilder> parentEntry :
                     parent.layerByNumber.entrySet())
                 layer(parentEntry.getKey()).extend(parentEntry.getValue());
@@ -127,6 +136,7 @@ public record EffectConfiguration(Duration duration, int repeatCount, boolean al
                     areaHeight == null ? (areaWidth == null ? 100 : areaWidth) : areaHeight,
                     followMouse == null || followMouse,
                     enabled == null || enabled,
+                    excludeFromCapture != null && excludeFromCapture,
                     List.copyOf(layers));
         }
 
