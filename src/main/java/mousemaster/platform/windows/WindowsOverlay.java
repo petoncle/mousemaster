@@ -202,8 +202,11 @@ public class WindowsOverlay implements Overlay {
             (hintMeshRenderer.showing() ? hwnds : notTopmostHwnds).add(hwnd(window));
         if (indicatorHwnd != null && indicatorRenderer.showing())
             hwnds.add(indicatorHwnd);
-        if (effectHwnd != null && effectRenderer.showing())
-            hwnds.add(effectHwnd);
+        // The effect window is left out: it is created topmost and, like the zoom
+        // window during a zoom, must not get a SetWindowPos every 200ms while an
+        // effect plays. That call makes DWM recompose the layered window (a frame
+        // without it) and Windows re-pick the cursor under it, which over a window
+        // edge flickered between the resize cursor and the arrow five times a second.
         if (zoomHwnd != null)
             (currentZoom != null ? hwnds : notTopmostHwnds).add(zoomHwnd);
         // The shell demotes the taskbar under a topmost window that covers a screen.
@@ -555,15 +558,12 @@ public class WindowsOverlay implements Overlay {
             logger.warn("Unable to find mouse position for effects");
             return;
         }
-        boolean wasShowing = effectRenderer.showing();
         // Centered on the cursor's visual center, like the indicator, so an effect above
         // the cursor and one below it sit at the same distance from what the eye sees.
         Point visualCenter = mouse.cursorVisualCenter();
         effectRenderer.setOriginOffset(visualCenter.x(), visualCenter.y());
         effectRenderer.setEffects(effectFrames, mousePosition.x, mousePosition.y,
                 WindowsScreen.findActiveScreen(mousePosition));
-        if (!wasShowing)
-            setTopmost();
         // An effect that must stay out of screenshots and recordings (a camera flash on
         // the screenshot key) keeps the window excluded from capture while it runs, the
         // way the zoom window always is; the others are captured like anything on screen.
