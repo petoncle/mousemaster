@@ -306,6 +306,36 @@ class EffectTest {
     }
 
     @Test
+    void aPathIsAShapeMadeOfTheLayersOwnPoints() {
+        EffectConfiguration diamond = effect("diamond",
+                "idle-mode.effect.diamond.layer1-shape=path",
+                "idle-mode.effect.diamond.layer1-points=0,-20 12,0 0,20 -12,0",
+                "idle-mode.start-effect.diamond=+n");
+        EffectLayer layer = diamond.layers().getFirst();
+        assertEquals(EffectShape.PATH, layer.shape());
+        assertEquals(List.of(new Point(0, -20), new Point(12, 0), new Point(0, 20),
+                new Point(-12, 0)), layer.points());
+        EffectManager.EffectPlayer player = new EffectManager.EffectPlayer(diamond, null);
+        assertEquals(layer.points(), player.frame().layers().getFirst().points());
+        // A path needs at least three points; points need a path.
+        IllegalArgumentException tooFew = assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.effect.diamond.layer1-shape=path",
+                        "idle-mode.effect.diamond.layer1-points=0,0 1,1"));
+        assertTrue(tooFew.getMessage().contains("at least three"), tooFew.getMessage());
+        IllegalArgumentException notPairs = assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.effect.diamond.layer1-shape=path",
+                        "idle-mode.effect.diamond.layer1-points=0,0 1 2,2"));
+        assertTrue(notPairs.getMessage().contains("x,y pairs"), notPairs.getMessage());
+        assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.effect.diamond.layer1-shape=path"));
+        IllegalArgumentException wrongShape = assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.effect.diamond.layer1-shape=rect",
+                        "idle-mode.effect.diamond.layer1-points=0,-20 12,0 0,20"));
+        assertTrue(wrongShape.getMessage().contains("only apply to layer1-shape=path"),
+                wrongShape.getMessage());
+    }
+
+    @Test
     void badValuesAreConfigurationErrorsThatNameTheKeyAndTheExpectedForm() {
         IllegalArgumentException outOfRange = assertThrows(IllegalArgumentException.class,
                 () -> parse("idle-mode.effect.blip.layer1-shape=polygon",

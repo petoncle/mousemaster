@@ -22,6 +22,8 @@ public enum EffectShape {
     ARC,
     /** A star with edge-count points (default 5), a point at the top; its inner radius is 0.4 of the size. */
     STAR,
+    /** A polygon of your own: the layer's points (layer<n>-points), in pixels from the layer's center. */
+    PATH,
     /** A line of text (layer<n>-text), in font-name / font-size / font-weight, with an optional background. */
     TEXT,
     // Aliases: the shapes below are shorthands for a polygon or a rect, kept because
@@ -34,7 +36,7 @@ public enum EffectShape {
     TRIANGLE;
 
     public static String names() {
-        return "rect, polygon, star, line, cross, arc, text, or the aliases dot, circle, triangle";
+        return "rect, polygon, star, path, line, cross, arc, text, or the aliases dot, circle, triangle";
     }
 
     public static EffectShape parse(String string) {
@@ -48,12 +50,13 @@ public enum EffectShape {
             case "cross" -> CROSS;
             case "arc" -> ARC;
             case "star" -> STAR;
+            case "path" -> PATH;
             case "text" -> TEXT;
             default -> throw new IllegalArgumentException(
                     "Invalid shape value " + string + ": shape is what the layer draws; expected " +
                     "rect (a square or rectangle), polygon (edge-count sides), star (edge-count" +
-                    " points), line, cross (an x), arc (part of a circle), text (letters, see" +
-                    " layer1-text), or the shorthands" +
+                    " points), path (your own points, see layer1-points), line, cross (an x)," +
+                    " arc (part of a circle), text (letters, see layer1-text), or the shorthands" +
                     " dot (filled circle), circle, triangle, for example layer1-shape=circle");
         };
     }

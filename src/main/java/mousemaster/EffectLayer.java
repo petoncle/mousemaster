@@ -23,11 +23,13 @@ import java.util.Map;
  */
 public record EffectLayer(EffectShape shape, boolean filled, double speed,
                           Duration delay, boolean sizeIsArea, EffectText text,
+                          List<Point> points,
                           Map<EffectProperty, Object> base,
                           List<EffectKeyframe> keyframes,
                           Set<EffectProperty> animated) {
 
     public EffectLayer {
+        points = points == null ? List.of() : List.copyOf(points);
         base = Map.copyOf(base);
         keyframes = List.copyOf(keyframes);
         animated = Collections.unmodifiableSet(animated.isEmpty() ?
@@ -50,6 +52,7 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
         private Duration delay;
         private Boolean sizeIsArea;
         private final EffectText.EffectTextBuilder text = new EffectText.EffectTextBuilder();
+        private List<Point> points;
         private final Map<EffectProperty, Object> base = new EnumMap<>(EffectProperty.class);
         private List<EffectKeyframe> keyframes;
 
@@ -73,6 +76,12 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
         /** The text settings (text, font-name, font-weight, font-italic, text-align). */
         public EffectText.EffectTextBuilder text() {
             return text;
+        }
+
+        /** The points of a path layer, in pixels from the layer's center. */
+        public EffectLayerBuilder points(List<Point> points) {
+            this.points = points;
+            return this;
         }
 
         public EffectLayerBuilder speed(Double speed) {
@@ -108,6 +117,7 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
             if (delay == null) delay = parent.delay;
             if (sizeIsArea == null) sizeIsArea = parent.sizeIsArea;
             text.extend(parent.text);
+            if (points == null) points = parent.points;
             for (Map.Entry<EffectProperty, Object> entry : parent.base.entrySet())
                 base.putIfAbsent(entry.getKey(), entry.getValue());
             if (keyframes == null) keyframes = parent.keyframes;
@@ -143,6 +153,18 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
                         " has text settings (text, font-name, font-weight, font-italic," +
                         " text-align) but draws a " + shape.name().toLowerCase() + ": those" +
                         " settings only apply to layer" + layerNumber + "-shape=text");
+            if (shape == EffectShape.PATH && (points == null || points.size() < 3))
+                throw new IllegalArgumentException(
+                        "Effect " + effectName + " layer" + layerNumber +
+                        " is a path layer but has no points to draw: add effect." + effectName +
+                        ".layer" + layerNumber + "-points=<x,y x,y x,y ...>, at least three points" +
+                        " in pixels from the layer's center, for example layer" + layerNumber +
+                        "-points=0,-20 12,0 0,20 -12,0 (a diamond)");
+            if (shape != EffectShape.PATH && points != null)
+                throw new IllegalArgumentException(
+                        "Effect " + effectName + " layer" + layerNumber +
+                        " has points but draws a " + shape.name().toLowerCase() + ": points" +
+                        " only apply to layer" + layerNumber + "-shape=path");
             List<EffectKeyframe> resolvedKeyframes = new ArrayList<>();
             double previousPercent = -1;
             for (EffectKeyframe keyframe : keyframes == null ? List.<EffectKeyframe>of() : keyframes) {
@@ -171,6 +193,7 @@ public record EffectLayer(EffectShape shape, boolean filled, double speed,
                     delay == null ? Duration.ZERO : delay,
                     sizeIsArea != null && sizeIsArea,
                     shape == EffectShape.TEXT ? text.build() : null,
+                    points,
                     values,
                     resolvedKeyframes,
                     animatedProperties(resolvedKeyframes));

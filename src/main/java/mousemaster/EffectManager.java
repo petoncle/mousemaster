@@ -311,7 +311,7 @@ public class EffectManager implements ModeListener, MousePositionListener {
                     (String) values.get(EffectProperty.BACKGROUND_COLOR),
                     (String) values.get(EffectProperty.OUTLINE_COLOR),
                     number(values, EffectProperty.OUTLINE_THICKNESS),
-                    number(values, EffectProperty.PADDING), scale);
+                    number(values, EffectProperty.PADDING), scale, layer.points());
         }
 
         private static double number(Map<EffectProperty, Object> values,

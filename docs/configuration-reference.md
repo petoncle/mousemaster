@@ -630,7 +630,7 @@ pixels: they scale with the screen like the indicator's.
 
 | Setting | Meaning | Default |
 |---|---|---|
-| `shape` | `rect` (a square, or a rectangle with `size=WxH`; `corner-radius` rounds it), `polygon` (`edge-count` sides), `star` (`edge-count` points, 5 by default when you set `edge-count=5`; the default `edge-count` of 6 gives a six-point star), `line`, `cross` (a diagonal ×; rotate by 45 for a +), `arc` (part of a circle, see `arc-start` and `arc-length`), `text` (see `text`); and the shorthands `circle` (an outline), `dot` (a filled circle), `triangle` | required |
+| `shape` | `rect` (a square, or a rectangle with `size=WxH`; `corner-radius` rounds it), `polygon` (`edge-count` sides), `star` (`edge-count` points; set `edge-count=5` for the classic one), `path` (a polygon of your own, see `points`), `line`, `cross` (a diagonal ×; rotate by 45 for a +), `arc` (part of a circle, see `arc-start` and `arc-length`), `text` (see `text`); and the shorthands `circle` (an outline), `dot` (a filled circle), `triangle` | required |
 | `filled` | `true` fills the shape, `false` draws its outline, `thickness` wide (a filled `arc` is a pie slice) | filled for `dot`, outline otherwise |
 | `speed` | How fast the layer's timeline runs relative to the cycle: `2` plays it twice per cycle, `0.5` at half speed | `1` |
 | `delay` | Milliseconds before the layer's timeline starts | `0` |
@@ -639,6 +639,7 @@ pixels: they scale with the screen like the indicator's.
 | `text-align` | Which point of the text sits on the layer's `x`: `left` (its left edge), `center`, or `right` | `center` |
 | `max-width` | Wraps the text onto more lines at its spaces past this width in logical pixels, for a text that varies in length (`{keys}`); `0` keeps one line | `0` |
 | `keep-on-screen` | Moves the text (with its box) inwards when it would leave the screen, so a label stays readable at the edges; shapes are not moved | `true` |
+| `points` | The corners of a `path` layer: `x,y` pairs in logical pixels from the layer's center, separated by spaces, at least three (`0,-20 12,0 0,20 -12,0` is a diamond). `size` is not used; `scale`, `rotation`, `filled`, `thickness` and the colors apply as for any shape | required for `path` |
 
 #### Reference: layer values
 
@@ -799,6 +800,23 @@ normal-mode.effect.double-tap.duration-millis=180
 normal-mode.effect.double-tap.layer1-shape=rect
 normal-mode.effect.double-tap.layer1-corner-radius=4
 normal-mode.effect.double-tap.layer1-keyframes=0 scale=0.6 opacity=0.9 | 100 scale=1.4 opacity=0
+
+# Your own shapes: path draws the polygon whose corners you list, in pixels from the
+# layer's center, so a diamond, a parallelogram, an arrow or a check mark are one line
+# each. Here a check mark pops in and a diamond spins behind it.
+normal-mode.effect.done.duration-millis=500
+normal-mode.effect.done.area=80
+normal-mode.effect.done.layer1-shape=path
+normal-mode.effect.done.layer1-points=0,-22 14,0 0,22 -14,0
+normal-mode.effect.done.layer1-thickness=2
+normal-mode.effect.done.layer1-color=#80C0FF
+normal-mode.effect.done.layer1-keyframes=0 rotation=0 opacity=0.8 | 100 rotation=90 opacity=0
+normal-mode.effect.done.layer2-shape=path
+normal-mode.effect.done.layer2-points=-12,0 -4,8 12,-8 12,-3 -4,13 -12,5
+normal-mode.effect.done.layer2-filled=true
+normal-mode.effect.done.layer2-color=#80FF80
+normal-mode.effect.done.layer2-keyframes=0 scale=0.4 opacity=0 | 40 scale=1 opacity=1 easing=smootherstep | 80 opacity=1 | 100 opacity=0
+normal-mode.start-effect.done=+y
 
 # Keycast: the keys you press, shown beside the mouse. {keys} is the history of the
 # keys that (re)started the effect while it was showing, so a burst of typing reads as
