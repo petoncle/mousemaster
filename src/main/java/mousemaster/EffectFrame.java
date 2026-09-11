@@ -11,6 +11,7 @@ import java.util.List;
  * and makes the animation logic testable without a UI.
  */
 public record EffectFrame(int areaWidth, int areaHeight, Point anchor,
+                          boolean excludeFromCapture,
                           List<ResolvedEffectLayer> layers) {
 
     /**

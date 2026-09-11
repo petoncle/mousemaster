@@ -623,6 +623,7 @@ pixels: they scale with the screen like the indicator's.
 | `area` | The region the effect is drawn in, in logical pixels: a size (`48`) or width x height (`64x32`). Layers are clipped to it, so make it large enough for the biggest keyframe | `100` |
 | `follow-mouse` | `true` keeps the area centered on the mouse; `false` leaves it where the mouse was when the effect started | `true` |
 | `enabled` | `false` switches the effect off without removing its lines: its `start-effect` does nothing. Handy while trying things out, like `indicator.enabled` | `true` |
+| `exclude-from-capture` | `true` keeps the effect out of screenshots and screen recordings while it runs (like the zoom window; Windows 10 2004 or later), for an effect on the screenshot key itself. Leave it off for an effect you want in a recording | `false` |
 
 #### Reference: layer settings
 
