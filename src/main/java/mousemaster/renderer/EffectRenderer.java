@@ -535,6 +535,23 @@ public final class EffectRenderer {
                 return IndicatorRenderer.IndicatorWidget.polygonPath(0, 0,
                         Math.min(width, height) / 2, layer.edgeCount());
             }
+            case STAR -> {
+                // edge-count points, a point at the top (like an odd polygon), the inner
+                // vertices at 0.4 of the radius: the classic five-point star is 0.38.
+                int points = Math.max(3, layer.edgeCount());
+                double outer = Math.min(width, height) / 2;
+                double inner = outer * 0.4;
+                for (int i = 0; i < 2 * points; i++) {
+                    double radius = i % 2 == 0 ? outer : inner;
+                    double angle = -Math.PI / 2 + Math.PI * i / points;
+                    double x = radius * Math.cos(angle), y = radius * Math.sin(angle);
+                    if (i == 0)
+                        path.moveTo(x, y);
+                    else
+                        path.lineTo(x, y);
+                }
+                path.closeSubpath();
+            }
             case LINE -> {
                 path.moveTo(-width / 2, 0);
                 path.lineTo(width / 2, 0);
