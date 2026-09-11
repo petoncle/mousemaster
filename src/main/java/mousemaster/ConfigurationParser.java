@@ -2431,9 +2431,11 @@ public class ConfigurationParser {
             }
             case "follow-mouse" -> effect.followMouse(parseEffectBoolean("follow-mouse", propertyValue));
             case "enabled" -> effect.enabled(parseEffectBoolean("enabled", propertyValue));
+            case "exclude-from-capture" -> effect.excludeFromCapture(parseEffectBoolean("exclude-from-capture", propertyValue));
             default -> throw new IllegalArgumentException(
                     "Unknown effect setting " + key + ": an effect can set duration-millis," +
-                    " repeat, direction, easing, area, follow-mouse, enabled, and its layers as" +
+                    " repeat, direction, easing, area, follow-mouse, enabled," +
+                    " exclude-from-capture, and its layers as" +
                     " layer1-<setting>, layer2-<setting>... (at least layer1-shape)");
             // @formatter:on
         }
@@ -2461,6 +2463,7 @@ public class ConfigurationParser {
             Map.entry("easing", new String[]{"how the animation accelerates: a curve name or an exponent (1 linear, 2 slow start)", "easing=smootherstep"}),
             Map.entry("area", new String[]{"the size of the region the effect is drawn in, in pixels (layers are clipped to it)", "area=64 or area=64x32"}),
             Map.entry("follow-mouse", new String[]{"true keeps the effect centered on the mouse; false leaves it where the mouse was when it started", "follow-mouse=false"}),
+            Map.entry("exclude-from-capture", new String[]{"true keeps the effect out of screenshots and screen recordings while it runs (Windows)", "exclude-from-capture=true"}),
             Map.entry("enabled", new String[]{"false switches the effect off without removing its lines (its start-effect does nothing)", "enabled=false"}),
             Map.entry("shape", new String[]{"what the layer draws", "layer1-shape=circle"}),
             Map.entry("filled", new String[]{"true fills the shape; false draws its outline (thickness wide)", "layer1-filled=true"}),

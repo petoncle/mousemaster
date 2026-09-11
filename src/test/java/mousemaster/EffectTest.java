@@ -336,6 +336,24 @@ class EffectTest {
     }
 
     @Test
+    void anEffectCanBeKeptOutOfScreenshots() {
+        EffectConfiguration shot = effect("shot",
+                "idle-mode.effect.shot.exclude-from-capture=true",
+                "idle-mode.effect.shot.layer1-shape=dot",
+                "idle-mode.start-effect.shot=+n");
+        assertTrue(shot.excludeFromCapture());
+        assertTrue(new EffectManager.EffectPlayer(shot, null).frame().excludeFromCapture());
+        EffectConfiguration plain = effect("plain",
+                "idle-mode.effect.plain.layer1-shape=dot",
+                "idle-mode.start-effect.plain=+n");
+        assertFalse(plain.excludeFromCapture());
+        IllegalArgumentException bad = assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.effect.shot.exclude-from-capture=maybe",
+                        "idle-mode.effect.shot.layer1-shape=dot"));
+        assertTrue(bad.getMessage().contains("exclude-from-capture"), bad.getMessage());
+    }
+
+    @Test
     void badValuesAreConfigurationErrorsThatNameTheKeyAndTheExpectedForm() {
         IllegalArgumentException outOfRange = assertThrows(IllegalArgumentException.class,
                 () -> parse("idle-mode.effect.blip.layer1-shape=polygon",

@@ -38,6 +38,7 @@ public class WindowsOverlay implements Overlay {
     private GridRenderer gridRenderer;
     private WinDef.HWND gridHwnd;
     private EffectRenderer effectRenderer;
+    private boolean effectWindowExcludedFromCapture;
     private WinDef.HWND effectHwnd;
     /** Owns no QWidget, so it can be created eagerly (no QtJambi native-load ordering). */
     private final HintMeshRenderer hintMeshRenderer;
@@ -559,6 +560,17 @@ public class WindowsOverlay implements Overlay {
                 WindowsScreen.findActiveScreen(mousePosition));
         if (!wasShowing)
             setTopmost();
+        // An effect that must stay out of screenshots and recordings (a camera flash on
+        // the screenshot key) keeps the window excluded from capture while it runs, the
+        // way the zoom window always is; the others are captured like anything on screen.
+        boolean excludeFromCapture = false;
+        for (EffectFrame frame : effectFrames)
+            excludeFromCapture |= frame.excludeFromCapture();
+        if (excludeFromCapture != effectWindowExcludedFromCapture) {
+            effectWindowExcludedFromCapture = excludeFromCapture;
+            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(effectHwnd, excludeFromCapture ?
+                    ExtendedUser32.WDA_EXCLUDEFROMCAPTURE : ExtendedUser32.WDA_NONE);
+        }
     }
 
     @Override

@@ -250,6 +250,7 @@ public class EffectManager implements ModeListener, MousePositionListener {
                     resolvedLayers.add(resolved);
             }
             return new EffectFrame(effect.areaWidth(), effect.areaHeight(), anchor,
+                    effect.excludeFromCapture(),
                     resolvedLayers);
         }
 
