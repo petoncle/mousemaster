@@ -556,6 +556,10 @@ public class WindowsOverlay implements Overlay {
             return;
         }
         boolean wasShowing = effectRenderer.showing();
+        // Centered on the cursor's visual center, like the indicator, so an effect above
+        // the cursor and one below it sit at the same distance from what the eye sees.
+        Point visualCenter = mouse.cursorVisualCenter();
+        effectRenderer.setOriginOffset(visualCenter.x(), visualCenter.y());
         effectRenderer.setEffects(effectFrames, mousePosition.x, mousePosition.y,
                 WindowsScreen.findActiveScreen(mousePosition));
         if (!wasShowing)
@@ -665,9 +669,12 @@ public class WindowsOverlay implements Overlay {
     }
 
     void mouseMoved(WinDef.POINT mousePosition) {
-        if (effectRenderer != null && effectRenderer.followingMouse())
+        if (effectRenderer != null && effectRenderer.followingMouse()) {
+            Point visualCenter = mouse.cursorVisualCenter();
+            effectRenderer.setOriginOffset(visualCenter.x(), visualCenter.y());
             effectRenderer.mouseMoved(mousePosition.x, mousePosition.y,
                     WindowsScreen.findActiveScreen(mousePosition));
+        }
         if (indicatorIsCursor) {
             // The OS moves the cursor; only re-install when the screen scale changes
             // (cursors don't auto-scale per-monitor DPI).
