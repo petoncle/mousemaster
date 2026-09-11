@@ -825,7 +825,9 @@ normal-mode.start-effect.done=+y
 # so +a -a shows a press and its release). Useful to check what you typed, and to show
 # the keys in a screen recording (a bug report, a demo). Only the keys the mode lists
 # in the combo are shown, and a mode's hint selection keys are taken by the hint. The
-# text wraps past max-width, and is kept on screen at the edges (the default).
+# text wraps past max-width, and is kept on screen at the edges (the default). Rather
+# than on every day, put it in a mode of its own for recordings (record-mode, entered
+# with a key, taking normal-mode's combos by reference: record-mode.start-move=...).
 key-alias.castkey=a b c d e f g h i j k l m n o p q r s t u v w x y z space leftctrl leftalt
 normal-mode.effect.keycast.duration-millis=1500
 normal-mode.effect.keycast.area=260x80
