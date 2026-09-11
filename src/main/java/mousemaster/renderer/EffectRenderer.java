@@ -320,6 +320,9 @@ public final class EffectRenderer {
         try {
         double[] shift = textShifts.get(layer);
         if (shift != null) {
+            // A text kept on screen may sit outside its effect's area: the area clip
+            // (set per frame) would cut it, so it is lifted for this layer.
+            painter.setClipping(false);
             double drawUnitsPerPixel = drawScale / Math.max(1e-9, screenScale);
             painter.translate(shift[0] * drawUnitsPerPixel, shift[1] * drawUnitsPerPixel);
         }
