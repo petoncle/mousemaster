@@ -39,6 +39,7 @@ public class WindowsOverlay implements Overlay {
     private WinDef.HWND gridHwnd;
     private EffectRenderer effectRenderer;
     private WindowsEffectWindow effectWindow;
+    private Point effectOriginOffset = new Point(0, 0);
     private WinDef.HWND effectHwnd;
     /** Owns no QWidget, so it can be created eagerly (no QtJambi native-load ordering). */
     private final HintMeshRenderer hintMeshRenderer;
@@ -560,8 +561,14 @@ public class WindowsOverlay implements Overlay {
         }
         // Centered on the cursor's visual center, like the indicator, so an effect above
         // the cursor and one below it sit at the same distance from what the eye sees.
-        Point visualCenter = mouse.cursorVisualCenter();
-        effectRenderer.setOriginOffset(visualCenter.x(), visualCenter.y());
+        // The offset is taken when the effects appear and kept until they are gone: it
+        // depends on the cursor shown, and reading it every frame over a window edge
+        // fed a loop (resize cursor -> other offset -> window moved -> Windows re-picks
+        // the cursor -> arrow -> offset back -> window moved...) that flickered the
+        // cursor and jittered the effect.
+        if (!effectRenderer.showing())
+            effectOriginOffset = mouse.cursorVisualCenter();
+        effectRenderer.setOriginOffset(effectOriginOffset.x(), effectOriginOffset.y());
         effectRenderer.setEffects(effectFrames, mousePosition.x, mousePosition.y,
                 WindowsScreen.findActiveScreen(mousePosition));
         // An effect that must stay out of screenshots and recordings (a camera flash on
@@ -684,12 +691,9 @@ public class WindowsOverlay implements Overlay {
     }
 
     void mouseMoved(WinDef.POINT mousePosition) {
-        if (effectRenderer != null && effectRenderer.followingMouse()) {
-            Point visualCenter = mouse.cursorVisualCenter();
-            effectRenderer.setOriginOffset(visualCenter.x(), visualCenter.y());
+        if (effectRenderer != null && effectRenderer.followingMouse())
             effectRenderer.mouseMoved(mousePosition.x, mousePosition.y,
                     WindowsScreen.findActiveScreen(mousePosition));
-        }
         if (indicatorIsCursor) {
             // The OS moves the cursor; only re-install when the screen scale changes
             // (cursors don't auto-scale per-monitor DPI).
