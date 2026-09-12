@@ -2,6 +2,8 @@ package mousemaster;
 
 import mousemaster.ComboMove.KeyComboMove;
 import mousemaster.ComboMove.PressComboMove;
+import mousemaster.EffectConfiguration.EffectConfigurationBuilder;
+import mousemaster.EffectLayer.EffectLayerBuilder;
 import mousemaster.GridArea.GridAreaType;
 import mousemaster.GridConfiguration.GridConfigurationBuilder;
 import mousemaster.HideCursor.HideCursorBuilder;
@@ -294,7 +296,10 @@ public class ConfigurationParser {
                 new Property<>("set-variable", Map.of()),
                 new Property<>("unset-variable", Map.of()),
                 new Property<>("reset-variables", Map.of()),
-                new Property<>("noop", Map.of())
+                new Property<>("noop", Map.of()),
+                new Property<>("effect", new LinkedHashMap<String, EffectConfigurationBuilder>()),
+                new Property<>("start-effect", Map.of()),
+                new Property<>("stop-effect", Map.of())
         ).collect(Collectors.toMap(property -> property.propertyKey.propertyName, Function.identity()));
         // @formatter:on
     }
@@ -1327,6 +1332,48 @@ public class ConfigurationParser {
                             keyAliases, appAliases, keyResolver, allVariableNames);
                 }
             }
+            case "effect" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.effects.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(group4) == null ||
+                         keyMatcher.group(group5) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid effect property key: expected effect.<name>.<key>");
+                else {
+                    String effectName = keyMatcher.group(group4);
+                    parseEffectProperty(mode.effects.builder.computeIfAbsent(effectName,
+                                    effectName1 -> new EffectConfigurationBuilder()),
+                            effectName, keyMatcher.group(group5), propertyValue);
+                }
+            }
+            case "start-effect" -> {
+                if (keyMatcher.group(group3) == null || keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "start-effect requires an effect name: start-effect.<name>");
+                else if (keyMatcher.group(group5) != null)
+                    throw new IllegalArgumentException(
+                            "Invalid start-effect property key: expected start-effect.<name>");
+                else
+                    setCommand(mode.comboMap.startEffect.builder, propertyValue,
+                            new Command.StartEffect(keyMatcher.group(group4)),
+                            propertyKey, defaultComboMoveDuration, keyAliases,
+                            appAliases, keyResolver, allVariableNames);
+            }
+            case "stop-effect" -> {
+                if (keyMatcher.group(group3) == null || keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "stop-effect requires an effect name: stop-effect.<name>");
+                else if (keyMatcher.group(group5) != null)
+                    throw new IllegalArgumentException(
+                            "Invalid stop-effect property key: expected stop-effect.<name>");
+                else
+                    setCommand(mode.comboMap.stopEffect.builder, propertyValue,
+                            new Command.StopEffect(keyMatcher.group(group4)),
+                            propertyKey, defaultComboMoveDuration, keyAliases,
+                            appAliases, keyResolver, allVariableNames);
+            }
             case "hide-cursor" -> {
                 if (keyMatcher.group(group3) == null)
                     mode.hideCursor.parsePropertyReference(propertyKey, propertyValue,
@@ -2274,6 +2321,420 @@ public class ConfigurationParser {
                 defaultComboMoveDuration, keyAliases, appAliases, keyResolver,
                 allVariableNames, null))
             handler.modeBuilderSetter().accept(propertyValue);
+    }
+
+    private static final Pattern effectLayerKeyPattern =
+            Pattern.compile("layer([1-9][0-9]*)-(.+)");
+
+    /**
+     * Effect properties do not go through {@link #tryParseComboProperty}: combo-based
+     * mutation is not supported for them (yet), and keyframes reuse the | separator.
+     * A layer key is either one of the few settings that hold for the layer's life
+     * (shape, filled, speed, delay, keyframes), a compound value (size, pivot), or a
+     * property of the {@link EffectProperty} table, parsed by its kind.
+     */
+    private static void parseEffectProperty(EffectConfigurationBuilder effect,
+                                            String effectName, String key,
+                                            String propertyValue) {
+        Matcher layerMatcher = effectLayerKeyPattern.matcher(key);
+        if (layerMatcher.matches()) {
+            int layerNumber = Integer.parseInt(layerMatcher.group(1));
+            String layerKey = layerMatcher.group(2);
+            EffectLayerBuilder layer = effect.layer(layerNumber);
+            switch (layerKey) {
+                // @formatter:off
+                case "shape" -> layer.shape(EffectShape.parse(propertyValue));
+                case "text" -> layer.text().text(propertyValue);
+                case "font-name" -> layer.text().fontName(propertyValue);
+                case "font-weight" -> {
+                    try {
+                        layer.text().weight(FontWeight.of(propertyValue));
+                    } catch (IllegalArgumentException e) {
+                        throw invalidEffectValue("font-weight", propertyValue,
+                                "one of thin, extra-light, light, normal, medium, demi-bold, bold," +
+                                " extra-bold, black");
+                    }
+                }
+                case "font-italic" -> layer.text().italic(parseEffectBoolean("font-italic", propertyValue));
+                case "text-align" -> layer.text().align(EffectText.Align.parse(propertyValue));
+                case "max-width" -> layer.text().maxWidth(parseEffectNumber("max-width", propertyValue, true, 0, 100_000));
+                case "keep-on-screen" -> layer.text().keepOnScreen(parseEffectBoolean("keep-on-screen", propertyValue));
+                case "points" -> layer.points(parseEffectPoints(propertyValue));
+                case "filled" -> layer.filled(parseEffectBoolean("filled", propertyValue));
+                case "speed" -> layer.speed(parseEffectNumber("speed", propertyValue, false, 0, 1_000));
+                case "delay" -> layer.delay(parseEffectMillis("delay", propertyValue));
+                case "keyframes" -> layer.keyframes(parseEffectKeyframes(effectName, layerNumber, propertyValue));
+                case "size" -> {
+                    if (propertyValue.equals("area"))
+                        layer.sizeIsArea(true);
+                    else {
+                        double[] size = parseEffectSize("size", propertyValue);
+                        layer.sizeIsArea(false);
+                        layer.set(EffectProperty.WIDTH, size[0]);
+                        layer.set(EffectProperty.HEIGHT, size[1]);
+                    }
+                }
+                case "pivot" -> {
+                    double[] pivot = parseEffectPivot(propertyValue);
+                    layer.set(EffectProperty.PIVOT_X, pivot[0]);
+                    layer.set(EffectProperty.PIVOT_Y, pivot[1]);
+                }
+                case "dash" -> {
+                    double[] dash = parseEffectDash(propertyValue);
+                    layer.set(EffectProperty.DASH_LENGTH, dash[0]);
+                    layer.set(EffectProperty.DASH_GAP, dash[1]);
+                }
+                default -> {
+                    EffectProperty property = EffectProperty.byKey(layerKey);
+                    if (property == null || property == EffectProperty.VISIBLE)
+                        throw new IllegalArgumentException(
+                                "Unknown effect layer setting " + layerKey + " in " + key +
+                                ": a layer (layer1-, layer2-...) can set shape, filled, speed," +
+                                " delay, keyframes, text, font-name, font-weight, font-italic," +
+                                " text-align, max-width, keep-on-screen, points, and the values " +
+                                EffectProperty.keys());
+                    layer.set(property, parseEffectPropertyValue(property, propertyValue));
+                }
+                // @formatter:on
+            }
+            return;
+        }
+        switch (key) {
+            // @formatter:off
+            case "duration-millis" -> effect.duration(parseEffectMillis("duration-millis", propertyValue));
+            case "repeat" -> effect.repeatCount(switch (propertyValue) {
+                case "once" -> 1;
+                case "loop" -> EffectConfiguration.LOOP;
+                default -> {
+                    int count;
+                    try {
+                        count = Integer.parseInt(propertyValue);
+                    } catch (NumberFormatException e) {
+                        count = 0;
+                    }
+                    if (count < 1)
+                        throw invalidEffectValue("repeat", propertyValue,
+                                "once, loop, or a number of cycles (1 or more)");
+                    yield count;
+                }
+            });
+            case "direction" -> effect.alternate(switch (propertyValue) {
+                case "forward" -> false;
+                case "alternate" -> true;
+                default -> throw invalidEffectValue("direction", propertyValue,
+                        "forward or alternate");
+            });
+            case "easing" -> effect.easing(parseEffectEasing("easing", propertyValue));
+            case "area" -> {
+                double[] area = parseEffectSize("area", propertyValue);
+                effect.area((int) area[0], (int) area[1]);
+            }
+            case "follow-mouse" -> effect.followMouse(parseEffectBoolean("follow-mouse", propertyValue));
+            case "enabled" -> effect.enabled(parseEffectBoolean("enabled", propertyValue));
+            case "exclude-from-capture" -> effect.excludeFromCapture(parseEffectBoolean("exclude-from-capture", propertyValue));
+            default -> throw new IllegalArgumentException(
+                    "Unknown effect setting " + key + ": an effect can set duration-millis," +
+                    " repeat, direction, easing, area, follow-mouse, enabled," +
+                    " exclude-from-capture, and its layers as" +
+                    " layer1-<setting>, layer2-<setting>... (at least layer1-shape)");
+            // @formatter:on
+        }
+    }
+
+    /** A property value parsed by the kind its table entry declares. */
+    private static Object parseEffectPropertyValue(EffectProperty property, String value) {
+        return switch (property.kind) {
+            case NUMBER -> parseEffectNumber(property.key, value, true, property.min, property.max);
+            case COLOR -> effectHexColor(property.key, value);
+            case SWITCH -> parseEffectBoolean(property.key, value);
+        };
+    }
+
+    /**
+     * What each effect key means, in plain words, and a correct example: the error
+     * messages lean on these so that a message can be understood without opening the
+     * configuration reference. Table properties carry their own meaning; these are
+     * the effect and layer settings and the compound values.
+     */
+    private static final Map<String, String[]> effectKeyHelp = Map.ofEntries(
+            Map.entry("duration-millis", new String[]{"how long one cycle of the effect lasts, in milliseconds", "duration-millis=300"}),
+            Map.entry("repeat", new String[]{"how many cycles the effect plays: once, a number, or loop until stop-effect", "repeat=loop"}),
+            Map.entry("direction", new String[]{"forward plays every cycle the same way; alternate plays every other cycle backwards", "direction=alternate"}),
+            Map.entry("easing", new String[]{"how the animation accelerates: a curve name or an exponent (1 linear, 2 slow start)", "easing=smootherstep"}),
+            Map.entry("area", new String[]{"the size of the region the effect is drawn in, in pixels (layers are clipped to it)", "area=64 or area=64x32"}),
+            Map.entry("follow-mouse", new String[]{"true keeps the effect centered on the mouse; false leaves it where the mouse was when it started", "follow-mouse=false"}),
+            Map.entry("exclude-from-capture", new String[]{"true keeps the effect out of screenshots and screen recordings while it runs (Windows)", "exclude-from-capture=true"}),
+            Map.entry("enabled", new String[]{"false switches the effect off without removing its lines (its start-effect does nothing)", "enabled=false"}),
+            Map.entry("shape", new String[]{"what the layer draws", "layer1-shape=circle"}),
+            Map.entry("filled", new String[]{"true fills the shape; false draws its outline (thickness wide)", "layer1-filled=true"}),
+            Map.entry("speed", new String[]{"how fast the layer's own timeline runs compared to the cycle (2 = twice per cycle, 0.5 = half)", "layer1-speed=2"}),
+            Map.entry("delay", new String[]{"how long the layer waits before its timeline starts, in milliseconds", "layer2-delay=120"}),
+            Map.entry("size", new String[]{"the layer's size in pixels: one number, width x height, or area for the whole area", "layer1-size=24 or layer1-size=64x32"}),
+            Map.entry("pivot", new String[]{"the point the layer's rotation turns about, as x,y from the area center (0,0 = the mouse: the layer orbits it)", "layer1-pivot=0,0"}),
+            Map.entry("dash", new String[]{"the dash and gap lengths, in pixels, that draw an outline as dashes (solid = no dashes)", "layer1-dash=6,4"}),
+            Map.entry("text", new String[]{"what a text layer says", "layer1-text=Copied"}),
+            Map.entry("font-name", new String[]{"the font family of a text layer", "layer1-font-name=Segoe UI"}),
+            Map.entry("font-weight", new String[]{"how bold a text layer is", "layer1-font-weight=bold"}),
+            Map.entry("font-italic", new String[]{"whether a text layer is italic", "layer1-font-italic=true"}),
+            Map.entry("text-align", new String[]{"which point of the text sits on the layer's x: its left edge, its center, or its right edge", "layer1-text-align=left"}),
+            Map.entry("max-width", new String[]{"the width, in pixels, past which a text layer wraps onto more lines at its spaces (0 = one line)", "layer1-max-width=160"}),
+            Map.entry("points", new String[]{"the corners of a path layer, x,y pairs in pixels from the layer's center, separated by spaces", "layer1-points=0,-20 12,0 0,20 -12,0"}),
+            Map.entry("keep-on-screen", new String[]{"whether a text layer is moved inwards when its box would leave the screen, so it stays readable at the edges", "layer1-keep-on-screen=false"}),
+            Map.entry("position", new String[]{"where in the cycle a keyframe is: a percent (0-100) or a time in milliseconds (150ms)", "0 size=10 | 100 size=40"}));
+
+    /** "Invalid <key> value <value>: <key> is <meaning>; expected <expected>, for example <example>". */
+    private static IllegalArgumentException invalidEffectValue(String key, String value,
+                                                               String expected) {
+        EffectProperty property = EffectProperty.byKey(key);
+        String meaning = property != null ? property.meaning :
+                effectKeyHelp.containsKey(key) ? effectKeyHelp.get(key)[0] : null;
+        String example = property != null ? property.example :
+                effectKeyHelp.containsKey(key) ? effectKeyHelp.get(key)[1] : null;
+        return new IllegalArgumentException(
+                "Invalid " + key + " value " + value + ": " +
+                (meaning == null ? "" : key + " is " + meaning + "; ") +
+                "expected " + expected +
+                (example == null ? "" : ", for example " + example));
+    }
+
+    /**
+     * Effect colors are plain hex colors: the renderer keeps the hex string, and the
+     * last-selected-hint-box-color keyword would need hint mesh state at render time.
+     */
+    private static String effectHexColor(String key, String value) {
+        try {
+            if (Color.parse(value) instanceof Color.HexColor hex)
+                return hex.hexColor();
+        } catch (IllegalArgumentException e) {
+            // Reworded below: the color parser's wording is about hint colors.
+        }
+        throw invalidEffectValue(key, value,
+                "a color written as #RRGGBB (red, green, blue in hex; transparency is the" +
+                " separate opacity property)");
+    }
+
+    /** A number in the property's range, with the range in the message rather than a NumberFormatException. */
+    private static double parseEffectNumber(String key, String value, boolean minIncluded,
+                                            double min, double max) {
+        double number;
+        try {
+            number = Double.parseDouble(value);
+        } catch (NumberFormatException e) {
+            throw invalidEffectValue(key, value, "a number" + effectRange(minIncluded, min, max));
+        }
+        if (number < min || number == min && !minIncluded || number > max || Double.isNaN(number))
+            throw invalidEffectValue(key, value, "a number" + effectRange(minIncluded, min, max));
+        return number;
+    }
+
+    private static String effectRange(boolean minIncluded, double min, double max) {
+        String low = min == (long) min ? String.valueOf((long) min) : String.valueOf(min);
+        String high = max == (long) max ? String.valueOf((long) max) : String.valueOf(max);
+        return minIncluded ? " between " + low + " and " + high :
+                " greater than " + low + " and at most " + high;
+    }
+
+    private static Easing parseEffectEasing(String key, String value) {
+        try {
+            return parseEasing(value);
+        } catch (NumberFormatException e) {
+            throw invalidEffectValue(key, value,
+                    "one of smoothstep, smootherstep, logarithmic, exponential, or a number" +
+                    " (1 = constant speed, 2 = slow start then fast, 0.5 = fast start then slow)");
+        }
+    }
+
+    /** "x,y x,y x,y ...": the corners of a path layer, in pixels from the layer's center. */
+    private static List<Point> parseEffectPoints(String value) {
+        List<Point> points = new ArrayList<>();
+        for (String token : value.trim().split("\\s+")) {
+            String[] xy = token.split(",");
+            if (xy.length != 2)
+                throw invalidEffectValue("points", value,
+                        "x,y pairs separated by spaces, in pixels from the layer's center, at least three");
+            points.add(new Point(parseEffectNumber("points", xy[0], true, -100_000, 100_000),
+                    parseEffectNumber("points", xy[1], true, -100_000, 100_000)));
+        }
+        if (points.size() < 3)
+            throw invalidEffectValue("points", value,
+                    "at least three x,y pairs separated by spaces (a diamond is 0,-20 12,0 0,20 -12,0)");
+        return points;
+    }
+
+    private static boolean parseEffectBoolean(String key, String value) {
+        return switch (value) {
+            case "true" -> true;
+            case "false" -> false;
+            default -> throw invalidEffectValue(key, value, "true or false");
+        };
+    }
+
+    /** A whole number of milliseconds, 0 or more. */
+    private static Duration parseEffectMillis(String key, String value) {
+        try {
+            return Duration.ofMillis(Integer.parseUnsignedInt(value));
+        } catch (NumberFormatException e) {
+            throw invalidEffectValue(key, value,
+                    "a whole number of milliseconds, 0 or more (1000 is one second)");
+        }
+    }
+
+    /** A size is uniform ({@code 24}) or width-by-height ({@code 64x32}). */
+    private static double[] parseEffectSize(String key, String propertyValue) {
+        // 0 is allowed: shrinking a layer to nothing is a legitimate keyframe.
+        int xIndex = propertyValue.indexOf('x');
+        try {
+            if (xIndex == -1) {
+                double size = parseEffectNumber(key, propertyValue, true, 0, 10_000);
+                return new double[]{size, size};
+            }
+            return new double[]{
+                    parseEffectNumber(key, propertyValue.substring(0, xIndex), true, 0, 10_000),
+                    parseEffectNumber(key, propertyValue.substring(xIndex + 1), true, 0, 10_000)};
+        } catch (IllegalArgumentException e) {
+            throw invalidEffectValue(key, propertyValue,
+                    "one number (a square, 24) or width x height (64x32), in pixels between" +
+                    " 0 and 10000" + (key.equals("size") ? ", or the word area" : ""));
+        }
+    }
+
+    /** A pivot is a point in effect coordinates ({@code 0,0} is the effect's center). */
+    private static double[] parseEffectPivot(String propertyValue) {
+        String[] parts = propertyValue.split(",");
+        String expected = "two numbers x,y between -10000 and 10000";
+        if (parts.length != 2)
+            throw invalidEffectValue("pivot", propertyValue, expected);
+        try {
+            return new double[]{
+                    parseEffectNumber("pivot", parts[0].trim(), true, -10_000, 10_000),
+                    parseEffectNumber("pivot", parts[1].trim(), true, -10_000, 10_000)};
+        } catch (IllegalArgumentException e) {
+            throw invalidEffectValue("pivot", propertyValue, expected);
+        }
+    }
+
+    /** {@code dash=<on>,<off>} in pixels, or {@code solid}. */
+    private static double[] parseEffectDash(String propertyValue) {
+        if (propertyValue.equals("solid"))
+            return new double[]{0, 0};
+        String[] parts = propertyValue.split(",");
+        String expected = "two numbers dash,gap greater than 0 and at most 10000, or the word solid";
+        if (parts.length != 2)
+            throw invalidEffectValue("dash", propertyValue, expected);
+        try {
+            return new double[]{
+                    parseEffectNumber("dash", parts[0].trim(), false, 0, 10_000),
+                    parseEffectNumber("dash", parts[1].trim(), false, 0, 10_000)};
+        } catch (IllegalArgumentException e) {
+            throw invalidEffectValue("dash", propertyValue, expected);
+        }
+    }
+
+    /**
+     * Keyframes are | separated, each one a cycle position in percent followed by the
+     * values it pins: {@code 0 size=12 opacity=0.8 | 100 size=28 opacity=0}. The bare
+     * keywords {@code show} and {@code hide} toggle the layer's visibility; any
+     * {@link EffectProperty} key can be pinned, plus size, pivot, dash and easing.
+     */
+    private static List<EffectKeyframe> parseEffectKeyframes(String effectName,
+                                                             int layerNumber,
+                                                             String propertyValue) {
+        List<EffectKeyframe> keyframes = new ArrayList<>();
+        for (String keyframeString : propertyValue.split("\\|", -1)) {
+            String[] tokens = keyframeString.trim().split("\\s+");
+            String context = "effect " + effectName + " layer" + layerNumber +
+                             " keyframe \"" + keyframeString.trim() + "\"";
+            if (tokens.length == 0 || tokens[0].isEmpty())
+                throw new IllegalArgumentException(
+                        "Empty keyframe in " + context + ": keyframes are separated by |, and" +
+                        " there is nothing between two separators (or after the last one)");
+            // A position is a percent of the cycle (0-100) or a time in ms (120ms);
+            // ms positions are converted, and the order checked, once the effect's
+            // duration is known (EffectLayerBuilder.build), since duration-millis
+            // may be written after the keyframes.
+            boolean inMillis = tokens[0].endsWith("ms");
+            double position;
+            try {
+                position = inMillis ?
+                        parseEffectNumber("position", tokens[0].substring(0, tokens[0].length() - 2), true, 0, 3_600_000) :
+                        parseEffectNumber("position", tokens[0], true, 0, 100);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(
+                        "Invalid keyframe position " + tokens[0] + " in " + context +
+                        ": keyframes are separated by |, and each one starts with where it is" +
+                        " in the cycle, a percent (0-100) or a time in milliseconds (150ms)," +
+                        " followed by the values it sets, for example" +
+                        " 0 size=10 opacity=1 | 100 size=40 opacity=0");
+            }
+            Map<EffectProperty, Object> values = new EnumMap<>(EffectProperty.class);
+            Boolean sizeIsArea = null;
+            Easing easing = null;
+            for (int tokenIndex = 1; tokenIndex < tokens.length; tokenIndex++) {
+                String token = tokens[tokenIndex];
+                int equalIndex = token.indexOf('=');
+                if (equalIndex == -1) {
+                    switch (token) {
+                        case "show" -> values.put(EffectProperty.VISIBLE, true);
+                        case "hide" -> values.put(EffectProperty.VISIBLE, false);
+                        default -> throw new IllegalArgumentException(
+                                "Unknown keyframe word " + token + " in " + context +
+                                ": a keyframe sets values as <key>=<value> (maybe the = is" +
+                                " missing), or the words show / hide");
+                    }
+                    continue;
+                }
+                String tokenKey = token.substring(0, equalIndex);
+                String tokenValue = token.substring(equalIndex + 1);
+                try {
+                switch (tokenKey) {
+                    // @formatter:off
+                    case "size" -> {
+                        if (tokenValue.equals("area"))
+                            sizeIsArea = true;
+                        else {
+                            double[] size = parseEffectSize("size", tokenValue);
+                            sizeIsArea = false;
+                            values.put(EffectProperty.WIDTH, size[0]);
+                            values.put(EffectProperty.HEIGHT, size[1]);
+                        }
+                    }
+                    case "pivot" -> {
+                        double[] pivot = parseEffectPivot(tokenValue);
+                        values.put(EffectProperty.PIVOT_X, pivot[0]);
+                        values.put(EffectProperty.PIVOT_Y, pivot[1]);
+                    }
+                    case "dash" -> {
+                        double[] dash = parseEffectDash(tokenValue);
+                        values.put(EffectProperty.DASH_LENGTH, dash[0]);
+                        values.put(EffectProperty.DASH_GAP, dash[1]);
+                    }
+                    case "easing" -> easing = parseEffectEasing("easing", tokenValue);
+                    default -> {
+                        EffectProperty property = EffectProperty.byKey(tokenKey);
+                        if (property == null || property == EffectProperty.VISIBLE)
+                            throw new IllegalArgumentException(
+                                    "Unknown keyframe value " + token + " in " + context +
+                                    ": a keyframe sets values as <key>=<value>, or the words" +
+                                    " show / hide, and the keys it can set are: " +
+                                    EffectProperty.keys() + ", easing");
+                        values.put(property, parseEffectPropertyValue(property, tokenValue));
+                    }
+                    // @formatter:on
+                }
+                } catch (IllegalArgumentException e) {
+                    // The value parsers name the key and the expected form; add where.
+                    throw new IllegalArgumentException(
+                            e.getMessage() + " (keyframe token " + token + " in " + context + ")");
+                }
+            }
+            if (values.isEmpty() && sizeIsArea == null && easing == null)
+                throw new IllegalArgumentException(
+                        "Keyframe \"" + keyframeString.trim() + "\" in " + context +
+                        " sets nothing: after its position, a keyframe lists the values it" +
+                        " sets, for example " + tokens[0] + " size=20 opacity=0.5");
+            keyframes.add(new EffectKeyframe(position, inMillis, values, sizeIsArea, easing));
+        }
+        return List.copyOf(keyframes);
     }
 
     private record ModePropertyHandler(
@@ -3309,6 +3770,7 @@ public class ConfigurationParser {
         Property<IndicatorConfigurationBuilder> indicator;
         Property<HideCursorBuilder> hideCursor;
         Property<ZoomConfigurationBuilder> zoom;
+        Property<Map<String, EffectConfigurationBuilder>> effects;
 
         private ModeBuilder(String modeName,
                             Map<PropertyKey, Property<?>> propertyByKey) {
@@ -3465,17 +3927,51 @@ public class ConfigurationParser {
                         builder.animationDurationMillis(parent.animationDurationMillis());
                 }
             };
+            effects = new Property<>("effect", modeName, propertyByKey,
+                    new LinkedHashMap<>()) {
+                @Override
+                void extend(Object parent_) {
+                    Map<String, EffectConfigurationBuilder> parent =
+                            (Map<String, EffectConfigurationBuilder>) parent_;
+                    for (Map.Entry<String, EffectConfigurationBuilder> parentEntry :
+                            parent.entrySet())
+                        builder.computeIfAbsent(parentEntry.getKey(),
+                                       effectName -> new EffectConfigurationBuilder())
+                               .extend(parentEntry.getValue());
+                }
+            };
         }
 
         public Mode build() {
+            Map<String, EffectConfiguration> builtEffects = new LinkedHashMap<>();
+            for (Map.Entry<String, EffectConfigurationBuilder> entry :
+                    effects.builder.entrySet())
+                builtEffects.put(entry.getKey(), entry.getValue().build(entry.getKey()));
+            ComboMap builtComboMap = comboMap.build();
+            for (List<Command> commands : builtComboMap.commandsByCombo().values()) {
+                for (Command command : commands) {
+                    String effectName = switch (command) {
+                        case Command.StartEffect(String name) -> name;
+                        case Command.StopEffect(String name) -> name;
+                        default -> null;
+                    };
+                    if (effectName != null && !builtEffects.containsKey(effectName))
+                        throw new IllegalArgumentException(
+                                "Mode " + modeName + " starts or stops an effect named " + effectName +
+                                " that it does not define: an effect is defined by its layers," +
+                                " add at least " + modeName + ".effect." + effectName +
+                                ".layer1-shape=<shape> (or check the spelling of the name)");
+                }
+            }
             return new Mode(modeName, stopCommandsFromPreviousMode.builder.get(),
                     pushModeToHistoryStack.builder.get(),
                     modeAfterUnhandledKeyPress.builder.get(),
-                    comboMap.build(),
+                    builtComboMap,
                     mouse.builder.build(), wheel.builder.build(), grid.builder.build(),
                     hintMesh.builder.build(), timeout.builder.build(),
                     indicator.builder.build(), hideCursor.builder.build(),
-                    zoom.builder.build());
+                    zoom.builder.build(),
+                    Collections.unmodifiableMap(builtEffects));
         }
 
         private static class HintMeshProperty
@@ -3969,6 +4465,8 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> setVariable;
         Property<Map<Combo, List<Command>>> unsetVariable;
         Property<Map<Combo, List<Command>>> resetVariables;
+        Property<Map<Combo, List<Command>>> startEffect;
+        Property<Map<Combo, List<Command>>> stopEffect;
 
         List<Combo> hintSelectCombos;
         List<Combo> hintUnselectCombos;
@@ -4001,6 +4499,8 @@ public class ConfigurationParser {
             setVariable = new ComboMapProperty("set-variable", modeName, propertyByKey);
             unsetVariable = new ComboMapProperty("unset-variable", modeName, propertyByKey);
             resetVariables = new ComboMapProperty("reset-variables", modeName, propertyByKey);
+            startEffect = new ComboMapProperty("start-effect", modeName, propertyByKey);
+            stopEffect = new ComboMapProperty("stop-effect", modeName, propertyByKey);
         }
 
           public void hintSelectCombos(List<Combo> combos) {
@@ -4090,6 +4590,8 @@ public class ConfigurationParser {
             add(commandsByCombo, setVariable.builder);
             add(commandsByCombo, unsetVariable.builder);
             add(commandsByCombo, resetVariables.builder);
+            add(commandsByCombo, startEffect.builder);
+            add(commandsByCombo, stopEffect.builder);
             return commandsByCombo;
         }
 

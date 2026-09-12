@@ -485,7 +485,8 @@ public final class IndicatorRenderer {
         widget.setGraphicsEffect(effect);
     }
 
-    private class IndicatorWidget extends QWidget {
+    // Package-private: EffectRenderer reuses polygonPath, so effects and the indicator agree on edge-count.
+    class IndicatorWidget extends QWidget {
 
         private QColor color;
         private int edgeCount;

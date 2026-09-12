@@ -855,6 +855,19 @@
       "allDeclaredFields": true
     },
     {
+      "type": "com.sun.jna.platform.win32.WinUser$SIZE",
+      "allDeclaredFields": true,
+      "allPublicFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.sun.jna.Pointer"
+          ]
+        }
+      ]
+    },
+    {
       "type": "com.sun.jna.platform.win32.WinUser$HARDWAREINPUT",
       "allDeclaredFields": true,
       "methods": [
@@ -7230,6 +7243,29 @@
             "mousemaster.HideCursor",
             "mousemaster.ZoomConfiguration"
           ]
+        },
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "boolean",
+            "boolean",
+            "java.lang.String",
+            "mousemaster.ComboMap",
+            "mousemaster.Mouse",
+            "mousemaster.Wheel",
+            "mousemaster.GridConfiguration",
+            "mousemaster.HintMeshConfiguration",
+            "mousemaster.ModeTimeout",
+            "mousemaster.IndicatorConfiguration",
+            "mousemaster.HideCursor",
+            "mousemaster.ZoomConfiguration",
+            "java.util.Map"
+          ]
+        },
+        {
+          "name": "effects",
+          "parameterTypes": []
         },
         {
           "name": "<init>",

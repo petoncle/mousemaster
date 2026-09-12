@@ -37,6 +37,10 @@ public class WindowsOverlay implements Overlay {
     private boolean mousePositionMissing;
     private GridRenderer gridRenderer;
     private WinDef.HWND gridHwnd;
+    private EffectRenderer effectRenderer;
+    private WindowsEffectWindow effectWindow;
+    private Point effectOriginOffset = new Point(0, 0);
+    private WinDef.HWND effectHwnd;
     /** Owns no QWidget, so it can be created eagerly (no QtJambi native-load ordering). */
     private final HintMeshRenderer hintMeshRenderer;
     private WinDef.HWND zoomHwnd;
@@ -199,6 +203,11 @@ public class WindowsOverlay implements Overlay {
             (hintMeshRenderer.showing() ? hwnds : notTopmostHwnds).add(hwnd(window));
         if (indicatorHwnd != null && indicatorRenderer.showing())
             hwnds.add(indicatorHwnd);
+        // The effect window is left out: it is created topmost and, like the zoom
+        // window during a zoom, must not get a SetWindowPos every 200ms while an
+        // effect plays. That call makes DWM recompose the layered window (a frame
+        // without it) and Windows re-pick the cursor under it, which over a window
+        // edge flickered between the resize cursor and the arrow five times a second.
         if (zoomHwnd != null)
             (currentZoom != null ? hwnds : notTopmostHwnds).add(zoomHwnd);
         // The shell demotes the taskbar under a topmost window that covers a screen.
@@ -313,6 +322,12 @@ public class WindowsOverlay implements Overlay {
         QtHintFont.preWarm(hintMeshConfigurations);
         hintMeshRenderer.preWarmHintMeshWindows(WindowsScreen.findScreens());
         preWarmZoomWindow();
+        if (effectHwnd == null) {
+            long beforeEffect = System.nanoTime();
+            createEffectWindow();
+            logger.debug("Pre-warmed the effect window in " +
+                         (long) ((System.nanoTime() - beforeEffect) / 1e6) + "ms");
+        }
         if (indicatorHwnd != null)
             return;
         long before = System.nanoTime();
@@ -493,6 +508,7 @@ public class WindowsOverlay implements Overlay {
             applyCaptureExclusion(gridHwnd);
         if (indicatorHwnd != null)
             applyCaptureExclusion(indicatorHwnd);
+        updateEffectCaptureExclusion();
         for (TransparentWindow window : hintMeshRenderer.windows())
             applyCaptureExclusion(hwnd(window));
     }
@@ -513,6 +529,85 @@ public class WindowsOverlay implements Overlay {
         }
         if (indicatorRenderer != null)
             indicatorRenderer.hide(allowFade);
+    }
+
+    /** Like the indicator's, the effect window is created at pre-warm: creating a
+     *  window dispatches native messages, which mid-loop can re-enter the low-level
+     *  keyboard hook and hang the main thread. */
+    private void createEffectWindow() {
+        if (effectRenderer == null) {
+            effectWindow = new WindowsEffectWindow();
+            effectRenderer = new EffectRenderer(effectWindow);
+        }
+        effectHwnd = effectWindow.hwnd();
+        updateCaptureExclusions();
+    }
+
+    private int effectFrameCount;
+
+    @Override
+    public void setEffects(List<EffectFrame> effectFrames) {
+        effectFrameCount++;
+        if (effectFrameCount <= 3)
+            logger.debug("setEffects " + effectFrameCount + ": " +
+                         effectFrames.size() + " frame(s), window created=" +
+                         (effectHwnd != null));
+        if (effectHwnd == null)
+            createEffectWindow();
+        WinDef.POINT mousePosition = mouse.findMousePosition();
+        if (mousePosition == null) {
+            logger.warn("Unable to find mouse position for effects");
+            return;
+        }
+        // Centered on the cursor's visual center, like the indicator, so an effect above
+        // the cursor and one below it sit at the same distance from what the eye sees.
+        // The offset is taken when the effects appear and kept until they are gone: it
+        // depends on the cursor shown, and reading it every frame over a window edge
+        // fed a loop (resize cursor -> other offset -> window moved -> Windows re-picks
+        // the cursor -> arrow -> offset back -> window moved...) that flickered the
+        // cursor and jittered the effect.
+        if (!effectRenderer.showing())
+            effectOriginOffset = mouse.cursorVisualCenter();
+        effectRenderer.setOriginOffset(effectOriginOffset.x(), effectOriginOffset.y());
+        effectRenderer.setEffects(effectFrames, mousePosition.x, mousePosition.y,
+                WindowsScreen.findActiveScreen(mousePosition));
+        // An effect that must stay out of screenshots and recordings (a camera flash on
+        // the screenshot key) keeps the window excluded from capture while it runs, the
+        // way the zoom window always is; the others are captured like anything on screen.
+        boolean excludeFromCapture = false;
+        for (EffectFrame frame : effectFrames)
+            excludeFromCapture |= frame.excludeFromCapture();
+        effectsAskExclusionFromCapture = excludeFromCapture;
+        updateEffectCaptureExclusion();
+    }
+
+    // Excluded while zooming (like every overlay, or the zoom would mirror it) or while
+    // an effect asks for it; the affinity is only set when it changes.
+    private boolean effectsAskExclusionFromCapture;
+    private Boolean effectWindowExcludedFromCapture;
+
+    private void updateEffectCaptureExclusion() {
+        if (effectHwnd == null)
+            return;
+        boolean exclude = currentZoom != null || effectsAskExclusionFromCapture;
+        if (effectWindowExcludedFromCapture != null && effectWindowExcludedFromCapture == exclude)
+            return;
+        effectWindowExcludedFromCapture = exclude;
+        ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(effectHwnd, exclude ?
+                ExtendedUser32.WDA_EXCLUDEFROMCAPTURE : ExtendedUser32.WDA_NONE);
+    }
+
+    @Override
+    public void hideEffects() {
+        if (effectRenderer != null)
+            effectRenderer.hide();
+        effectsAskExclusionFromCapture = false;
+        updateEffectCaptureExclusion();
+    }
+
+    @Override
+    public boolean effectFollowingMouse() {
+        return effectRenderer != null && effectRenderer.followingMouse();
     }
 
     @Override
@@ -596,6 +691,9 @@ public class WindowsOverlay implements Overlay {
     }
 
     void mouseMoved(WinDef.POINT mousePosition) {
+        if (effectRenderer != null && effectRenderer.followingMouse())
+            effectRenderer.mouseMoved(mousePosition.x, mousePosition.y,
+                    WindowsScreen.findActiveScreen(mousePosition));
         if (indicatorIsCursor) {
             // The OS moves the cursor; only re-install when the screen scale changes
             // (cursors don't auto-scale per-monitor DPI).

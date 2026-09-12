@@ -171,6 +171,16 @@ public class WindowsPlatform implements Platform {
                 break;
             Thread.sleep(1);
             pumpEvents();
+            // An effect that follows the mouse is moved with it right away rather than at
+            // the next iteration, so it trails the cursor by as little as possible. The
+            // position is read, not taken from the hook's queue: the iteration still sees
+            // every move.
+            if (overlay.effectFollowingMouse()) {
+                WinDef.POINT p = mouse.tryFindMousePosition();
+                if (p != null && (lastMousePosition == null || p.x != lastMousePosition.x ||
+                                  p.y != lastMousePosition.y))
+                    overlay.mouseMoved(p);
+            }
         }
     }
 
