@@ -218,8 +218,8 @@ public class WindowsOverlay implements Overlay {
         setWindowTopmost(hwnds.getFirst());
         boolean allOtherWindowsAreBelowInOrder = true;
         for (int windowIndex = 0; windowIndex < hwnds.size() - 1; windowIndex++) {
-            if (windowBelow(hwnds.get(windowIndex)).equals(hwnds.get(windowIndex + 1)))
-                // For example, windowBelow(indicator).equals(grid).
+            if (hwnds.get(windowIndex + 1)
+                     .equals(windowBelow(hwnds.get(windowIndex), hwnds)))
                 continue;
             allOtherWindowsAreBelowInOrder = false;
             break;
@@ -230,9 +230,13 @@ public class WindowsOverlay implements Overlay {
             setWindowTopmost(hwnds.get(windowIndex));
     }
 
-    private WinDef.HWND windowBelow(WinDef.HWND hwnd) {
-        WinDef.HWND nextHwnd =
-                User32.INSTANCE.GetWindow(hwnd, new WinDef.DWORD(User32.GW_HWNDNEXT));
+    /** Our hidden IME window sits directly above the overlay that owns it. */
+    private WinDef.HWND windowBelow(WinDef.HWND hwnd, List<WinDef.HWND> hwnds) {
+        WinDef.HWND nextHwnd = hwnd;
+        do {
+            nextHwnd = User32.INSTANCE.GetWindow(nextHwnd,
+                    new WinDef.DWORD(User32.GW_HWNDNEXT));
+        } while (nextHwnd != null && !hwnds.contains(nextHwnd));
         return nextHwnd;
     }
 
