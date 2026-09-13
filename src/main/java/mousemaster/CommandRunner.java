@@ -8,13 +8,15 @@ public class CommandRunner {
     private final MouseManager mouseManager;
     private final GridManager gridManager;
     private final HintManager hintManager;
+    private final EffectManager effectManager;
     private MacroPlayer macroPlayer;
 
     public CommandRunner(MouseManager mouseManager, GridManager gridManager,
-                         HintManager hintManager) {
+                         HintManager hintManager, EffectManager effectManager) {
         this.mouseManager = mouseManager;
         this.gridManager = gridManager;
         this.hintManager = hintManager;
+        this.effectManager = effectManager;
     }
 
     public void setModeController(ModeController modeController) {
@@ -27,6 +29,17 @@ public class CommandRunner {
 
     public boolean runningAtomicCommand() {
         return mouseManager.jumping();
+    }
+
+    // Whether the key event of the combo being run is a press: kept beside the key
+    // rather than passed along, so that run(Command, Key) stays the one method to
+    // override (the tests do) and the combo watcher's calls still reach it.
+    private boolean eventIsPress = true;
+
+    /** Runs a command for the key event that completed its combo (null for none). */
+    public void run(Command command, KeyEvent event) {
+        eventIsPress = event == null || event.isPress();
+        run(command, event == null ? null : event.key());
     }
 
     public void run(Command command, Key eventKey) {
@@ -90,6 +103,9 @@ public class CommandRunner {
             case ClearPositionHistory(String positionHistoryName) -> hintManager.clearPositionHistory(positionHistoryName);
             case CycleNextPosition(String positionHistoryName) -> hintManager.cyclePosition(positionHistoryName, 1);
             case CyclePreviousPosition(String positionHistoryName) -> hintManager.cyclePosition(positionHistoryName, -1);
+
+            case StartEffect(String effectName) -> effectManager.startEffect(effectName, eventKey, eventIsPress);
+            case StopEffect(String effectName) -> effectManager.stopEffect(effectName);
 
             case MacroCommand(Macro macro, AliasResolution aliasResolution) ->
                     macroPlayer.submit(macro.resolve(aliasResolution));

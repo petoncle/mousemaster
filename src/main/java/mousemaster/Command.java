@@ -102,6 +102,9 @@ public sealed interface Command {
         }
     }
 
+    record StartEffect(String effectName) implements Command {}
+    record StopEffect(String effectName) implements Command {}
+
     record SetVariable(String variableName) implements Command {}
     record UnsetVariable(String variableName) implements Command {}
     record ResetVariables() implements Command {}
