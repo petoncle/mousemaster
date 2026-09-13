@@ -514,6 +514,23 @@ key is held, a "Copied" label that pops up and fades. Three things describe an e
 
 Everything below is a variation on those three.
 
+#### Indicator or effect?
+
+Both draw near the cursor, so it is worth being clear about which answers which question.
+
+The **indicator** answers *while*. It is a function of state -- the current mode, plus a
+[mutation](#mode-property-mutation) branch per mouse or keyboard state -- and it always
+shows the current value of that function. Use it for what is true right now: which mode
+you are in, that a button is down, that the wheel is turning.
+
+An **effect** answers *when*. A combo starts it, it plays for its duration, and it is
+gone. Use it for what just happened: the click landed, the drag started, the mode changed.
+
+That is why effect properties do not take mutation branches: "green while the button is
+down" is something the indicator already says. A looping effect with `follow-mouse=true`
+can be made to sit on the cursor for as long as a mode lasts, but mode state belongs to
+the indicator -- a loop pinned to the cursor is not the way to express it.
+
 #### Your first effect
 
 ```properties
