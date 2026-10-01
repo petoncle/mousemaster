@@ -3,6 +3,7 @@ package mousemaster;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * hint.box-color=#000000
@@ -135,13 +136,18 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
             return Color.rgb(hexColor());
         double scaled = Math.clamp(t, 0, 1) * (hexColors.size() - 1);
         int index = Math.min((int) scaled, hexColors.size() - 2);
-        double[] from = oklab(Color.rgb(hexColors.get(index)));
-        double[] to = oklab(Color.rgb(hexColors.get(index + 1)));
+        double[] from = oklab(hexColors.get(index));
+        double[] to = oklab(hexColors.get(index + 1));
         double segmentPosition = scaled - index;
-        double[] mixed = new double[3];
-        for (int i = 0; i < 3; i++)
-            mixed[i] = from[i] + (to[i] - from[i]) * segmentPosition;
-        return rgb(mixed);
+        return rgb(from[0] + (to[0] - from[0]) * segmentPosition,
+                from[1] + (to[1] - from[1]) * segmentPosition,
+                from[2] + (to[2] - from[2]) * segmentPosition);
+    }
+
+    private static final Map<String, double[]> oklabByHexColor = new ConcurrentHashMap<>();
+
+    private static double[] oklab(String hexColor) {
+        return oklabByHexColor.computeIfAbsent(hexColor, hex -> oklab(Color.rgb(hex)));
     }
 
     private static double[] oklab(int rgb) {
@@ -160,10 +166,10 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
                 0.0259040371 * longWave + 0.7827717662 * mediumWave - 0.8086757660 * shortWave};
     }
 
-    private static int rgb(double[] oklab) {
-        double longWave = oklab[0] + 0.3963377774 * oklab[1] + 0.2158037573 * oklab[2];
-        double mediumWave = oklab[0] - 0.1055613458 * oklab[1] - 0.0638541728 * oklab[2];
-        double shortWave = oklab[0] - 0.0894841775 * oklab[1] - 1.2914855480 * oklab[2];
+    private static int rgb(double lightness, double greenRed, double blueYellow) {
+        double longWave = lightness + 0.3963377774 * greenRed + 0.2158037573 * blueYellow;
+        double mediumWave = lightness - 0.1055613458 * greenRed - 0.0638541728 * blueYellow;
+        double shortWave = lightness - 0.0894841775 * greenRed - 1.2914855480 * blueYellow;
         longWave = longWave * longWave * longWave;
         mediumWave = mediumWave * mediumWave * mediumWave;
         shortWave = shortWave * shortWave * shortWave;
