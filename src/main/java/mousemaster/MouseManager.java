@@ -10,6 +10,9 @@ import java.util.Iterator;
 
 public class MouseManager implements ModeListener, MousePositionListener {
 
+    private static final double DRAG_START_DURATION = 0.03;
+    private static final int DRAG_START_DISTANCE = 4;
+
     private final ScreenManager screenManager;
     private final MouseController mouseController;
     private Mouse mouse;
@@ -190,11 +193,14 @@ public class MouseManager implements ModeListener, MousePositionListener {
         if (jumping) {
             jumpDuration += delta;
             double jumpVelocity = mouse.smoothJumpVelocity(); // Pixels per second.
-            double jumpTotalDuration =
-                    Math.hypot(jumpEndX - jumpBeginX, jumpEndY - jumpBeginY) /
-                    jumpVelocity;
-            double percent = Math.min(1, jumpDuration / jumpTotalDuration);
+            double jumpDistance =
+                    Math.hypot(jumpEndX - jumpBeginX, jumpEndY - jumpBeginY);
+            double percent = Math.min(1, jumpDuration / (jumpDistance / jumpVelocity));
             percent = new Easing.Smootherstep().apply(percent);
+            // A dragged window follows the cursor only once the app has anchored on it.
+            if (jumpDuration < DRAG_START_DURATION &&
+                (leftPressing || middlePressing || rightPressing))
+                percent = Math.min(percent, DRAG_START_DISTANCE / jumpDistance);
             int nextJumpX = (int) (jumpBeginX + (jumpEndX - jumpBeginX) * percent);
             int nextJumpY = (int) (jumpBeginY + (jumpEndY - jumpBeginY) * percent);
             // Merge the user movement in.
@@ -653,7 +659,6 @@ public class MouseManager implements ModeListener, MousePositionListener {
         }
         if (jumping && x == jumpEndX && y == jumpEndY)
             return;
-        // Move a single pixel. Skype's titlebar does not like being dragged too quick too far.
         if (!mouse.smoothJumpEnabled()) {
             mouseController.beginMove();
             mouseController.synchronousMoveTo(x, y);
