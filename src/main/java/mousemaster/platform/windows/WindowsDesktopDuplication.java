@@ -29,8 +29,8 @@ final class WindowsDesktopDuplication {
 
     private static final Guid.IID IID_IDXGIFactory1 =
             new Guid.IID("770aae78-f26f-4dba-a829-253c83d1b387");
-    static final Guid.IID IID_IDXGIOutput1 =
-            new Guid.IID("00cddea8-939b-4b83-a340-a685226666cc");
+    private static final Guid.IID IID_IDXGIOutput5 =
+            new Guid.IID("80a07424-ab52-42eb-833c-0c42fd282d98");
     static final Guid.IID IID_ID3D11Texture2D =
             new Guid.IID("6f15aaf2-d208-4e89-9ab4-489535d34f9c");
 
@@ -39,7 +39,7 @@ final class WindowsDesktopDuplication {
     private static final int IDXGIFACTORY1_ENUMADAPTERS1 = 12;
     static final int IDXGIADAPTER_ENUMOUTPUTS = 7;
     private static final int IDXGIOUTPUT_GETDESC = 7;
-    static final int IDXGIOUTPUT1_DUPLICATEOUTPUT = 22;
+    private static final int IDXGIOUTPUT5_DUPLICATEOUTPUT1 = 26;
     private static final int IDXGIOUTPUTDUPLICATION_GETDESC = 7;
     static final int IDXGIOUTPUTDUPLICATION_ACQUIRENEXTFRAME = 8;
     static final int IDXGIOUTPUTDUPLICATION_RELEASEFRAME = 14;
@@ -50,6 +50,7 @@ final class WindowsDesktopDuplication {
     static final int D3D11_CREATE_DEVICE_BGRA_SUPPORT = 0x20;
 
     static final int DXGI_FORMAT_B8G8R8A8_UNORM = 87;
+    static final int DXGI_FORMAT_R16G16B16A16_FLOAT = 10;
     private static final int DXGI_MODE_ROTATION_UNSPECIFIED = 0;
     private static final int DXGI_MODE_ROTATION_IDENTITY = 1;
 
@@ -58,6 +59,11 @@ final class WindowsDesktopDuplication {
     static final int DXGI_ERROR_WAIT_TIMEOUT = 0x887A0027;
 
     private static final int FRAME_INFO_SIZE = 48; // DXGI_OUTDUPL_FRAME_INFO, unread
+    private static final int DISPLAYCONFIG_PATH_INFO_SIZE = 72; // sourceInfo at 0, targetInfo at 20
+    private static final int DISPLAYCONFIG_MODE_INFO_SIZE = 64; // unread
+    private static final int DISPLAYCONFIG_DEVICE_INFO_HEADER_SIZE = 20;
+    private static final int DISPLAYCONFIG_SOURCE_DEVICE_NAME_SIZE = 84;
+    private static final int DISPLAYCONFIG_SDR_WHITE_LEVEL_SIZE = 24;
     private static final int ACQUIRE_TIMEOUT_MILLIS = 60;
     private static final Duration RETRY_DELAY = Duration.ofSeconds(1);
 
@@ -80,6 +86,8 @@ final class WindowsDesktopDuplication {
     private Pointer context;
     private Pointer duplication;
     private Rectangle outputBounds;
+    private int format;
+    private float sdrWhiteLevel;
     private boolean copied;
     private boolean unavailable;
     private long retryAtNanos;
@@ -95,6 +103,15 @@ final class WindowsDesktopDuplication {
     /** The output the duplication covers, in desktop coordinates. */
     Rectangle outputBounds() {
         return outputBounds;
+    }
+
+    int format() {
+        return format;
+    }
+
+    /** The frame value of SDR white: above 1 on an HDR desktop. */
+    float sdrWhiteLevel() {
+        return sdrWhiteLevel;
     }
 
     /** Makes the next copy wait for a new frame instead of reporting the screen unchanged. */
@@ -159,7 +176,7 @@ final class WindowsDesktopDuplication {
     }
 
     /** The adapter and output whose desktop coordinates cover bounds. */
-    record Output(Pointer adapter, Pointer output, Rectangle bounds) {
+    record Output(Pointer adapter, Pointer output, Rectangle bounds, String deviceName) {
     }
 
     static Output findOutputCovering(Rectangle bounds) {
@@ -194,26 +211,74 @@ final class WindowsDesktopDuplication {
         outputBounds = found.bounds();
         try {
             createDevice(adapter);
-            Pointer output1 = queryInterface(output, IID_IDXGIOutput1);
-            PointerByReference duplicationOut = new PointerByReference();
-            HRESULT hr = call(output1, IDXGIOUTPUT1_DUPLICATEOUTPUT, device,
-                    duplicationOut);
-            release(output1);
-            check(hr, "DuplicateOutput");
-            duplication = duplicationOut.getValue();
+            duplication = duplicateOutput(output, device,
+                    DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_B8G8R8A8_UNORM);
             OutduplDesc desc = new OutduplDesc();
             callVoid(duplication, IDXGIOUTPUTDUPLICATION_GETDESC, desc.getPointer());
             desc.read();
-            // An HDR desktop duplicates as float16, which the sample texture cannot be
-            // copied from. Refusing here leaves the zoom off rather than unmagnified.
-            if (desc.format != DXGI_FORMAT_B8G8R8A8_UNORM)
-                throw new IllegalStateException("desktop format " + desc.format);
-            logger.debug("Initialized Desktop Duplication on " + outputBounds);
+            format = desc.format;
+            sdrWhiteLevel = format == DXGI_FORMAT_R16G16B16A16_FLOAT ?
+                    sdrWhiteLevel(found.deviceName()) : 1;
+            logger.debug("Initialized Desktop Duplication on " + outputBounds +
+                         " (format " + format + ", SDR white level " + sdrWhiteLevel + ")");
         }
         finally {
             release(output);
             release(adapter);
         }
+    }
+
+    static Pointer duplicateOutput(Pointer output, Pointer device, int... formats) {
+        Pointer output5 = queryInterface(output, IID_IDXGIOutput5);
+        Memory formatArray = new Memory(4L * formats.length);
+        formatArray.write(0, formats, 0, formats.length);
+        PointerByReference duplicationOut = new PointerByReference();
+        HRESULT hr = call(output5, IDXGIOUTPUT5_DUPLICATEOUTPUT1, device, 0,
+                formats.length, formatArray, duplicationOut);
+        release(output5);
+        check(hr, "DuplicateOutput1");
+        return duplicationOut.getValue();
+    }
+
+    private static float sdrWhiteLevel(String deviceName) {
+        IntByReference pathCount = new IntByReference();
+        IntByReference modeCount = new IntByReference();
+        check(new HRESULT(ExtendedUser32.INSTANCE.GetDisplayConfigBufferSizes(
+                ExtendedUser32.QDC_ONLY_ACTIVE_PATHS, pathCount, modeCount)),
+                "GetDisplayConfigBufferSizes");
+        Memory paths = new Memory((long) DISPLAYCONFIG_PATH_INFO_SIZE * pathCount.getValue());
+        Memory modes = new Memory((long) DISPLAYCONFIG_MODE_INFO_SIZE * modeCount.getValue());
+        check(new HRESULT(ExtendedUser32.INSTANCE.QueryDisplayConfig(
+                ExtendedUser32.QDC_ONLY_ACTIVE_PATHS, pathCount, paths, modeCount, modes,
+                Pointer.NULL)), "QueryDisplayConfig");
+        for (int pathIndex = 0; pathIndex < pathCount.getValue(); pathIndex++) {
+            Pointer path = paths.share((long) DISPLAYCONFIG_PATH_INFO_SIZE * pathIndex);
+            Memory sourceName = deviceInfo(
+                    ExtendedUser32.DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME,
+                    DISPLAYCONFIG_SOURCE_DEVICE_NAME_SIZE,
+                    path.getLong(0), path.getInt(8));
+            if (!sourceName.getWideString(DISPLAYCONFIG_DEVICE_INFO_HEADER_SIZE)
+                           .equals(deviceName))
+                continue;
+            Memory whiteLevel = deviceInfo(
+                    ExtendedUser32.DISPLAYCONFIG_DEVICE_INFO_GET_SDR_WHITE_LEVEL,
+                    DISPLAYCONFIG_SDR_WHITE_LEVEL_SIZE,
+                    path.getLong(20), path.getInt(28));
+            return whiteLevel.getInt(DISPLAYCONFIG_DEVICE_INFO_HEADER_SIZE) / 1000f;
+        }
+        throw new IllegalStateException("no display path for " + deviceName);
+    }
+
+    private static Memory deviceInfo(int type, int size, long adapterId, int id) {
+        Memory packet = new Memory(size);
+        packet.clear();
+        packet.setInt(0, type);
+        packet.setInt(4, size);
+        packet.setLong(8, adapterId);
+        packet.setInt(16, id);
+        check(new HRESULT(ExtendedUser32.INSTANCE.DisplayConfigGetDeviceInfo(packet)),
+                "DisplayConfigGetDeviceInfo");
+        return packet;
     }
 
     /** The adapter's output covering bounds, or null. */
@@ -235,7 +300,8 @@ final class WindowsDesktopDuplication {
                 (desc.rotation == DXGI_MODE_ROTATION_IDENTITY ||
                  desc.rotation == DXGI_MODE_ROTATION_UNSPECIFIED) &&
                 rectangle.contains(bounds)) {
-                return new Output(adapter, output, rectangle);
+                return new Output(adapter, output, rectangle,
+                        Native.toString(desc.deviceName));
             }
             release(output);
         }
@@ -323,7 +389,7 @@ final class WindowsDesktopDuplication {
     }
 
     public static class OutputDesc extends Structure {
-        public byte[] deviceName = new byte[64]; // WCHAR[32], unused
+        public char[] deviceName = new char[32];
         public int left, top, right, bottom;     // RECT DesktopCoordinates inlined
         public int attachedToDesktop;
         public int rotation;

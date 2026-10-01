@@ -19,6 +19,7 @@ import java.util.List;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.call;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.callVoid;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.check;
+import static mousemaster.platform.windows.WindowsDesktopDuplication.DXGI_FORMAT_R16G16B16A16_FLOAT;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.queryInterface;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.release;
 
@@ -59,6 +60,7 @@ final class WindowsZoomRenderer {
     private static final int CTX_PSSETSAMPLERS = 10;
     private static final int CTX_VSSETSHADER = 11;
     private static final int CTX_DRAW = 13;
+    private static final int CTX_PSSETCONSTANTBUFFERS = 16;
     private static final int CTX_IASETPRIMITIVETOPOLOGY = 24;
     private static final int CTX_OMSETRENDERTARGETS = 33;
     private static final int CTX_RSSETVIEWPORTS = 44;
@@ -70,7 +72,7 @@ final class WindowsZoomRenderer {
     private static final int D3D11_USAGE_DEFAULT = 0;
     private static final int D3D11_BIND_SHADER_RESOURCE = 0x8;
     private static final int D3D11_BIND_CONSTANT_BUFFER = 0x4;
-    private static final int DXGI_FORMAT_B8G8R8A8_UNORM = 87;
+    private static final int DXGI_FORMAT_B8G8R8A8_UNORM_SRGB = 91;
     private static final int DXGI_USAGE_RENDER_TARGET_OUTPUT = 0x20;
     private static final int DXGI_SCALING_STRETCH = 0;
     private static final int DXGI_SWAP_EFFECT_DISCARD = 0;
@@ -83,7 +85,7 @@ final class WindowsZoomRenderer {
     private static final int S_OK = 0;
 
     private static final String SHADER = """
-            cbuffer C : register(b0) { float4 uvRect; };
+            cbuffer C : register(b0) { float4 uvRect; float sdrWhiteLevel; };
             struct VSOut { float4 pos : SV_POSITION; float2 uv : TEXCOORD; };
             VSOut vs(uint id : SV_VertexID) {
                 float2 t = float2((id << 1) & 2, id & 2);
@@ -94,7 +96,7 @@ final class WindowsZoomRenderer {
             }
             Texture2D tex : register(t0);
             SamplerState smp : register(s0);
-            float4 ps(VSOut i) : SV_TARGET { return tex.Sample(smp, i.uv); }
+            float4 ps(VSOut i) : SV_TARGET { return tex.Sample(smp, i.uv) / sdrWhiteLevel; }
             """;
 
     private interface D3DCompiler extends Library {
@@ -193,13 +195,14 @@ final class WindowsZoomRenderer {
         // the view near a screen edge would disagree with them.
         float left = (float) (zoom.center().x() - outputBounds.x()) - sourceWidth / 2;
         float top = (float) (zoom.center().y() - outputBounds.y()) - sourceHeight / 2;
-        Memory uvRect = new Memory(16);
-        uvRect.setFloat(0, left / width);
-        uvRect.setFloat(4, top / height);
-        uvRect.setFloat(8, sourceWidth / width);
-        uvRect.setFloat(12, sourceHeight / height);
+        Memory constants = new Memory(32);
+        constants.setFloat(0, left / width);
+        constants.setFloat(4, top / height);
+        constants.setFloat(8, sourceWidth / width);
+        constants.setFloat(12, sourceHeight / height);
+        constants.setFloat(16, duplication.sdrWhiteLevel());
         callVoid(duplication.context(), CTX_UPDATESUBRESOURCE, constantBuffer, 0,
-                Pointer.NULL, uvRect, 0, 0);
+                Pointer.NULL, constants, 0, 0);
 
         Viewport viewport = new Viewport();
         viewport.width = windowBounds.width();
@@ -214,6 +217,7 @@ final class WindowsZoomRenderer {
         callVoid(context, CTX_VSSETSHADER, vertexShader, Pointer.NULL, 0);
         callVoid(context, CTX_VSSETCONSTANTBUFFERS, 0, 1, pointerTo(constantBuffer));
         callVoid(context, CTX_PSSETSHADER, pixelShader, Pointer.NULL, 0);
+        callVoid(context, CTX_PSSETCONSTANTBUFFERS, 0, 1, pointerTo(constantBuffer));
         callVoid(context, CTX_PSSETSHADERRESOURCES, 0, 1, pointerTo(shaderResourceView));
         callVoid(context, CTX_PSSETSAMPLERS, 0, 1, pointerTo(sampler));
         callVoid(context, CTX_DRAW, 3, 0);
@@ -234,7 +238,7 @@ final class WindowsZoomRenderer {
         SwapChainDesc1 desc = new SwapChainDesc1();
         desc.width = screenRect.width();
         desc.height = screenRect.height();
-        desc.format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        desc.format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
         desc.sampleCount = 1;
         desc.bufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         desc.bufferCount = 1;
@@ -270,7 +274,8 @@ final class WindowsZoomRenderer {
         texture.height = outputBounds.height();
         texture.mipLevels = 1;
         texture.arraySize = 1;
-        texture.format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        texture.format = duplication.format() == DXGI_FORMAT_R16G16B16A16_FLOAT ?
+                DXGI_FORMAT_R16G16B16A16_FLOAT : DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
         texture.sampleCount = 1;
         texture.usage = D3D11_USAGE_DEFAULT;
         texture.bindFlags = D3D11_BIND_SHADER_RESOURCE;
@@ -300,7 +305,7 @@ final class WindowsZoomRenderer {
         sampler = samplerOut.getValue();
 
         BufferDesc bufferDesc = new BufferDesc();
-        bufferDesc.byteWidth = 16;
+        bufferDesc.byteWidth = 32;
         bufferDesc.usage = D3D11_USAGE_DEFAULT;
         bufferDesc.bindFlags = D3D11_BIND_CONSTANT_BUFFER;
         bufferDesc.write();

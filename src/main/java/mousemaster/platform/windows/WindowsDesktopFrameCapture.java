@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.call;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.callVoid;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.check;
+import static mousemaster.platform.windows.WindowsDesktopDuplication.duplicateOutput;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.queryInterface;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.release;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.D3D11_CREATE_DEVICE_BGRA_SUPPORT;
@@ -22,11 +23,9 @@ import static mousemaster.platform.windows.WindowsDesktopDuplication.DXGI_ERROR_
 import static mousemaster.platform.windows.WindowsDesktopDuplication.DXGI_FORMAT_B8G8R8A8_UNORM;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.ID3D11DEVICECONTEXT_COPYRESOURCE;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.IDXGIADAPTER_ENUMOUTPUTS;
-import static mousemaster.platform.windows.WindowsDesktopDuplication.IDXGIOUTPUT1_DUPLICATEOUTPUT;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.IDXGIOUTPUTDUPLICATION_ACQUIRENEXTFRAME;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.IDXGIOUTPUTDUPLICATION_RELEASEFRAME;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.IID_ID3D11Texture2D;
-import static mousemaster.platform.windows.WindowsDesktopDuplication.IID_IDXGIOutput1;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.RELEASE;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.S_OK;
 
@@ -131,12 +130,8 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
         outputBounds = found.bounds();
         try {
             createDevice(found.adapter());
-            Pointer output1 = queryInterface(found.output(), IID_IDXGIOutput1);
-            PointerByReference dupOut = new PointerByReference();
-            HRESULT hr = call(output1, IDXGIOUTPUT1_DUPLICATEOUTPUT, device, dupOut);
-            release(output1);
-            check(hr, "DuplicateOutput");
-            duplication = dupOut.getValue();
+            duplication = duplicateOutput(found.output(), device,
+                    DXGI_FORMAT_B8G8R8A8_UNORM);
         }
         finally {
             release(found.output());

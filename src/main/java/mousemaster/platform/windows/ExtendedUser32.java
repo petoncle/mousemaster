@@ -6,6 +6,7 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.platform.win32.*;
+import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.win32.StdCallLibrary;
 import com.sun.jna.win32.W32APIOptions;
 
@@ -145,5 +146,15 @@ public interface ExtendedUser32 extends User32 {
     int DI_NORMAL = 0x0003;
 
     boolean DestroyCursor(HCURSOR hCursor);
+
+    int GetDisplayConfigBufferSizes(int flags, IntByReference numPathArrayElements,
+                                    IntByReference numModeInfoArrayElements);
+    int QueryDisplayConfig(int flags, IntByReference numPathArrayElements, Pointer pathArray,
+                           IntByReference numModeInfoArrayElements, Pointer modeInfoArray,
+                           Pointer currentTopologyId);
+    int DisplayConfigGetDeviceInfo(Pointer requestPacket);
+    int QDC_ONLY_ACTIVE_PATHS = 0x00000002;
+    int DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME = 1;
+    int DISPLAYCONFIG_DEVICE_INFO_GET_SDR_WHITE_LEVEL = 11;
 
 }
