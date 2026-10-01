@@ -440,8 +440,11 @@ public class WindowsOverlay implements Overlay {
             createZoomWindow();
         // An output duplicates once per application, so the zoom takes it over from the
         // vision capture, which falls back to the Qt grab until the zoom gives it back.
-        desktopCaptures.forEach(WindowsDesktopFrameCapture::close);
-        desktopCaptures.clear();
+        List<WindowsDesktopFrameCapture> covering = desktopCaptures.stream()
+                .filter(capture -> capture.covers(screenRectangle))
+                .toList();
+        covering.forEach(WindowsDesktopFrameCapture::close);
+        desktopCaptures.removeAll(covering);
         return zoomRenderer.prepare(zoomHwnd, screenRectangle);
     }
 
