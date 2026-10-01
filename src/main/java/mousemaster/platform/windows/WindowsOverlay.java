@@ -435,23 +435,25 @@ public class WindowsOverlay implements Overlay {
     }
 
     @Override
+    public boolean canZoom(Rectangle screenRectangle) {
+        if (zoomHwnd == null)
+            createZoomWindow();
+        // An output duplicates once per application, so the zoom takes it over from the
+        // vision capture, which falls back to the Qt grab until the zoom gives it back.
+        desktopCaptures.forEach(WindowsDesktopFrameCapture::close);
+        desktopCaptures.clear();
+        return zoomRenderer.prepare(zoomHwnd, screenRectangle);
+    }
+
+    @Override
     public void setZoom(Zoom zoom) {
         if (currentZoom != null && currentZoom.equals(zoom))
             return;
-        if (zoomHwnd == null) {
-            if (zoom == null)
-                return;
-            createZoomWindow();
-        }
-        // An output duplicates once per application, so the zoom takes it over from the
-        // vision capture, which falls back to the Qt grab until the zoom gives it back.
-        if (zoom != null && !desktopCaptures.isEmpty()) {
-            desktopCaptures.forEach(WindowsDesktopFrameCapture::close);
-            desktopCaptures.clear();
-        }
+        if (zoomHwnd == null && zoom == null)
+            return;
         // Magnifying where the hints and the indicator go, over a screen that Direct3D
         // cannot magnify, would send clicks to the wrong place.
-        if (zoom != null && !zoomRenderer.prepare(zoomHwnd, zoom.screenRectangle()))
+        if (zoom != null && !canZoom(zoom.screenRectangle()))
             zoom = null;
         Zoom previousZoom = currentZoom;
         currentZoom = zoom;

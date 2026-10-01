@@ -264,6 +264,11 @@ public class MacosOverlay implements Overlay {
     }
 
     @Override
+    public boolean canZoom(Rectangle screenRectangle) {
+        return true;
+    }
+
+    @Override
     public void setZoom(Zoom zoom) {
         if (currentZoom != null && currentZoom.equals(zoom))
             return;

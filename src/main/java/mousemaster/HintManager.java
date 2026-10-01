@@ -363,6 +363,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                 zoomCenterPoint.y()).rectangle();
         Zoom newZoom = new Zoom(newMode.zoom().percent(lastSelectedHintCell, zoomScreen),
                 zoomCenterPoint, zoomScreen);
+        Zoom noZoom = new Zoom(1, zoomScreen.center(), zoomScreen);
+        if (!newZoom.equals(noZoom) && !overlay.canZoom(zoomScreen))
+            newZoom = noZoom;
         HintMesh newHintMesh;
         if (hintMeshConfiguration.type() instanceof HintMeshType.UiAccessibilityHintMesh ||
             hintMeshConfiguration.type() instanceof HintMeshType.UiVisionHintMesh) {
