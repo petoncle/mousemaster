@@ -21,6 +21,7 @@ import static mousemaster.platform.windows.WindowsDesktopDuplication.D3D11_CREAT
 import static mousemaster.platform.windows.WindowsDesktopDuplication.D3D11_SDK_VERSION;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.DXGI_ERROR_WAIT_TIMEOUT;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.DXGI_FORMAT_B8G8R8A8_UNORM;
+import static mousemaster.platform.windows.WindowsDesktopDuplication.DXGI_FORMAT_R16G16B16A16_FLOAT;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.ID3D11DEVICECONTEXT_COPYRESOURCE;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.IDXGIADAPTER_ENUMOUTPUTS;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.IDXGIOUTPUTDUPLICATION_ACQUIRENEXTFRAME;
@@ -72,7 +73,7 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
 
     private static final int DXGI_ERROR_ACCESS_LOST = 0x887A0026;
 
-    /** The captured frame: B8G8R8A8 pixels with a row stride that may exceed width*4. */
+    /** The captured frame: B8G8R8A8 pixels. */
     record Frame(byte[] bgra, int width, int height, int rowPitch) {
     }
 
@@ -84,6 +85,9 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
     private int height;
     private Frame lastFrame;
     private byte[] desktop;
+    private int format;
+    /** The sRGB byte of each FP16 channel value. */
+    private byte[] srgbByHalf;
     private final Rectangle bounds;
     private Rectangle outputBounds;
     private boolean unavailable;
@@ -130,15 +134,18 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
         outputBounds = found.bounds();
         try {
             createDevice(found.adapter());
-            duplication = duplicateOutput(found.output(), device,
-                    DXGI_FORMAT_B8G8R8A8_UNORM);
+            WindowsDesktopDuplication.Duplication outputDuplication =
+                    duplicateOutput(found, device);
+            duplication = outputDuplication.pointer();
+            format = outputDuplication.format();
+            if (format == DXGI_FORMAT_R16G16B16A16_FLOAT)
+                srgbByHalf = srgbByHalf(outputDuplication.sdrWhiteLevel());
         }
         finally {
             release(found.output());
             release(found.adapter());
         }
         discardEmptyFirstFrame();
-        logger.debug("Initialized Desktop Duplication on " + outputBounds);
     }
 
     private void discardEmptyFirstFrame() {
@@ -222,8 +229,9 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
         mapped.read();
         try {
             int rowPitch = mapped.rowPitch;
-            if (desktop == null || desktop.length != rowPitch * height) {
-                desktop = mapped.pData.getByteArray(0, rowPitch * height);
+            if (desktop == null || desktop.length != width * 4 * height) {
+                desktop = new byte[width * 4 * height];
+                readRectangle(mapped.pData, rowPitch, new int[] {0, 0, width, height});
             }
             else {
                 List<int[]> changed = changedRectangles(frameInfo);
@@ -234,7 +242,7 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
                 for (int[] rectangle : changed)
                     readRectangle(mapped.pData, rowPitch, rectangle);
             }
-            lastFrame = new Frame(desktop, width, height, rowPitch);
+            lastFrame = new Frame(desktop, width, height, width * 4);
             return lastFrame;
         }
         finally {
@@ -247,13 +255,37 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
         int top = Math.clamp(rectangle[1], 0, height);
         int right = Math.clamp(rectangle[2], left, width);
         int bottom = Math.clamp(rectangle[3], top, height);
-        int bytes = (right - left) * 4;
-        if (bytes <= 0)
+        int pixelCount = right - left;
+        if (pixelCount <= 0)
             return;
-        for (int y = top; y < bottom; y++) {
-            int at = y * rowPitch + left * 4;
-            pixels.read(at, desktop, at, bytes);
+        if (format == DXGI_FORMAT_B8G8R8A8_UNORM) {
+            for (int y = top; y < bottom; y++)
+                pixels.read(y * rowPitch + left * 4L, desktop, (y * width + left) * 4,
+                        pixelCount * 4);
+            return;
         }
+        short[] halves = new short[pixelCount * 4];
+        for (int y = top; y < bottom; y++) {
+            int at = (y * width + left) * 4;
+            pixels.read(y * rowPitch + left * 8L, halves, 0, halves.length);
+            for (int half = 0; half < halves.length; half += 4, at += 4) {
+                desktop[at] = srgbByHalf[halves[half + 2] & 0xffff];
+                desktop[at + 1] = srgbByHalf[halves[half + 1] & 0xffff];
+                desktop[at + 2] = srgbByHalf[halves[half] & 0xffff];
+                desktop[at + 3] = (byte) 255;
+            }
+        }
+    }
+
+    private static byte[] srgbByHalf(float sdrWhiteLevel) {
+        byte[] srgbByHalf = new byte[1 << 16];
+        for (int half = 0; half < srgbByHalf.length; half++) {
+            double linear = Math.clamp(Float.float16ToFloat((short) half) / sdrWhiteLevel, 0, 1);
+            double srgb = linear <= 0.0031308 ? 12.92 * linear
+                    : 1.055 * Math.pow(linear, 1 / 2.4) - 0.055;
+            srgbByHalf[half] = (byte) Math.round(srgb * 255);
+        }
+        return srgbByHalf;
     }
 
     /** The areas the frame changed: what moved, plus what was redrawn. */
@@ -299,7 +331,7 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
         desc.height = height;
         desc.mipLevels = 1;
         desc.arraySize = 1;
-        desc.format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        desc.format = frameDesc.format;
         desc.sampleCount = 1;
         desc.sampleQuality = 0;
         desc.usage = D3D11_USAGE_STAGING;

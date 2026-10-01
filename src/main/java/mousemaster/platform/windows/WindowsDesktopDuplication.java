@@ -211,16 +211,10 @@ final class WindowsDesktopDuplication {
         outputBounds = found.bounds();
         try {
             createDevice(adapter);
-            duplication = duplicateOutput(output, device,
-                    DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_B8G8R8A8_UNORM);
-            OutduplDesc desc = new OutduplDesc();
-            callVoid(duplication, IDXGIOUTPUTDUPLICATION_GETDESC, desc.getPointer());
-            desc.read();
-            format = desc.format;
-            sdrWhiteLevel = format == DXGI_FORMAT_R16G16B16A16_FLOAT ?
-                    sdrWhiteLevel(found.deviceName()) : 1;
-            logger.debug("Initialized Desktop Duplication on " + outputBounds +
-                         " (format " + format + ", SDR white level " + sdrWhiteLevel + ")");
+            Duplication outputDuplication = duplicateOutput(found, device);
+            duplication = outputDuplication.pointer();
+            format = outputDuplication.format();
+            sdrWhiteLevel = outputDuplication.sdrWhiteLevel();
         }
         finally {
             release(output);
@@ -228,16 +222,35 @@ final class WindowsDesktopDuplication {
         }
     }
 
-    static Pointer duplicateOutput(Pointer output, Pointer device, int... formats) {
-        Pointer output5 = queryInterface(output, IID_IDXGIOutput5);
-        Memory formatArray = new Memory(4L * formats.length);
-        formatArray.write(0, formats, 0, formats.length);
+    record Duplication(Pointer pointer, int format, float sdrWhiteLevel) {
+    }
+
+    static Duplication duplicateOutput(Output found, Pointer device) {
+        Pointer output5 = queryInterface(found.output(), IID_IDXGIOutput5);
+        Memory formats = new Memory(8);
+        formats.setInt(0, DXGI_FORMAT_R16G16B16A16_FLOAT);
+        formats.setInt(4, DXGI_FORMAT_B8G8R8A8_UNORM);
         PointerByReference duplicationOut = new PointerByReference();
-        HRESULT hr = call(output5, IDXGIOUTPUT5_DUPLICATEOUTPUT1, device, 0,
-                formats.length, formatArray, duplicationOut);
+        HRESULT hr = call(output5, IDXGIOUTPUT5_DUPLICATEOUTPUT1, device, 0, 2, formats,
+                duplicationOut);
         release(output5);
         check(hr, "DuplicateOutput1");
-        return duplicationOut.getValue();
+        Pointer duplication = duplicationOut.getValue();
+        try {
+            OutduplDesc desc = new OutduplDesc();
+            callVoid(duplication, IDXGIOUTPUTDUPLICATION_GETDESC, desc.getPointer());
+            desc.read();
+            float sdrWhiteLevel = desc.format == DXGI_FORMAT_R16G16B16A16_FLOAT ?
+                    sdrWhiteLevel(found.deviceName()) : 1;
+            logger.debug("Initialized Desktop Duplication on " + found.bounds() +
+                         " (format " + desc.format + ", SDR white level " +
+                         sdrWhiteLevel + ")");
+            return new Duplication(duplication, desc.format, sdrWhiteLevel);
+        }
+        catch (RuntimeException e) {
+            release(duplication);
+            throw e;
+        }
     }
 
     private static float sdrWhiteLevel(String deviceName) {
