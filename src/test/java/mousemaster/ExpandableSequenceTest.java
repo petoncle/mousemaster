@@ -352,7 +352,8 @@ class ExpandableSequenceTest {
 
     static final KeyResolver identityKeyResolver = new KeyResolver(
             new KeyboardLayout("test", "test", "test", "test", null, List.of()),
-            new KeyboardLayout("test", "test", "test", "test", null, List.of()), Set.of());
+            new KeyboardLayout("test", "test", "test", "test", null, List.of()), Set.of(),
+            Set.of());
 
     private static KeyMoveSet parseMoveSetWithIgnoredKeys(String input) {
         ExpandableSequence seq =
