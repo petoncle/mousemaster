@@ -175,6 +175,30 @@ class AnimationTest {
     }
 
     @Test
+    void keyframesCanBePlacedInMilliseconds() {
+        load("ripple-animation.duration-millis=200",
+                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.indicator.size=26 | _{ripple-animation} -> 0% 10; 50ms 20; 100% 20");
+        tick(0);
+        run("+a");
+        tick(0);
+        tick(0.025);
+        assertEquals(15, drawnSize());
+        tick(0.1);
+        assertEquals(20, drawnSize());
+    }
+
+    @Test
+    void keyframesGoForward() {
+        assertThrows(IllegalArgumentException.class,
+                () -> load("ripple-animation.duration-millis=200",
+                        "idle-mode.indicator.size=26 | _{ripple-animation} -> 50% 10; 20% 20"));
+        assertThrows(IllegalArgumentException.class,
+                () -> load("ripple-animation.duration-millis=200",
+                        "idle-mode.indicator.size=26 | _{ripple-animation} -> 50ms 10; 20ms 20"));
+    }
+
+    @Test
     void keyframesNeedABranchOnOneAnimation() {
         assertThrows(IllegalArgumentException.class,
                 () -> load("idle-mode.indicator.size=0% 10; 100% 36"));

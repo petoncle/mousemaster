@@ -101,9 +101,11 @@ public class IndicatorManager implements ModeListener {
     private IndicatorConfiguration withTimelines(IndicatorConfiguration indicator) {
         for (Map.Entry<ModePropertyPath, Timeline> entry : timelineByPropertyPath.entrySet()) {
             ModePropertyPath propertyPath = entry.getKey();
+            Timeline timeline = entry.getValue();
             indicator = (IndicatorConfiguration) ModePropertyMutator.mutateModeProperty(
                     indicator, indicatorFieldNames(propertyPath),
-                    entry.getValue().valueAt(progressByPropertyPath.get(propertyPath),
+                    timeline.valueAt(progressByPropertyPath.get(propertyPath),
+                            macroPlayer.virtualKeyMacroWait(timeline.animationName()),
                             currentByPropertyPath.get(propertyPath)), null);
         }
         return indicator;
