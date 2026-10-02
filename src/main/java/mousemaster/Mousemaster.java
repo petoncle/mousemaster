@@ -93,6 +93,7 @@ public class Mousemaster {
             animationPlayer.update(delta);
             Mode modeBeforeKeyboardUpdate = modeController.currentMode();
             keyboardManager.update(delta);
+            animationPlayer.endStoppingAnimations();
             timeAfterOp = System.nanoTime();
             long keyboardManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();

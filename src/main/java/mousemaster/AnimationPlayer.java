@@ -2,8 +2,10 @@ package mousemaster;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class AnimationPlayer {
 
@@ -11,6 +13,7 @@ public class AnimationPlayer {
     private final ComboWatcher comboWatcher;
     private final Map<String, AnimationConfiguration> animationConfigurationByName;
     private final Map<String, Double> elapsedByAnimationName = new HashMap<>();
+    private final Set<String> stoppingAnimationNames = new HashSet<>();
 
     public AnimationPlayer(Clock clock, ComboWatcher comboWatcher,
                            Map<String, AnimationConfiguration> animationConfigurationByName) {
@@ -21,10 +24,12 @@ public class AnimationPlayer {
 
     public void start(String animationName) {
         elapsedByAnimationName.put(animationName, 0d);
+        stoppingAnimationNames.remove(animationName);
     }
 
     public void stop(String animationName) {
-        elapsedByAnimationName.remove(animationName);
+        if (elapsedByAnimationName.containsKey(animationName))
+            stoppingAnimationNames.add(animationName);
     }
 
     public void update(double delta) {
@@ -32,14 +37,24 @@ public class AnimationPlayer {
             double elapsed = elapsedByAnimationName.get(animationName) + delta;
             Integer repeatCount =
                     animationConfigurationByName.get(animationName).repeatCount();
-            if (repeatCount == null || elapsed < repeatCount * cycleSeconds(animationName)) {
+            if (repeatCount == null || elapsed < repeatCount * cycleSeconds(animationName))
                 elapsedByAnimationName.put(animationName, elapsed);
-                continue;
-            }
-            elapsedByAnimationName.remove(animationName);
-            comboWatcher.keyEvent(new KeyEvent.ReleaseKeyEvent(clock.now(),
-                    new Key(animationName, null, null)));
+            else
+                end(animationName);
         }
+        endStoppingAnimations();
+    }
+
+    public void endStoppingAnimations() {
+        while (!stoppingAnimationNames.isEmpty())
+            end(stoppingAnimationNames.iterator().next());
+    }
+
+    private void end(String animationName) {
+        elapsedByAnimationName.remove(animationName);
+        stoppingAnimationNames.remove(animationName);
+        comboWatcher.keyEvent(new KeyEvent.ReleaseKeyEvent(clock.now(),
+                new Key(animationName, null, null)));
     }
 
     public double elapsed(String animationName) {

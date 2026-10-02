@@ -1219,15 +1219,17 @@ public class ComboWatcher {
             else if (command instanceof Command.StartAnimation(String animationName)) {
                 anyStateChange |=
                         currentlyPressedComboKeys.add(new Key(animationName, null, null));
+                commandRunner.run(command, lastEventKey);
             }
-            else if (command instanceof Command.StopAnimation(String animationName)) {
-                anyStateChange |=
-                        currentlyPressedComboKeys.remove(new Key(animationName, null, null));
+            else if (command instanceof Command.StopAnimation) {
+                commandRunner.run(command, lastEventKey);
             }
         }
         commands.removeIf(c -> c instanceof Command.SetVariable ||
                                c instanceof Command.UnsetVariable ||
-                               c instanceof Command.ResetVariables);
+                               c instanceof Command.ResetVariables ||
+                               c instanceof Command.StartAnimation ||
+                               c instanceof Command.StopAnimation);
         if (anyMutation) {
             commands.removeIf(Command.MutateMode.class::isInstance);
             Mode previousMutatedMode = mutatedMode;
