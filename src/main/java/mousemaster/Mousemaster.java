@@ -93,7 +93,6 @@ public class Mousemaster {
             animationPlayer.update(delta);
             Mode modeBeforeKeyboardUpdate = modeController.currentMode();
             keyboardManager.update(delta);
-            animationPlayer.endStoppingAnimations();
             timeAfterOp = System.nanoTime();
             long keyboardManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();
@@ -266,8 +265,7 @@ public class Mousemaster {
                 platform.keyboard(), keyRedactor);
         keyboardManager.setMacroPlayer(macroPlayer);
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
-        animationPlayer = new AnimationPlayer(platform.clock(), comboWatcher,
-                configuration.animationConfigurationByName());
+        animationPlayer = new AnimationPlayer(configuration.animationConfigurationByName());
         indicatorManager = new IndicatorManager(platform.overlay(), animationPlayer);
         zoomManager = new ZoomManager(screenManager, hintManager, platform.overlay());
         // ComboWatcher is the sole broadcaster to ModeListeners: it broadcasts

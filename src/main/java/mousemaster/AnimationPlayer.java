@@ -9,57 +9,40 @@ import java.util.Set;
 
 public class AnimationPlayer {
 
-    private final Clock clock;
-    private final ComboWatcher comboWatcher;
     private final Map<String, AnimationConfiguration> animationConfigurationByName;
     private final Map<String, Double> elapsedByAnimationName = new HashMap<>();
-    private final Set<String> stoppingAnimationNames = new HashSet<>();
-    private final Set<String> endingAnimationNames = new HashSet<>();
+    private final Set<String> runningAnimationNames = new HashSet<>();
 
-    public AnimationPlayer(Clock clock, ComboWatcher comboWatcher,
-                           Map<String, AnimationConfiguration> animationConfigurationByName) {
-        this.clock = clock;
-        this.comboWatcher = comboWatcher;
+    public AnimationPlayer(Map<String, AnimationConfiguration> animationConfigurationByName) {
         this.animationConfigurationByName = animationConfigurationByName;
     }
 
     public void start(String animationName) {
         elapsedByAnimationName.put(animationName, 0d);
-        stoppingAnimationNames.remove(animationName);
-        endingAnimationNames.remove(animationName);
+        runningAnimationNames.add(animationName);
     }
 
     public void stop(String animationName) {
-        if (elapsedByAnimationName.containsKey(animationName))
-            stoppingAnimationNames.add(animationName);
+        runningAnimationNames.remove(animationName);
     }
 
     public void update(double delta) {
-        for (String animationName : List.copyOf(elapsedByAnimationName.keySet())) {
+        for (String animationName : List.copyOf(runningAnimationNames)) {
             double elapsed = elapsedByAnimationName.get(animationName) + delta;
+            elapsedByAnimationName.put(animationName, elapsed);
             Integer repeatCount =
                     animationConfigurationByName.get(animationName).repeatCount();
-            if (repeatCount == null || elapsed < repeatCount * cycleSeconds(animationName))
-                elapsedByAnimationName.put(animationName, elapsed);
-            else
-                end(animationName);
+            if (repeatCount != null && elapsed >= repeatCount * cycleSeconds(animationName))
+                runningAnimationNames.remove(animationName);
         }
-        endStoppingAnimations();
     }
 
-    public void endStoppingAnimations() {
-        while (!stoppingAnimationNames.isEmpty())
-            end(stoppingAnimationNames.iterator().next());
+    public Set<String> animationNames() {
+        return animationConfigurationByName.keySet();
     }
 
-    /** The mode change the key release causes still reads where the animation ended. */
-    private void end(String animationName) {
-        stoppingAnimationNames.remove(animationName);
-        endingAnimationNames.add(animationName);
-        comboWatcher.keyEvent(new KeyEvent.ReleaseKeyEvent(clock.now(),
-                new Key(animationName, null, null)));
-        if (endingAnimationNames.remove(animationName))
-            elapsedByAnimationName.remove(animationName);
+    public boolean running(String animationName) {
+        return runningAnimationNames.contains(animationName);
     }
 
     public double elapsed(String animationName) {

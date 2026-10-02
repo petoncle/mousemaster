@@ -111,7 +111,7 @@ class PreconditionOnlyMutationTest {
             public boolean pressingUnhandledKeyInCurrentMode() {
                 return false;
             }
-        });
+        }, new AnimationPlayer(Map.of()));
     }
 
     private MouseManager mouseManager() {
