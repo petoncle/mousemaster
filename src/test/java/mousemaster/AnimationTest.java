@@ -72,6 +72,12 @@ class AnimationTest {
         return drawn.getLast().size();
     }
 
+    private boolean hideCursorEnabled() {
+        return animationPlayer.animate(comboWatcher.getMutatedMode(), "hideCursor")
+                              .hideCursor()
+                              .enabled();
+    }
+
     private int size() {
         return comboWatcher.getMutatedMode().indicator().size();
     }
@@ -249,6 +255,17 @@ class AnimationTest {
         assertEquals(10, size());
         tick(0.04);
         assertEquals(26, size());
+    }
+
+    @Test
+    void keyframesCanHideTheCursorForPartOfAnAnimation() {
+        load("click-animation.duration-millis=100",
+                "idle-mode.click-animation.start=+a",
+                "idle-mode.hide-cursor.enabled=false | _{clickanimation} -> 0% true; 50% false");
+        tap("a");
+        assertTrue(hideCursorEnabled());
+        tick(0.06);
+        assertFalse(hideCursorEnabled());
     }
 
     @Test

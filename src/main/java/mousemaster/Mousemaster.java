@@ -280,7 +280,7 @@ public class Mousemaster {
                 new ModeController(configuration.modeMap(), mouseManager, mouseState,
                         keyboardState,
                         hintManager,
-                        comboWatcher);
+                        comboWatcher, animationPlayer);
         commandRunner.setModeController(modeController);
         commandRunner.setMacroPlayer(macroPlayer);
         commandRunner.setAnimationPlayer(animationPlayer);

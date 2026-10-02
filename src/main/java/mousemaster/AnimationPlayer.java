@@ -55,6 +55,20 @@ public class AnimationPlayer {
         return backward ? 1 - progress : progress;
     }
 
+    public Mode animate(Mode mode, String fieldName) {
+        for (Map.Entry<ModePropertyPath, Timeline> entry : mode.timelineByPropertyPath()
+                                                               .entrySet()) {
+            ModePropertyPath propertyPath = entry.getKey();
+            if (!propertyPath.fieldNames().getFirst().equals(fieldName))
+                continue;
+            String animationName = entry.getValue().animationName();
+            mode = mode.mutate(propertyPath, entry.getValue().valueAt(progress(animationName),
+                    duration(animationName),
+                    ModePropertyMutator.getModeProperty(mode, propertyPath.fieldNames())));
+        }
+        return mode;
+    }
+
     public Duration duration(String animationName) {
         return animationConfigurationByName.get(animationName).duration();
     }
