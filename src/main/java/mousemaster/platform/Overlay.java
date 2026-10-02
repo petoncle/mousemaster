@@ -29,10 +29,8 @@ public interface Overlay {
                                     int topInset, int bottomInset,
                                     int leftInset, int rightInset);
 
-    /** {@code indicator} is what to draw now, {@code transitionTo} what it is animating to:
-     *  the window is made big enough for both and never shrinks, so it is never resized. */
-    void setIndicator(IndicatorConfiguration indicator, IndicatorConfiguration transitionTo,
-                      boolean allowFade, boolean includeOriginalCursor);
+    void setIndicator(IndicatorConfiguration indicator, boolean animating,
+                      boolean includeOriginalCursor);
 
     /** Captures the desktop inside bounds, excluding mousemaster's own windows. */
     DesktopCapture captureDesktop(Rectangle bounds, int scaledWidth, int scaledHeight);
@@ -40,7 +38,7 @@ public interface Overlay {
     /** Builds a hint mesh that update() would otherwise only build on the next frame. */
     void runPendingHintMeshWork();
 
-    void hideIndicator(boolean allowFade);
+    void hideIndicator();
 
     void setGrid(Grid grid);
 

@@ -100,7 +100,7 @@ public class Mousemaster {
             pumpEventsNanos += timeBeforeOp - timeAfterOp;
             modeController.updateBuiltInVirtualKeys();
             if (!hintManager.waitingForUiElements())
-                indicatorManager.update(delta);
+                indicatorManager.update();
             timeAfterOp = System.nanoTime();
             long indicatorManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();

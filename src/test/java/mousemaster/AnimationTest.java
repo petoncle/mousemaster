@@ -49,6 +49,8 @@ class AnimationTest {
                 (proxy, method, args) -> {
                     if (method.getName().equals("setIndicator"))
                         drawn.add((IndicatorConfiguration) args[0]);
+                    else if (method.getName().equals("hideIndicator"))
+                        drawn.add(null);
                     return null;
                 });
         indicatorManager = new IndicatorManager(overlay, animationPlayer);
@@ -67,7 +69,7 @@ class AnimationTest {
         animationPlayer.update(delta);
         comboWatcher.update(delta);
         animationPlayer.endStoppingAnimations();
-        indicatorManager.update(delta);
+        indicatorManager.update();
     }
 
     private int drawnSize() {
@@ -312,6 +314,27 @@ class AnimationTest {
         assertTrue(hideCursorEnabled());
         tick(0.06);
         assertFalse(hideCursorEnabled());
+    }
+
+    @Test
+    void keyframesCanShowTheIndicatorForPartOfAnAnimation() {
+        load("click-animation.duration-millis=100",
+                "idle-mode.click-animation.start=+a",
+                "idle-mode.indicator.enabled=false | _{clickanimation} -> 0% true; 50% false");
+        tick(0);
+        assertNull(drawn.getLast());
+        tap("a");
+        tick(0);
+        assertNotNull(drawn.getLast());
+        tick(0.06);
+        assertNull(drawn.getLast());
+    }
+
+    @Test
+    void aRemovedIndicatorAnimationPropertyPointsToKeyframes() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> load("idle-mode.indicator.transition-animation-duration-millis=80"));
+        assertTrue(exception.getMessage().contains("keyframes"));
     }
 
     @Test

@@ -92,8 +92,6 @@ public class WindowsOverlay implements Overlay {
         hintMeshRenderer.runPendingWork();
         if (gridRenderer != null)
             gridRenderer.advanceAnimationsToFirstFrame();
-        if (indicatorRenderer != null)
-            indicatorRenderer.advanceAnimationsToFirstFrame();
         updateZoomWindow();
         releaseZoomWhenIdle(delta);
     }
@@ -376,8 +374,7 @@ public class WindowsOverlay implements Overlay {
     }
 
     @Override
-    public void setIndicator(IndicatorConfiguration indicator,
-                             IndicatorConfiguration transitionTo, boolean allowFade,
+    public void setIndicator(IndicatorConfiguration indicator, boolean animating,
                              boolean includeOriginalCursor) {
         Objects.requireNonNull(indicator);
         boolean renderAsCursor = indicator.renderAsCursor();
@@ -400,7 +397,7 @@ public class WindowsOverlay implements Overlay {
                 includeOriginalCursor == currentIncludeOriginalCursor)
                 return;
             if (indicatorRenderer != null && indicatorRenderer.showing())
-                indicatorRenderer.hide(false);
+                indicatorRenderer.hide();
             if (indicatorRenderer == null)
                 indicatorRenderer = new IndicatorRenderer();
             IndicatorRenderer.CursorImage image =
@@ -411,7 +408,7 @@ public class WindowsOverlay implements Overlay {
             if (image == null)
                 return;
             mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
-                    includeOriginalCursor, indicator.equals(transitionTo));
+                    includeOriginalCursor, !animating);
             indicatorIsCursor = true;
             currentCursorIndicator = indicator;
             currentCursorScale = scale;
@@ -426,8 +423,7 @@ public class WindowsOverlay implements Overlay {
         if (indicatorHwnd == null)
             createIndicatorWindow();
         boolean wasShowing = indicatorRenderer.showing();
-        indicatorRenderer.setIndicator(indicator, transitionTo, allowFade,
-                mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
+        indicatorRenderer.setIndicator(indicator, mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                 WindowsScreen.findActiveScreen(mousePosition), currentZoom,
                 hintMeshRenderer.lastSelectedHintBoxHexColor());
         if (!wasShowing)
@@ -515,7 +511,7 @@ public class WindowsOverlay implements Overlay {
     }
 
     @Override
-    public void hideIndicator(boolean allowFade) {
+    public void hideIndicator() {
         if (indicatorIsCursor) {
             mouse.showCursor();
             indicatorIsCursor = false;
@@ -523,7 +519,7 @@ public class WindowsOverlay implements Overlay {
             return;
         }
         if (indicatorRenderer != null)
-            indicatorRenderer.hide(allowFade);
+            indicatorRenderer.hide();
     }
 
     @Override
