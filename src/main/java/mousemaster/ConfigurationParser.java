@@ -287,6 +287,8 @@ public class ConfigurationParser {
                 new Property<>("clear", Map.of()),
                 new Property<>("cycle-next", Map.of()),
                 new Property<>("cycle-previous", Map.of()),
+                new Property<>("start", Map.of()),
+                new Property<>("stop", Map.of()),
                 new Property<>("break-combo-preparation", Map.of()),
                 new Property<>("break-macro", Map.of()),
                 new Property<>("macro", Map.of()),
@@ -333,8 +335,9 @@ public class ConfigurationParser {
                 forcedActiveAndConfigurationKeyboardLayouts.configurationKeyboardLayout == null ?
                         activeKeyboardLayout :
                         forcedActiveAndConfigurationKeyboardLayouts.configurationKeyboardLayout;
+        Map<String, Duration> animationDurationByName = parseAnimationDurations(properties);
         DeclaredVirtualKeyNames declaredVirtualKeyNames =
-                parseDeclaredVirtualKeyNames(properties);
+                parseDeclaredVirtualKeyNames(properties, animationDurationByName.keySet());
         KeyResolver keyResolver =
                 new KeyResolver(activeKeyboardLayout, configurationKeyboardLayout,
                         declaredVirtualKeyNames.names());
@@ -492,7 +495,7 @@ public class ConfigurationParser {
                         configurationAliases.colorAliasByName, keyResolver,
                         modeReferences, defaultComboMoveDuration, appAliases,
                         finalDefaultComboMoveDuration,
-                        allVariableNames, positionHistoryNames,
+                        allVariableNames, positionHistoryNames, animationDurationByName,
                         configurationAliases.screenFilterAliasByName);
             } catch (IllegalArgumentException e) {
                 IllegalArgumentException e2 =
@@ -814,8 +817,8 @@ public class ConfigurationParser {
 
     /** The names of the virtual-keys line: a built-in one is never declared. */
     private static DeclaredVirtualKeyNames parseDeclaredVirtualKeyNames(
-            List<String> properties) {
-        Set<String> names = new HashSet<>();
+            List<String> properties, Set<String> animationNames) {
+        Set<String> names = new HashSet<>(animationNames);
         Set<String> initiallyPressed = new HashSet<>();
         for (String property : properties) {
             Matcher lineMatcher = propertyLinePattern.matcher(property);
@@ -1005,6 +1008,7 @@ public class ConfigurationParser {
                                   ComboMoveDuration finalDefaultComboMoveDuration,
                                   Set<String> allVariableNames,
                                   Set<String> positionHistoryNames,
+                                  Map<String, Duration> animationDurationByName,
                                   Map<String, Set<ScreenFilter>> screenFilterAliases) {
         if (group2 == null) {
             // Mode reference.
@@ -1646,6 +1650,31 @@ public class ConfigurationParser {
             }
             // @formatter:on
             default -> {
+                if (isAnimationName(group2)) {
+                    Duration duration = animationDurationByName.get(group2);
+                    if (duration == null)
+                        throw new IllegalArgumentException(
+                                "Undefined animation " + group2 + ": missing " + group2 +
+                                ".duration-millis");
+                    if (keyMatcher.group(group4) == null || keyMatcher.group(group5) != null)
+                        throw new IllegalArgumentException("Invalid animation property key");
+                    // ripple-animation.duration-millis=250
+                    // normal-mode.ripple-animation.start=-leftbutton
+                    // normal-mode.ripple-animation.stop=+f4
+                    // is parsed as the virtual key ripple-animation and two macros both named
+                    // ripple-animation, so that each replaces the other while it runs:
+                    // -leftbutton -> #ripple-animation wait-250 ~ripple-animation
+                    // +f4 -> ~ripple-animation
+                    switch (keyMatcher.group(group4)) {
+                        // @formatter:off
+                        case "start" -> setCommand(mode.comboMap.startAnimation.builder, propertyValue, animationCommand(group2, "#" + group2 + " wait-" + duration.toMillis() + " ~" + group2, keyAliases, keyResolver), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "stop" -> setCommand(mode.comboMap.stopAnimation.builder, propertyValue, animationCommand(group2, "~" + group2, keyAliases, keyResolver), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        // @formatter:on
+                        default -> throw new IllegalArgumentException(
+                                "Invalid animation property key");
+                    }
+                    return;
+                }
                 if (!isPositionHistoryName(group2))
                     throw new IllegalArgumentException("Invalid mode property key");
                 if (keyMatcher.group(group3) == null) {
@@ -1884,6 +1913,37 @@ public class ConfigurationParser {
                 positionHistoryNames.add(commandMatcher.group(1));
         }
         return positionHistoryNames;
+    }
+
+    private static MacroCommand animationCommand(String animationName, String output,
+                                                 Map<String, KeyAlias> keyAliases,
+                                                 KeyResolver keyResolver) {
+        return new MacroCommand(
+                Macro.of(animationName, output, keyAliases, keyResolver, Map.of(), Map.of()),
+                null);
+    }
+
+    private static Map<String, Duration> parseAnimationDurations(List<String> properties) {
+        Map<String, Duration> animationDurationByName = new HashMap<>();
+        for (String property : properties) {
+            Matcher lineMatcher = propertyLinePattern.matcher(property);
+            if (!lineMatcher.matches())
+                continue;
+            String propertyKey = lineMatcher.group(1).strip();
+            int dotIndex = propertyKey.indexOf('.');
+            if (dotIndex == -1 || !isAnimationName(propertyKey.substring(0, dotIndex)))
+                continue;
+            if (!propertyKey.substring(dotIndex + 1).equals("duration-millis"))
+                throw new IllegalArgumentException(
+                        "Invalid animation property key " + propertyKey);
+            animationDurationByName.put(propertyKey.substring(0, dotIndex),
+                    parseDuration(lineMatcher.group(2).strip()));
+        }
+        return animationDurationByName;
+    }
+
+    private static boolean isAnimationName(String name) {
+        return name.endsWith("-animation");
     }
 
     private static boolean isPositionHistoryName(String name) {
@@ -3979,6 +4039,8 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> clearPositionHistory;
         Property<Map<Combo, List<Command>>> cycleNextPosition;
         Property<Map<Combo, List<Command>>> cyclePreviousPosition;
+        Property<Map<Combo, List<Command>>> startAnimation;
+        Property<Map<Combo, List<Command>>> stopAnimation;
         Property<Map<Combo, List<Command>>> breakComboPreparation;
         Property<Map<Combo, List<Command>>> breakMacro;
         Property<Map<Combo, List<Command>>> macro;
@@ -4011,6 +4073,8 @@ public class ConfigurationParser {
             clearPositionHistory = new ComboMapProperty("clear", modeName, propertyByKey);
             cycleNextPosition = new ComboMapProperty("cycle-next", modeName, propertyByKey);
             cyclePreviousPosition = new ComboMapProperty("cycle-previous", modeName, propertyByKey);
+            startAnimation = new ComboMapProperty("start", modeName, propertyByKey);
+            stopAnimation = new ComboMapProperty("stop", modeName, propertyByKey);
             breakComboPreparation = new ComboMapProperty("break-combo-preparation", modeName, propertyByKey);
             breakMacro = new ComboMapProperty("break-macro", modeName, propertyByKey);
             macro = new ComboMapProperty("macro", modeName, propertyByKey);
@@ -4100,6 +4164,8 @@ public class ConfigurationParser {
             add(commandsByCombo, clearPositionHistory.builder);
             add(commandsByCombo, cycleNextPosition.builder);
             add(commandsByCombo, cyclePreviousPosition.builder);
+            add(commandsByCombo, startAnimation.builder);
+            add(commandsByCombo, stopAnimation.builder);
             add(commandsByCombo, breakComboPreparation.builder);
             add(commandsByCombo, breakMacro.builder);
             add(commandsByCombo, macro.builder);
