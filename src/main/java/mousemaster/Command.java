@@ -61,6 +61,9 @@ public sealed interface Command {
     record CycleNextPosition(String positionHistoryName) implements Command {}
     record CyclePreviousPosition(String positionHistoryName) implements Command {}
 
+    record StartAnimation(String animationName) implements Command {}
+    record StopAnimation(String animationName) implements Command {}
+
     record MacroCommand(Macro macro, AliasResolution aliasResolution) implements Command {
         @Override
         public String toString() {

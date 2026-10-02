@@ -5,6 +5,7 @@ import java.util.Set;
 
 public record Configuration(
         Map<String, PositionHistoryConfiguration> positionHistoryConfigurationByName,
+        Map<String, AnimationConfiguration> animationConfigurationByName,
         ModeMap modeMap, String logLevel, KeyRedaction keyRedaction,
         boolean logLastKeyEventsOnExit, boolean logToFile,
         boolean hideConsole, KeyboardLayout forcedActiveKeyboardLayout,
