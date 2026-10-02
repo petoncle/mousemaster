@@ -9,7 +9,7 @@ import java.util.Map;
 public class IndicatorManager implements ModeListener {
 
     private final Overlay overlay;
-    private final MacroPlayer macroPlayer;
+    private final AnimationPlayer animationPlayer;
     private Mode currentMode;
     private IndicatorConfiguration currentIndicator;
     private IndicatorConfiguration transitionFromIndicator;
@@ -21,9 +21,9 @@ public class IndicatorManager implements ModeListener {
     private final Map<ModePropertyPath, Double> progressByPropertyPath = new HashMap<>();
     private final Map<ModePropertyPath, Object> currentByPropertyPath = new HashMap<>();
 
-    public IndicatorManager(Overlay overlay, MacroPlayer macroPlayer) {
+    public IndicatorManager(Overlay overlay, AnimationPlayer animationPlayer) {
         this.overlay = overlay;
-        this.macroPlayer = macroPlayer;
+        this.animationPlayer = animationPlayer;
     }
 
     public boolean animating() {
@@ -73,8 +73,7 @@ public class IndicatorManager implements ModeListener {
         for (Map.Entry<ModePropertyPath, Timeline> entry : newTimelineByPropertyPath.entrySet()) {
             ModePropertyPath propertyPath = entry.getKey();
             Timeline timeline = entry.getValue();
-            double progress =
-                    macroPlayer.virtualKeyMacroWaitProgress(timeline.animationName());
+            double progress = animationPlayer.progress(timeline.animationName());
             Double previousProgress = progressByPropertyPath.put(propertyPath, progress);
             if (timeline.equals(timelineByPropertyPath.put(propertyPath, timeline)) &&
                 progress >= previousProgress)
@@ -105,7 +104,7 @@ public class IndicatorManager implements ModeListener {
             indicator = (IndicatorConfiguration) ModePropertyMutator.mutateModeProperty(
                     indicator, indicatorFieldNames(propertyPath),
                     timeline.valueAt(progressByPropertyPath.get(propertyPath),
-                            macroPlayer.virtualKeyMacroWait(timeline.animationName()),
+                            animationPlayer.duration(timeline.animationName()),
                             currentByPropertyPath.get(propertyPath)), null);
         }
         return indicator;

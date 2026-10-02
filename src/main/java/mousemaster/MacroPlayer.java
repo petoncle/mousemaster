@@ -6,7 +6,6 @@ import mousemaster.platform.KeyboardController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -134,25 +133,6 @@ public class MacroPlayer {
 
     public boolean macroInProgress() {
         return macroInProgress != null;
-    }
-
-    public double virtualKeyMacroWaitProgress(String macroName) {
-        for (MacroInProgress inProgress : virtualKeyMacrosInProgress) {
-            if (!inProgress.macro.name().equals(macroName))
-                continue;
-            if (inProgress.currentIndex == -1)
-                return 0;
-            double wait = inProgress.currentParallel().duration().toNanos() / 1e9;
-            return wait == 0 ? 1 : 1 - inProgress.remainingWait / wait;
-        }
-        return 1;
-    }
-
-    public Duration virtualKeyMacroWait(String macroName) {
-        for (MacroInProgress inProgress : virtualKeyMacrosInProgress)
-            if (inProgress.macro.name().equals(macroName))
-                return inProgress.macro.output().parallels().getFirst().duration();
-        return Duration.ZERO;
     }
 
     public void breakMacro() {

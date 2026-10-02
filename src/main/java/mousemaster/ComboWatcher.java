@@ -1216,6 +1216,14 @@ public class ComboWatcher {
                             currentlyPressedComboKeys.remove(key);
                 }
             }
+            else if (command instanceof Command.StartAnimation(String animationName)) {
+                anyStateChange |=
+                        currentlyPressedComboKeys.add(new Key(animationName, null, null));
+            }
+            else if (command instanceof Command.StopAnimation(String animationName)) {
+                anyStateChange |=
+                        currentlyPressedComboKeys.remove(new Key(animationName, null, null));
+            }
         }
         commands.removeIf(c -> c instanceof Command.SetVariable ||
                                c instanceof Command.UnsetVariable ||

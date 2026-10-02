@@ -8,18 +8,17 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class AnimationTest {
 
+    private Instant now = Instant.parse("2026-01-01T00:00:00Z");
     private ComboWatcher comboWatcher;
-    private MacroPlayer macroPlayer;
+    private AnimationPlayer animationPlayer;
     private IndicatorManager indicatorManager;
     private final List<IndicatorConfiguration> drawn = new ArrayList<>();
-    private Map<Combo, List<Command>> commandsByCombo;
 
     private void load(String... lines) {
         Configuration configuration = ConfigurationParser.parse(List.of(lines),
@@ -32,12 +31,19 @@ class AnimationTest {
                                                     .keyPrecondition()
                                                     .pressedKeyPrecondition()
                                                     .allKeys());
-        comboWatcher = new ComboWatcher(null, null, () -> new App("test.exe"), null,
-                Instant::now, Set.of(), pressedPreconditionKeys, new KeyRedactor(KeyRedaction.NONE), modeMap,
+        CommandRunner commandRunner = new CommandRunner(null, null, null) {
+            @Override
+            public boolean runningAtomicCommand() {
+                return false;
+            }
+        };
+        comboWatcher = new ComboWatcher(commandRunner, null, () -> new App("test.exe"), null,
+                () -> now, Set.of(), pressedPreconditionKeys, new KeyRedactor(KeyRedaction.NONE), modeMap,
                 configuration.initiallySetVariables(), configuration.virtualKeys(),
                 configuration.initiallyPressedVirtualKeys());
-        macroPlayer = new MacroPlayer(Instant::now, comboWatcher, null, null,
-                new KeyRedactor(KeyRedaction.NONE));
+        animationPlayer = new AnimationPlayer(() -> now, comboWatcher,
+                configuration.animationConfigurationByName());
+        commandRunner.setAnimationPlayer(animationPlayer);
         Overlay overlay = (Overlay) Proxy.newProxyInstance(
                 Overlay.class.getClassLoader(), new Class<?>[] {Overlay.class},
                 (proxy, method, args) -> {
@@ -45,24 +51,20 @@ class AnimationTest {
                         drawn.add((IndicatorConfiguration) args[0]);
                     return null;
                 });
-        indicatorManager = new IndicatorManager(overlay, macroPlayer);
+        indicatorManager = new IndicatorManager(overlay, animationPlayer);
         comboWatcher.setModeListeners(List.of(indicatorManager));
         comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
-        commandsByCombo = modeMap.get(Mode.IDLE_MODE_NAME).comboMap().commandsByCombo();
     }
 
-    private void run(String combo) {
-        commandsByCombo.entrySet()
-                       .stream()
-                       .filter(entry -> entry.getKey().toString().contains(combo))
-                       .flatMap(entry -> entry.getValue().stream())
-                       .map(command -> ((Command.MacroCommand) command).macro())
-                       .forEach(macro -> macroPlayer.submit(
-                               macro.resolve(new AliasResolution(Map.of()))));
+    private void tap(String keyName) {
+        Key key = Key.ofName(keyName);
+        comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, key));
+        comboWatcher.keyEvent(new KeyEvent.ReleaseKeyEvent(now, key));
     }
 
     private void tick(double delta) {
-        macroPlayer.update(delta);
+        now = now.plusNanos((long) (delta * 1e9));
+        animationPlayer.update(delta);
         indicatorManager.update(delta);
     }
 
@@ -79,11 +81,10 @@ class AnimationTest {
         load("ripple-animation.duration-millis=100",
                 "idle-mode.ripple-animation.start=+a",
                 "idle-mode.indicator.size=26 | _{ripple-animation} -> 42");
-        run("+a");
-        macroPlayer.update(0.01);
+        tap("a");
         assertEquals(42, size());
 
-        macroPlayer.update(0.1);
+        tick(0.1);
         assertEquals(26, size());
     }
 
@@ -92,14 +93,13 @@ class AnimationTest {
         load("ripple-animation.duration-millis=100",
                 "idle-mode.ripple-animation.start=+a",
                 "idle-mode.indicator.size=26 | _{ripple-animation} -> 42");
-        run("+a");
-        macroPlayer.update(0.01);
-        macroPlayer.update(0.05);
-        run("+a");
-        macroPlayer.update(0.06);
+        tap("a");
+        tick(0.06);
+        tap("a");
+        tick(0.06);
         assertEquals(42, size());
 
-        macroPlayer.update(0.1);
+        tick(0.05);
         assertEquals(26, size());
     }
 
@@ -109,10 +109,9 @@ class AnimationTest {
                 "idle-mode.ripple-animation.start=+a",
                 "idle-mode.ripple-animation.stop=+b",
                 "idle-mode.indicator.size=26 | _{ripple-animation} -> 42");
-        run("+a");
-        macroPlayer.update(0.01);
-        run("+b");
-        macroPlayer.update(0.01);
+        tap("a");
+        tick(0.01);
+        tap("b");
         assertEquals(26, size());
     }
 
@@ -138,7 +137,7 @@ class AnimationTest {
                 "idle-mode.ripple-animation.start=+a",
                 "idle-mode.indicator.size=26 | _{ripple-animation} -> 0% 10; 100% 36");
         tick(0);
-        run("+a");
+        tap("a");
         tick(0);
         assertEquals(10, drawnSize());
         tick(0.05);
@@ -153,7 +152,7 @@ class AnimationTest {
                 "idle-mode.ripple-animation.start=+a",
                 "idle-mode.indicator.size=26 | _{ripple-animation} -> 100% 36");
         tick(0);
-        run("+a");
+        tap("a");
         tick(0);
         assertEquals(26, drawnSize());
         tick(0.05);
@@ -166,7 +165,7 @@ class AnimationTest {
                 "idle-mode.ripple-animation.start=+a",
                 "idle-mode.indicator.size=26 | _{ripple-animation} -> 0% 10; 50% 10; 50% 40; 100% 40");
         tick(0);
-        run("+a");
+        tap("a");
         tick(0);
         tick(0.049);
         assertEquals(10, drawnSize());
@@ -180,7 +179,7 @@ class AnimationTest {
                 "idle-mode.ripple-animation.start=+a",
                 "idle-mode.indicator.size=26 | _{ripple-animation} -> 0% 10; 50ms 20; 100% 20");
         tick(0);
-        run("+a");
+        tap("a");
         tick(0);
         tick(0.025);
         assertEquals(15, drawnSize());

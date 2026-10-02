@@ -9,6 +9,7 @@ public class CommandRunner {
     private final GridManager gridManager;
     private final HintManager hintManager;
     private MacroPlayer macroPlayer;
+    private AnimationPlayer animationPlayer;
 
     public CommandRunner(MouseManager mouseManager, GridManager gridManager,
                          HintManager hintManager) {
@@ -23,6 +24,10 @@ public class CommandRunner {
 
     public void setMacroPlayer(MacroPlayer macroPlayer) {
         this.macroPlayer = macroPlayer;
+    }
+
+    public void setAnimationPlayer(AnimationPlayer animationPlayer) {
+        this.animationPlayer = animationPlayer;
     }
 
     public boolean runningAtomicCommand() {
@@ -90,6 +95,9 @@ public class CommandRunner {
             case ClearPositionHistory(String positionHistoryName) -> hintManager.clearPositionHistory(positionHistoryName);
             case CycleNextPosition(String positionHistoryName) -> hintManager.cyclePosition(positionHistoryName, 1);
             case CyclePreviousPosition(String positionHistoryName) -> hintManager.cyclePosition(positionHistoryName, -1);
+
+            case StartAnimation(String animationName) -> animationPlayer.start(animationName);
+            case StopAnimation(String animationName) -> animationPlayer.stop(animationName);
 
             case MacroCommand(Macro macro, AliasResolution aliasResolution) ->
                     macroPlayer.submit(macro.resolve(aliasResolution));
