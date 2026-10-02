@@ -18,6 +18,7 @@ public class ModeController {
     private final KeyboardState keyboardState;
     private final HintManager hintManager;
     private final ComboWatcher comboWatcher;
+    private final AnimationPlayer animationPlayer;
     private boolean currentModeCursorHidden;
     private Mode currentMode;
     private final Deque<Mode> modeHistoryStack = new ArrayDeque<>();
@@ -29,13 +30,14 @@ public class ModeController {
     public ModeController(ModeMap modeMap, MouseManager mouseManager,
                           MouseState mouseState, KeyboardState keyboardState,
                           HintManager hintManager,
-                          ComboWatcher comboWatcher) {
+                          ComboWatcher comboWatcher, AnimationPlayer animationPlayer) {
         this.modeMap = modeMap;
         this.mouseManager = mouseManager;
         this.mouseState = mouseState;
         this.keyboardState = keyboardState;
         this.hintManager = hintManager;
         this.comboWatcher = comboWatcher;
+        this.animationPlayer = animationPlayer;
     }
 
     /** Called again once the tick's key events have run their commands, so that what they
@@ -46,7 +48,8 @@ public class ModeController {
 
     public void update(double delta) {
         hintManager.completePendingUiHintQuery();
-        Mode mutatedMode = comboWatcher.getMutatedMode();
+        Mode mutatedMode =
+                animationPlayer.animate(comboWatcher.getMutatedMode(), "hideCursor");
         // The flag catches briefly-pressed unhandled keys that are released before this poll.
         // The poll catches held keys that become unhandled due to a mode change (no key event to set the flag).
         boolean unhandledKeyWasJustPressed =
@@ -133,7 +136,8 @@ public class ModeController {
         logger.debug("Switching to " + newMode.name());
         MDC.put("mode", newMode.name());
         comboWatcher.modeChanged(newMode);
-        Mode mutatedMode = comboWatcher.getMutatedMode();
+        Mode mutatedMode =
+                animationPlayer.animate(comboWatcher.getMutatedMode(), "hideCursor");
         resetCurrentModeCursorHidden(mutatedMode);
         resetHideCursorTimer(mutatedMode);
         resetModeTimeoutTimer(mutatedMode);

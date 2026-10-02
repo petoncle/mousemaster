@@ -94,7 +94,7 @@ public class IndicatorManager implements ModeListener {
         }
         drawnIndicator = withTimelines(eased(currentIndicator));
         overlay.setIndicator(drawnIndicator, currentIndicator, allowFade,
-                !currentMode.hideCursor().enabled());
+                !animationPlayer.animate(currentMode, "hideCursor").hideCursor().enabled());
     }
 
     private IndicatorConfiguration withTimelines(IndicatorConfiguration indicator) {

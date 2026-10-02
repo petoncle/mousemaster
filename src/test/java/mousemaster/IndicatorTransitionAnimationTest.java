@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -42,7 +43,8 @@ class IndicatorTransitionAnimationTest {
                         shown.add((IndicatorConfiguration) args[0]);
                     return null;
                 });
-        indicatorManager = new IndicatorManager(overlay, null);
+        indicatorManager =
+                new IndicatorManager(overlay, new AnimationPlayer(null, null, Map.of()));
         // The indicator that appears first is not transitioned to.
         changeMode("normal-mode");
         shown.clear();
