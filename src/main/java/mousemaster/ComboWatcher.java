@@ -53,14 +53,14 @@ public class ComboWatcher {
      */
     private final Map<ModePropertyPath, Boolean> preconditionOnlyByPropertyPath = new HashMap<>();
     /**
-     * Computed once on mode change: the built-in variables referenced by some
-     * precondition-only mutation of the current mode. When a built-in variable
+     * Computed once on mode change: the virtual keys referenced by some
+     * precondition-only mutation of the current mode. When a virtual key
      * changes but is not in here, no mutation can depend on it, so the
      * (relatively costly) mutation refresh is skipped.
      */
-    private final Set<Key> builtInVirtualKeysReferencedByPreconditionOnlyMutations =
+    private final Set<Key> virtualKeysReferencedByPreconditionOnlyMutations =
             new HashSet<>();
-    private final Set<Key> builtInVirtualKeysReferencedByPreconditionOnlyNonMutationCombos =
+    private final Set<Key> virtualKeysReferencedByPreconditionOnlyNonMutationCombos =
             new HashSet<>();
     private boolean preconditionOnlyMutationRefreshPending;
     private boolean preconditionOnlyNonMutationComboRefreshPending;
@@ -251,7 +251,8 @@ public class ComboWatcher {
      *  are notified once all of them are set, so a click that grows the indicator and colors it
      *  through two different keys is not rendered half applied. */
     public void updateBuiltInVirtualKeys(MouseState mouseState,
-                                         KeyboardState keyboardState) {
+                                         KeyboardState keyboardState,
+                                         AnimationPlayer animationPlayer) {
         mutatedModeNotificationSuspended = true;
         setVirtualKeyPressed(BuiltInVirtualKey.IS_IDLING, mouseState.idling());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_MOVING, mouseState.moving());
@@ -267,6 +268,9 @@ public class ComboWatcher {
                 keyboardState.pressingUnhandledKeyInCurrentMode());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_HINT_MESH_EMPTY,
                 hintManager.hintMeshEmpty());
+        for (String animationName : animationPlayer.animationNames())
+            setVirtualKeyPressed(new Key(animationName, null, null),
+                    animationPlayer.running(animationName));
         // Refreshed once all the keys are set, and before the tick moves the mouse, which
         // reads properties these keys can mutate.
         if (preconditionOnlyMutationRefreshPending) {
@@ -298,9 +302,9 @@ public class ComboWatcher {
                 currentlyPressedComboKeys.remove(key);
         if (!changed)
             return;
-        if (builtInVirtualKeysReferencedByPreconditionOnlyMutations.contains(key))
+        if (virtualKeysReferencedByPreconditionOnlyMutations.contains(key))
             preconditionOnlyMutationRefreshPending = true;
-        if (builtInVirtualKeysReferencedByPreconditionOnlyNonMutationCombos.contains(key))
+        if (virtualKeysReferencedByPreconditionOnlyNonMutationCombos.contains(key))
             preconditionOnlyNonMutationComboRefreshPending = true;
         if (currentModeSequenceKeys.contains(key))
             keyEvent(pressed ? new KeyEvent.PressKeyEvent(clock.now(), key) :
@@ -1776,8 +1780,8 @@ public class ComboWatcher {
 
     private void computePreconditionOnlyByPropertyPath() {
         preconditionOnlyByPropertyPath.clear();
-        builtInVirtualKeysReferencedByPreconditionOnlyMutations.clear();
-        builtInVirtualKeysReferencedByPreconditionOnlyNonMutationCombos.clear();
+        virtualKeysReferencedByPreconditionOnlyMutations.clear();
+        virtualKeysReferencedByPreconditionOnlyNonMutationCombos.clear();
         for (Map.Entry<Combo, List<Command>> entry : baseMode.comboMap()
                                                                  .commandsByCombo()
                                                                  .entrySet()) {
@@ -1790,25 +1794,25 @@ public class ComboWatcher {
                             isPreconditionOnly,
                             (existing, newVal) -> existing && newVal);
                     if (isPreconditionOnly)
-                        builtInVirtualKeysReferencedByPreconditionOnlyMutations
-                                .addAll(builtInVirtualKeysReferencedBy(combo));
+                        virtualKeysReferencedByPreconditionOnlyMutations
+                                .addAll(virtualKeysReferencedBy(combo));
                 }
                 else
                     hasNonMutationCommand = true;
             }
             if (isPreconditionOnly && hasNonMutationCommand)
-                builtInVirtualKeysReferencedByPreconditionOnlyNonMutationCombos
-                        .addAll(builtInVirtualKeysReferencedBy(combo));
+                virtualKeysReferencedByPreconditionOnlyNonMutationCombos
+                        .addAll(virtualKeysReferencedBy(combo));
         }
     }
 
-    private Set<Key> builtInVirtualKeysReferencedBy(Combo combo) {
+    private Set<Key> virtualKeysReferencedBy(Combo combo) {
         Set<Key> keys = new HashSet<>(combo.precondition()
                                            .keyPrecondition()
                                            .pressedKeyPrecondition()
                                            .allKeys());
         keys.addAll(combo.precondition().keyPrecondition().unpressedKeySet());
-        keys.retainAll(builtInVirtualKeys);
+        keys.retainAll(virtualKeys);
         return keys;
     }
 

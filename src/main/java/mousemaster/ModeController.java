@@ -43,7 +43,7 @@ public class ModeController {
     /** Called again once the tick's key events have run their commands, so that what they
      *  pressed is seen before anything is rendered. */
     public void updateBuiltInVirtualKeys() {
-        comboWatcher.updateBuiltInVirtualKeys(mouseState, keyboardState);
+        comboWatcher.updateBuiltInVirtualKeys(mouseState, keyboardState, animationPlayer);
     }
 
     public void update(double delta) {

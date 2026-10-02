@@ -1,6 +1,8 @@
 package mousemaster;
 
+import mousemaster.platform.MouseController;
 import mousemaster.platform.Overlay;
+import mousemaster.platform.UiAutomation;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
@@ -31,19 +33,6 @@ class AnimationTest {
                                                     .keyPrecondition()
                                                     .pressedKeyPrecondition()
                                                     .allKeys());
-        CommandRunner commandRunner = new CommandRunner(null, null, null) {
-            @Override
-            public boolean runningAtomicCommand() {
-                return false;
-            }
-        };
-        comboWatcher = new ComboWatcher(commandRunner, null, () -> new App("test.exe"), null,
-                () -> now, Set.of(), pressedPreconditionKeys, new KeyRedactor(KeyRedaction.NONE), modeMap,
-                configuration.initiallySetVariables(), configuration.virtualKeys(),
-                configuration.initiallyPressedVirtualKeys());
-        animationPlayer = new AnimationPlayer(() -> now, comboWatcher,
-                configuration.animationConfigurationByName());
-        commandRunner.setAnimationPlayer(animationPlayer);
         Overlay overlay = (Overlay) Proxy.newProxyInstance(
                 Overlay.class.getClassLoader(), new Class<?>[] {Overlay.class},
                 (proxy, method, args) -> {
@@ -53,6 +42,25 @@ class AnimationTest {
                         drawn.add(null);
                     return null;
                 });
+        ScreenManager screenManager = new ScreenManager(
+                () -> Set.of(new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1)));
+        HintManager hintManager = new HintManager(
+                configuration.positionHistoryConfigurationByName(), screenManager,
+                new MouseManager(screenManager, proxy(MouseController.class)), overlay,
+                proxy(UiAutomation.class), () -> new App("test.exe"),
+                new KeyRedactor(KeyRedaction.NONE), null);
+        CommandRunner commandRunner = new CommandRunner(null, null, null) {
+            @Override
+            public boolean runningAtomicCommand() {
+                return false;
+            }
+        };
+        comboWatcher = new ComboWatcher(commandRunner, hintManager, () -> new App("test.exe"), null,
+                () -> now, Set.of(), pressedPreconditionKeys, new KeyRedactor(KeyRedaction.NONE), modeMap,
+                configuration.initiallySetVariables(), configuration.virtualKeys(),
+                configuration.initiallyPressedVirtualKeys());
+        animationPlayer = new AnimationPlayer(configuration.animationConfigurationByName());
+        commandRunner.setAnimationPlayer(animationPlayer);
         indicatorManager = new IndicatorManager(overlay, animationPlayer);
         comboWatcher.setModeListeners(List.of(indicatorManager));
         comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
@@ -68,8 +76,21 @@ class AnimationTest {
         now = now.plusNanos((long) (delta * 1e9));
         animationPlayer.update(delta);
         comboWatcher.update(delta);
-        animationPlayer.endStoppingAnimations();
+        comboWatcher.updateBuiltInVirtualKeys(
+                new MouseState(new MouseManager(null, proxy(MouseController.class))),
+                new KeyboardState(null) {
+                    @Override
+                    public boolean pressingUnhandledKeyInCurrentMode() {
+                        return false;
+                    }
+                }, animationPlayer);
         indicatorManager.update();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T proxy(Class<T> type) {
+        return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[] {type},
+                (proxy, method, args) -> null);
     }
 
     private int drawnSize() {
