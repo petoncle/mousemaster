@@ -135,6 +135,18 @@ public class MacroPlayer {
         return macroInProgress != null;
     }
 
+    public double virtualKeyMacroWaitProgress(String macroName) {
+        for (MacroInProgress inProgress : virtualKeyMacrosInProgress) {
+            if (!inProgress.macro.name().equals(macroName))
+                continue;
+            if (inProgress.currentIndex == -1)
+                return 0;
+            double wait = inProgress.currentParallel().duration().toNanos() / 1e9;
+            return wait == 0 ? 1 : 1 - inProgress.remainingWait / wait;
+        }
+        return 1;
+    }
+
     public void breakMacro() {
         if (!keysPressedByMacro.isEmpty()) {
             List<ResolvedMacroMove> releases = new ArrayList<>();
