@@ -65,6 +65,8 @@ class AnimationTest {
     private void tick(double delta) {
         now = now.plusNanos((long) (delta * 1e9));
         animationPlayer.update(delta);
+        comboWatcher.update(delta);
+        animationPlayer.endStoppingAnimations();
         indicatorManager.update(delta);
     }
 
@@ -118,6 +120,50 @@ class AnimationTest {
         tap("a");
         tick(0.01);
         tap("b");
+        tick(0);
+        assertEquals(26, size());
+    }
+
+    @Test
+    void stoppingAnAnimationReleasesItsKey() {
+        load("click-animation.duration-millis=100",
+                "rest-animation.duration-millis=80",
+                "idle-mode.click-animation.start=+a",
+                "idle-mode.click-animation.stop=+b",
+                "idle-mode.rest-animation.start=-clickanimation",
+                "idle-mode.indicator.size=26 | _{restanimation} -> 30 | _{clickanimation} -> 42");
+        tap("a");
+        tick(0.01);
+        tap("b");
+        tick(0);
+        assertEquals(30, size());
+    }
+
+    @Test
+    void aWaitCanStopAnAnimationPartWay() {
+        load("virtual-key.held=pressed",
+                "click-animation.duration-millis=500",
+                "rest-animation.duration-millis=80",
+                "idle-mode.click-animation.start=+a",
+                "idle-mode.click-animation.stop=_{clickanimation held} wait-250",
+                "idle-mode.rest-animation.start=-clickanimation",
+                "idle-mode.indicator.size=26 | _{restanimation} -> 30 | _{clickanimation} -> 42");
+        tap("a");
+        tick(0.2);
+        assertEquals(42, size());
+        tick(0.06);
+        assertEquals(30, size());
+    }
+
+    @Test
+    void stoppingAnAnimationThatIsNotRunningDoesNothing() {
+        load("click-animation.duration-millis=100",
+                "rest-animation.duration-millis=80",
+                "idle-mode.click-animation.stop=+b",
+                "idle-mode.rest-animation.start=-clickanimation",
+                "idle-mode.indicator.size=26 | _{restanimation} -> 30");
+        tap("b");
+        tick(0);
         assertEquals(26, size());
     }
 

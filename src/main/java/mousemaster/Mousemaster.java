@@ -92,6 +92,7 @@ public class Mousemaster {
             pumpEventsNanos += timeBeforeOp - timeAfterOp;
             animationPlayer.update(delta);
             keyboardManager.update(delta);
+            animationPlayer.endStoppingAnimations();
             timeAfterOp = System.nanoTime();
             long keyboardManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();
