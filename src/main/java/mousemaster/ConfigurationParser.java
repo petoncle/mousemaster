@@ -1943,7 +1943,7 @@ public class ConfigurationParser {
     }
 
     private static final Pattern keyframePattern =
-            Pattern.compile("\\d+(\\.\\d+)?%\\s+\\S+(\\s+\\S+)?");
+            Pattern.compile("(\\d+(\\.\\d+)?%|\\d+ms)\\s+\\S+(\\s+\\S+)?");
 
     private static boolean isTimeline(String value) {
         return Arrays.stream(value.split(";"))
@@ -1965,19 +1965,38 @@ public class ConfigurationParser {
                     "Invalid keyframes " + value +
                     ": the branch should name exactly one animation, like _{click-animation}");
         List<Timeline.Keyframe> keyframes = new ArrayList<>();
-        double previousPercent = 0;
         for (String keyframeString : value.split("\\s*;\\s*")) {
             String[] tokens = keyframeString.split("\\s+");
-            double percent = parseDouble(tokens[0].substring(0, tokens[0].length() - 1),
-                    true, previousPercent * 100, 100) / 100;
-            previousPercent = percent;
-            keyframes.add(new Timeline.Keyframe(percent,
+            Timeline.Position position = tokens[0].endsWith("ms") ?
+                    new Timeline.Position.DurationPosition(
+                            parseDuration(tokens[0].replace("ms", ""))) :
+                    new Timeline.Position.PercentPosition(
+                            parseDouble(tokens[0].replace("%", ""), true, 0, 100) / 100);
+            if (!keyframes.isEmpty() && isBefore(position, keyframes.getLast().position()))
+                throw new IllegalArgumentException(
+                        "Invalid keyframes " + value + ": " + tokens[0] +
+                        " comes before the keyframe it follows");
+            keyframes.add(new Timeline.Keyframe(position,
                     tokens[1].equals("current") ? new Timeline.Current() :
                             valueParser.apply(tokens[1]),
                     tokens.length == 3 ? parseEasing(tokens[2]) :
                             new Easing.Polynomial(1)));
         }
         return new Timeline(animationNames.getFirst(), keyframes);
+    }
+
+    private static boolean isBefore(Timeline.Position position,
+                                    Timeline.Position previousPosition) {
+        return switch (position) {
+            case Timeline.Position.PercentPosition(double percent) ->
+                    previousPosition instanceof
+                            Timeline.Position.PercentPosition(double previousPercent) &&
+                    percent < previousPercent;
+            case Timeline.Position.DurationPosition(Duration duration) ->
+                    previousPosition instanceof
+                            Timeline.Position.DurationPosition(Duration previousDuration) &&
+                    duration.compareTo(previousDuration) < 0;
+        };
     }
 
     private static boolean isAnimationName(String name) {
