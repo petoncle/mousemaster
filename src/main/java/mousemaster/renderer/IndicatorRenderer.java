@@ -30,13 +30,7 @@ public final class IndicatorRenderer {
     private Point gradientPoint;
     private Point widgetOrigin;
     private int maxIndicatorWindowSize;
-    private FadeAnimator fadeAnimator;
     private boolean showing;
-
-    public void advanceAnimationsToFirstFrame() {
-        if (fadeAnimator != null)
-            fadeAnimator.advanceToFirstFrame();
-    }
 
     /** Lazily creates the window and its widgets; the host styles winId() afterwards. */
     public TransparentWindow window() {
@@ -132,17 +126,11 @@ public final class IndicatorRenderer {
                          Math.abs(indicator.shadow().verticalOffset()))) * scale);
     }
 
-    private int indicatorWindowSize(IndicatorConfiguration indicator, double screenScale) {
-        return indicatorSize(indicator, screenScale) +
-               2 * (indicatorOutlinePadding(indicator, screenScale) +
-                    indicatorShadowPadding(indicator, screenScale));
-    }
 
     /** Shows/updates the indicator: detects what changed, repositions when needed, and
      *  renders. The overlay supplies the cursor rectangle, its visual center, and the
      *  active screen and zoom. */
     public void setIndicator(IndicatorConfiguration indicator,
-                             IndicatorConfiguration transitionTo, boolean allowFade,
                              Rectangle mouseRectangle, Point cursorVisualCenter,
                              Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
         setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
@@ -150,8 +138,6 @@ public final class IndicatorRenderer {
         if (showing && oldIndicator != null && oldIndicator.equals(indicator))
             return;
         boolean wasShowing = showing;
-        // If re-showing during a fade-out, cancel the fade-out.
-        cancelFadeOut();
         boolean created = oldIndicator == null;
         boolean applyShadow;
         boolean sizeOrShadowOrPositionChanged;
@@ -174,16 +160,11 @@ public final class IndicatorRenderer {
             applyShadow = sizeOrShadowChanged;
             sizeOrShadowOrPositionChanged = sizeOrShadowChanged || positionChanged;
         }
-        // The window fits the indicator the transition ends on before its frames get there, so
-        // that it is not resized frame after frame.
-        maxIndicatorWindowSize = Math.max(maxIndicatorWindowSize,
-                indicatorWindowSize(transitionTo, activeScreen.scale()));
         // Position the (hidden) window before showIndicator shows it.
         if (!wasShowing || sizeOrShadowOrPositionChanged)
             reposition(indicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
         double shadowScale = activeScreen.scale();
-        showIndicator(indicator, applyShadow, shadowScale, wasShowing, allowFade,
-                lastSelectedHintBoxHexColor);
+        showIndicator(indicator, applyShadow, shadowScale, lastSelectedHintBoxHexColor);
     }
 
     /** Repositions/resizes the current indicator for the cursor, screen and zoom. */
@@ -408,21 +389,13 @@ public final class IndicatorRenderer {
         }
     }
 
-    /** Applies the indicator, then shows the window (with a fade-in on first appearance). */
+    /** Applies the indicator, then shows the window. */
     private void showIndicator(IndicatorConfiguration indicator, boolean applyShadow,
-                               double shadowScale, boolean wasShowing,
-                               boolean allowFade, String lastSelectedHintBoxHexColor) {
+                               double shadowScale, String lastSelectedHintBoxHexColor) {
         applyIndicator(indicator, applyShadow, shadowScale, lastSelectedHintBoxHexColor);
         window.show();
         widget.repaint();
         showing = true;
-        if (!wasShowing) {
-            fadeAnimator = new FadeAnimator(window::setWindowOpacity, this::doHide);
-            if (allowFade && indicator.fadeAnimationEnabled()) {
-                window.setWindowOpacity(0.0);
-                fadeAnimator.startFadeIn(indicator.fadeAnimationDuration());
-            }
-        }
     }
 
     /** Moves and resizes the window + widgets to the computed visual top-left and sizes. */
@@ -456,29 +429,14 @@ public final class IndicatorRenderer {
         labelWidget.setIndicatorOutlinePadding((int) Math.round(outlinePadding / pointsPerPixel));
     }
 
-    public void hide(boolean allowFade) {
+    public void hide() {
         if (!showing)
             return;
-        if (allowFade && fadeAnimator != null && currentIndicator.fadeAnimationEnabled() &&
-            fadeAnimator.shouldDeferHide(currentIndicator.fadeAnimationDuration()))
-            return;
-        doHide();
-    }
-
-    public void cancelFadeOut() {
-        if (fadeAnimator != null && fadeAnimator.isFadingOut())
-            fadeAnimator.cancelAndResetOpacity();
-    }
-
-    private void doHide() {
         showing = false;
-        if (fadeAnimator != null)
-            fadeAnimator.cancel();
         // Paint the surface fully transparent before hiding.
         widget.cleared = true;
         widget.repaint();
         window.hide();
-        window.setWindowOpacity(1.0);
     }
 
     boolean indicatorHasTransparency() {

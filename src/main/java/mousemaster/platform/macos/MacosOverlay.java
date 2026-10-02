@@ -57,8 +57,6 @@ public class MacosOverlay implements Overlay {
         hintMeshRenderer.runPendingWork();
         if (gridRenderer != null)
             gridRenderer.advanceAnimationsToFirstFrame();
-        if (indicatorRenderer != null)
-            indicatorRenderer.advanceAnimationsToFirstFrame();
         updateZoomWindow();
     }
 
@@ -151,23 +149,21 @@ public class MacosOverlay implements Overlay {
     }
 
     @Override
-    public void setIndicator(IndicatorConfiguration indicator,
-                             IndicatorConfiguration transitionTo, boolean allowFade,
+    public void setIndicator(IndicatorConfiguration indicator, boolean animating,
                              boolean includeOriginalCursor) {
         if (indicatorRenderer == null)
             createIndicatorWindow();
         QPoint mousePosition = mouse.findMousePosition();
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
-        indicatorRenderer.setIndicator(indicator, transitionTo, allowFade,
-                cursorRectangle(mousePosition, activeScreen),
+        indicatorRenderer.setIndicator(indicator, cursorRectangle(mousePosition, activeScreen),
                 cursorVisualCenter(activeScreen), activeScreen, null,
                 hintMeshRenderer.lastSelectedHintBoxHexColor());
     }
 
     @Override
-    public void hideIndicator(boolean allowFade) {
+    public void hideIndicator() {
         if (indicatorRenderer != null)
-            indicatorRenderer.hide(allowFade);
+            indicatorRenderer.hide();
     }
 
     public void repositionIndicator(QPoint mousePosition) {

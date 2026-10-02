@@ -7011,11 +7011,6 @@
           "parameterTypes": [
             "boolean",
             "boolean",
-            "java.time.Duration",
-            "java.time.Duration",
-            "mousemaster.Easing",
-            "mousemaster.IndicatorSwitchAt",
-            "boolean",
             "int",
             "int",
             "mousemaster.Color",
@@ -7055,14 +7050,6 @@
         },
         {
           "name": "enabled",
-          "parameterTypes": []
-        },
-        {
-          "name": "fadeAnimationDuration",
-          "parameterTypes": []
-        },
-        {
-          "name": "fadeAnimationEnabled",
           "parameterTypes": []
         },
         {
@@ -7107,18 +7094,6 @@
         },
         {
           "name": "size",
-          "parameterTypes": []
-        },
-        {
-          "name": "transitionAnimationDuration",
-          "parameterTypes": []
-        },
-        {
-          "name": "transitionAnimationEasing",
-          "parameterTypes": []
-        },
-        {
-          "name": "transitionAnimationSwitchAt",
           "parameterTypes": []
         }
       ]
