@@ -11,7 +11,7 @@ public class IndicatorManager implements ModeListener {
     private final Overlay overlay;
     private final AnimationPlayer animationPlayer;
     private Mode currentMode;
-    private IndicatorConfiguration drawnIndicator;
+    private IndicatorConfiguration resolvedIndicator;
     private final Map<ModePropertyPath, Timeline> timelineByPropertyPath = new HashMap<>();
     private final Map<ModePropertyPath, Double> elapsedByPropertyPath = new HashMap<>();
     private final Map<ModePropertyPath, Object> currentByPropertyPath = new HashMap<>();
@@ -26,21 +26,29 @@ public class IndicatorManager implements ModeListener {
     }
 
     public void update() {
-        updateTimelines();
-        IndicatorConfiguration indicator = withTimelines(currentMode.indicator());
+        IndicatorConfiguration indicator = resolve();
         if (!indicator.enabled()) {
-            drawnIndicator = null;
             overlay.hideIndicator();
             return;
         }
-        drawnIndicator = indicator;
         overlay.setIndicator(indicator, animating(),
                 !animationPlayer.animate(currentMode, "hideCursor").hideCursor().enabled());
     }
 
+    /** The mode being left is resolved too: a state that lasts less than a frame is what
+     *  current is taken from when a branch takes over from it. */
     @Override
     public void modeChanged(Mode newMode) {
+        if (currentMode != null)
+            resolve();
         currentMode = newMode;
+    }
+
+    private IndicatorConfiguration resolve() {
+        updateTimelines();
+        IndicatorConfiguration indicator = withTimelines(currentMode.indicator());
+        resolvedIndicator = indicator.enabled() ? indicator : null;
+        return indicator;
     }
 
     private void updateTimelines() {
@@ -62,7 +70,7 @@ public class IndicatorManager implements ModeListener {
                 elapsed >= previousElapsed)
                 continue;
             IndicatorConfiguration indicator =
-                    drawnIndicator == null ? currentMode.indicator() : drawnIndicator;
+                    resolvedIndicator == null ? currentMode.indicator() : resolvedIndicator;
             currentByPropertyPath.put(propertyPath, ModePropertyMutator.getModeProperty(
                     indicator, indicatorFieldNames(propertyPath)));
         }
