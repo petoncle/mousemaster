@@ -30,7 +30,9 @@ public class AnimationPlayer {
     public void update(double delta) {
         for (String animationName : List.copyOf(elapsedByAnimationName.keySet())) {
             double elapsed = elapsedByAnimationName.get(animationName) + delta;
-            if (elapsed < duration(animationName).toNanos() / 1e9) {
+            Integer repeatCount =
+                    animationConfigurationByName.get(animationName).repeatCount();
+            if (repeatCount == null || elapsed < repeatCount * cycleSeconds(animationName)) {
                 elapsedByAnimationName.put(animationName, elapsed);
                 continue;
             }
@@ -40,13 +42,25 @@ public class AnimationPlayer {
         }
     }
 
+    public double elapsed(String animationName) {
+        return elapsedByAnimationName.get(animationName);
+    }
+
     public double progress(String animationName) {
-        return elapsedByAnimationName.get(animationName) /
-               (duration(animationName).toNanos() / 1e9);
+        double cycles = elapsed(animationName) / cycleSeconds(animationName);
+        double progress = cycles - Math.floor(cycles);
+        boolean backward =
+                animationConfigurationByName.get(animationName).direction() ==
+                AnimationDirection.ALTERNATE && (long) cycles % 2 == 1;
+        return backward ? 1 - progress : progress;
     }
 
     public Duration duration(String animationName) {
         return animationConfigurationByName.get(animationName).duration();
+    }
+
+    private double cycleSeconds(String animationName) {
+        return duration(animationName).toNanos() / 1e9;
     }
 
 }

@@ -188,6 +188,53 @@ class AnimationTest {
     }
 
     @Test
+    void anAnimationRepeatsItsCycles() {
+        load("ripple-animation.duration-millis=100",
+                "ripple-animation.repeat=2",
+                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.indicator.size=26 | _{ripple-animation} -> 0% 10; 100% 30");
+        tick(0);
+        tap("a");
+        tick(0.15);
+        assertEquals(20, drawnSize());
+        tick(0.06);
+        assertEquals(26, drawnSize());
+    }
+
+    @Test
+    void aLoopRunsUntilItIsStopped() {
+        load("ripple-animation.duration-millis=100",
+                "ripple-animation.repeat=loop",
+                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.ripple-animation.stop=+b",
+                "idle-mode.indicator.size=26 | _{ripple-animation} -> 0% 10; 100% 30");
+        tick(0);
+        tap("a");
+        tick(10.05);
+        assertEquals(20, drawnSize());
+        tap("b");
+        tick(0);
+        assertEquals(26, drawnSize());
+    }
+
+    @Test
+    void anAlternatingAnimationPlaysEveryOtherCycleBackward() {
+        load("ripple-animation.duration-millis=100",
+                "ripple-animation.repeat=loop",
+                "ripple-animation.direction=alternate",
+                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.indicator.size=26 | _{ripple-animation} -> 0% 10; 100% 30");
+        tick(0);
+        tap("a");
+        tick(0.075);
+        assertEquals(25, drawnSize());
+        tick(0.05);
+        assertEquals(25, drawnSize());
+        tick(0.05);
+        assertEquals(15, drawnSize());
+    }
+
+    @Test
     void keyframesGoForward() {
         assertThrows(IllegalArgumentException.class,
                 () -> load("ripple-animation.duration-millis=200",
