@@ -18,7 +18,7 @@ public class IndicatorManager implements ModeListener {
     private boolean allowFade = true;
     private IndicatorConfiguration drawnIndicator;
     private final Map<ModePropertyPath, Timeline> timelineByPropertyPath = new HashMap<>();
-    private final Map<ModePropertyPath, Double> progressByPropertyPath = new HashMap<>();
+    private final Map<ModePropertyPath, Double> elapsedByPropertyPath = new HashMap<>();
     private final Map<ModePropertyPath, Object> currentByPropertyPath = new HashMap<>();
 
     public IndicatorManager(Overlay overlay, AnimationPlayer animationPlayer) {
@@ -68,15 +68,15 @@ public class IndicatorManager implements ModeListener {
                 newTimelineByPropertyPath.put(entry.getKey(), entry.getValue());
         }
         timelineByPropertyPath.keySet().retainAll(newTimelineByPropertyPath.keySet());
-        progressByPropertyPath.keySet().retainAll(newTimelineByPropertyPath.keySet());
+        elapsedByPropertyPath.keySet().retainAll(newTimelineByPropertyPath.keySet());
         currentByPropertyPath.keySet().retainAll(newTimelineByPropertyPath.keySet());
         for (Map.Entry<ModePropertyPath, Timeline> entry : newTimelineByPropertyPath.entrySet()) {
             ModePropertyPath propertyPath = entry.getKey();
             Timeline timeline = entry.getValue();
-            double progress = animationPlayer.progress(timeline.animationName());
-            Double previousProgress = progressByPropertyPath.put(propertyPath, progress);
+            double elapsed = animationPlayer.elapsed(timeline.animationName());
+            Double previousElapsed = elapsedByPropertyPath.put(propertyPath, elapsed);
             if (timeline.equals(timelineByPropertyPath.put(propertyPath, timeline)) &&
-                progress >= previousProgress)
+                elapsed >= previousElapsed)
                 continue;
             IndicatorConfiguration indicator =
                     drawnIndicator == null ? currentMode.indicator() : drawnIndicator;
@@ -103,7 +103,7 @@ public class IndicatorManager implements ModeListener {
             Timeline timeline = entry.getValue();
             indicator = (IndicatorConfiguration) ModePropertyMutator.mutateModeProperty(
                     indicator, indicatorFieldNames(propertyPath),
-                    timeline.valueAt(progressByPropertyPath.get(propertyPath),
+                    timeline.valueAt(animationPlayer.progress(timeline.animationName()),
                             animationPlayer.duration(timeline.animationName()),
                             currentByPropertyPath.get(propertyPath)), null);
         }

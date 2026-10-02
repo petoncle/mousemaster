@@ -1920,13 +1920,45 @@ public class ConfigurationParser {
             int dotIndex = propertyKey.indexOf('.');
             if (dotIndex == -1 || !isAnimationName(propertyKey.substring(0, dotIndex)))
                 continue;
-            if (!propertyKey.substring(dotIndex + 1).equals("duration-millis"))
-                throw new IllegalArgumentException(
-                        "Invalid animation property key " + propertyKey);
-            animationConfigurationByName.put(propertyKey.substring(0, dotIndex),
-                    new AnimationConfiguration(parseDuration(lineMatcher.group(2).strip())));
+            String animationName = propertyKey.substring(0, dotIndex);
+            String propertyValue = lineMatcher.group(2).strip();
+            AnimationConfiguration animation = animationConfigurationByName.getOrDefault(
+                    animationName,
+                    new AnimationConfiguration(null, 1, AnimationDirection.FORWARD));
+            animationConfigurationByName.put(animationName,
+                    switch (propertyKey.substring(dotIndex + 1)) {
+                        case "duration-millis" -> new AnimationConfiguration(
+                                parseDuration(propertyValue), animation.repeatCount(),
+                                animation.direction());
+                        case "repeat" -> new AnimationConfiguration(animation.duration(),
+                                propertyValue.equals("loop") ? null :
+                                        parseUnsignedInteger(propertyValue, 1, 10000),
+                                animation.direction());
+                        case "direction" -> new AnimationConfiguration(animation.duration(),
+                                animation.repeatCount(),
+                                parseAnimationDirection(propertyKey, propertyValue));
+                        default -> throw new IllegalArgumentException(
+                                "Invalid animation property key " + propertyKey);
+                    });
         }
+        for (Map.Entry<String, AnimationConfiguration> entry :
+                animationConfigurationByName.entrySet())
+            if (entry.getValue().duration() == null)
+                throw new IllegalArgumentException(
+                        "Undefined animation " + entry.getKey() + ": missing " +
+                        entry.getKey() + ".duration-millis");
         return animationConfigurationByName;
+    }
+
+    private static AnimationDirection parseAnimationDirection(String propertyKey,
+                                                              String propertyValue) {
+        return switch (propertyValue) {
+            case "forward" -> AnimationDirection.FORWARD;
+            case "alternate" -> AnimationDirection.ALTERNATE;
+            default -> throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": expected one of " + List.of("forward", "alternate"));
+        };
     }
 
     private static final Pattern keyframePattern =
