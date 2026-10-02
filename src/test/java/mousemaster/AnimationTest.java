@@ -80,7 +80,7 @@ class AnimationTest {
     void anAnimationReadsAsPressedForItsDuration() {
         load("ripple-animation.duration-millis=100",
                 "idle-mode.ripple-animation.start=+a",
-                "idle-mode.indicator.size=26 | _{ripple-animation} -> 42");
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 42");
         tap("a");
         assertEquals(42, size());
 
@@ -92,7 +92,7 @@ class AnimationTest {
     void startingARunningAnimationStartsItOver() {
         load("ripple-animation.duration-millis=100",
                 "idle-mode.ripple-animation.start=+a",
-                "idle-mode.indicator.size=26 | _{ripple-animation} -> 42");
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 42");
         tap("a");
         tick(0.06);
         tap("a");
@@ -108,7 +108,7 @@ class AnimationTest {
         load("ripple-animation.duration-millis=100",
                 "idle-mode.ripple-animation.start=+a",
                 "idle-mode.ripple-animation.stop=+b",
-                "idle-mode.indicator.size=26 | _{ripple-animation} -> 42");
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 42");
         tap("a");
         tick(0.01);
         tap("b");
@@ -135,7 +135,7 @@ class AnimationTest {
     void keyframesFollowTheAnimation() {
         load("ripple-animation.duration-millis=100",
                 "idle-mode.ripple-animation.start=+a",
-                "idle-mode.indicator.size=26 | _{ripple-animation} -> 0% 10; 100% 36");
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 36");
         tick(0);
         tap("a");
         tick(0);
@@ -150,7 +150,7 @@ class AnimationTest {
     void currentIsWhatWasDrawnWhenTheAnimationStarted() {
         load("ripple-animation.duration-millis=100",
                 "idle-mode.ripple-animation.start=+a",
-                "idle-mode.indicator.size=26 | _{ripple-animation} -> 100% 36");
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 100% 36");
         tick(0);
         tap("a");
         tick(0);
@@ -163,7 +163,7 @@ class AnimationTest {
     void keyframesAtTheSamePercentJump() {
         load("ripple-animation.duration-millis=100",
                 "idle-mode.ripple-animation.start=+a",
-                "idle-mode.indicator.size=26 | _{ripple-animation} -> 0% 10; 50% 10; 50% 40; 100% 40");
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 50% 10; 50% 40; 100% 40");
         tick(0);
         tap("a");
         tick(0);
@@ -177,7 +177,7 @@ class AnimationTest {
     void keyframesCanBePlacedInMilliseconds() {
         load("ripple-animation.duration-millis=200",
                 "idle-mode.ripple-animation.start=+a",
-                "idle-mode.indicator.size=26 | _{ripple-animation} -> 0% 10; 50ms 20; 100% 20");
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 50ms 20; 100% 20");
         tick(0);
         tap("a");
         tick(0);
@@ -192,7 +192,7 @@ class AnimationTest {
         load("ripple-animation.duration-millis=100",
                 "ripple-animation.repeat=2",
                 "idle-mode.ripple-animation.start=+a",
-                "idle-mode.indicator.size=26 | _{ripple-animation} -> 0% 10; 100% 30");
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
         tick(0);
         tap("a");
         tick(0.15);
@@ -207,7 +207,7 @@ class AnimationTest {
                 "ripple-animation.repeat=loop",
                 "idle-mode.ripple-animation.start=+a",
                 "idle-mode.ripple-animation.stop=+b",
-                "idle-mode.indicator.size=26 | _{ripple-animation} -> 0% 10; 100% 30");
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
         tick(0);
         tap("a");
         tick(10.05);
@@ -223,7 +223,7 @@ class AnimationTest {
                 "ripple-animation.repeat=loop",
                 "ripple-animation.direction=alternate",
                 "idle-mode.ripple-animation.start=+a",
-                "idle-mode.indicator.size=26 | _{ripple-animation} -> 0% 10; 100% 30");
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
         tick(0);
         tap("a");
         tick(0.075);
@@ -235,13 +235,30 @@ class AnimationTest {
     }
 
     @Test
+    void theEndOfAnAnimationCanStartAnother() {
+        load("virtual-key.held=pressed",
+                "burst-animation.duration-millis=250",
+                "fade-animation.duration-millis=250",
+                "cut-animation.duration-millis=40",
+                "idle-mode.burst-animation.start=+a",
+                "idle-mode.fade-animation.start=^{held} -burstanimation",
+                "idle-mode.cut-animation.start=_{held} -burstanimation",
+                "idle-mode.indicator.size=26 | _{burstanimation} -> 42 | _{fadeanimation} -> 30 | _{cutanimation} -> 10");
+        tap("a");
+        tick(0.25);
+        assertEquals(10, size());
+        tick(0.04);
+        assertEquals(26, size());
+    }
+
+    @Test
     void keyframesGoForward() {
         assertThrows(IllegalArgumentException.class,
                 () -> load("ripple-animation.duration-millis=200",
-                        "idle-mode.indicator.size=26 | _{ripple-animation} -> 50% 10; 20% 20"));
+                        "idle-mode.indicator.size=26 | _{rippleanimation} -> 50% 10; 20% 20"));
         assertThrows(IllegalArgumentException.class,
                 () -> load("ripple-animation.duration-millis=200",
-                        "idle-mode.indicator.size=26 | _{ripple-animation} -> 50ms 10; 20ms 20"));
+                        "idle-mode.indicator.size=26 | _{rippleanimation} -> 50ms 10; 20ms 20"));
     }
 
     @Test
@@ -253,7 +270,7 @@ class AnimationTest {
         assertThrows(IllegalArgumentException.class,
                 () -> load("a-animation.duration-millis=100",
                         "b-animation.duration-millis=100",
-                        "idle-mode.indicator.size=26 | _{a-animation b-animation} -> 0% 10; 100% 36"));
+                        "idle-mode.indicator.size=26 | _{aanimation banimation} -> 0% 10; 100% 36"));
     }
 
 }

@@ -10,18 +10,24 @@ public class KeyResolver {
     private final KeyboardLayout activeKeyboardLayout;
     private final KeyboardLayout configurationKeyboardLayout;
     private final Set<String> declaredVirtualKeyNames;
+    private final Set<String> animationKeyNames;
 
     public KeyResolver(KeyboardLayout activeKeyboardLayout,
                        KeyboardLayout configurationKeyboardLayout,
-                       Set<String> declaredVirtualKeyNames) {
+                       Set<String> declaredVirtualKeyNames, Set<String> animationKeyNames) {
         this.activeKeyboardLayout = activeKeyboardLayout;
         this.configurationKeyboardLayout = configurationKeyboardLayout;
         this.declaredVirtualKeyNames = declaredVirtualKeyNames;
+        this.animationKeyNames = animationKeyNames;
     }
 
     public boolean isVirtual(String keyName) {
         return BuiltInVirtualKey.isBuiltIn(keyName) ||
                declaredVirtualKeyNames.contains(keyName);
+    }
+
+    public boolean isAnimation(String keyName) {
+        return animationKeyNames.contains(keyName);
     }
 
     /**

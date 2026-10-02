@@ -19,7 +19,8 @@ class ComboVariablePreconditionTest {
 
     static final KeyResolver identityKeyResolver = new KeyResolver(
             new KeyboardLayout("test", "test", "test", "test", null, List.of()),
-            new KeyboardLayout("test", "test", "test", "test", null, List.of()), Set.of());
+            new KeyboardLayout("test", "test", "test", "test", null, List.of()), Set.of(),
+            Set.of());
 
     private static List<Combo> parse(String comboString, Set<String> allVariableNames) {
         return Combo.of("test", comboString, defaultDuration, Map.of(), Map.of(),

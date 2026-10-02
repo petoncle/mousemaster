@@ -341,7 +341,7 @@ public class ConfigurationParser {
                 parseDeclaredVirtualKeyNames(properties, animationConfigurationByName.keySet());
         KeyResolver keyResolver =
                 new KeyResolver(activeKeyboardLayout, configurationKeyboardLayout,
-                        declaredVirtualKeyNames.names());
+                        declaredVirtualKeyNames.names(), animationConfigurationByName.keySet());
         Aliases configurationAliases = parseAliases(properties);
         Map<String, KeyAlias> keyAliases = buildKeyAliasesForActiveKeyboardLayout(
                 configurationAliases.layoutKeyAliasByName, activeKeyboardLayout,
@@ -1653,7 +1653,8 @@ public class ConfigurationParser {
             // @formatter:on
             default -> {
                 if (isAnimationName(group2)) {
-                    if (!animationConfigurationByName.containsKey(group2))
+                    String animationKeyName = animationKeyName(group2);
+                    if (!animationConfigurationByName.containsKey(animationKeyName))
                         throw new IllegalArgumentException(
                                 "Undefined animation " + group2 + ": missing " + group2 +
                                 ".duration-millis");
@@ -1661,8 +1662,8 @@ public class ConfigurationParser {
                         throw new IllegalArgumentException("Invalid animation property key");
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "start" -> setCommand(mode.comboMap.startAnimation.builder, propertyValue, new StartAnimation(group2), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "stop" -> setCommand(mode.comboMap.stopAnimation.builder, propertyValue, new StopAnimation(group2), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "start" -> setCommand(mode.comboMap.startAnimation.builder, propertyValue, new StartAnimation(animationKeyName), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "stop" -> setCommand(mode.comboMap.stopAnimation.builder, propertyValue, new StopAnimation(animationKeyName), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                         default -> throw new IllegalArgumentException(
                                 "Invalid animation property key");
@@ -1920,7 +1921,7 @@ public class ConfigurationParser {
             int dotIndex = propertyKey.indexOf('.');
             if (dotIndex == -1 || !isAnimationName(propertyKey.substring(0, dotIndex)))
                 continue;
-            String animationName = propertyKey.substring(0, dotIndex);
+            String animationName = animationKeyName(propertyKey.substring(0, dotIndex));
             String propertyValue = lineMatcher.group(2).strip();
             AnimationConfiguration animation = animationConfigurationByName.getOrDefault(
                     animationName,
@@ -1945,9 +1946,12 @@ public class ConfigurationParser {
                 animationConfigurationByName.entrySet())
             if (entry.getValue().duration() == null)
                 throw new IllegalArgumentException(
-                        "Undefined animation " + entry.getKey() + ": missing " +
-                        entry.getKey() + ".duration-millis");
+                        "Undefined animation " + entry.getKey() + ": missing duration-millis");
         return animationConfigurationByName;
+    }
+
+    private static String animationKeyName(String animationName) {
+        return animationName.replace("-", "");
     }
 
     private static AnimationDirection parseAnimationDirection(String propertyKey,
@@ -1970,19 +1974,20 @@ public class ConfigurationParser {
     }
 
     private static Timeline parseTimeline(String value, Combo combo,
-                                          Function<String, Object> valueParser) {
+                                          Function<String, Object> valueParser,
+                                          KeyResolver keyResolver) {
         List<String> animationNames = combo.precondition()
                                            .keyPrecondition()
                                            .pressedKeyPrecondition()
                                            .allKeys()
                                            .stream()
                                            .map(Key::name)
-                                           .filter(ConfigurationParser::isAnimationName)
+                                           .filter(keyResolver::isAnimation)
                                            .toList();
         if (animationNames.size() != 1)
             throw new IllegalArgumentException(
                     "Invalid keyframes " + value +
-                    ": the branch should name exactly one animation, like _{click-animation}");
+                    ": the branch should name exactly one animation, like _{clickanimation}");
         List<Timeline.Keyframe> keyframes = new ArrayList<>();
         for (String keyframeString : value.split("\\s*;\\s*")) {
             String[] tokens = keyframeString.split("\\s+");
@@ -3080,7 +3085,7 @@ public class ConfigurationParser {
         if (defaultValue != null && isTimeline(defaultValue))
             throw new IllegalArgumentException(
                     "Invalid default value " + defaultValue +
-                    ": keyframes belong in a branch on an animation, like _{click-animation} -> " +
+                    ": keyframes belong in a branch on an animation, like _{clickanimation} -> " +
                     defaultValue);
         if (defaultValue != null)
             modeBuilderSetter.accept(defaultValue);
@@ -3158,7 +3163,7 @@ public class ConfigurationParser {
                 }
                 else if (isTimeline(comboPropertyValue.valueString())) {
                     parsedValue = parseTimeline(comboPropertyValue.valueString(), combo,
-                            valueParser);
+                            valueParser, keyResolver);
                 }
                 else {
                     parsedValue = valueParser.apply(comboPropertyValue.valueString());
