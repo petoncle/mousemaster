@@ -14,6 +14,7 @@ public class AnimationPlayer {
     private final Map<String, AnimationConfiguration> animationConfigurationByName;
     private final Map<String, Double> elapsedByAnimationName = new HashMap<>();
     private final Set<String> stoppingAnimationNames = new HashSet<>();
+    private final Set<String> endingAnimationNames = new HashSet<>();
 
     public AnimationPlayer(Clock clock, ComboWatcher comboWatcher,
                            Map<String, AnimationConfiguration> animationConfigurationByName) {
@@ -25,6 +26,7 @@ public class AnimationPlayer {
     public void start(String animationName) {
         elapsedByAnimationName.put(animationName, 0d);
         stoppingAnimationNames.remove(animationName);
+        endingAnimationNames.remove(animationName);
     }
 
     public void stop(String animationName) {
@@ -50,11 +52,14 @@ public class AnimationPlayer {
             end(stoppingAnimationNames.iterator().next());
     }
 
+    /** The mode change the key release causes still reads where the animation ended. */
     private void end(String animationName) {
-        elapsedByAnimationName.remove(animationName);
         stoppingAnimationNames.remove(animationName);
+        endingAnimationNames.add(animationName);
         comboWatcher.keyEvent(new KeyEvent.ReleaseKeyEvent(clock.now(),
                 new Key(animationName, null, null)));
+        if (endingAnimationNames.remove(animationName))
+            elapsedByAnimationName.remove(animationName);
     }
 
     public double elapsed(String animationName) {
@@ -62,11 +67,13 @@ public class AnimationPlayer {
     }
 
     public double progress(String animationName) {
+        AnimationConfiguration animation = animationConfigurationByName.get(animationName);
         double cycles = elapsed(animationName) / cycleSeconds(animationName);
-        double progress = cycles - Math.floor(cycles);
+        boolean ended = animation.repeatCount() != null && cycles >= animation.repeatCount();
+        long cycle = ended ? animation.repeatCount() - 1 : (long) cycles;
+        double progress = ended ? 1 : cycles - cycle;
         boolean backward =
-                animationConfigurationByName.get(animationName).direction() ==
-                AnimationDirection.ALTERNATE && (long) cycles % 2 == 1;
+                animation.direction() == AnimationDirection.ALTERNATE && cycle % 2 == 1;
         return backward ? 1 - progress : progress;
     }
 

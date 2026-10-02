@@ -338,6 +338,19 @@ class AnimationTest {
     }
 
     @Test
+    void currentIsTheStateABranchTookOverFromEvenIfItWasNeverDrawn() {
+        load("click-animation.duration-millis=100",
+                "idle-mode.click-animation.start=+a",
+                "idle-mode.indicator.color=#FF0000 | _{clickanimation} -> 0% current | _{b} -> #00FF00");
+        tick(0);
+        comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, Key.ofName("b")));
+        tap("a");
+        comboWatcher.keyEvent(new KeyEvent.ReleaseKeyEvent(now, Key.ofName("b")));
+        tick(0);
+        assertEquals(Color.parse("#00FF00"), drawn.getLast().color());
+    }
+
+    @Test
     void keyframesGoForward() {
         assertThrows(IllegalArgumentException.class,
                 () -> load("ripple-animation.duration-millis=200",
