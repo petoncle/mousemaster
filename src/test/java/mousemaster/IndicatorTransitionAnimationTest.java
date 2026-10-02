@@ -42,7 +42,7 @@ class IndicatorTransitionAnimationTest {
                         shown.add((IndicatorConfiguration) args[0]);
                     return null;
                 });
-        indicatorManager = new IndicatorManager(overlay);
+        indicatorManager = new IndicatorManager(overlay, null);
         // The indicator that appears first is not transitioned to.
         changeMode("normal-mode");
         shown.clear();

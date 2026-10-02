@@ -1942,6 +1942,44 @@ public class ConfigurationParser {
         return animationDurationByName;
     }
 
+    private static final Pattern keyframePattern =
+            Pattern.compile("\\d+(\\.\\d+)?%\\s+\\S+(\\s+\\S+)?");
+
+    private static boolean isTimeline(String value) {
+        return Arrays.stream(value.split(";"))
+                     .allMatch(keyframe -> keyframePattern.matcher(keyframe.strip()).matches());
+    }
+
+    private static Timeline parseTimeline(String value, Combo combo,
+                                          Function<String, Object> valueParser) {
+        List<String> animationNames = combo.precondition()
+                                           .keyPrecondition()
+                                           .pressedKeyPrecondition()
+                                           .allKeys()
+                                           .stream()
+                                           .map(Key::name)
+                                           .filter(ConfigurationParser::isAnimationName)
+                                           .toList();
+        if (animationNames.size() != 1)
+            throw new IllegalArgumentException(
+                    "Invalid keyframes " + value +
+                    ": the branch should name exactly one animation, like _{click-animation}");
+        List<Timeline.Keyframe> keyframes = new ArrayList<>();
+        double previousPercent = 0;
+        for (String keyframeString : value.split("\\s*;\\s*")) {
+            String[] tokens = keyframeString.split("\\s+");
+            double percent = parseDouble(tokens[0].substring(0, tokens[0].length() - 1),
+                    true, previousPercent * 100, 100) / 100;
+            previousPercent = percent;
+            keyframes.add(new Timeline.Keyframe(percent,
+                    tokens[1].equals("current") ? new Timeline.Current() :
+                            valueParser.apply(tokens[1]),
+                    tokens.length == 3 ? parseEasing(tokens[2]) :
+                            new Easing.Polynomial(1)));
+        }
+        return new Timeline(animationNames.getFirst(), keyframes);
+    }
+
     private static boolean isAnimationName(String name) {
         return name.endsWith("-animation");
     }
@@ -3001,6 +3039,11 @@ public class ConfigurationParser {
         if (splitComboProperty == null)
             return false;
         String defaultValue = splitComboProperty.defaultValue();
+        if (defaultValue != null && isTimeline(defaultValue))
+            throw new IllegalArgumentException(
+                    "Invalid default value " + defaultValue +
+                    ": keyframes belong in a branch on an animation, like _{click-animation} -> " +
+                    defaultValue);
         if (defaultValue != null)
             modeBuilderSetter.accept(defaultValue);
         ScreenFilter screenFilter = screenFilterProperty == null ? null :
@@ -3074,6 +3117,10 @@ public class ConfigurationParser {
                                     Map.of();
                     parsedValue = new UnresolvedAliasComboPropertyValue(
                             unresolvedNames, unresolvedNameNegatedSet, remap);
+                }
+                else if (isTimeline(comboPropertyValue.valueString())) {
+                    parsedValue = parseTimeline(comboPropertyValue.valueString(), combo,
+                            valueParser);
                 }
                 else {
                     parsedValue = valueParser.apply(comboPropertyValue.valueString());
@@ -3553,7 +3600,7 @@ public class ConfigurationParser {
                     mouse.builder.build(), wheel.builder.build(), grid.builder.build(),
                     hintMesh.builder.build(), timeout.builder.build(),
                     indicator.builder.build(), hideCursor.builder.build(),
-                    zoom.builder.build());
+                    zoom.builder.build(), Map.of());
         }
 
         private static class HintMeshProperty

@@ -1880,11 +1880,17 @@ public class ComboWatcher {
 
     private void rebuildMutatedMode() {
         Mode newMutatedMode = baseMode;
+        Map<ModePropertyPath, Timeline> timelineByPropertyPath =
+                new HashMap<>(baseMode.timelineByPropertyPath());
         for (Map.Entry<ModePropertyPath, ActiveModeMutation> entry : activeMutations.entrySet()) {
-            newMutatedMode = newMutatedMode.mutate(entry.getKey(),
-                    entry.getValue().newPropertyValue());
+            if (entry.getValue().newPropertyValue() instanceof Timeline timeline)
+                timelineByPropertyPath.put(entry.getKey(), timeline);
+            else
+                newMutatedMode = newMutatedMode.mutate(entry.getKey(),
+                        entry.getValue().newPropertyValue());
         }
-        mutatedMode = newMutatedMode;
+        mutatedMode = (Mode) ModePropertyMutator.createWithField(newMutatedMode,
+                "timelineByPropertyPath", Map.copyOf(timelineByPropertyPath));
     }
 
     private void notifyMutatedMode() {

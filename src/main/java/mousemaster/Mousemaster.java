@@ -259,7 +259,7 @@ public class Mousemaster {
                 platform.keyboard(), keyRedactor);
         keyboardManager.setMacroPlayer(macroPlayer);
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
-        indicatorManager = new IndicatorManager(platform.overlay());
+        indicatorManager = new IndicatorManager(platform.overlay(), macroPlayer);
         zoomManager = new ZoomManager(screenManager, hintManager, platform.overlay());
         // ComboWatcher is the sole broadcaster to ModeListeners: it broadcasts
         // on mode switch (delegated from ModeController) and on mode mutation.

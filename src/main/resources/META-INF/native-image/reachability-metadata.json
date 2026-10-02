@@ -7228,7 +7228,8 @@
             "mousemaster.ModeTimeout",
             "mousemaster.IndicatorConfiguration",
             "mousemaster.HideCursor",
-            "mousemaster.ZoomConfiguration"
+            "mousemaster.ZoomConfiguration",
+            "java.util.Map"
           ]
         },
         {
@@ -7292,6 +7293,10 @@
         },
         {
           "name": "stopCommandsFromPreviousMode",
+          "parameterTypes": []
+        },
+        {
+          "name": "timelineByPropertyPath",
           "parameterTypes": []
         },
         {
