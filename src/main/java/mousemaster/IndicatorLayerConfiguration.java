@@ -2,14 +2,12 @@ package mousemaster;
 
 import mousemaster.FontStyle.FontStyleBuilder;
 import mousemaster.IndicatorOutline.IndicatorOutlineBuilder;
-import mousemaster.Shadow.ShadowBuilder;
 
-public record IndicatorLayerConfiguration(boolean enabled,
+public record IndicatorLayerConfiguration(boolean enabled, int z,
                                           int size, int edgeCount, Color color,
                                           double opacity,
                                           IndicatorOutline outerOutline,
                                           IndicatorOutline innerOutline,
-                                          Shadow shadow,
                                           boolean labelEnabled, String labelText,
                                           FontStyle labelFontStyle,
                                           IndicatorPosition position) {
@@ -21,13 +19,13 @@ public record IndicatorLayerConfiguration(boolean enabled,
     public static class IndicatorLayerConfigurationBuilder {
 
         private Boolean enabled;
+        private Integer z;
         private Integer size;
         private Integer edgeCount;
         private Color color;
         private Double opacity;
         private IndicatorOutlineBuilder outerOutline = new IndicatorOutlineBuilder();
         private IndicatorOutlineBuilder innerOutline = new IndicatorOutlineBuilder();
-        private ShadowBuilder shadow = new ShadowBuilder();
         private Boolean labelEnabled;
         private String labelText;
         private FontStyleBuilder labelFontStyle = new FontStyleBuilder();
@@ -38,13 +36,13 @@ public record IndicatorLayerConfiguration(boolean enabled,
 
         public IndicatorLayerConfigurationBuilder(IndicatorLayerConfiguration layer) {
             this.enabled = layer.enabled;
+            this.z = layer.z;
             this.size = layer.size;
             this.edgeCount = layer.edgeCount;
             this.color = layer.color;
             this.opacity = layer.opacity;
             this.outerOutline = new IndicatorOutlineBuilder(layer.outerOutline);
             this.innerOutline = new IndicatorOutlineBuilder(layer.innerOutline);
-            this.shadow = new ShadowBuilder(layer.shadow);
             this.labelEnabled = layer.labelEnabled;
             this.labelText = layer.labelText;
             this.labelFontStyle = new FontStyleBuilder(layer.labelFontStyle);
@@ -58,6 +56,15 @@ public record IndicatorLayerConfiguration(boolean enabled,
 
         public Boolean enabled() {
             return enabled;
+        }
+
+        public IndicatorLayerConfigurationBuilder z(int z) {
+            this.z = z;
+            return this;
+        }
+
+        public Integer z() {
+            return z;
         }
 
         public IndicatorLayerConfigurationBuilder size(int size) {
@@ -104,10 +111,6 @@ public record IndicatorLayerConfiguration(boolean enabled,
             return innerOutline;
         }
 
-        public ShadowBuilder shadow() {
-            return shadow;
-        }
-
         public IndicatorLayerConfigurationBuilder labelEnabled(boolean labelEnabled) {
             this.labelEnabled = labelEnabled;
             return this;
@@ -141,13 +144,13 @@ public record IndicatorLayerConfiguration(boolean enabled,
 
         public void extend(IndicatorLayerConfigurationBuilder parent) {
             if (enabled == null) enabled = parent.enabled;
+            if (z == null) z = parent.z;
             if (size == null) size = parent.size;
             if (edgeCount == null) edgeCount = parent.edgeCount;
             if (color == null) color = parent.color;
             if (opacity == null) opacity = parent.opacity;
             outerOutline.extend(parent.outerOutline);
             innerOutline.extend(parent.innerOutline);
-            shadow.extend(parent.shadow);
             if (labelEnabled == null) labelEnabled = parent.labelEnabled;
             if (labelText == null) labelText = parent.labelText;
             labelFontStyle.extend(parent.labelFontStyle);
@@ -155,8 +158,8 @@ public record IndicatorLayerConfiguration(boolean enabled,
         }
 
         public IndicatorLayerConfiguration build() {
-            return new IndicatorLayerConfiguration(enabled, size, edgeCount, color,
-                    opacity, outerOutline.build(), innerOutline.build(), shadow.build(),
+            return new IndicatorLayerConfiguration(enabled, z, size, edgeCount, color,
+                    opacity, outerOutline.build(), innerOutline.build(),
                     labelEnabled, labelText, labelFontStyle.build(), position);
         }
     }

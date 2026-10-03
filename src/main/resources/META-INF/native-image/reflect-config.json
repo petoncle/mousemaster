@@ -843,12 +843,12 @@
 {
   "name":"mousemaster.IndicatorConfiguration",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["boolean","java.util.Map"] }, {"name":"layerByName","parameterTypes":[] }, {"name":"renderAsCursor","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["boolean","mousemaster.Shadow","java.util.Map"] }, {"name":"layerByName","parameterTypes":[] }, {"name":"renderAsCursor","parameterTypes":[] }, {"name":"shadow","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.IndicatorLayerConfiguration",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["boolean","int","int","mousemaster.Color","double","mousemaster.IndicatorOutline","mousemaster.IndicatorOutline","mousemaster.Shadow","boolean","java.lang.String","mousemaster.FontStyle","mousemaster.IndicatorPosition"] }, {"name":"edgeCount","parameterTypes":[] }, {"name":"enabled","parameterTypes":[] }, {"name":"color","parameterTypes":[] }, {"name":"innerOutline","parameterTypes":[] }, {"name":"labelEnabled","parameterTypes":[] }, {"name":"labelFontStyle","parameterTypes":[] }, {"name":"labelText","parameterTypes":[] }, {"name":"opacity","parameterTypes":[] }, {"name":"outerOutline","parameterTypes":[] }, {"name":"position","parameterTypes":[] }, {"name":"shadow","parameterTypes":[] }, {"name":"size","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["boolean","int","int","int","mousemaster.Color","double","mousemaster.IndicatorOutline","mousemaster.IndicatorOutline","boolean","java.lang.String","mousemaster.FontStyle","mousemaster.IndicatorPosition"] }, {"name":"edgeCount","parameterTypes":[] }, {"name":"enabled","parameterTypes":[] }, {"name":"color","parameterTypes":[] }, {"name":"innerOutline","parameterTypes":[] }, {"name":"labelEnabled","parameterTypes":[] }, {"name":"labelFontStyle","parameterTypes":[] }, {"name":"labelText","parameterTypes":[] }, {"name":"opacity","parameterTypes":[] }, {"name":"outerOutline","parameterTypes":[] }, {"name":"position","parameterTypes":[] }, {"name":"size","parameterTypes":[] }, {"name":"z","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.IndicatorOutline",
@@ -1175,7 +1175,7 @@
   "name":"mousemaster.renderer.IndicatorRenderer$IndicatorShadowEffect$WhenMappings"
 },
 {
-  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorWidget",
+  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorLayerWidget",
   "allDeclaredFields":true,
   "allDeclaredClasses":true,
   "queryAllDeclaredMethods":true,
@@ -1183,10 +1183,10 @@
   "methods":[{"name":"color","parameterTypes":[] }, {"name":"edgeCount","parameterTypes":[] }, {"name":"getColor","parameterTypes":[] }, {"name":"getEdgeCount","parameterTypes":[] }, {"name":"getOutlineScale","parameterTypes":[] }, {"name":"outlineScale","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
 },
 {
-  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorWidget$1"
+  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorLayerWidget$1"
 },
 {
-  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorWidget$WhenMappings"
+  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorLayerWidget$WhenMappings"
 },
 {
   "name":"mousemaster.renderer.QtJambi_LibraryUtilities"

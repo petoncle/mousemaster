@@ -7010,6 +7010,7 @@
           "name": "<init>",
           "parameterTypes": [
             "boolean",
+            "mousemaster.Shadow",
             "java.util.Map"
           ]
         },
@@ -7019,6 +7020,10 @@
         },
         {
           "name": "renderAsCursor",
+          "parameterTypes": []
+        },
+        {
+          "name": "shadow",
           "parameterTypes": []
         }
       ]
@@ -7032,11 +7037,11 @@
             "boolean",
             "int",
             "int",
+            "int",
             "mousemaster.Color",
             "double",
             "mousemaster.IndicatorOutline",
             "mousemaster.IndicatorOutline",
-            "mousemaster.Shadow",
             "boolean",
             "java.lang.String",
             "mousemaster.FontStyle",
@@ -7084,11 +7089,11 @@
           "parameterTypes": []
         },
         {
-          "name": "shadow",
+          "name": "size",
           "parameterTypes": []
         },
         {
-          "name": "size",
+          "name": "z",
           "parameterTypes": []
         }
       ]
@@ -8495,7 +8500,7 @@
       "type": "mousemaster.renderer.IndicatorRenderer$IndicatorShadowEffect$WhenMappings"
     },
     {
-      "type": "mousemaster.renderer.IndicatorRenderer$IndicatorWidget",
+      "type": "mousemaster.renderer.IndicatorRenderer$IndicatorLayerWidget",
       "allDeclaredFields": true,
       "jniAccessible": true,
       "methods": [
@@ -8603,10 +8608,10 @@
       ]
     },
     {
-      "type": "mousemaster.renderer.IndicatorRenderer$IndicatorWidget$1"
+      "type": "mousemaster.renderer.IndicatorRenderer$IndicatorLayerWidget$1"
     },
     {
-      "type": "mousemaster.renderer.IndicatorRenderer$IndicatorWidget$WhenMappings"
+      "type": "mousemaster.renderer.IndicatorRenderer$IndicatorLayerWidget$WhenMappings"
     },
     {
       "type": "mousemaster.renderer.QtJambi_LibraryUtilities"

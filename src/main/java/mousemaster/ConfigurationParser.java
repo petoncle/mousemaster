@@ -196,8 +196,15 @@ public class ConfigurationParser {
                 new ModeTimeoutBuilder().enabled(false).onlyIfIdle(true);
         IndicatorConfigurationBuilder indicator =
                 new IndicatorConfigurationBuilder().renderAsCursor(false);
+        indicator.shadow()
+                 .blurRadius(10d)
+                 .color(Color.parse("#000000"))
+                 .opacity(0d)
+                 .horizontalOffset(0d)
+                 .verticalOffset(0d)
+                 .stackCount(1);
         IndicatorLayerConfigurationBuilder layer = indicator.layer("indicator");
-        layer.enabled(false);
+        layer.enabled(false).z(0);
         layer.size(26)
              .edgeCount(100)
              .color(Color.parse("#FF0000"))
@@ -217,13 +224,6 @@ public class ConfigurationParser {
              .fillPercent(1.0)
              .fillStartAngle(180)
              .fillDirection(FillDirection.COUNTERCLOCKWISE);
-        layer.shadow()
-             .blurRadius(10d)
-             .color(Color.parse("#000000"))
-             .opacity(0d)
-             .horizontalOffset(0d)
-             .verticalOffset(0d)
-             .stackCount(1);
         layer.labelEnabled(false);
         layer.labelFontStyle()
              .name("Arial")
@@ -2428,8 +2428,10 @@ public class ConfigurationParser {
                                                 Map<String, GradientColor> colorAliases,
                                                 KeyResolver keyResolver,
                                                 Set<String> allVariableNames) {
-        ModePropertyHandler handler =
-                indicatorHandler(indicator, layerName, key, colorAliases);
+        ModePropertyHandler handler = layerName.equals("indicator") ?
+                indicatorHandler(indicator, key, colorAliases) : null;
+        if (handler == null)
+            handler = indicatorLayerHandler(indicator, layerName, key, colorAliases);
         if (handler == null)
             throw new IllegalArgumentException("Invalid indicator property key: " + key);
         if (!tryParseComboProperty(propertyValue, modeName, handler.propertyPath(),
@@ -2573,6 +2575,24 @@ public class ConfigurationParser {
     }
 
     private static ModePropertyHandler indicatorHandler(
+            IndicatorConfigurationBuilder indicator, String key,
+            Map<String, GradientColor> colorAliases) {
+        ModePropertyPath prefix = new ModePropertyPath(List.of("indicator"));
+        return switch (key) {
+            // @formatter:off
+            case "render-as-cursor" -> ModePropertyHandler.of(prefix.append("renderAsCursor"), v -> Boolean.parseBoolean(v), v -> indicator.renderAsCursor(v));
+            case "shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("shadow").append("blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> indicator.shadow().blurRadius(v));
+            case "shadow-color" -> ModePropertyHandler.of(prefix.append("shadow").append("color"), v -> Color.parse(v, colorAliases), v -> indicator.shadow().color(v));
+            case "shadow-opacity" -> ModePropertyHandler.of(prefix.append("shadow").append("opacity"), v -> parseDouble(v, true, 0, 1), v -> indicator.shadow().opacity(v));
+            case "shadow-stack-count" -> ModePropertyHandler.of(prefix.append("shadow").append("stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> indicator.shadow().stackCount(v));
+            case "shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("shadow").append("horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> indicator.shadow().horizontalOffset(v));
+            case "shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("shadow").append("verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> indicator.shadow().verticalOffset(v));
+            // @formatter:on
+            default -> null;
+        };
+    }
+
+    private static ModePropertyHandler indicatorLayerHandler(
             IndicatorConfigurationBuilder indicator, String layerName,
             String key, Map<String, GradientColor> colorAliases) {
         ModePropertyPath prefix =
@@ -2582,7 +2602,7 @@ public class ConfigurationParser {
             // @formatter:off
             case "enabled" -> ModePropertyHandler.of(prefix.append("enabled"), v -> Boolean.parseBoolean(v), v -> layer.enabled(v));
             case "fade-animation-enabled", "fade-animation-duration-millis", "transition-animation-duration-millis", "transition-animation-easing", "transition-animation-switch-at" -> throw new IllegalArgumentException(layerName + "." + key + " has been removed: animate the indicator with keyframes on an animation instead, like indicator.size=26 | _{clickanimation} -> 0% 1; 100% 78");
-            case "render-as-cursor" -> layerName.equals("indicator") ? ModePropertyHandler.of(new ModePropertyPath(List.of("indicator", "renderAsCursor")), v -> Boolean.parseBoolean(v), v -> indicator.renderAsCursor(v)) : null;
+            case "z" -> ModePropertyHandler.of(prefix.append("z"), v -> Integer.parseInt(v), v -> layer.z(v));
             case "size" -> ModePropertyHandler.of(prefix.append("size"), v -> parseUnsignedInteger(v, 1, 1000), v -> layer.size(v));
             case "edge-count" -> ModePropertyHandler.of(prefix.append("edgeCount"), v -> parseUnsignedInteger(v, 3, 1000), v -> layer.edgeCount(v));
             case "color" -> ModePropertyHandler.of(prefix.append("color"), v -> Color.parse(v, colorAliases), v -> layer.color(v));
@@ -2599,12 +2619,6 @@ public class ConfigurationParser {
             case "inner-outline-fill-percent" -> ModePropertyHandler.of(prefix.append("innerOutline").append("fillPercent"), v -> parseDouble(v, true, 0, 1), v -> layer.innerOutline().fillPercent(v));
             case "inner-outline-fill-start-angle" -> ModePropertyHandler.of(prefix.append("innerOutline").append("fillStartAngle"), v -> parseDouble(v, true, 0, 360), v -> layer.innerOutline().fillStartAngle(v));
             case "inner-outline-fill-direction" -> ModePropertyHandler.of(prefix.append("innerOutline").append("fillDirection"), v -> FillDirection.fromString(v), v -> layer.innerOutline().fillDirection(v));
-            case "shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("shadow").append("blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> layer.shadow().blurRadius(v));
-            case "shadow-color" -> ModePropertyHandler.of(prefix.append("shadow").append("color"), v -> Color.parse(v, colorAliases), v -> layer.shadow().color(v));
-            case "shadow-opacity" -> ModePropertyHandler.of(prefix.append("shadow").append("opacity"), v -> parseDouble(v, true, 0, 1), v -> layer.shadow().opacity(v));
-            case "shadow-stack-count" -> ModePropertyHandler.of(prefix.append("shadow").append("stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> layer.shadow().stackCount(v));
-            case "shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("shadow").append("horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> layer.shadow().horizontalOffset(v));
-            case "shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("shadow").append("verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> layer.shadow().verticalOffset(v));
             case "label-enabled" -> ModePropertyHandler.of(prefix.append("labelEnabled"), v -> Boolean.parseBoolean(v), v -> layer.labelEnabled(v));
             case "label-text" -> ModePropertyHandler.of(prefix.append("labelText"), v -> v, v -> layer.labelText(v));
             case "label-font-name" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("name"), v -> v, v -> layer.labelFontStyle().name(v));
