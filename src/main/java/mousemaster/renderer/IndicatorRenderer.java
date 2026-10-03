@@ -902,13 +902,23 @@ public final class IndicatorRenderer {
                     pen.setBrush(brush(strokeColor, strokeSweep));
                 pen.setWidthF(strokeThickness);
                 pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin);
+                pen.setCapStyle(switch (stroke.cap()) {
+                    case FLAT -> Qt.PenCapStyle.FlatCap;
+                    case ROUND -> Qt.PenCapStyle.RoundCap;
+                    case SQUARE -> Qt.PenCapStyle.SquareCap;
+                });
+                // Qt measures dashes in pen widths.
+                if (stroke.dashLength() > 0 && stroke.dashGap() > 0) {
+                    pen.setDashPattern(List.of(stroke.dashLength() * strokeScale / strokeThickness,
+                            stroke.dashGap() * strokeScale / strokeThickness));
+                    pen.setDashOffset(stroke.dashOffset() * strokeScale / strokeThickness);
+                }
                 painter.setBrush(Qt.BrushStyle.NoBrush);
                 if (Math.abs(stroke.lengthPercent()) >= 1 || !shape.closed()) {
                     painter.setPen(pen);
                     painter.drawPath(path);
                 }
                 else {
-                    pen.setCapStyle(Qt.PenCapStyle.FlatCap);
                     painter.setPen(pen);
                     QPainterPath strokePath = partialPath(path, width() / 2.0, height() / 2.0,
                             stroke.startAngle(), stroke.lengthPercent(), stroke.anchor());

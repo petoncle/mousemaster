@@ -860,7 +860,7 @@
 {
   "name":"mousemaster.IndicatorStroke",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["double","mousemaster.Color","double","double","double","mousemaster.StrokeAnchor"] }, {"name":"anchor","parameterTypes":[] }, {"name":"color","parameterTypes":[] }, {"name":"lengthPercent","parameterTypes":[] }, {"name":"opacity","parameterTypes":[] }, {"name":"startAngle","parameterTypes":[] }, {"name":"thickness","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["double","mousemaster.Color","double","double","double","mousemaster.StrokeAnchor","double","double","double","mousemaster.StrokeCap"] }, {"name":"anchor","parameterTypes":[] }, {"name":"cap","parameterTypes":[] }, {"name":"color","parameterTypes":[] }, {"name":"dashGap","parameterTypes":[] }, {"name":"dashLength","parameterTypes":[] }, {"name":"dashOffset","parameterTypes":[] }, {"name":"lengthPercent","parameterTypes":[] }, {"name":"opacity","parameterTypes":[] }, {"name":"startAngle","parameterTypes":[] }, {"name":"thickness","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.KeyboardLayout",

@@ -7152,7 +7152,11 @@
             "double",
             "double",
             "double",
-            "mousemaster.StrokeAnchor"
+            "mousemaster.StrokeAnchor",
+            "double",
+            "double",
+            "double",
+            "mousemaster.StrokeCap"
           ]
         },
         {
@@ -7160,7 +7164,23 @@
           "parameterTypes": []
         },
         {
+          "name": "cap",
+          "parameterTypes": []
+        },
+        {
           "name": "color",
+          "parameterTypes": []
+        },
+        {
+          "name": "dashGap",
+          "parameterTypes": []
+        },
+        {
+          "name": "dashLength",
+          "parameterTypes": []
+        },
+        {
+          "name": "dashOffset",
           "parameterTypes": []
         },
         {
