@@ -1896,13 +1896,27 @@ public class ComboWatcher {
         Mode newMutatedMode = baseMode;
         Map<ModePropertyPath, Timeline> timelineByPropertyPath =
                 new HashMap<>(baseMode.timelineByPropertyPath());
+        Map<String, IndicatorLayerConfiguration> layerByName =
+                new LinkedHashMap<>(baseMode.indicator().layerByName());
         for (Map.Entry<ModePropertyPath, ActiveModeMutation> entry : activeMutations.entrySet()) {
-            if (entry.getValue().newPropertyValue() instanceof Timeline timeline)
-                timelineByPropertyPath.put(entry.getKey(), timeline);
+            ModePropertyPath propertyPath = entry.getKey();
+            Object newPropertyValue = entry.getValue().newPropertyValue();
+            List<String> fieldNames = propertyPath.fieldNames();
+            if (newPropertyValue instanceof Timeline timeline)
+                timelineByPropertyPath.put(propertyPath, timeline);
+            else if (fieldNames.size() > 3 && fieldNames.getFirst().equals("indicator") &&
+                     fieldNames.get(1).equals("layerByName"))
+                layerByName.put(fieldNames.get(2),
+                        (IndicatorLayerConfiguration) ModePropertyMutator.mutateModeProperty(
+                                layerByName.get(fieldNames.get(2)),
+                                fieldNames.subList(3, fieldNames.size()), newPropertyValue,
+                                propertyPath.screenFilter()));
             else
-                newMutatedMode = newMutatedMode.mutate(entry.getKey(),
-                        entry.getValue().newPropertyValue());
+                newMutatedMode = newMutatedMode.mutate(propertyPath, newPropertyValue);
         }
+        newMutatedMode = (Mode) ModePropertyMutator.createWithField(newMutatedMode, "indicator",
+                new IndicatorConfiguration(newMutatedMode.indicator().renderAsCursor(),
+                        newMutatedMode.indicator().shadow(), layerByName));
         mutatedMode = (Mode) ModePropertyMutator.createWithField(newMutatedMode,
                 "timelineByPropertyPath", Map.copyOf(timelineByPropertyPath));
     }
