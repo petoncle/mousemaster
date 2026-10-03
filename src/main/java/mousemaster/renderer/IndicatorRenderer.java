@@ -356,7 +356,8 @@ public final class IndicatorRenderer {
 
     /** Lays the indicator out at the cursor and renders it into an image the size of what it
      *  draws. When the layers keep their places inside the image, which they do when they all
-     *  follow the mouse, the last image is returned with its new screen position instead. */
+     *  follow the mouse, and no color depends on where the indicator is, the last image is
+     *  returned with its new screen position instead. */
     public WindowImage renderWindowImage(IndicatorConfiguration indicator,
                                          Set<String> layerNamesToAnchor,
                                          Rectangle mouseRectangle, Point cursorVisualCenter,
@@ -376,7 +377,7 @@ public final class IndicatorRenderer {
         for (Point topLeft : topLefts)
             offsets.add(new Point(topLeft.x() - x, topLeft.y() - y));
         if (indicator.equals(windowImageIndicator) && offsets.equals(windowImageOffsets) &&
-            screenScale == windowImageScale)
+            screenScale == windowImageScale && looksTheSameAnywhere(indicator))
             return new WindowImage(windowImage, x, y);
         int width = layersRectangle.width() + 2 * shadowPadding;
         int height = layersRectangle.height() + 2 * shadowPadding;
@@ -392,6 +393,29 @@ public final class IndicatorRenderer {
         windowImageOffsets = offsets;
         windowImageScale = screenScale;
         return new WindowImage(windowImage, x, y);
+    }
+
+    private static boolean looksTheSameAnywhere(IndicatorConfiguration indicator) {
+        if (!looksTheSameAnywhere(indicator.shadow().color()))
+            return false;
+        for (IndicatorLayerConfiguration layer : enabledLayers(indicator)) {
+            FontStyle labelFontStyle = layer.labelFontStyle();
+            if (!looksTheSameAnywhere(layer.fillColor()) ||
+                !looksTheSameAnywhere(layer.stroke().color()) ||
+                !looksTheSameAnywhere(labelFontStyle.color()) ||
+                !looksTheSameAnywhere(labelFontStyle.outlineColor()) ||
+                !looksTheSameAnywhere(labelFontStyle.shadow().color()))
+                return false;
+        }
+        return true;
+    }
+
+    /** A gradient is sampled at the cursor, or swept across the screen, unless it is swept
+     *  across the element itself. */
+    private static boolean looksTheSameAnywhere(Color color) {
+        return !(color instanceof GradientColor gradientColor) || !gradientColor.gradient() ||
+               gradientColor.step() == GradientStep.PIXEL &&
+               gradientColor.area() == GradientArea.ELEMENT;
     }
 
     /** Renders the indicator's widget tree into a premultiplied-ARGB image for use as the
