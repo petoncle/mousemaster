@@ -29,8 +29,11 @@ public class ModePropertyMutator {
     }
 
     static Object getModeProperty(Object obj, List<String> fieldNames) {
-        for (String fieldName : fieldNames)
-            obj = getField(obj, fieldName);
+        for (String fieldName : fieldNames) {
+            if (obj == null)
+                return null;
+            obj = obj instanceof Map<?, ?> map ? map.get(fieldName) : getField(obj, fieldName);
+        }
         return obj;
     }
 
@@ -69,6 +72,14 @@ public class ModePropertyMutator {
                 }
             }
             mutatedChild = new ScreenFilterMap<>(mutatedMap);
+        }
+        else if (child instanceof Map<?, ?> map) {
+            String key = remaining.getFirst();
+            Map<Object, Object> mutatedMap = new LinkedHashMap<>(map);
+            mutatedMap.put(key, mutateModeProperty(map.get(key),
+                    remaining.subList(1, remaining.size()), newPropertyValue,
+                    targetScreenFilter));
+            mutatedChild = mutatedMap;
         }
         else {
             mutatedChild = mutateModeProperty(child, remaining,

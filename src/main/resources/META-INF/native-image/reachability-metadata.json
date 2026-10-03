@@ -7010,30 +7010,29 @@
           "name": "<init>",
           "parameterTypes": [
             "boolean",
-            "boolean",
-            "int",
-            "int",
-            "mousemaster.Color",
-            "double",
-            "mousemaster.IndicatorOutline",
-            "mousemaster.IndicatorOutline",
-            "mousemaster.Shadow",
-            "boolean",
-            "java.lang.String",
-            "mousemaster.FontStyle",
-            "mousemaster.IndicatorPosition"
+            "java.util.Map"
           ]
         },
+        {
+          "name": "layerByName",
+          "parameterTypes": []
+        },
+        {
+          "name": "renderAsCursor",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.IndicatorLayerConfiguration",
+      "methods": [
         {
           "name": "<init>",
           "parameterTypes": [
             "boolean",
-            "boolean",
-            "java.time.Duration",
-            "boolean",
             "int",
             "int",
-            "java.lang.String",
+            "mousemaster.Color",
             "double",
             "mousemaster.IndicatorOutline",
             "mousemaster.IndicatorOutline",
@@ -7082,10 +7081,6 @@
         },
         {
           "name": "position",
-          "parameterTypes": []
-        },
-        {
-          "name": "renderAsCursor",
           "parameterTypes": []
         },
         {

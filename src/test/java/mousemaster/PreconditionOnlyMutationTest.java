@@ -124,15 +124,15 @@ class PreconditionOnlyMutationTest {
     }
 
     private Color color() {
-        return comboWatcher.getMutatedMode().indicator().color();
+        return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").color();
     }
 
     private int size() {
-        return comboWatcher.getMutatedMode().indicator().size();
+        return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").size();
     }
 
     private double opacity() {
-        return comboWatcher.getMutatedMode().indicator().opacity();
+        return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").opacity();
     }
 
     @Test
@@ -174,8 +174,8 @@ class PreconditionOnlyMutationTest {
 
         leftClick();
         assertEquals(1, notifiedModes.size(), "notified " + notifiedModes.size() + " times");
-        assertEquals(50, notifiedModes.getFirst().indicator().size());
-        assertEquals(Color.parse("#00FF00"), notifiedModes.getFirst().indicator().color());
+        assertEquals(50, notifiedModes.getFirst().indicator().layerByName().get("indicator").size());
+        assertEquals(Color.parse("#00FF00"), notifiedModes.getFirst().indicator().layerByName().get("indicator").color());
     }
 
     /** A hint mode's click presses and releases within one iteration, and the mouse state is

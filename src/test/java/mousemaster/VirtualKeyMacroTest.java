@@ -57,11 +57,11 @@ class VirtualKeyMacroTest {
     }
 
     private Color color() {
-        return comboWatcher.getMutatedMode().indicator().color();
+        return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").color();
     }
 
     private int size() {
-        return comboWatcher.getMutatedMode().indicator().size();
+        return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").size();
     }
 
     @Test

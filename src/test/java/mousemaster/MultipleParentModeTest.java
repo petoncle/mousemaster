@@ -29,7 +29,7 @@ class MultipleParentModeTest {
                 "_a-mode.indicator.size=42",
                 "_b-mode.macro.x=+a -> #flag",
                 "normal-mode=_a-mode _b-mode");
-        assertEquals(42, mode.indicator().size());
+        assertEquals(42, mode.indicator().layerByName().get("indicator").size());
         assertEquals(List.of("x"), macroNames(mode));
     }
 
@@ -38,11 +38,11 @@ class MultipleParentModeTest {
         assertEquals(42, mode("normal-mode", "idle-mode.to.normal-mode=+leftshift",
                 "_a-mode.indicator.size=42",
                 "_b-mode.indicator.size=26",
-                "normal-mode=_a-mode _b-mode").indicator().size());
+                "normal-mode=_a-mode _b-mode").indicator().layerByName().get("indicator").size());
         assertEquals(26, mode("normal-mode", "idle-mode.to.normal-mode=+leftshift",
                 "_a-mode.indicator.size=42",
                 "_b-mode.indicator.size=26",
-                "normal-mode=_b-mode _a-mode").indicator().size());
+                "normal-mode=_b-mode _a-mode").indicator().layerByName().get("indicator").size());
     }
 
     @Test
@@ -51,7 +51,7 @@ class MultipleParentModeTest {
                 "_a-mode.indicator.size=42",
                 "_b-mode.indicator.size=26",
                 "normal-mode=_a-mode _b-mode",
-                "normal-mode.indicator.size=10").indicator().size());
+                "normal-mode.indicator.size=10").indicator().layerByName().get("indicator").size());
     }
 
     @Test

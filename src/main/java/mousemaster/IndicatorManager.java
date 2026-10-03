@@ -3,6 +3,7 @@ package mousemaster;
 import mousemaster.platform.Overlay;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,7 +28,7 @@ public class IndicatorManager implements ModeListener {
 
     public void update() {
         IndicatorConfiguration indicator = resolve();
-        if (!indicator.enabled()) {
+        if (!indicator.layerByName().get("indicator").enabled()) {
             overlay.hideIndicator();
             return;
         }
@@ -47,7 +48,8 @@ public class IndicatorManager implements ModeListener {
     private IndicatorConfiguration resolve() {
         updateTimelines();
         IndicatorConfiguration indicator = withTimelines(currentMode.indicator());
-        resolvedIndicator = indicator.enabled() ? indicator : null;
+        resolvedIndicator =
+                indicator.layerByName().get("indicator").enabled() ? indicator : null;
         return indicator;
     }
 
@@ -69,24 +71,34 @@ public class IndicatorManager implements ModeListener {
             if (timeline.equals(timelineByPropertyPath.put(propertyPath, timeline)) &&
                 elapsed >= previousElapsed)
                 continue;
-            IndicatorConfiguration indicator =
-                    resolvedIndicator == null ? currentMode.indicator() : resolvedIndicator;
-            currentByPropertyPath.put(propertyPath, ModePropertyMutator.getModeProperty(
-                    indicator, indicatorFieldNames(propertyPath)));
+            Object current = ModePropertyMutator.getModeProperty(resolvedIndicator,
+                    indicatorFieldNames(propertyPath));
+            currentByPropertyPath.put(propertyPath, current == null ?
+                    ModePropertyMutator.getModeProperty(currentMode.indicator(),
+                            indicatorFieldNames(propertyPath)) : current);
         }
     }
 
     private IndicatorConfiguration withTimelines(IndicatorConfiguration indicator) {
+        Map<String, IndicatorLayerConfiguration> layerByName =
+                new LinkedHashMap<>(indicator.layerByName());
         for (Map.Entry<ModePropertyPath, Timeline> entry : timelineByPropertyPath.entrySet()) {
             ModePropertyPath propertyPath = entry.getKey();
             Timeline timeline = entry.getValue();
-            indicator = (IndicatorConfiguration) ModePropertyMutator.mutateModeProperty(
-                    indicator, indicatorFieldNames(propertyPath),
-                    timeline.valueAt(animationPlayer.progress(timeline.animationName()),
-                            animationPlayer.duration(timeline.animationName()),
-                            currentByPropertyPath.get(propertyPath)), null);
+            List<String> fieldNames = indicatorFieldNames(propertyPath);
+            Object value = timeline.valueAt(animationPlayer.progress(timeline.animationName()),
+                    animationPlayer.duration(timeline.animationName()),
+                    currentByPropertyPath.get(propertyPath));
+            if (fieldNames.getFirst().equals("layerByName"))
+                layerByName.put(fieldNames.get(1),
+                        (IndicatorLayerConfiguration) ModePropertyMutator.mutateModeProperty(
+                                layerByName.get(fieldNames.get(1)),
+                                fieldNames.subList(2, fieldNames.size()), value, null));
+            else
+                indicator = (IndicatorConfiguration) ModePropertyMutator.mutateModeProperty(
+                        indicator, fieldNames, value, null);
         }
-        return indicator;
+        return new IndicatorConfiguration(indicator.renderAsCursor(), layerByName);
     }
 
     private static List<String> indicatorFieldNames(ModePropertyPath propertyPath) {
