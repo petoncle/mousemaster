@@ -3,8 +3,12 @@ package mousemaster;
 import mousemaster.FontStyle.FontStyleBuilder;
 import mousemaster.IndicatorStroke.IndicatorStrokeBuilder;
 
+import java.util.List;
+
 public record IndicatorLayerConfiguration(boolean enabled, int z,
-                                          double size, int edgeCount, Color fillColor,
+                                          IndicatorShape shape, double size,
+                                          double aspectRatio, double borderRadius,
+                                          List<Point> points, Color fillColor,
                                           double fillOpacity,
                                           IndicatorStroke stroke,
                                           boolean labelEnabled, String labelText,
@@ -20,7 +24,10 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         private Boolean enabled;
         private Integer z;
         private Double size;
-        private Integer edgeCount;
+        private IndicatorShape shape;
+        private Double aspectRatio;
+        private Double borderRadius;
+        private List<Point> points;
         private Color fillColor;
         private Double fillOpacity;
         private IndicatorStrokeBuilder stroke = new IndicatorStrokeBuilder();
@@ -37,7 +44,10 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             this.enabled = layer.enabled;
             this.z = layer.z;
             this.size = layer.size;
-            this.edgeCount = layer.edgeCount;
+            this.shape = layer.shape;
+            this.aspectRatio = layer.aspectRatio;
+            this.borderRadius = layer.borderRadius;
+            this.points = layer.points;
             this.fillColor = layer.fillColor;
             this.fillOpacity = layer.fillOpacity;
             this.stroke = new IndicatorStrokeBuilder(layer.stroke);
@@ -75,13 +85,40 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             return size;
         }
 
-        public IndicatorLayerConfigurationBuilder edgeCount(int edgeCount) {
-            this.edgeCount = edgeCount;
+        public IndicatorLayerConfigurationBuilder shape(IndicatorShape shape) {
+            this.shape = shape;
             return this;
         }
 
-        public Integer edgeCount() {
-            return edgeCount;
+        public IndicatorShape shape() {
+            return shape;
+        }
+
+        public IndicatorLayerConfigurationBuilder aspectRatio(double aspectRatio) {
+            this.aspectRatio = aspectRatio;
+            return this;
+        }
+
+        public Double aspectRatio() {
+            return aspectRatio;
+        }
+
+        public IndicatorLayerConfigurationBuilder borderRadius(double borderRadius) {
+            this.borderRadius = borderRadius;
+            return this;
+        }
+
+        public Double borderRadius() {
+            return borderRadius;
+        }
+
+        public IndicatorLayerConfigurationBuilder points(List<Point> points) {
+            this.points = points;
+            return this;
+        }
+
+        public List<Point> points() {
+            return points;
         }
 
         public IndicatorLayerConfigurationBuilder fillColor(Color fillColor) {
@@ -150,7 +187,10 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             if (enabled == null) enabled = parent.enabled;
             if (z == null) z = parent.z;
             if (size == null) size = parent.size;
-            if (edgeCount == null) edgeCount = parent.edgeCount;
+            if (shape == null) shape = parent.shape;
+            if (aspectRatio == null) aspectRatio = parent.aspectRatio;
+            if (borderRadius == null) borderRadius = parent.borderRadius;
+            if (points == null) points = parent.points;
             if (fillColor == null) fillColor = parent.fillColor;
             if (fillOpacity == null) fillOpacity = parent.fillOpacity;
             stroke.extend(parent.stroke);
@@ -162,10 +202,9 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         }
 
         public IndicatorLayerConfiguration build() {
-            return new IndicatorLayerConfiguration(enabled, z, size, edgeCount, fillColor,
-                    fillOpacity, stroke.build(),
-                    labelEnabled, labelText, labelFontStyle.build(), position,
-                    followMouse);
+            return new IndicatorLayerConfiguration(enabled, z, shape, size, aspectRatio,
+                    borderRadius, points, fillColor, fillOpacity, stroke.build(),
+                    labelEnabled, labelText, labelFontStyle.build(), position, followMouse);
         }
     }
 }
