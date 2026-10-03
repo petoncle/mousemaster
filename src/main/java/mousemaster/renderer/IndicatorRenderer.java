@@ -38,6 +38,10 @@ public final class IndicatorRenderer {
     private Point gradientPoint;
     private final List<Point> currentTopLefts = new ArrayList<>();
     private final Map<String, LayerAnchor> anchorByLayerName = new HashMap<>();
+    private IndicatorImage windowImage;
+    private IndicatorConfiguration windowImageIndicator;
+    private List<Point> windowImageOffsets;
+    private double windowImageScale;
     private int maxIndicatorWindowSize;
     private boolean showing;
     private boolean cleared;
@@ -173,9 +177,7 @@ public final class IndicatorRenderer {
                              Rectangle mouseRectangle, Point cursorVisualCenter,
                              Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
         setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
-        for (String layerName : layerNamesToAnchor)
-            anchorByLayerName.put(layerName,
-                    new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen));
+        anchor(layerNamesToAnchor, mouseRectangle, cursorVisualCenter, activeScreen);
         if (showing && indicator.equals(currentIndicator) && layerNamesToAnchor.isEmpty())
             return;
         // Position the (hidden) window before showIndicator shows it.
@@ -189,23 +191,38 @@ public final class IndicatorRenderer {
         reposition(currentIndicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
     }
 
-    private void reposition(IndicatorConfiguration indicator, Rectangle mouseRectangle,
-                            Point cursorVisualCenter, Screen activeScreen, Zoom zoom) {
-        double screenScale = activeScreen.scale();
-        List<IndicatorLayerConfiguration> enabledLayers = new ArrayList<>();
+    private void anchor(Set<String> layerNamesToAnchor, Rectangle mouseRectangle,
+                        Point cursorVisualCenter, Screen activeScreen) {
+        for (String layerName : layerNamesToAnchor)
+            anchorByLayerName.put(layerName,
+                    new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen));
+    }
+
+    private List<Point> layerTopLefts(IndicatorConfiguration indicator,
+                                      Rectangle mouseRectangle, Point cursorVisualCenter,
+                                      Screen activeScreen, Zoom zoom) {
         // Screen pixels: the configured size does not change with the zoom. Only the
         // position does, because the cursor it marks is a desktop point.
         List<Point> topLefts = new ArrayList<>();
         for (String layerName : enabledLayerNames(indicator)) {
             IndicatorLayerConfiguration layer = indicator.layerByName().get(layerName);
-            enabledLayers.add(layer);
             LayerAnchor anchor = layer.followMouse() ?
                     new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen) :
                     anchorByLayerName.get(layerName);
             Point topLeft = layerTopLeft(anchor.mouseRectangle(), anchor.cursorVisualCenter(),
-                    anchor.activeScreen(), zoom, layer, layerSizeWithStroke(layer, screenScale));
+                    anchor.activeScreen(), zoom, layer,
+                    layerSizeWithStroke(layer, activeScreen.scale()));
             topLefts.add(new Point(Math.round(topLeft.x()), Math.round(topLeft.y())));
         }
+        return topLefts;
+    }
+
+    private void reposition(IndicatorConfiguration indicator, Rectangle mouseRectangle,
+                            Point cursorVisualCenter, Screen activeScreen, Zoom zoom) {
+        double screenScale = activeScreen.scale();
+        List<IndicatorLayerConfiguration> enabledLayers = enabledLayers(indicator);
+        List<Point> topLefts = layerTopLefts(indicator, mouseRectangle, cursorVisualCenter,
+                activeScreen, zoom);
         Rectangle layersRectangle = layersRectangle(enabledLayers, topLefts, screenScale);
         // Never resize the window: the DWM compositor would show the old surface at the new
         // size for one frame, mispositioning the indicator. It fits the largest indicator drawn
@@ -332,11 +349,54 @@ public final class IndicatorRenderer {
     }
 
     /** An offscreen-rendered indicator: premultiplied ARGB (0xAARRGGBB), row-major. */
-    public record CursorImage(int[] argb, int width, int height) {}
+    public record IndicatorImage(int[] argb, int width, int height) {}
+
+    /** An image of the indicator, and where its top-left goes on the screen. */
+    public record WindowImage(IndicatorImage image, int x, int y) {}
+
+    /** Lays the indicator out at the cursor and renders it into an image the size of what it
+     *  draws. When the layers keep their places inside the image, which they do when they all
+     *  follow the mouse, the last image is returned with its new screen position instead. */
+    public WindowImage renderWindowImage(IndicatorConfiguration indicator,
+                                         Set<String> layerNamesToAnchor,
+                                         Rectangle mouseRectangle, Point cursorVisualCenter,
+                                         Screen activeScreen, Zoom zoom,
+                                         String lastSelectedHintBoxHexColor) {
+        setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
+        anchor(layerNamesToAnchor, mouseRectangle, cursorVisualCenter, activeScreen);
+        double screenScale = activeScreen.scale();
+        List<IndicatorLayerConfiguration> enabledLayers = enabledLayers(indicator);
+        List<Point> topLefts = layerTopLefts(indicator, mouseRectangle, cursorVisualCenter,
+                activeScreen, zoom);
+        Rectangle layersRectangle = layersRectangle(enabledLayers, topLefts, screenScale);
+        int shadowPadding = indicatorShadowPadding(indicator.shadow(), screenScale);
+        int x = layersRectangle.x() - shadowPadding;
+        int y = layersRectangle.y() - shadowPadding;
+        List<Point> offsets = new ArrayList<>();
+        for (Point topLeft : topLefts)
+            offsets.add(new Point(topLeft.x() - x, topLeft.y() - y));
+        if (indicator.equals(windowImageIndicator) && offsets.equals(windowImageOffsets) &&
+            screenScale == windowImageScale)
+            return new WindowImage(windowImage, x, y);
+        int width = layersRectangle.width() + 2 * shadowPadding;
+        int height = layersRectangle.height() + 2 * shadowPadding;
+        window();
+        window.resize(width, height);
+        placeLayers(enabledLayers, topLefts,
+                new Point(layersRectangle.x(), layersRectangle.y()),
+                layersRectangle.width(), layersRectangle.height(), new Point(x, y),
+                screenScale, 1);
+        applyIndicator(indicator, screenScale, lastSelectedHintBoxHexColor);
+        windowImage = render(width, height, screenScale);
+        windowImageIndicator = indicator;
+        windowImageOffsets = offsets;
+        windowImageScale = screenScale;
+        return new WindowImage(windowImage, x, y);
+    }
 
     /** Renders the indicator's widget tree into a premultiplied-ARGB image for use as the
      *  system cursor, centered on the indicator's visual center. */
-    public CursorImage renderCursorImage(IndicatorConfiguration indicator, double scale,
+    public IndicatorImage renderCursorImage(IndicatorConfiguration indicator, double scale,
                                          String lastSelectedHintBoxHexColor,
                                          Rectangle mouseRectangle, Point cursorVisualCenter,
                                          Screen activeScreen) {
@@ -363,19 +423,22 @@ public final class IndicatorRenderer {
                 new Point(layersTopLeft.x() - shadowPadding, layersTopLeft.y() - shadowPadding),
                 scale, 1);
         applyIndicator(indicator, scale, lastSelectedHintBoxHexColor);
-        QImage image = new QImage(imageSize, imageSize,
-                QImage.Format.Format_ARGB32_Premultiplied);
+        return render(imageSize, imageSize, scale);
+    }
+
+    private IndicatorImage render(int width, int height, double scale) {
+        QImage image = new QImage(width, height, QImage.Format.Format_ARGB32_Premultiplied);
         image.fill(0);
         // The label's point-size font resolves against the image's DPI; match the target
         // screen so it renders at the right size on any screen.
         HintMeshRenderer.setQImageDpiForScreen(image, scale);
         window.render(image);
-        int[] argb = new int[imageSize * imageSize];
+        int[] argb = new int[width * height];
         ByteBuffer buffer = image.bits();
         buffer.position(0);
         buffer.order(ByteOrder.nativeOrder()).asIntBuffer().get(argb);
         image.dispose();
-        return new CursorImage(argb, imageSize, imageSize);
+        return new IndicatorImage(argb, width, height);
     }
 
     /** Draws label text centered at (centerX, centerY): outline (if any) then fill, using the
