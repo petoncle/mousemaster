@@ -8,7 +8,8 @@ import java.util.List;
 public record IndicatorLayerConfiguration(boolean enabled, int z,
                                           IndicatorShape shape, double size,
                                           double aspectRatio, double borderRadius,
-                                          List<Point> points, Color fillColor,
+                                          List<Point> points, double x, double y,
+                                          double rotation, Color fillColor,
                                           double fillOpacity,
                                           IndicatorStroke stroke,
                                           boolean labelEnabled, String labelText,
@@ -28,6 +29,9 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         private Double aspectRatio;
         private Double borderRadius;
         private List<Point> points;
+        private Double x;
+        private Double y;
+        private Double rotation;
         private Color fillColor;
         private Double fillOpacity;
         private IndicatorStrokeBuilder stroke = new IndicatorStrokeBuilder();
@@ -48,6 +52,9 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             this.aspectRatio = layer.aspectRatio;
             this.borderRadius = layer.borderRadius;
             this.points = layer.points;
+            this.x = layer.x;
+            this.y = layer.y;
+            this.rotation = layer.rotation;
             this.fillColor = layer.fillColor;
             this.fillOpacity = layer.fillOpacity;
             this.stroke = new IndicatorStrokeBuilder(layer.stroke);
@@ -121,6 +128,33 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             return points;
         }
 
+        public IndicatorLayerConfigurationBuilder x(double x) {
+            this.x = x;
+            return this;
+        }
+
+        public Double x() {
+            return x;
+        }
+
+        public IndicatorLayerConfigurationBuilder y(double y) {
+            this.y = y;
+            return this;
+        }
+
+        public Double y() {
+            return y;
+        }
+
+        public IndicatorLayerConfigurationBuilder rotation(double rotation) {
+            this.rotation = rotation;
+            return this;
+        }
+
+        public Double rotation() {
+            return rotation;
+        }
+
         public IndicatorLayerConfigurationBuilder fillColor(Color fillColor) {
             this.fillColor = fillColor;
             return this;
@@ -191,6 +225,9 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             if (aspectRatio == null) aspectRatio = parent.aspectRatio;
             if (borderRadius == null) borderRadius = parent.borderRadius;
             if (points == null) points = parent.points;
+            if (x == null) x = parent.x;
+            if (y == null) y = parent.y;
+            if (rotation == null) rotation = parent.rotation;
             if (fillColor == null) fillColor = parent.fillColor;
             if (fillOpacity == null) fillOpacity = parent.fillOpacity;
             stroke.extend(parent.stroke);
@@ -203,7 +240,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
 
         public IndicatorLayerConfiguration build() {
             return new IndicatorLayerConfiguration(enabled, z, shape, size, aspectRatio,
-                    borderRadius, points, fillColor, fillOpacity, stroke.build(),
+                    borderRadius, points, x, y, rotation, fillColor, fillOpacity, stroke.build(),
                     labelEnabled, labelText, labelFontStyle.build(), position, followMouse);
         }
     }

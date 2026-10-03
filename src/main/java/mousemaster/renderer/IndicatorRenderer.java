@@ -153,10 +153,14 @@ public final class IndicatorRenderer {
     }
 
     private int layerSizeWithStroke(IndicatorLayerConfiguration layer, double screenScale) {
+        // A rotated box reaches as far as its diagonal.
+        double layerSize = layer.rotation() % 360 == 0 ? layerSize(layer, screenScale) :
+                Math.hypot(layerSize(layer, screenScale), layerSize(layer, screenScale) /
+                        Math.max(layer.aspectRatio(), 1 / layer.aspectRatio()));
         // An odd size puts the center of a centered layer half a pixel off, so it would
         // shift as the size changes parity. A miter reaches as far as the stroke is thick,
         // Qt's default miter limit.
-        int size = (int) Math.ceil(layerSize(layer, screenScale) +
+        int size = (int) Math.ceil(layerSize +
                 2 * layer.stroke().thickness() * screenScale);
         return size + size % 2;
     }
@@ -215,7 +219,8 @@ public final class IndicatorRenderer {
             Point topLeft = layerTopLeft(anchor.mouseRectangle(), anchor.cursorVisualCenter(),
                     anchor.activeScreen(), zoom, layer,
                     layerSizeWithStroke(layer, activeScreen.scale()));
-            topLefts.add(new Point(Math.round(topLeft.x()), Math.round(topLeft.y())));
+            topLefts.add(new Point(Math.round(topLeft.x() + layer.x() * activeScreen.scale()),
+                    Math.round(topLeft.y() + layer.y() * activeScreen.scale())));
         }
         return topLefts;
     }
@@ -422,24 +427,26 @@ public final class IndicatorRenderer {
                                          Screen activeScreen) {
         setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
         List<IndicatorLayerConfiguration> enabledLayers = enabledLayers(indicator);
-        int maxLayerSizeWithStroke = 0;
+        // The image is centered on the cursor, so it reaches as far on every side as its
+        // farthest layer does on one.
+        int layersSize = 0;
         for (IndicatorLayerConfiguration layer : enabledLayers)
-            maxLayerSizeWithStroke = Math.max(maxLayerSizeWithStroke,
-                    layerSizeWithStroke(layer, scale));
+            layersSize = Math.max(layersSize, layerSizeWithStroke(layer, scale) + 2 * (int)
+                    Math.round(Math.max(Math.abs(layer.x()), Math.abs(layer.y())) * scale));
         int shadowPadding = indicatorShadowPadding(indicator.shadow(), scale);
-        int imageSize = maxLayerSizeWithStroke + 2 * shadowPadding;
+        int imageSize = layersSize + 2 * shadowPadding;
         List<Point> topLefts = new ArrayList<>();
         for (IndicatorLayerConfiguration layer : enabledLayers) {
             int layerSizeWithStroke = layerSizeWithStroke(layer, scale);
-            topLefts.add(new Point(gradientPoint.x() - layerSizeWithStroke / 2.0,
-                    gradientPoint.y() - layerSizeWithStroke / 2.0));
+            topLefts.add(new Point(
+                    gradientPoint.x() - layerSizeWithStroke / 2.0 + Math.round(layer.x() * scale),
+                    gradientPoint.y() - layerSizeWithStroke / 2.0 + Math.round(layer.y() * scale)));
         }
-        Point layersTopLeft = new Point(gradientPoint.x() - maxLayerSizeWithStroke / 2.0,
-                gradientPoint.y() - maxLayerSizeWithStroke / 2.0);
+        Point layersTopLeft = new Point(gradientPoint.x() - layersSize / 2.0,
+                gradientPoint.y() - layersSize / 2.0);
         window();
         window.resize(imageSize, imageSize);
-        placeLayers(enabledLayers, topLefts, layersTopLeft, maxLayerSizeWithStroke,
-                maxLayerSizeWithStroke,
+        placeLayers(enabledLayers, topLefts, layersTopLeft, layersSize, layersSize,
                 new Point(layersTopLeft.x() - shadowPadding, layersTopLeft.y() - shadowPadding),
                 scale, 1);
         applyIndicator(indicator, scale, lastSelectedHintBoxHexColor);
@@ -514,7 +521,7 @@ public final class IndicatorRenderer {
                             double shadowScale, String lastSelectedHintBoxHexColor) {
         widget.setSweepArea(sweepArea(topLeft));
         widget.setShape(layer.shape(), layer.aspectRatio(), layer.borderRadius(),
-                layer.points());
+                layer.points(), layer.rotation());
         widget.setFill(QtColorUtil.qColor(hex(layer.fillColor(), lastSelectedHintBoxHexColor), layer.fillOpacity()),
                 sweep(layer.fillColor()));
         IndicatorStroke stroke = layer.stroke();
@@ -644,6 +651,7 @@ public final class IndicatorRenderer {
         private double aspectRatio;
         private double borderRadius;
         private List<Point> points;
+        private double rotation;
         private QColor fillColor;
         private GradientColor fillSweep;
         private IndicatorStroke stroke;
@@ -665,11 +673,12 @@ public final class IndicatorRenderer {
         }
 
         void setShape(IndicatorShape shape, double aspectRatio, double borderRadius,
-                      List<Point> points) {
+                      List<Point> points, double rotation) {
             this.shape = shape;
             this.aspectRatio = aspectRatio;
             this.borderRadius = borderRadius;
             this.points = points;
+            this.rotation = rotation;
         }
 
         void setFill(QColor fillColor, GradientColor fillSweep) {
@@ -876,6 +885,10 @@ public final class IndicatorRenderer {
         }
 
         void drawContent(QPainter painter, QColor fillColor, QColor strokeColor) {
+            painter.save();
+            painter.translate(width() / 2.0, height() / 2.0);
+            painter.rotate(rotation);
+            painter.translate(-width() / 2.0, -height() / 2.0);
             QPainterPath path = shapePath();
             if (fillColor.alpha() != 0) {
                 painter.setPen(Qt.PenStyle.NoPen);
@@ -905,6 +918,7 @@ public final class IndicatorRenderer {
                 pen.dispose();
             }
             path.dispose();
+            painter.restore();
         }
 
         void redrawSourceOverShadow(QPainter painter) {
