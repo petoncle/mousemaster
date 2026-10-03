@@ -7036,12 +7036,11 @@
           "parameterTypes": [
             "boolean",
             "int",
-            "int",
+            "double",
             "int",
             "mousemaster.Color",
             "double",
-            "mousemaster.IndicatorOutline",
-            "mousemaster.IndicatorOutline",
+            "mousemaster.IndicatorStroke",
             "boolean",
             "java.lang.String",
             "mousemaster.FontStyle",
@@ -7057,11 +7056,11 @@
           "parameterTypes": []
         },
         {
-          "name": "color",
+          "name": "fillColor",
           "parameterTypes": []
         },
         {
-          "name": "innerOutline",
+          "name": "fillOpacity",
           "parameterTypes": []
         },
         {
@@ -7077,19 +7076,15 @@
           "parameterTypes": []
         },
         {
-          "name": "opacity",
-          "parameterTypes": []
-        },
-        {
-          "name": "outerOutline",
-          "parameterTypes": []
-        },
-        {
           "name": "position",
           "parameterTypes": []
         },
         {
           "name": "size",
+          "parameterTypes": []
+        },
+        {
+          "name": "stroke",
           "parameterTypes": []
         },
         {
@@ -7099,7 +7094,7 @@
       ]
     },
     {
-      "type": "mousemaster.IndicatorOutline",
+      "type": "mousemaster.IndicatorStroke",
       "methods": [
         {
           "name": "<init>",
@@ -7109,19 +7104,11 @@
             "double",
             "double",
             "double",
-            "mousemaster.FillDirection"
+            "mousemaster.StrokeAnchor"
           ]
         },
         {
-          "name": "fillDirection",
-          "parameterTypes": []
-        },
-        {
-          "name": "fillPercent",
-          "parameterTypes": []
-        },
-        {
-          "name": "fillStartAngle",
+          "name": "anchor",
           "parameterTypes": []
         },
         {
@@ -7129,7 +7116,15 @@
           "parameterTypes": []
         },
         {
+          "name": "lengthPercent",
+          "parameterTypes": []
+        },
+        {
           "name": "opacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "startAngle",
           "parameterTypes": []
         },
         {

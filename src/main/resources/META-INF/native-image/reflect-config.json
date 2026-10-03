@@ -848,12 +848,12 @@
 {
   "name":"mousemaster.IndicatorLayerConfiguration",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["boolean","int","int","int","mousemaster.Color","double","mousemaster.IndicatorOutline","mousemaster.IndicatorOutline","boolean","java.lang.String","mousemaster.FontStyle","mousemaster.IndicatorPosition"] }, {"name":"edgeCount","parameterTypes":[] }, {"name":"enabled","parameterTypes":[] }, {"name":"color","parameterTypes":[] }, {"name":"innerOutline","parameterTypes":[] }, {"name":"labelEnabled","parameterTypes":[] }, {"name":"labelFontStyle","parameterTypes":[] }, {"name":"labelText","parameterTypes":[] }, {"name":"opacity","parameterTypes":[] }, {"name":"outerOutline","parameterTypes":[] }, {"name":"position","parameterTypes":[] }, {"name":"size","parameterTypes":[] }, {"name":"z","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["boolean","int","double","int","mousemaster.Color","double","mousemaster.IndicatorStroke","boolean","java.lang.String","mousemaster.FontStyle","mousemaster.IndicatorPosition"] }, {"name":"edgeCount","parameterTypes":[] }, {"name":"enabled","parameterTypes":[] }, {"name":"fillColor","parameterTypes":[] }, {"name":"fillOpacity","parameterTypes":[] }, {"name":"labelEnabled","parameterTypes":[] }, {"name":"labelFontStyle","parameterTypes":[] }, {"name":"labelText","parameterTypes":[] }, {"name":"position","parameterTypes":[] }, {"name":"size","parameterTypes":[] }, {"name":"stroke","parameterTypes":[] }, {"name":"z","parameterTypes":[] }]
 },
 {
-  "name":"mousemaster.IndicatorOutline",
+  "name":"mousemaster.IndicatorStroke",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["double","mousemaster.Color","double","double","double","mousemaster.FillDirection"] }, {"name":"fillDirection","parameterTypes":[] }, {"name":"fillPercent","parameterTypes":[] }, {"name":"fillStartAngle","parameterTypes":[] }, {"name":"color","parameterTypes":[] }, {"name":"opacity","parameterTypes":[] }, {"name":"thickness","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["double","mousemaster.Color","double","double","double","mousemaster.StrokeAnchor"] }, {"name":"anchor","parameterTypes":[] }, {"name":"color","parameterTypes":[] }, {"name":"lengthPercent","parameterTypes":[] }, {"name":"opacity","parameterTypes":[] }, {"name":"startAngle","parameterTypes":[] }, {"name":"thickness","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.KeyboardLayout",

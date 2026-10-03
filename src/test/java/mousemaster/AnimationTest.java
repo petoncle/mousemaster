@@ -97,7 +97,7 @@ class AnimationTest {
                 (proxy, method, args) -> null);
     }
 
-    private int drawnSize() {
+    private double drawnSize() {
         return drawn.getLast().size();
     }
 
@@ -107,7 +107,7 @@ class AnimationTest {
                               .enabled();
     }
 
-    private int size() {
+    private double size() {
         return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").size();
     }
 
@@ -218,11 +218,11 @@ class AnimationTest {
         tick(0);
         tap("a");
         tick(0);
-        assertEquals(10, drawnSize());
+        assertEquals(10, drawnSize(), 1e-9);
         tick(0.05);
-        assertEquals(23, drawnSize());
+        assertEquals(23, drawnSize(), 1e-9);
         tick(0.06);
-        assertEquals(26, drawnSize());
+        assertEquals(26, drawnSize(), 1e-9);
     }
 
     @Test
@@ -233,9 +233,9 @@ class AnimationTest {
         tick(0);
         tap("a");
         tick(0);
-        assertEquals(26, drawnSize());
+        assertEquals(26, drawnSize(), 1e-9);
         tick(0.05);
-        assertEquals(31, drawnSize());
+        assertEquals(31, drawnSize(), 1e-9);
     }
 
     @Test
@@ -247,9 +247,9 @@ class AnimationTest {
         tap("a");
         tick(0);
         tick(0.049);
-        assertEquals(10, drawnSize());
+        assertEquals(10, drawnSize(), 1e-9);
         tick(0.002);
-        assertEquals(40, drawnSize());
+        assertEquals(40, drawnSize(), 1e-9);
     }
 
     @Test
@@ -261,9 +261,9 @@ class AnimationTest {
         tap("a");
         tick(0);
         tick(0.025);
-        assertEquals(15, drawnSize());
+        assertEquals(15, drawnSize(), 1e-9);
         tick(0.1);
-        assertEquals(20, drawnSize());
+        assertEquals(20, drawnSize(), 1e-9);
     }
 
     @Test
@@ -275,9 +275,9 @@ class AnimationTest {
         tick(0);
         tap("a");
         tick(0.15);
-        assertEquals(20, drawnSize());
+        assertEquals(20, drawnSize(), 1e-9);
         tick(0.06);
-        assertEquals(26, drawnSize());
+        assertEquals(26, drawnSize(), 1e-9);
     }
 
     @Test
@@ -290,10 +290,10 @@ class AnimationTest {
         tick(0);
         tap("a");
         tick(10.05);
-        assertEquals(20, drawnSize());
+        assertEquals(20, drawnSize(), 1e-9);
         tap("b");
         tick(0);
-        assertEquals(26, drawnSize());
+        assertEquals(26, drawnSize(), 1e-9);
     }
 
     @Test
@@ -306,11 +306,11 @@ class AnimationTest {
         tick(0);
         tap("a");
         tick(0.075);
-        assertEquals(25, drawnSize());
+        assertEquals(25, drawnSize(), 1e-9);
         tick(0.05);
-        assertEquals(25, drawnSize());
+        assertEquals(25, drawnSize(), 1e-9);
         tick(0.05);
-        assertEquals(15, drawnSize());
+        assertEquals(15, drawnSize(), 1e-9);
     }
 
     @Test
@@ -366,13 +366,13 @@ class AnimationTest {
     void currentIsTheStateABranchTookOverFromEvenIfItWasNeverDrawn() {
         load("click-animation.duration-millis=100",
                 "idle-mode.click-animation.start=+a",
-                "idle-mode.indicator.color=#FF0000 | _{clickanimation} -> 0% current | _{b} -> #00FF00");
+                "idle-mode.indicator.fill-color=#FF0000 | _{clickanimation} -> 0% current | _{b} -> #00FF00");
         tick(0);
         comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, Key.ofName("b")));
         tap("a");
         comboWatcher.keyEvent(new KeyEvent.ReleaseKeyEvent(now, Key.ofName("b")));
         tick(0);
-        assertEquals(Color.parse("#00FF00"), drawn.getLast().color());
+        assertEquals(Color.parse("#00FF00"), drawn.getLast().fillColor());
     }
 
     @Test

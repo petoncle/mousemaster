@@ -26,7 +26,7 @@ class VirtualKeyDeclarationTest {
     void aDeclaredKeyIsPressedByAMacroAndReadByACombo() {
         Configuration configuration = parse("virtual-key.flag=released",
                 "idle-mode.macro.x=+a -> #flag",
-                "idle-mode.indicator.color=#FF0000 | _{flag} -> #00FF00");
+                "idle-mode.indicator.fill-color=#FF0000 | _{flag} -> #00FF00");
         assertTrue(hasVirtualKey(configuration, "flag"));
         assertFalse(configuration.initiallyPressedVirtualKeys()
                                  .contains(new Key("flag", null, null)));
@@ -51,7 +51,7 @@ class VirtualKeyDeclarationTest {
     void aDeclarationSaysWhetherTheKeyStartsPressed() {
         Configuration configuration = parse("virtual-key.flag=pressed",
                 "idle-mode.macro.x=+a -> ~flag",
-                "idle-mode.indicator.color=#FF0000 | _{flag} -> #00FF00");
+                "idle-mode.indicator.fill-color=#FF0000 | _{flag} -> #00FF00");
         assertTrue(configuration.initiallyPressedVirtualKeys()
                                 .contains(new Key("flag", null, null)));
     }

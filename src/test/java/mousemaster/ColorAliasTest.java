@@ -18,21 +18,21 @@ class ColorAliasTest {
         Configuration configuration = parse(
                 "color-alias.screen-gradient=across-screen per-pixel center-to-edge #F97316 #3B82F6",
                 "idle-mode.hint.box-color=screen-gradient",
-                "idle-mode.indicator.color=screen-gradient",
-                "idle-mode.indicator.inner-outline-color=screen-gradient",
+                "idle-mode.indicator.fill-color=screen-gradient",
+                "idle-mode.indicator.stroke-color=screen-gradient",
                 "idle-mode.indicator.shadow-color=screen-gradient");
         Mode mode = configuration.modeMap().get(Mode.IDLE_MODE_NAME);
         GradientColor expected =
                 GradientColor.parse("across-screen per-pixel center-to-edge #F97316 #3B82F6");
         assertEquals(expected, mode.hintMesh().styleByFilter().map().values().iterator().next().boxColor());
-        assertEquals(expected, mode.indicator().layerByName().get("indicator").color());
-        assertEquals(expected, mode.indicator().layerByName().get("indicator").innerOutline().color());
+        assertEquals(expected, mode.indicator().layerByName().get("indicator").fillColor());
+        assertEquals(expected, mode.indicator().layerByName().get("indicator").stroke().color());
         assertEquals(expected, mode.indicator().shadow().color());
     }
 
     @Test
     void anUndefinedAliasIsStillRejected() {
         assertThrows(IllegalArgumentException.class,
-                () -> parse("idle-mode.indicator.color=no-such-alias"));
+                () -> parse("idle-mode.indicator.fill-color=no-such-alias"));
     }
 }

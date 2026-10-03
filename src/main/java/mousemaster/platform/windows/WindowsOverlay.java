@@ -405,8 +405,6 @@ public class WindowsOverlay implements Overlay {
                             hintMeshRenderer.lastSelectedHintBoxHexColor(),
                             mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                             WindowsScreen.findActiveScreen(mousePosition));
-            if (image == null)
-                return;
             mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
                     includeOriginalCursor, !animating);
             indicatorIsCursor = true;
@@ -613,11 +611,9 @@ public class WindowsOverlay implements Overlay {
                                 hintMeshRenderer.lastSelectedHintBoxHexColor(),
                                 mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                                 WindowsScreen.findActiveScreen(mousePosition));
-                if (image != null) {
-                    mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
-                            currentIncludeOriginalCursor, true);
-                    currentCursorScale = scale;
-                }
+                mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
+                        currentIncludeOriginalCursor, true);
+                currentCursorScale = scale;
             }
             return;
         }

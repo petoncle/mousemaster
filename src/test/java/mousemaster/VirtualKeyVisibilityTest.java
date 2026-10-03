@@ -112,7 +112,7 @@ class VirtualKeyVisibilityTest {
     @Test
     void builtInVirtualKeyDoesNotEvictAComboEventFromThePreparation() {
         load("idle-mode.indicator.render-as-cursor=false | +a -a -> true",
-                "idle-mode.indicator.color=#FF0000 | +isleftmousepressing -> #00FF00");
+                "idle-mode.indicator.fill-color=#FF0000 | +isleftmousepressing -> #00FF00");
         press("a");
         advance(50);
         comboWatcher.setVirtualKeyPressed(BuiltInVirtualKey.IS_LEFT_MOUSE_PRESSING, true);

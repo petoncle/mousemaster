@@ -17,13 +17,13 @@ public class LastSelectedHintBoxColorTest {
                         idle-mode.to.hint-mode=+u
                         hint-mode.to.idle-mode=+esc
                         hint-mode.hint.selection-keys=a b c d
-                        hint-mode.indicator.color=""" + indicatorColor + "\n")));
+                        hint-mode.indicator.fill-color=""" + indicatorColor + "\n")));
         return ConfigurationParser.parse(lines,
                 KeyboardLayout.keyboardLayoutByShortName.get("uk-qwerty"));
     }
 
     private Color indicatorColor(Configuration configuration) {
-        return configuration.modeMap().get("hint-mode").indicator().layerByName().get("indicator").color();
+        return configuration.modeMap().get("hint-mode").indicator().layerByName().get("indicator").fillColor();
     }
 
     @Test
