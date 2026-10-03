@@ -3432,6 +3432,7 @@ public class ConfigurationParser {
             case "smootherstep" -> new Easing.Smootherstep();
             case "logarithmic" -> new Easing.Logarithmic();
             case "exponential" -> new Easing.Exponential();
+            case "step" -> new Easing.Step();
             default -> propertyValue.startsWith("exponential-out-") ?
                     new Easing.ExponentialOut(Double.parseDouble(
                             propertyValue.substring("exponential-out-".length()))) :
