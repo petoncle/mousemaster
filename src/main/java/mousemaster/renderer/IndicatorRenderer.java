@@ -12,6 +12,7 @@ import mousemaster.GradientColor.GradientStep;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -153,10 +154,10 @@ public final class IndicatorRenderer {
 
     private int layerSizeWithStroke(IndicatorLayerConfiguration layer, double screenScale) {
         // An odd size puts the center of a centered layer half a pixel off, so it would
-        // shift as the size changes parity.
+        // shift as the size changes parity. A miter reaches as far as the stroke is thick,
+        // Qt's default miter limit.
         int size = (int) Math.ceil(layerSize(layer, screenScale) +
-                2 * IndicatorLayerWidget.strokePadding(
-                        layer.stroke().thickness() * screenScale, layer.edgeCount()));
+                2 * layer.stroke().thickness() * screenScale);
         return size + size % 2;
     }
 
@@ -280,7 +281,6 @@ public final class IndicatorRenderer {
             labelWidget.move(points(topLeft.x() - windowTopLeft.x(), pointsPerPixel),
                     points(topLeft.y() - windowTopLeft.y(), pointsPerPixel));
             labelWidget.resize(layerSizeWithStroke, layerSizeWithStroke);
-            labelWidget.setLayerSize(layerSize(layer, screenScale) / pointsPerPixel);
         }
     }
 
@@ -513,7 +513,8 @@ public final class IndicatorRenderer {
                             IndicatorLabelWidget labelWidget, Point topLeft,
                             double shadowScale, String lastSelectedHintBoxHexColor) {
         widget.setSweepArea(sweepArea(topLeft));
-        widget.setEdgeCount(layer.edgeCount());
+        widget.setShape(layer.shape(), layer.aspectRatio(), layer.borderRadius(),
+                layer.points());
         widget.setFill(QtColorUtil.qColor(hex(layer.fillColor(), lastSelectedHintBoxHexColor), layer.fillOpacity()),
                 sweep(layer.fillColor()));
         IndicatorStroke stroke = layer.stroke();
@@ -528,8 +529,7 @@ public final class IndicatorRenderer {
             QColor labelColor = QtColorUtil.qColor(hex(labelFontStyle.color(), lastSelectedHintBoxHexColor), labelFontStyle.opacity());
             QColor labelOutlineColor = QtColorUtil.qColor(hex(labelFontStyle.outlineColor(), lastSelectedHintBoxHexColor), labelFontStyle.outlineOpacity());
             labelWidget.setLabel(layer.labelText(), labelFont, labelColor,
-                    (int) Math.round(labelFontStyle.outlineThickness()), labelOutlineColor,
-                    layer.edgeCount());
+                    (int) Math.round(labelFontStyle.outlineThickness()), labelOutlineColor);
             Shadow labelShadow = labelFontStyle.shadow();
             QColor labelShadowColor = QtColorUtil.qColor(hex(labelShadow.color(), lastSelectedHintBoxHexColor), labelShadow.opacity());
             if (labelShadowColor.alpha() != 0) {
@@ -548,7 +548,7 @@ public final class IndicatorRenderer {
             labelWidget.show();
         }
         else {
-            labelWidget.setLabel(null, null, null, 0, null, 0);
+            labelWidget.setLabel(null, null, null, 0, null);
             labelWidget.setGraphicsEffect(null);
             labelWidget.hide();
         }
@@ -640,7 +640,10 @@ public final class IndicatorRenderer {
     private class IndicatorLayerWidget extends QWidget {
 
         private double layerSize;
-        private int edgeCount;
+        private IndicatorShape shape;
+        private double aspectRatio;
+        private double borderRadius;
+        private List<Point> points;
         private QColor fillColor;
         private GradientColor fillSweep;
         private IndicatorStroke stroke;
@@ -661,8 +664,12 @@ public final class IndicatorRenderer {
             this.strokeScale = strokeScale;
         }
 
-        void setEdgeCount(int edgeCount) {
-            this.edgeCount = edgeCount;
+        void setShape(IndicatorShape shape, double aspectRatio, double borderRadius,
+                      List<Point> points) {
+            this.shape = shape;
+            this.aspectRatio = aspectRatio;
+            this.borderRadius = borderRadius;
+            this.points = points;
         }
 
         void setFill(QColor fillColor, GradientColor fillSweep) {
@@ -680,24 +687,6 @@ public final class IndicatorRenderer {
             this.strokeSweep = strokeSweep;
         }
 
-        /**
-         * Axis-aligned padding needed around the shape's bounding box to fit a stroke
-         * centered on its edge, miter tips included.
-         * Projects the radial miter extension onto the x/y axes for each vertex
-         * and returns the maximum.
-         */
-        static double strokePadding(double strokeThickness, int edgeCount) {
-            double radial = strokeThickness / 2 / Math.cos(Math.PI / edgeCount);
-            double startAngle = polygonStartAngle(edgeCount);
-            double maxProjection = 0;
-            for (int i = 0; i < edgeCount; i++) {
-                double angle = startAngle + 2.0 * Math.PI * i / edgeCount;
-                maxProjection = Math.max(maxProjection,
-                        Math.max(Math.abs(Math.cos(angle)), Math.abs(Math.sin(angle))));
-            }
-            return radial * maxProjection;
-        }
-
         private QBrush brush(QColor color, GradientColor sweep) {
             return IndicatorRenderer.brush(color, sweep, sweepArea);
         }
@@ -706,225 +695,188 @@ public final class IndicatorRenderer {
             this.sweepArea = sweepArea;
         }
 
-        private static double polygonStartAngle(int edgeCount) {
-            // Odd edge count: vertex at top (pointy top, e.g. triangle ▲).
-            // Even edge count: flat edge at top (e.g. square □, hexagon ⬡).
-            double startAngle = -Math.PI / 2;
-            if (edgeCount % 2 == 0)
-                startAngle += Math.PI / edgeCount;
-            return startAngle;
+        private static final List<Point> trianglePoints =
+                List.of(new Point(0.5, 0), new Point(1, 1), new Point(0, 1));
+
+        private static final List<Point> starPoints = starPoints();
+
+        private static List<Point> starPoints() {
+            List<Point> starPoints = new ArrayList<>();
+            for (int i = 0; i < 10; i++) {
+                double radius = i % 2 == 0 ? 1 : 0.4;
+                double angle = -Math.PI / 2 + Math.PI * i / 5;
+                starPoints.add(new Point(radius * Math.cos(angle), radius * Math.sin(angle)));
+            }
+            return List.copyOf(starPoints);
         }
 
-        /** Past this many edges the polygon is a circle, which Qt draws in one call. */
-        private static final int circleEdgeCount = 100;
-
-        static QPainterPath polygonPath(double centerX, double centerY,
-                                       double radius, int edgeCount) {
+        /** The shape fills a box centered in the widget: size is the box's largest dimension
+         *  and aspectRatio its width over its height. */
+        private QPainterPath shapePath() {
+            double boxWidth = aspectRatio >= 1 ? layerSize : layerSize * aspectRatio;
+            double boxHeight = aspectRatio >= 1 ? layerSize / aspectRatio : layerSize;
+            double left = (width() - boxWidth) / 2;
+            double top = (height() - boxHeight) / 2;
             QPainterPath path = new QPainterPath();
-            if (edgeCount >= circleEdgeCount) {
-                path.addEllipse(centerX - radius, centerY - radius, 2 * radius, 2 * radius);
-                return path;
+            switch (shape) {
+                case CIRCLE -> path.addEllipse(left, top, boxWidth, boxHeight);
+                case RECTANGLE -> path.addRoundedRect(left, top, boxWidth, boxHeight,
+                        borderRadius * strokeScale, borderRadius * strokeScale,
+                        Qt.SizeMode.AbsoluteSize);
+                case TRIANGLE -> addPolygon(path, trianglePoints, left, top, boxWidth, boxHeight);
+                case STAR -> addPolygon(path, starPoints, left, top, boxWidth, boxHeight);
+                case PATH -> addPolygon(path, points, left, top, boxWidth, boxHeight);
+                case LINE -> {
+                    path.moveTo(left, top + boxHeight / 2);
+                    path.lineTo(left + boxWidth, top + boxHeight / 2);
+                }
+                case CROSS -> {
+                    path.moveTo(left, top);
+                    path.lineTo(left + boxWidth, top + boxHeight);
+                    path.moveTo(left + boxWidth, top);
+                    path.lineTo(left, top + boxHeight);
+                }
             }
-            double startAngle = polygonStartAngle(edgeCount);
-            for (int i = 0; i < edgeCount; i++) {
-                double angle = startAngle + 2.0 * Math.PI * i / edgeCount;
-                double x = centerX + radius * Math.cos(angle);
-                double y = centerY + radius * Math.sin(angle);
+            return path;
+        }
+
+        /** Moves and stretches the points so that the rectangle around them fills the shape's
+         *  box: points can be written in any units. */
+        private static void addPolygon(QPainterPath path, List<Point> points, double left,
+                                       double top, double width, double height) {
+            double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE;
+            double minY = Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
+            for (Point point : points) {
+                minX = Math.min(minX, point.x());
+                maxX = Math.max(maxX, point.x());
+                minY = Math.min(minY, point.y());
+                maxY = Math.max(maxY, point.y());
+            }
+            for (int i = 0; i < points.size(); i++) {
+                double x = left + (points.get(i).x() - minX) / (maxX - minX) * width;
+                double y = top + (points.get(i).y() - minY) / (maxY - minY) * height;
                 if (i == 0)
                     path.moveTo(x, y);
                 else
                     path.lineTo(x, y);
             }
             path.closeSubpath();
-            return path;
-        }
-
-        // Returns the circumradius such that the polygon's bounding box
-        // largest dimension equals targetSize, and the offset to center
-        // the bounding box (the polygon's BB may not be symmetric around
-        // the circumcenter, e.g. triangle).
-        record PolygonLayout(double radius, double offsetX, double offsetY) {}
-
-        static PolygonLayout polygonLayout(double targetSize, int edgeCount) {
-            double startAngle = polygonStartAngle(edgeCount);
-            double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE;
-            double minY = Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
-            for (int i = 0; i < edgeCount; i++) {
-                double angle = startAngle + 2.0 * Math.PI * i / edgeCount;
-                double cx = Math.cos(angle);
-                double cy = Math.sin(angle);
-                minX = Math.min(minX, cx);
-                maxX = Math.max(maxX, cx);
-                minY = Math.min(minY, cy);
-                maxY = Math.max(maxY, cy);
-            }
-            double maxDimension = Math.max(maxX - minX, maxY - minY);
-            double radius = targetSize / maxDimension;
-            double offsetX = -(minX + maxX) / 2.0 * radius;
-            double offsetY = -(minY + maxY) / 2.0 * radius;
-            return new PolygonLayout(radius, offsetX, offsetY);
         }
 
         /**
-         * Builds an open path tracing a portion of the polygon outline.
+         * Builds an open path tracing a portion of a closed shape's outline.
          * startAngle: 0 = top (12 o'clock), increases clockwise, in degrees.
          * lengthPercent: a fraction of the perimeter, negative going counterclockwise.
          * anchor: MIDDLE = expand symmetrically from startAngle.
          */
-        private static QPainterPath partialPolygonPath(double centerX, double centerY,
-                                                       double radius, int edgeCount,
-                                                       double startAngle, double lengthPercent,
-                                                       StrokeAnchor anchor) {
-            double polyStartAngle = polygonStartAngle(edgeCount);
-            double[] vx = new double[edgeCount];
-            double[] vy = new double[edgeCount];
-            for (int i = 0; i < edgeCount; i++) {
-                double angle = polyStartAngle + 2.0 * Math.PI * i / edgeCount;
-                vx[i] = centerX + radius * Math.cos(angle);
-                vy[i] = centerY + radius * Math.sin(angle);
+        private static QPainterPath partialPath(QPainterPath shapePath, double centerX,
+                                                double centerY, double startAngle,
+                                                double lengthPercent, StrokeAnchor anchor) {
+            QTransform identity = new QTransform();
+            QPolygonF polygon = shapePath.toFillPolygon(identity);
+            identity.dispose();
+            // A closed polygon: the last point repeats the first.
+            List<Point> vertices = new ArrayList<>();
+            double twiceSignedArea = 0;
+            for (QPointF point : polygon) {
+                vertices.add(new Point(point.x(), point.y()));
+                if (vertices.size() > 1) {
+                    Point previous = vertices.get(vertices.size() - 2);
+                    twiceSignedArea += previous.x() * point.y() - point.x() * previous.y();
+                }
             }
-            double edgeLength = Math.hypot(vx[1] - vx[0], vy[1] - vy[0]);
-            double totalLength = edgeCount * edgeLength;
-            double fillLength = Math.abs(lengthPercent) * totalLength;
-            // Convert startAngle (0=top, CW) to math angle for ray intersection.
-            // Math convention: 0=right, counter-clockwise positive.
-            // Screen coords: y increases downward, so sin is negated.
+            polygon.dispose();
+            // Clockwise on screen, so that a positive length goes clockwise whatever order a
+            // path's points come in.
+            if (twiceSignedArea < 0)
+                Collections.reverse(vertices);
+            double[] positions = new double[vertices.size()];
+            for (int i = 1; i < vertices.size(); i++)
+                positions[i] = positions[i - 1] + Math.hypot(
+                        vertices.get(i).x() - vertices.get(i - 1).x(),
+                        vertices.get(i).y() - vertices.get(i - 1).y());
+            double totalLength = positions[vertices.size() - 1];
+            // startAngle goes clockwise from 12 o'clock, a math angle counterclockwise from
+            // 3 o'clock, and y grows downward on screen.
             double mathAngle = Math.toRadians(90 - startAngle);
-            double rayDx = Math.cos(mathAngle);
-            double rayDy = -Math.sin(mathAngle); // negate for screen coords
-            // Find anchor position on perimeter by intersecting ray from center with polygon edges.
-            double anchorPos = findAnchorPos(centerX, centerY, rayDx, rayDy,
-                    vx, vy, edgeCount, edgeLength);
-            // Build path(s) based on direction.
-            // Vertex order is clockwise on screen. Forward = CW, backward = CCW.
-            if (anchor == StrokeAnchor.MIDDLE) {
-                double halfLength = fillLength / 2.0;
-                QPainterPath cwPath = traceAlongPerimeter(
-                        vx, vy, edgeCount, edgeLength, totalLength, anchorPos, halfLength, true);
-                QPainterPath ccwPath = traceAlongPerimeter(
-                        vx, vy, edgeCount, edgeLength, totalLength, anchorPos, halfLength, false);
-                QPainterPath combined = ccwPath.toReversed();
-                combined.connectPath(cwPath);
-                cwPath.dispose();
-                ccwPath.dispose();
-                return combined;
-            }
-            else {
-                boolean forward = lengthPercent > 0;
-                return traceAlongPerimeter(
-                        vx, vy, edgeCount, edgeLength, totalLength, anchorPos, fillLength, forward);
-            }
+            double anchorPosition = findAnchorPosition(centerX, centerY, Math.cos(mathAngle),
+                    -Math.sin(mathAngle), vertices, positions);
+            double length = Math.abs(lengthPercent) * totalLength;
+            double start = anchor == StrokeAnchor.MIDDLE ? anchorPosition - length / 2 :
+                    lengthPercent > 0 ? anchorPosition : anchorPosition - length;
+            return tracePerimeter(vertices, positions, start, length);
         }
 
         /**
-         * Finds the perimeter position (distance along polygon edges from vertex 0)
-         * where a ray from center in direction (rayDx, rayDy) intersects the polygon.
+         * Finds the perimeter position (distance along the polygon's edges from vertex 0)
+         * where a ray from center in direction (rayX, rayY) intersects the polygon.
          */
-        private static double findAnchorPos(double centerX, double centerY,
-                                            double rayDx, double rayDy,
-                                            double[] vx, double[] vy,
-                                            int edgeCount, double edgeLength) {
-            double bestT = Double.MAX_VALUE;
-            int bestEdge = 0;
-            double bestFrac = 0;
-            for (int i = 0; i < edgeCount; i++) {
-                int j = (i + 1) % edgeCount;
-                double ex = vx[j] - vx[i];
-                double ey = vy[j] - vy[i];
-                // Solve: center + t * ray = vertex[i] + s * edge
-                double denom = rayDx * ey - rayDy * ex;
-                if (Math.abs(denom) < 1e-12)
+        private static double findAnchorPosition(double centerX, double centerY,
+                                                 double rayX, double rayY,
+                                                 List<Point> vertices, double[] positions) {
+            double bestRayDistance = Double.MAX_VALUE;
+            double bestPosition = 0;
+            for (int i = 0; i < vertices.size() - 1; i++) {
+                double edgeX = vertices.get(i + 1).x() - vertices.get(i).x();
+                double edgeY = vertices.get(i + 1).y() - vertices.get(i).y();
+                // Solve: center + rayDistance * ray = vertex + edgeFraction * edge
+                double denominator = rayX * edgeY - rayY * edgeX;
+                if (Math.abs(denominator) < 1e-12)
                     continue;
-                double dx = vx[i] - centerX;
-                double dy = vy[i] - centerY;
-                double t = (dx * ey - dy * ex) / denom;
-                double s = (dx * rayDy - dy * rayDx) / denom;
-                if (t > 1e-9 && s >= -1e-9 && s <= 1 + 1e-9) {
-                    if (t < bestT) {
-                        bestT = t;
-                        bestEdge = i;
-                        bestFrac = Math.max(0, Math.min(1, s));
-                    }
+                double centerToVertexX = vertices.get(i).x() - centerX;
+                double centerToVertexY = vertices.get(i).y() - centerY;
+                double rayDistance =
+                        (centerToVertexX * edgeY - centerToVertexY * edgeX) / denominator;
+                double edgeFraction =
+                        (centerToVertexX * rayY - centerToVertexY * rayX) / denominator;
+                if (rayDistance > 1e-9 && edgeFraction >= -1e-9 && edgeFraction <= 1 + 1e-9 &&
+                    rayDistance < bestRayDistance) {
+                    bestRayDistance = rayDistance;
+                    bestPosition = positions[i] + Math.max(0, Math.min(1, edgeFraction)) *
+                                                  (positions[i + 1] - positions[i]);
                 }
             }
-            return bestEdge * edgeLength + bestFrac * edgeLength;
+            return bestPosition;
         }
 
-        /**
-         * Traces a path along the polygon perimeter starting from anchorPos
-         * for the given length, either forward (increasing vertex index) or
-         * backward (decreasing vertex index).
-         */
-        private static QPainterPath traceAlongPerimeter(double[] vx, double[] vy,
-                                                        int edgeCount, double edgeLength,
-                                                        double totalLength, double anchorPos,
-                                                        double length, boolean forward) {
-            // Compute start point on the perimeter.
-            double startPos = forward ? anchorPos : anchorPos;
-            int startEdge = (int) (startPos / edgeLength);
-            if (startEdge >= edgeCount)
-                startEdge = edgeCount - 1;
-            double startFrac = (startPos - startEdge * edgeLength) / edgeLength;
-            startFrac = Math.max(0, Math.min(1, startFrac));
-            int v0 = startEdge;
-            int v1 = (startEdge + 1) % edgeCount;
-            double sx = vx[v0] + startFrac * (vx[v1] - vx[v0]);
-            double sy = vy[v0] + startFrac * (vy[v1] - vy[v0]);
+        /** Traces the outline clockwise from a perimeter position over a length, going around
+         *  past vertex 0 as needed. */
+        private static QPainterPath tracePerimeter(List<Point> vertices, double[] positions,
+                                                   double start, double length) {
+            double totalLength = positions[positions.length - 1];
+            double end = start + length;
             QPainterPath path = new QPainterPath();
-            path.moveTo(sx, sy);
-            double remaining = length;
-            if (forward) {
-                double distInCurrentEdge = (1 - startFrac) * edgeLength;
-                int currentEdge = startEdge;
-                while (remaining > 1e-6) {
-                    int nextV = (currentEdge + 1) % edgeCount;
-                    if (remaining >= distInCurrentEdge - 1e-6) {
-                        path.lineTo(vx[nextV], vy[nextV]);
-                        remaining -= distInCurrentEdge;
-                        currentEdge = (currentEdge + 1) % edgeCount;
-                        distInCurrentEdge = edgeLength;
-                    }
-                    else {
-                        double frac = remaining / edgeLength;
-                        int curV = currentEdge;
-                        int nxtV = (currentEdge + 1) % edgeCount;
-                        double ex = vx[curV] + frac * (vx[nxtV] - vx[curV]);
-                        double ey = vy[curV] + frac * (vy[nxtV] - vy[curV]);
-                        path.lineTo(ex, ey);
-                        remaining = 0;
-                    }
+            Point startPoint = perimeterPoint(vertices, positions, start);
+            path.moveTo(startPoint.x(), startPoint.y());
+            for (double lap = Math.floor(start / totalLength) * totalLength; lap < end;
+                 lap += totalLength) {
+                for (int i = 0; i < positions.length - 1; i++) {
+                    double position = lap + positions[i];
+                    if (position > start && position < end)
+                        path.lineTo(vertices.get(i).x(), vertices.get(i).y());
                 }
             }
-            else {
-                // Backward: traverse edges in decreasing index order.
-                double distInCurrentEdge = startFrac * edgeLength;
-                int currentEdge = startEdge;
-                while (remaining > 1e-6) {
-                    int curV = currentEdge;
-                    if (remaining >= distInCurrentEdge - 1e-6) {
-                        path.lineTo(vx[curV], vy[curV]);
-                        remaining -= distInCurrentEdge;
-                        currentEdge = (currentEdge - 1 + edgeCount) % edgeCount;
-                        distInCurrentEdge = edgeLength;
-                    }
-                    else {
-                        int nextV = (currentEdge + 1) % edgeCount;
-                        double frac = 1.0 - remaining / edgeLength;
-                        double ex = vx[curV] + frac * (vx[nextV] - vx[curV]);
-                        double ey = vy[curV] + frac * (vy[nextV] - vy[curV]);
-                        path.lineTo(ex, ey);
-                        remaining = 0;
-                    }
-                }
-            }
+            Point endPoint = perimeterPoint(vertices, positions, end);
+            path.lineTo(endPoint.x(), endPoint.y());
             return path;
         }
 
+        private static Point perimeterPoint(List<Point> vertices, double[] positions,
+                                            double position) {
+            double totalLength = positions[positions.length - 1];
+            double wrapped = (position % totalLength + totalLength) % totalLength;
+            int i = 0;
+            while (i < positions.length - 2 && positions[i + 1] <= wrapped)
+                i++;
+            double fraction = (wrapped - positions[i]) / (positions[i + 1] - positions[i]);
+            Point from = vertices.get(i);
+            Point to = vertices.get(i + 1);
+            return new Point(from.x() + fraction * (to.x() - from.x()),
+                    from.y() + fraction * (to.y() - from.y()));
+        }
+
         void drawContent(QPainter painter, QColor fillColor, QColor strokeColor) {
-            PolygonLayout layout = polygonLayout(layerSize, edgeCount);
-            double centerX = width() / 2.0 + layout.offsetX;
-            double centerY = height() / 2.0 + layout.offsetY;
-            QPainterPath path = polygonPath(centerX, centerY, layout.radius, edgeCount);
+            QPainterPath path = shapePath();
             if (fillColor.alpha() != 0) {
                 painter.setPen(Qt.PenStyle.NoPen);
                 painter.setBrush(brush(fillColor, fillSweep));
@@ -938,16 +890,15 @@ public final class IndicatorRenderer {
                 pen.setWidthF(strokeThickness);
                 pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin);
                 painter.setBrush(Qt.BrushStyle.NoBrush);
-                if (Math.abs(stroke.lengthPercent()) >= 1) {
+                if (Math.abs(stroke.lengthPercent()) >= 1 || !shape.closed()) {
                     painter.setPen(pen);
                     painter.drawPath(path);
                 }
                 else {
                     pen.setCapStyle(Qt.PenCapStyle.FlatCap);
                     painter.setPen(pen);
-                    QPainterPath strokePath = partialPolygonPath(centerX, centerY,
-                            layout.radius, edgeCount, stroke.startAngle(), stroke.lengthPercent(),
-                            stroke.anchor());
+                    QPainterPath strokePath = partialPath(path, width() / 2.0, height() / 2.0,
+                            stroke.startAngle(), stroke.lengthPercent(), stroke.anchor());
                     painter.drawPath(strokePath);
                     strokePath.dispose();
                 }
@@ -1037,21 +988,14 @@ public final class IndicatorRenderer {
         private QColor labelColor;
         private int outlineThickness;
         private QColor outlineColor;
-        private int edgeCount;
-        private double layerSize;
 
         IndicatorLabelWidget(QWidget parent) {
             super(parent);
             setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents);
         }
 
-        void setLayerSize(double layerSize) {
-            this.layerSize = layerSize;
-        }
-
         void setLabel(String labelText, QFont labelFont, QColor labelColor,
-                      int outlineThickness, QColor outlineColor,
-                      int edgeCount) {
+                      int outlineThickness, QColor outlineColor) {
             if (this.labelFont != null)
                 this.labelFont.dispose();
             if (this.labelColor != null)
@@ -1063,7 +1007,6 @@ public final class IndicatorRenderer {
             this.labelColor = labelColor;
             this.outlineThickness = outlineThickness;
             this.outlineColor = outlineColor;
-            this.edgeCount = edgeCount;
             update();
         }
 
@@ -1074,11 +1017,7 @@ public final class IndicatorRenderer {
             QPainter painter = new QPainter(this);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             painter.setFont(labelFont);
-            IndicatorLayerWidget.PolygonLayout polygonLayout =
-                    IndicatorLayerWidget.polygonLayout(layerSize, edgeCount);
-            double centerX = width() / 2.0 + polygonLayout.offsetX();
-            double centerY = height() / 2.0 + polygonLayout.offsetY();
-            drawLabelText(painter, labelText, labelFont, centerX, centerY,
+            drawLabelText(painter, labelText, labelFont, width() / 2.0, height() / 2.0,
                     outlineThickness, outlineColor, labelColor);
             painter.end();
             painter.dispose();

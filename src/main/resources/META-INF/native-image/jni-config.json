@@ -215,7 +215,8 @@
   "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
 {
-  "name":"io.qt.core.QPointF"
+  "name":"io.qt.core.QPointF",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
 {
   "name":"io.qt.core.QRect",
@@ -400,6 +401,10 @@
 },
 {
   "name":"io.qt.gui.QPolygon"
+},
+{
+  "name":"io.qt.gui.QPolygonF",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
 {
   "name":"io.qt.gui.QRegion",
