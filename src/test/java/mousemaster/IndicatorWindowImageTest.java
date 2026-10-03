@@ -75,4 +75,22 @@ class IndicatorWindowImageTest {
         assertEquals(before.x(), after.x());
         assertTrue(after.image().width() > before.image().width());
     }
+
+    private static int centerArgb(WindowImage windowImage) {
+        IndicatorRenderer.IndicatorImage image = windowImage.image();
+        return image.argb()[image.height() / 2 * image.width() + image.width() / 2];
+    }
+
+    @Test
+    void aColorAcrossTheScreenIsDrawnAgainWhereTheIndicatorMoved() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        IndicatorConfiguration indicator = indicator(
+                "idle-mode.indicator.fill-color=across-screen left-to-right #FF0000 #0000FF",
+                "idle-mode.indicator.fill-opacity=1");
+        IndicatorRenderer renderer = new IndicatorRenderer();
+        int left = centerArgb(render(renderer, indicator, Set.of("indicator"), 0));
+        int right = centerArgb(render(renderer, indicator, Set.of(), 1880));
+        assertTrue((left >> 16 & 0xFF) > 0xE0 && (left & 0xFF) < 0x20, Integer.toHexString(left));
+        assertTrue((right & 0xFF) > 0xE0 && (right >> 16 & 0xFF) < 0x20, Integer.toHexString(right));
+    }
 }
