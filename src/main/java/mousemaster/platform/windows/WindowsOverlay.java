@@ -378,10 +378,9 @@ public class WindowsOverlay implements Overlay {
                              boolean includeOriginalCursor) {
         Objects.requireNonNull(indicator);
         boolean renderAsCursor = indicator.renderAsCursor();
-        IndicatorLayerConfiguration layer = indicator.layerByName().get("indicator");
         if (!renderAsCursor && !indicatorIsCursor && indicatorRenderer != null &&
             indicatorRenderer.showing() &&
-            layer.equals(indicatorRenderer.currentIndicator()))
+            indicator.equals(indicatorRenderer.currentIndicator()))
             return;
         if (mouse.tryFindMousePosition() == null) {
             if (!mousePositionMissing)
@@ -402,7 +401,7 @@ public class WindowsOverlay implements Overlay {
             if (indicatorRenderer == null)
                 indicatorRenderer = new IndicatorRenderer();
             IndicatorRenderer.CursorImage image =
-                    indicatorRenderer.renderCursorImage(layer, scale,
+                    indicatorRenderer.renderCursorImage(indicator, scale,
                             hintMeshRenderer.lastSelectedHintBoxHexColor(),
                             mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                             WindowsScreen.findActiveScreen(mousePosition));
@@ -424,7 +423,7 @@ public class WindowsOverlay implements Overlay {
         if (indicatorHwnd == null)
             createIndicatorWindow();
         boolean wasShowing = indicatorRenderer.showing();
-        indicatorRenderer.setIndicator(layer, mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
+        indicatorRenderer.setIndicator(indicator, mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                 WindowsScreen.findActiveScreen(mousePosition), currentZoom,
                 hintMeshRenderer.lastSelectedHintBoxHexColor());
         if (!wasShowing)
@@ -610,8 +609,7 @@ public class WindowsOverlay implements Overlay {
             double scale = WindowsScreen.findActiveScreen(mousePosition).scale();
             if (scale != currentCursorScale && currentCursorIndicator != null) {
                 IndicatorRenderer.CursorImage image =
-                        indicatorRenderer.renderCursorImage(
-                                currentCursorIndicator.layerByName().get("indicator"), scale,
+                        indicatorRenderer.renderCursorImage(currentCursorIndicator, scale,
                                 hintMeshRenderer.lastSelectedHintBoxHexColor(),
                                 mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                                 WindowsScreen.findActiveScreen(mousePosition));

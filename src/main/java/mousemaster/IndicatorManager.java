@@ -28,7 +28,7 @@ public class IndicatorManager implements ModeListener {
 
     public void update() {
         IndicatorConfiguration indicator = resolve();
-        if (!indicator.layerByName().get("indicator").enabled()) {
+        if (!enabled(indicator)) {
             overlay.hideIndicator();
             return;
         }
@@ -48,8 +48,7 @@ public class IndicatorManager implements ModeListener {
     private IndicatorConfiguration resolve() {
         updateTimelines();
         IndicatorConfiguration indicator = withTimelines(currentMode.indicator());
-        resolvedIndicator =
-                indicator.layerByName().get("indicator").enabled() ? indicator : null;
+        resolvedIndicator = enabled(indicator) ? indicator : null;
         return indicator;
     }
 
@@ -98,7 +97,15 @@ public class IndicatorManager implements ModeListener {
                 indicator = (IndicatorConfiguration) ModePropertyMutator.mutateModeProperty(
                         indicator, fieldNames, value, null);
         }
-        return new IndicatorConfiguration(indicator.renderAsCursor(), layerByName);
+        return new IndicatorConfiguration(indicator.renderAsCursor(), indicator.shadow(),
+                layerByName);
+    }
+
+    private static boolean enabled(IndicatorConfiguration indicator) {
+        for (IndicatorLayerConfiguration layer : indicator.layerByName().values())
+            if (layer.enabled())
+                return true;
+        return false;
     }
 
     private static List<String> indicatorFieldNames(ModePropertyPath propertyPath) {

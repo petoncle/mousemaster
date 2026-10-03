@@ -1,16 +1,18 @@
 package mousemaster;
 
 import mousemaster.IndicatorLayerConfiguration.IndicatorLayerConfigurationBuilder;
+import mousemaster.Shadow.ShadowBuilder;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public record IndicatorConfiguration(boolean renderAsCursor,
+public record IndicatorConfiguration(boolean renderAsCursor, Shadow shadow,
                                      Map<String, IndicatorLayerConfiguration> layerByName) {
 
     public static class IndicatorConfigurationBuilder {
 
         private Boolean renderAsCursor;
+        private final ShadowBuilder shadow = new ShadowBuilder();
         private final Map<String, IndicatorLayerConfigurationBuilder> layerByName =
                 new LinkedHashMap<>();
 
@@ -21,6 +23,10 @@ public record IndicatorConfiguration(boolean renderAsCursor,
 
         public Boolean renderAsCursor() {
             return renderAsCursor;
+        }
+
+        public ShadowBuilder shadow() {
+            return shadow;
         }
 
         public Map<String, IndicatorLayerConfigurationBuilder> layerByName() {
@@ -34,6 +40,7 @@ public record IndicatorConfiguration(boolean renderAsCursor,
 
         public void extend(IndicatorConfigurationBuilder parent) {
             if (renderAsCursor == null) renderAsCursor = parent.renderAsCursor;
+            shadow.extend(parent.shadow);
             for (Map.Entry<String, IndicatorLayerConfigurationBuilder> entry : parent.layerByName.entrySet())
                 layer(entry.getKey()).extend(entry.getValue());
         }
@@ -42,7 +49,7 @@ public record IndicatorConfiguration(boolean renderAsCursor,
             Map<String, IndicatorLayerConfiguration> builtLayerByName = new LinkedHashMap<>();
             for (Map.Entry<String, IndicatorLayerConfigurationBuilder> entry : layerByName.entrySet())
                 builtLayerByName.put(entry.getKey(), entry.getValue().build());
-            return new IndicatorConfiguration(renderAsCursor, builtLayerByName);
+            return new IndicatorConfiguration(renderAsCursor, shadow.build(), builtLayerByName);
         }
     }
 }

@@ -11,53 +11,76 @@ import mousemaster.GradientColor.GradientStep;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Cross-platform Qt rendering of the mouse indicator: owns the indicator widget, its
- * label widget and shadow effects, and computes where and how big to draw the indicator.
+ * Cross-platform Qt rendering of the mouse indicator: owns a widget and a label widget per
+ * layer and the shadow effects, and computes where and how big to draw each layer.
  * The platform overlay owns the native window (styles its handle) and supplies the cursor,
  * screen and zoom.
  */
 public final class IndicatorRenderer {
 
     private TransparentWindow window;
-    private IndicatorWidget widget;
-    private IndicatorLabelWidget labelWidget;
-    private IndicatorLayerConfiguration currentIndicator;
+    private QWidget layersWidget;
+    private final List<IndicatorLayerWidget> widgets = new ArrayList<>();
+    private final List<IndicatorLabelWidget> labelWidgets = new ArrayList<>();
+    private IndicatorShadowEffect shadowEffect;
+    private IndicatorConfiguration currentIndicator;
+    private List<IndicatorLayerConfiguration> currentEnabledLayers;
     private Rectangle gradientArea;
     private Point gradientPoint;
-    private Point widgetOrigin;
+    private final List<Point> currentTopLefts = new ArrayList<>();
     private int maxIndicatorWindowSize;
     private boolean showing;
+    private boolean cleared;
 
     /** Lazily creates the window and its widgets; the host styles winId() afterwards. */
     public TransparentWindow window() {
         if (window == null) {
             window = new TransparentWindow();
-            widget = new IndicatorWidget(window);
-            // Label widget is a child of window (not widget) so it renders on top
-            // of the shadow effect and can clear/redraw the fill area.
-            labelWidget = new IndicatorLabelWidget(window);
+            layersWidget = new QWidget(window);
         }
         return window;
+    }
+
+    private IndicatorLayerWidget widget(int index) {
+        if (index == widgets.size()) {
+            widgets.add(new IndicatorLayerWidget(layersWidget));
+            // Label widget is a child of window (not widget) so it renders on top
+            // of the shadow effect and can clear/redraw the fill area.
+            labelWidgets.add(new IndicatorLabelWidget(window));
+        }
+        return widgets.get(index);
     }
 
     /** Installing a graphics effect for the first time initializes Qt machinery that costs
      *  around 15ms, which the first mode to show an indicator would otherwise pay. */
     public void preWarm() {
         window();
-        widget.setGraphicsEffect(new IndicatorShadowEffect(widget, this));
-        widget.setGraphicsEffect(null);
+        layersWidget.setGraphicsEffect(new IndicatorShadowEffect(this));
+        layersWidget.setGraphicsEffect(null);
     }
 
     public boolean showing() {
         return showing;
     }
 
-    public IndicatorLayerConfiguration currentIndicator() {
+    public IndicatorConfiguration currentIndicator() {
         return currentIndicator;
+    }
+
+    private static List<IndicatorLayerConfiguration> enabledLayers(
+            IndicatorConfiguration indicator) {
+        List<IndicatorLayerConfiguration> layers = new ArrayList<>();
+        for (IndicatorLayerConfiguration layer : indicator.layerByName().values())
+            if (layer.enabled())
+                layers.add(layer);
+        layers.sort(Comparator.comparingInt(IndicatorLayerConfiguration::z));
+        return layers;
     }
 
     private void setGradientSampling(Rectangle mouseRectangle, Point cursorVisualCenter,
@@ -88,10 +111,10 @@ public final class IndicatorRenderer {
                gradientColor.step() == GradientStep.PIXEL ? gradientColor : null;
     }
 
-    /** The screen a sweep runs over, relative to the indicator the brush spans. */
-    private Rectangle sweepArea() {
-        return new Rectangle(snapped(gradientArea.x() - widgetOrigin.x()),
-                snapped(gradientArea.y() - widgetOrigin.y()),
+    /** The screen a sweep runs over, relative to the widget the brush spans. */
+    private Rectangle sweepArea(Point topLeft) {
+        return new Rectangle(snapped(gradientArea.x() - topLeft.x()),
+                snapped(gradientArea.y() - topLeft.y()),
                 gradientArea.width(), gradientArea.height());
     }
 
@@ -104,67 +127,46 @@ public final class IndicatorRenderer {
                 sweep.direction().start(sweepArea), sweep.direction().end(sweepArea));
     }
 
-    private int indicatorSize(IndicatorLayerConfiguration indicator, double screenScale) {
-        // An odd size puts the center of a centered indicator half a pixel off, so it would
+    private int layerSize(IndicatorLayerConfiguration layer, double screenScale) {
+        // An odd size puts the center of a centered layer half a pixel off, so it would
         // shift as the size changes parity.
-        int size = (int) Math.floor(indicator.size() * screenScale);
+        int size = (int) Math.floor(layer.size() * screenScale);
         return size - size % 2;
     }
 
-    private int indicatorOutlinePadding(IndicatorLayerConfiguration indicator, double screenScale) {
+    private int layerOutlinePadding(IndicatorLayerConfiguration layer, double screenScale) {
         double scaled = Math.max(
-                indicator.outerOutline().thickness(),
-                indicator.innerOutline().thickness()) * screenScale;
-        return (int) Math.ceil(IndicatorWidget.miterPadding(scaled, indicator.edgeCount()));
+                layer.outerOutline().thickness(),
+                layer.innerOutline().thickness()) * screenScale;
+        return (int) Math.ceil(IndicatorLayerWidget.miterPadding(scaled, layer.edgeCount()));
     }
 
-    private int indicatorShadowPadding(IndicatorLayerConfiguration indicator, double scale) {
-        if (indicator.shadow().blurRadius() == 0)
+    private int layerSizeWithOutlines(IndicatorLayerConfiguration layer, double screenScale) {
+        return layerSize(layer, screenScale) +
+               2 * layerOutlinePadding(layer, screenScale);
+    }
+
+    private int indicatorShadowPadding(Shadow shadow, double scale) {
+        if (shadow.blurRadius() == 0)
             return 0;
-        return (int) Math.ceil((indicator.shadow().blurRadius() +
-                Math.max(Math.abs(indicator.shadow().horizontalOffset()),
-                         Math.abs(indicator.shadow().verticalOffset()))) * scale);
+        return (int) Math.ceil((shadow.blurRadius() +
+                Math.max(Math.abs(shadow.horizontalOffset()),
+                         Math.abs(shadow.verticalOffset()))) * scale);
     }
 
 
-    /** Shows/updates the indicator: detects what changed, repositions when needed, and
-     *  renders. The overlay supplies the cursor rectangle, its visual center, and the
-     *  active screen and zoom. */
-    public void setIndicator(IndicatorLayerConfiguration indicator,
+    /** Shows/updates the indicator: repositions and renders unless nothing changed. The
+     *  overlay supplies the cursor rectangle, its visual center, and the active screen and
+     *  zoom. */
+    public void setIndicator(IndicatorConfiguration indicator,
                              Rectangle mouseRectangle, Point cursorVisualCenter,
                              Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
         setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
-        IndicatorLayerConfiguration oldIndicator = currentIndicator;
-        if (showing && oldIndicator != null && oldIndicator.equals(indicator))
+        if (showing && indicator.equals(currentIndicator))
             return;
-        boolean wasShowing = showing;
-        boolean created = oldIndicator == null;
-        boolean applyShadow;
-        boolean sizeOrShadowOrPositionChanged;
-        if (created) {
-            applyShadow = true;
-            sizeOrShadowOrPositionChanged = true;
-        }
-        else {
-            boolean sizeOrShadowChanged = oldIndicator == null ||
-                    indicator.size() != oldIndicator.size() ||
-                    indicator.edgeCount() != oldIndicator.edgeCount() ||
-                    indicator.outerOutline().thickness() != oldIndicator.outerOutline().thickness() ||
-                    indicator.innerOutline().thickness() != oldIndicator.innerOutline().thickness() ||
-                    !indicator.shadow().equals(oldIndicator.shadow()) ||
-                    indicator.opacity() != oldIndicator.opacity() ||
-                    indicator.outerOutline().opacity() != oldIndicator.outerOutline().opacity() ||
-                    indicator.innerOutline().opacity() != oldIndicator.innerOutline().opacity();
-            boolean positionChanged = oldIndicator == null ||
-                    indicator.position() != oldIndicator.position();
-            applyShadow = sizeOrShadowChanged;
-            sizeOrShadowOrPositionChanged = sizeOrShadowChanged || positionChanged;
-        }
         // Position the (hidden) window before showIndicator shows it.
-        if (!wasShowing || sizeOrShadowOrPositionChanged)
-            reposition(indicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
-        double shadowScale = activeScreen.scale();
-        showIndicator(indicator, applyShadow, shadowScale, lastSelectedHintBoxHexColor);
+        reposition(indicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
+        showIndicator(indicator, activeScreen.scale(), lastSelectedHintBoxHexColor);
     }
 
     /** Repositions/resizes the current indicator for the cursor, screen and zoom. */
@@ -173,68 +175,133 @@ public final class IndicatorRenderer {
         reposition(currentIndicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
     }
 
-    private void reposition(IndicatorLayerConfiguration indicator, Rectangle mouseRectangle,
+    private void reposition(IndicatorConfiguration indicator, Rectangle mouseRectangle,
                             Point cursorVisualCenter, Screen activeScreen, Zoom zoom) {
         double screenScale = activeScreen.scale();
+        List<IndicatorLayerConfiguration> enabledLayers = enabledLayers(indicator);
         // Screen pixels: the configured size does not change with the zoom. Only the
         // position does, because the cursor it marks is a desktop point.
-        int size = indicatorSize(indicator, screenScale);
-        int outlinePadding = indicatorOutlinePadding(indicator, screenScale);
-        int shadowPadding = indicatorShadowPadding(indicator, screenScale);
-        int visualSize = size + 2 * outlinePadding;
-        Point topLeft = indicatorTopLeft(mouseRectangle, cursorVisualCenter, activeScreen,
-                zoom, indicator, visualSize);
-        moveAndResize(activeScreen, (int) Math.round(topLeft.x()),
-                (int) Math.round(topLeft.y()), size, outlinePadding, shadowPadding,
-                screenScale);
+        List<Point> topLefts = new ArrayList<>();
+        for (IndicatorLayerConfiguration layer : enabledLayers) {
+            Point topLeft = layerTopLeft(mouseRectangle, cursorVisualCenter, activeScreen,
+                    zoom, layer, layerSizeWithOutlines(layer, screenScale));
+            topLefts.add(new Point(Math.round(topLeft.x()), Math.round(topLeft.y())));
+        }
+        Rectangle layersRectangle = layersRectangle(enabledLayers, topLefts, screenScale);
+        // Never resize the window: the DWM compositor would show the old surface at the new
+        // size for one frame, mispositioning the indicator. It fits the largest indicator drawn
+        // so far; the extra area is transparent and the visible layers stay at their
+        // top-lefts regardless.
+        int windowSize = Math.max(layersRectangle.width(), layersRectangle.height()) +
+                         2 * indicatorShadowPadding(indicator.shadow(), screenScale);
+        maxIndicatorWindowSize = Math.max(maxIndicatorWindowSize, windowSize);
+        windowSize = maxIndicatorWindowSize;
+        int windowX = layersRectangle.x() + layersRectangle.width() / 2 - windowSize / 2;
+        int windowY = layersRectangle.y() + layersRectangle.height() / 2 - windowSize / 2;
+        window.moveAndResizeInPixels(activeScreen, windowX, windowY, windowSize, windowSize);
+        placeLayers(enabledLayers, topLefts,
+                new Point(layersRectangle.x(), layersRectangle.y()),
+                layersRectangle.width(), layersRectangle.height(),
+                new Point(windowX, windowY), screenScale, Os.macos ? activeScreen.scale() : 1);
     }
 
-    private static final int indicatorEdgeThreshold = 100;
+    private Rectangle layersRectangle(List<IndicatorLayerConfiguration> layers,
+                                      List<Point> topLefts, double screenScale) {
+        int left = Integer.MAX_VALUE;
+        int top = Integer.MAX_VALUE;
+        int right = Integer.MIN_VALUE;
+        int bottom = Integer.MIN_VALUE;
+        for (int i = 0; i < layers.size(); i++) {
+            int layerSizeWithOutlines = layerSizeWithOutlines(layers.get(i), screenScale);
+            int x = (int) topLefts.get(i).x();
+            int y = (int) topLefts.get(i).y();
+            left = Math.min(left, x);
+            top = Math.min(top, y);
+            right = Math.max(right, x + layerSizeWithOutlines);
+            bottom = Math.max(bottom, y + layerSizeWithOutlines);
+        }
+        return new Rectangle(left, top, right - left, bottom - top);
+    }
+
+    private void placeLayers(List<IndicatorLayerConfiguration> layers, List<Point> topLefts,
+                             Point layersTopLeft, int layersWidth, int layersHeight,
+                             Point windowTopLeft, double screenScale,
+                             double pointsPerPixel) {
+        layersWidget.move(points(layersTopLeft.x() - windowTopLeft.x(), pointsPerPixel),
+                points(layersTopLeft.y() - windowTopLeft.y(), pointsPerPixel));
+        layersWidget.resize(points(layersWidth, pointsPerPixel),
+                points(layersHeight, pointsPerPixel));
+        currentTopLefts.clear();
+        currentTopLefts.addAll(topLefts);
+        for (int i = 0; i < layers.size(); i++) {
+            IndicatorLayerConfiguration layer = layers.get(i);
+            Point topLeft = topLefts.get(i);
+            int layerSizeWithOutlines =
+                    points(layerSizeWithOutlines(layer, screenScale), pointsPerPixel);
+            IndicatorLayerWidget widget = widget(i);
+            widget.setOutlineScale(screenScale);
+            widget.move(points(topLeft.x() - layersTopLeft.x(), pointsPerPixel),
+                    points(topLeft.y() - layersTopLeft.y(), pointsPerPixel));
+            widget.resize(layerSizeWithOutlines, layerSizeWithOutlines);
+            IndicatorLabelWidget labelWidget = labelWidgets.get(i);
+            labelWidget.move(points(topLeft.x() - windowTopLeft.x(), pointsPerPixel),
+                    points(topLeft.y() - windowTopLeft.y(), pointsPerPixel));
+            labelWidget.resize(layerSizeWithOutlines, layerSizeWithOutlines);
+            labelWidget.setLayerOutlinePadding(
+                    points(layerOutlinePadding(layer, screenScale), pointsPerPixel));
+        }
+    }
+
+    private static int points(double pixels, double pointsPerPixel) {
+        return (int) Math.round(pixels / pointsPerPixel);
+    }
+
+    private static final int layerEdgeThreshold = 100;
 
     /**
-     * Returns the indicator top-left position for the given indicator size.
-     * For CENTER, the indicator is centered on the cursor's visual center.
-     * For corner positions, the indicator is placed in that corner relative to the cursor,
+     * Returns the layer top-left position for the given layer size.
+     * For CENTER, the layer is centered on the cursor's visual center.
+     * For corner positions, the layer is placed in that corner relative to the cursor,
      * flipping to the opposite side when near the corresponding screen edge.
      */
-    private Point indicatorTopLeft(Rectangle mouseRectangle, Point cursorVisualCenter,
-                                   Screen activeScreen, Zoom zoom, IndicatorLayerConfiguration indicator,
-                                   int visualSize) {
+    private Point layerTopLeft(Rectangle mouseRectangle, Point cursorVisualCenter,
+                               Screen activeScreen, Zoom zoom, IndicatorLayerConfiguration layer,
+                               int layerSizeWithOutlines) {
         Rectangle screen = activeScreen.rectangle();
-        if (indicator.position() == IndicatorPosition.CENTER) {
+        if (layer.position() == IndicatorPosition.CENTER) {
             double centerX = mouseRectangle.x() + cursorVisualCenter.x();
             double centerY = mouseRectangle.y() + cursorVisualCenter.y();
             centerX = Math.max(screen.x(), Math.min(centerX,
                     screen.x() + screen.width()));
             centerY = Math.max(screen.y(), Math.min(centerY,
                     screen.y() + screen.height()));
-            return new Point(zoomedX(centerX, zoom) - visualSize / 2.0,
-                    zoomedY(centerY, zoom) - visualSize / 2.0);
+            return new Point(zoomedX(centerX, zoom) - layerSizeWithOutlines / 2.0,
+                    zoomedY(centerY, zoom) - layerSizeWithOutlines / 2.0);
         }
         int mouseX = Math.max(screen.x(), Math.min(mouseRectangle.x(),
                 screen.x() + screen.width()));
         int mouseY = Math.max(screen.y(), Math.min(mouseRectangle.y(),
                 screen.y() + screen.height()));
-        IndicatorPosition position = indicator.position();
+        IndicatorPosition position = layer.position();
         boolean defaultRight = position == IndicatorPosition.BOTTOM_RIGHT ||
                                position == IndicatorPosition.TOP_RIGHT;
         boolean defaultBottom = position == IndicatorPosition.BOTTOM_RIGHT ||
                                 position == IndicatorPosition.BOTTOM_LEFT;
         boolean nearRightEdge = mouseX >=
-                screen.x() + screen.width() - indicatorEdgeThreshold;
+                screen.x() + screen.width() - layerEdgeThreshold;
         boolean nearLeftEdge = mouseX <=
-                screen.x() + indicatorEdgeThreshold;
+                screen.x() + layerEdgeThreshold;
         boolean placeRight = defaultRight ? !nearRightEdge : nearLeftEdge;
-        int indicatorX = placeRight ?
-                mouseX + mouseRectangle.width() / 2 : mouseX - visualSize;
+        int layerX = placeRight ?
+                mouseX + mouseRectangle.width() / 2 : mouseX - layerSizeWithOutlines;
         boolean nearBottomEdge = mouseY >=
-                screen.y() + screen.height() - indicatorEdgeThreshold;
+                screen.y() + screen.height() - layerEdgeThreshold;
         boolean nearTopEdge = mouseY <=
-                screen.y() + indicatorEdgeThreshold;
+                screen.y() + layerEdgeThreshold;
         boolean placeBottom = defaultBottom ? !nearBottomEdge : nearTopEdge;
-        int indicatorY = placeBottom ?
-                mouseY + mouseRectangle.height() / 2 : mouseY - visualSize;
-        return new Point(zoomedX(indicatorX, zoom), zoomedY(indicatorY, zoom));
+        int layerY = placeBottom ?
+                mouseY + mouseRectangle.height() / 2 : mouseY - layerSizeWithOutlines;
+        return new Point(zoomedX(layerX, zoom), zoomedY(layerY, zoom));
     }
 
     private static double zoomedX(double x, Zoom zoom) {
@@ -250,23 +317,38 @@ public final class IndicatorRenderer {
 
     /** Renders the indicator's widget tree into a premultiplied-ARGB image for use as the
      *  system cursor, centered on the indicator's visual center. */
-    public CursorImage renderCursorImage(IndicatorLayerConfiguration indicator, double scale,
+    public CursorImage renderCursorImage(IndicatorConfiguration indicator, double scale,
                                          String lastSelectedHintBoxHexColor,
                                          Rectangle mouseRectangle, Point cursorVisualCenter,
                                          Screen activeScreen) {
         setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
-        int size = indicatorSize(indicator, scale);
-        if (size <= 0)
+        List<IndicatorLayerConfiguration> enabledLayers = enabledLayers(indicator);
+        int maxLayerSize = 0;
+        int maxLayerSizeWithOutlines = 0;
+        for (IndicatorLayerConfiguration layer : enabledLayers) {
+            maxLayerSize = Math.max(maxLayerSize, layerSize(layer, scale));
+            maxLayerSizeWithOutlines = Math.max(maxLayerSizeWithOutlines,
+                    layerSizeWithOutlines(layer, scale));
+        }
+        if (maxLayerSize <= 0)
             return null;
-        int outlinePadding = indicatorOutlinePadding(indicator, scale);
-        int shadowPadding = indicatorShadowPadding(indicator, scale);
-        int imageSize = size + 2 * (outlinePadding + shadowPadding);
-        int widgetSize = size + 2 * outlinePadding;
-        widgetOrigin = new Point(gradientPoint.x() - widgetSize / 2.0,
-                gradientPoint.y() - widgetSize / 2.0);
+        int shadowPadding = indicatorShadowPadding(indicator.shadow(), scale);
+        int imageSize = maxLayerSizeWithOutlines + 2 * shadowPadding;
+        List<Point> topLefts = new ArrayList<>();
+        for (IndicatorLayerConfiguration layer : enabledLayers) {
+            int layerSizeWithOutlines = layerSizeWithOutlines(layer, scale);
+            topLefts.add(new Point(gradientPoint.x() - layerSizeWithOutlines / 2.0,
+                    gradientPoint.y() - layerSizeWithOutlines / 2.0));
+        }
+        Point layersTopLeft = new Point(gradientPoint.x() - maxLayerSizeWithOutlines / 2.0,
+                gradientPoint.y() - maxLayerSizeWithOutlines / 2.0);
         window();
-        applyIndicator(indicator, true, scale, lastSelectedHintBoxHexColor);
-        sizeWidgetsForRender(size, outlinePadding, shadowPadding, scale);
+        window.resize(imageSize, imageSize);
+        placeLayers(enabledLayers, topLefts, layersTopLeft, maxLayerSizeWithOutlines,
+                maxLayerSizeWithOutlines,
+                new Point(layersTopLeft.x() - shadowPadding, layersTopLeft.y() - shadowPadding),
+                scale, 1);
+        applyIndicator(indicator, scale, lastSelectedHintBoxHexColor);
         QImage image = new QImage(imageSize, imageSize,
                 QImage.Format.Format_ARGB32_Premultiplied);
         image.fill(0);
@@ -280,21 +362,6 @@ public final class IndicatorRenderer {
         buffer.order(ByteOrder.nativeOrder()).asIntBuffer().get(argb);
         image.dispose();
         return new CursorImage(argb, imageSize, imageSize);
-    }
-
-    /** Sizes the window and widgets for an offscreen render: widget/label sit inside the
-     *  shadow padding, matching moveAndResize's layout but without on-screen positioning. */
-    private void sizeWidgetsForRender(int size, int outlinePadding, int shadowPadding,
-                                      double scale) {
-        widget.setOutlineScale(scale);
-        int widgetSize = size + 2 * outlinePadding;
-        int windowSize = size + 2 * (outlinePadding + shadowPadding);
-        window.resize(windowSize, windowSize);
-        widget.move(shadowPadding, shadowPadding);
-        widget.resize(widgetSize, widgetSize);
-        labelWidget.move(shadowPadding, shadowPadding);
-        labelWidget.resize(widgetSize, widgetSize);
-        labelWidget.setIndicatorOutlinePadding(outlinePadding);
     }
 
     /** Draws label text centered at (centerX, centerY): outline (if any) then fill, using the
@@ -328,43 +395,55 @@ public final class IndicatorRenderer {
 
     /** Applies the indicator to the widgets (shape, outlines, shadow effect, label) without
      *  showing or positioning. Shared by the on-screen path and the offscreen cursor render. */
-    private void applyIndicator(IndicatorLayerConfiguration indicator, boolean applyShadow,
-                                double shadowScale, String lastSelectedHintBoxHexColor) {
+    private void applyIndicator(IndicatorConfiguration indicator, double shadowScale,
+                                String lastSelectedHintBoxHexColor) {
         currentIndicator = indicator;
-        if (applyShadow)
-            applyShadowEffect(shadowScale, lastSelectedHintBoxHexColor);
-        widget.setSweepArea(sweepArea());
-        widget.cleared = false;
-        widget.setEdgeCount(indicator.edgeCount());
-        widget.setColor(indicator.opacity() > 0
-                ? QtColorUtil.qColor(hex(indicator.color(), lastSelectedHintBoxHexColor), 1) : new QColor(0, 0, 0, 0),
-                sweep(indicator.color()));
-        IndicatorOutline outer = indicator.outerOutline();
-        IndicatorOutline inner = indicator.innerOutline();
+        currentEnabledLayers = enabledLayers(indicator);
+        cleared = false;
+        applyShadowEffect(shadowScale, lastSelectedHintBoxHexColor);
+        for (int i = 0; i < widgets.size(); i++) {
+            if (i < currentEnabledLayers.size())
+                applyLayer(currentEnabledLayers.get(i), widgets.get(i), labelWidgets.get(i),
+                        currentTopLefts.get(i), shadowScale, lastSelectedHintBoxHexColor);
+            else {
+                widgets.get(i).hide();
+                labelWidgets.get(i).hide();
+            }
+        }
+    }
+
+    private void applyLayer(IndicatorLayerConfiguration layer, IndicatorLayerWidget widget,
+                            IndicatorLabelWidget labelWidget, Point topLeft,
+                            double shadowScale, String lastSelectedHintBoxHexColor) {
+        widget.setSweepArea(sweepArea(topLeft));
+        widget.setEdgeCount(layer.edgeCount());
+        widget.setColor(QtColorUtil.qColor(hex(layer.color(), lastSelectedHintBoxHexColor), layer.opacity()),
+                sweep(layer.color()));
+        IndicatorOutline outer = layer.outerOutline();
+        IndicatorOutline inner = layer.innerOutline();
         widget.setOutlines(
                 outer.thickness(),
-                outer.opacity() > 0 ? QtColorUtil.qColor(hex(outer.color(), lastSelectedHintBoxHexColor), 1) : new QColor(0, 0, 0, 0),
+                QtColorUtil.qColor(hex(outer.color(), lastSelectedHintBoxHexColor), outer.opacity()),
                 sweep(outer.color()),
                 outer.fillPercent(),
                 outer.fillStartAngle(),
                 outer.fillDirection(),
                 inner.thickness(),
-                inner.opacity() > 0 ? QtColorUtil.qColor(hex(inner.color(), lastSelectedHintBoxHexColor), 1) : new QColor(0, 0, 0, 0),
+                QtColorUtil.qColor(hex(inner.color(), lastSelectedHintBoxHexColor), inner.opacity()),
                 sweep(inner.color()),
                 inner.fillPercent(),
                 inner.fillStartAngle(),
                 inner.fillDirection());
-        if (widget.customGraphicsEffect != null)
-            setIndicatorEffectColors(widget.customGraphicsEffect, lastSelectedHintBoxHexColor);
-        if (indicator.labelEnabled() && indicator.labelText() != null &&
-            indicator.labelFontStyle() != null) {
-            FontStyle labelFontStyle = indicator.labelFontStyle();
+        widget.show();
+        if (layer.labelEnabled() && layer.labelText() != null &&
+            layer.labelFontStyle() != null) {
+            FontStyle labelFontStyle = layer.labelFontStyle();
             QFont labelFont = QtHintFont.qFont(labelFontStyle.name(), labelFontStyle.size(), labelFontStyle.weight());
             QColor labelColor = QtColorUtil.qColor(hex(labelFontStyle.color(), lastSelectedHintBoxHexColor), labelFontStyle.opacity());
             QColor labelOutlineColor = QtColorUtil.qColor(hex(labelFontStyle.outlineColor(), lastSelectedHintBoxHexColor), labelFontStyle.outlineOpacity());
-            labelWidget.setLabel(indicator.labelText(), labelFont, labelColor,
+            labelWidget.setLabel(layer.labelText(), labelFont, labelColor,
                     (int) Math.round(labelFontStyle.outlineThickness()), labelOutlineColor,
-                    indicator.edgeCount());
+                    layer.edgeCount());
             Shadow labelShadow = labelFontStyle.shadow();
             QColor labelShadowColor = QtColorUtil.qColor(hex(labelShadow.color(), lastSelectedHintBoxHexColor), labelShadow.opacity());
             if (labelShadowColor.alpha() != 0) {
@@ -390,43 +469,12 @@ public final class IndicatorRenderer {
     }
 
     /** Applies the indicator, then shows the window. */
-    private void showIndicator(IndicatorLayerConfiguration indicator, boolean applyShadow,
-                               double shadowScale, String lastSelectedHintBoxHexColor) {
-        applyIndicator(indicator, applyShadow, shadowScale, lastSelectedHintBoxHexColor);
+    private void showIndicator(IndicatorConfiguration indicator, double shadowScale,
+                               String lastSelectedHintBoxHexColor) {
+        applyIndicator(indicator, shadowScale, lastSelectedHintBoxHexColor);
         window.show();
-        widget.repaint();
+        layersWidget.repaint();
         showing = true;
-    }
-
-    /** Moves and resizes the window + widgets to the computed visual top-left and sizes. */
-    private void moveAndResize(Screen activeScreen,
-                               int visualTopLeftX, int visualTopLeftY,
-                               int size, int outlinePadding, int shadowPadding,
-                               double outlineScale) {
-        widgetOrigin = new Point(visualTopLeftX, visualTopLeftY);
-        widget.setOutlineScale(outlineScale);
-        // Never resize the window: the DWM compositor would show the old surface at the new
-        // size for one frame, mispositioning the indicator. It fits the largest indicator drawn
-        // so far; the extra area is transparent and the visible indicator stays at
-        // visualTopLeft regardless.
-        int totalPadding = outlinePadding + shadowPadding;
-        int widgetSize = size + 2 * outlinePadding;
-        int windowSize = size + 2 * totalPadding;
-        maxIndicatorWindowSize = Math.max(maxIndicatorWindowSize, windowSize);
-        windowSize = maxIndicatorWindowSize;
-        window.moveAndResizeInPixels(activeScreen,
-                visualTopLeftX + widgetSize / 2 - windowSize / 2,
-                visualTopLeftY + widgetSize / 2 - windowSize / 2, windowSize, windowSize);
-        // The window is in points, so what it holds is too.
-        double pointsPerPixel = Os.macos ? activeScreen.scale() : 1;
-        int widgetPadding =
-                (int) Math.round((windowSize - widgetSize) / 2d / pointsPerPixel);
-        int widgetPoints = (int) Math.round(widgetSize / pointsPerPixel);
-        widget.move(widgetPadding, widgetPadding);
-        widget.resize(widgetPoints, widgetPoints);
-        labelWidget.move(widgetPadding, widgetPadding);
-        labelWidget.resize(widgetPoints, widgetPoints);
-        labelWidget.setIndicatorOutlinePadding((int) Math.round(outlinePadding / pointsPerPixel));
     }
 
     public void hide() {
@@ -434,28 +482,21 @@ public final class IndicatorRenderer {
             return;
         showing = false;
         // Paint the surface fully transparent before hiding.
-        widget.cleared = true;
-        widget.repaint();
+        cleared = true;
+        layersWidget.repaint();
         window.hide();
     }
 
     boolean indicatorHasTransparency() {
-        if (currentIndicator.opacity() < 1.0)
-            return true;
-        IndicatorOutline outer = currentIndicator.outerOutline();
-        IndicatorOutline inner = currentIndicator.innerOutline();
-        return (outer.thickness() > 0 && outer.opacity() < 1.0) ||
-               (inner.thickness() > 0 && inner.opacity() < 1.0);
-    }
-
-    private void setIndicatorEffectColors(IndicatorShadowEffect effect,
-                                          String lastSelectedHintBoxHexColor) {
-        IndicatorOutline outer = currentIndicator.outerOutline();
-        IndicatorOutline inner = currentIndicator.innerOutline();
-        effect.setColors(
-                QtColorUtil.qColor(hex(currentIndicator.color(), lastSelectedHintBoxHexColor), currentIndicator.opacity()),
-                QtColorUtil.qColor(hex(outer.color(), lastSelectedHintBoxHexColor), outer.opacity()),
-                QtColorUtil.qColor(hex(inner.color(), lastSelectedHintBoxHexColor), inner.opacity()));
+        for (IndicatorLayerConfiguration layer : currentEnabledLayers) {
+            IndicatorOutline outer = layer.outerOutline();
+            IndicatorOutline inner = layer.innerOutline();
+            if (layer.opacity() < 1.0 ||
+                outer.thickness() > 0 && outer.opacity() < 1.0 ||
+                inner.thickness() > 0 && inner.opacity() < 1.0)
+                return true;
+        }
+        return false;
     }
 
     private void applyShadowEffect(double scale, String lastSelectedHintBoxHexColor) {
@@ -476,38 +517,45 @@ public final class IndicatorRenderer {
             effect.setColor(shadowColor);
             GradientColor shadowSweep = sweep(shadow.color());
             effect.setShadowBrush(shadowSweep == null ? null :
-                    brush(shadowColor, shadowSweep, sweepArea()));
+                    brush(shadowColor, shadowSweep, sweepArea(layersTopLeft())));
             shadowColor.dispose();
             effect.setStackCount(shadow.stackCount());
-            setIndicatorEffectColors(effect, lastSelectedHintBoxHexColor);
             install(effect);
         }
         else if (indicatorHasTransparency()) {
             IndicatorShadowEffect effect = reusableShadowEffect();
             effect.setTransparencyOnly(true);
-            setIndicatorEffectColors(effect, lastSelectedHintBoxHexColor);
             install(effect);
         }
         else {
-            widget.customGraphicsEffect = null;
-            widget.setGraphicsEffect(null);
+            shadowEffect = null;
+            layersWidget.setGraphicsEffect(null);
         }
         baseColor.dispose();
     }
 
+    private Point layersTopLeft() {
+        double x = Double.MAX_VALUE;
+        double y = Double.MAX_VALUE;
+        for (Point topLeft : currentTopLefts) {
+            x = Math.min(x, topLeft.x());
+            y = Math.min(y, topLeft.y());
+        }
+        return new Point(x, y);
+    }
+
     private IndicatorShadowEffect reusableShadowEffect() {
-        return widget.customGraphicsEffect != null ? widget.customGraphicsEffect :
-                new IndicatorShadowEffect(widget, this);
+        return shadowEffect != null ? shadowEffect : new IndicatorShadowEffect(this);
     }
 
     private void install(IndicatorShadowEffect effect) {
-        if (widget.customGraphicsEffect == effect)
+        if (shadowEffect == effect)
             return;
-        widget.customGraphicsEffect = effect;
-        widget.setGraphicsEffect(effect);
+        shadowEffect = effect;
+        layersWidget.setGraphicsEffect(effect);
     }
 
-    private class IndicatorWidget extends QWidget {
+    private class IndicatorLayerWidget extends QWidget {
 
         private QColor color;
         private int edgeCount;
@@ -526,10 +574,8 @@ public final class IndicatorRenderer {
         private double innerOutlineFillStartAngle;
         private FillDirection innerOutlineFillDirection;
         private double outlineScale;
-        private IndicatorShadowEffect customGraphicsEffect;
-        private boolean cleared;
 
-        IndicatorWidget(QWidget parent) {
+        IndicatorLayerWidget(QWidget parent) {
             super(parent);
         }
 
@@ -841,18 +887,6 @@ public final class IndicatorRenderer {
             return path;
         }
 
-        private void clearOutline(QPainter painter, double centerX, double centerY,
-                                  double fillRadius, double thickness, double fillPercent,
-                                  double fillStartAngle, FillDirection fillDirection) {
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
-            QColor clearColor = new QColor(0, 0, 0);
-            drawOutline(painter, centerX, centerY, fillRadius,
-                    thickness, clearColor, null, fillPercent,
-                    fillStartAngle, fillDirection, 1.0);
-            clearColor.dispose();
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-        }
-
         private void drawOutline(QPainter painter, double centerX, double centerY,
                                  double fillRadius, double thickness, QColor color,
                                  GradientColor sweep,
@@ -892,8 +926,7 @@ public final class IndicatorRenderer {
         }
 
         void drawContent(QPainter painter, QColor fillColor,
-                         QColor outerOutlineColor, QColor innerOutlineColor,
-                         boolean clearFullArea) {
+                         QColor outerOutlineColor, QColor innerOutlineColor) {
             double maxOutlinePadding = maxOutlineThickness();
             int outlinePadding = (int) Math.ceil(maxOutlinePadding);
             double availableSize = Math.min(width(), height()) - 2 * outlinePadding;
@@ -906,59 +939,15 @@ public final class IndicatorRenderer {
             double scaledInner = innerOutlineThickness * outlineScale;
             double correctedOuter = correctedOutlineThickness(scaledOuter);
             double correctedInner = correctedOutlineThickness(scaledInner);
-            // If any part is transparent, clear the area first so the shadow
-            // (composited by the effect) doesn't show through.
-            if (indicatorHasTransparency()) {
-                if (clearFullArea) {
-                    // paintEvent: clear the entire indicator area (widget starts
-                    // transparent, so this ensures a clean slate).
-                    double maxScaled = Math.max(scaledOuter, scaledInner);
-                    double radialPad = radialMiterPadding(maxScaled, edgeCount);
-                    QPainterPath outerBoundary = polygonPath(centerX, centerY,
-                            fillRadius + radialPad, edgeCount);
-                    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
-                    painter.setPen(Qt.PenStyle.NoPen);
-                    QColor clearBlack = new QColor(0, 0, 0);
-                    QBrush clearBrush = new QBrush(clearBlack);
-                    painter.setBrush(clearBrush);
-                    painter.drawPath(outerBoundary);
-                    clearBrush.dispose();
-                    clearBlack.dispose();
-                    outerBoundary.dispose();
-                    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-                }
-             }
             // Draw fill first, then outlines on top. Outlines cover the fill
             // boundary with their inwardOverlap, preventing artifacts from
             // opacity differences between fill and outline.
             if (fillColor.alpha() != 0) {
-                if (!clearFullArea && fillColor.alpha() < 255) {
-                    // redrawSourceOverShadow with semi-transparent fill: use
-                    // Source mode to replace the opaque content from drawSource.
-                    painter.setCompositionMode(
-                            QPainter.CompositionMode.CompositionMode_Source);
-                    painter.setPen(Qt.PenStyle.NoPen);
-                    painter.setBrush(brush(fillColor, sweep));
-                    painter.drawPath(fillPath);
-                    painter.setCompositionMode(
-                            QPainter.CompositionMode.CompositionMode_SourceOver);
-                }
-                else {
-                    painter.setPen(Qt.PenStyle.NoPen);
-                    painter.setBrush(brush(fillColor, sweep));
-                    painter.drawPath(fillPath);
-                }
+                painter.setPen(Qt.PenStyle.NoPen);
+                painter.setBrush(brush(fillColor, sweep));
+                painter.drawPath(fillPath);
             }
             // Draw outer outline on top of fill.
-            if (!clearFullArea && outerOutlineColor != null && outerOutlineColor.alpha() > 0
-                    && outerOutlineColor.alpha() < 255) {
-                // redrawSourceOverShadow: clear the outline area first to
-                // remove the opaque outline from drawSource, preserving shadow
-                // in gaps of partial outlines.
-                clearOutline(painter, centerX, centerY, fillRadius,
-                        correctedOuter, outerOutlineFillPercent,
-                        outerOutlineFillStartAngle, outerOutlineFillDirection);
-            }
             drawOutline(painter, centerX, centerY, fillRadius,
                     correctedOuter, outerOutlineColor, outerOutlineSweep, outerOutlineFillPercent,
                     outerOutlineFillStartAngle, outerOutlineFillDirection, 1.0);
@@ -983,16 +972,21 @@ public final class IndicatorRenderer {
             else {
                 innerInwardOverlap = fillColor.alpha() == 0 ? 0 : 1.0;
             }
-            if (!clearFullArea && innerOutlineColor != null && innerOutlineColor.alpha() > 0
-                    && innerOutlineColor.alpha() < 255) {
-                clearOutline(painter, centerX, centerY, fillRadius,
-                        correctedInner, innerOutlineFillPercent,
-                        innerOutlineFillStartAngle, innerOutlineFillDirection);
-            }
             drawOutline(painter, centerX, centerY, fillRadius,
                     correctedInner, innerOutlineColor, innerOutlineSweep, innerOutlineFillPercent,
                     innerOutlineFillStartAngle, innerOutlineFillDirection, innerInwardOverlap);
             fillPath.dispose();
+        }
+
+        void redrawSourceOverShadow(QPainter painter) {
+            painter.translate(x(), y());
+            drawContent(painter, color, outerOutlineColor, innerOutlineColor);
+            painter.translate(-x(), -y());
+        }
+
+        private static QColor opaque(QColor color) {
+            return color.alpha() == 0 ? new QColor(0, 0, 0, 0) :
+                    new QColor(color.red(), color.green(), color.blue());
         }
 
         @Override
@@ -1012,7 +1006,13 @@ public final class IndicatorRenderer {
                 return;
             }
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            drawContent(painter, color, outerOutlineColor, innerOutlineColor, true);
+            QColor opaqueColor = opaque(color);
+            QColor opaqueOuterOutlineColor = opaque(outerOutlineColor);
+            QColor opaqueInnerOutlineColor = opaque(innerOutlineColor);
+            drawContent(painter, opaqueColor, opaqueOuterOutlineColor, opaqueInnerOutlineColor);
+            opaqueColor.dispose();
+            opaqueOuterOutlineColor.dispose();
+            opaqueInnerOutlineColor.dispose();
             painter.end();
             painter.dispose();
         }
@@ -1020,33 +1020,15 @@ public final class IndicatorRenderer {
 
     public static class IndicatorShadowEffect extends StackedShadowEffect {
 
-        private final IndicatorWidget widget;
         private final IndicatorRenderer renderer;
-        private QColor fillColor;
-        private QColor outerOutlineColor;
-        private QColor innerOutlineColor;
 
-        IndicatorShadowEffect(IndicatorWidget widget, IndicatorRenderer renderer) {
-            this.widget = widget;
+        IndicatorShadowEffect(IndicatorRenderer renderer) {
             this.renderer = renderer;
-        }
-
-        void setColors(QColor fillColor, QColor outerOutlineColor,
-                       QColor innerOutlineColor) {
-            if (this.fillColor != null)
-                this.fillColor.dispose();
-            if (this.outerOutlineColor != null)
-                this.outerOutlineColor.dispose();
-            if (this.innerOutlineColor != null)
-                this.innerOutlineColor.dispose();
-            this.fillColor = fillColor;
-            this.outerOutlineColor = outerOutlineColor;
-            this.innerOutlineColor = innerOutlineColor;
         }
 
         @Override
         protected void draw(QPainter painter) {
-            if (widget.cleared) {
+            if (renderer.cleared) {
                 // Just draw the source (triggers paintEvent which clears).
                 // Skip shadow and redrawSourceOverShadow.
                 drawSource(painter);
@@ -1060,7 +1042,14 @@ public final class IndicatorRenderer {
             if (!renderer.indicatorHasTransparency())
                 return;
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            widget.drawContent(painter, fillColor, outerOutlineColor, innerOutlineColor, false);
+            List<IndicatorLayerWidget> widgets =
+                    renderer.widgets.subList(0, renderer.currentEnabledLayers.size());
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
+            for (IndicatorLayerWidget widget : widgets)
+                widget.redrawSourceOverShadow(painter);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+            for (IndicatorLayerWidget widget : widgets)
+                widget.redrawSourceOverShadow(painter);
         }
     }
 
@@ -1073,15 +1062,15 @@ public final class IndicatorRenderer {
         private int outlineThickness;
         private QColor outlineColor;
         private int edgeCount;
-        private int indicatorOutlinePadding;
+        private int layerOutlinePadding;
 
         IndicatorLabelWidget(QWidget parent) {
             super(parent);
             setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents);
         }
 
-        void setIndicatorOutlinePadding(int padding) {
-            this.indicatorOutlinePadding = padding;
+        void setLayerOutlinePadding(int padding) {
+            this.layerOutlinePadding = padding;
         }
 
         void setLabel(String labelText, QFont labelFont, QColor labelColor,
@@ -1109,9 +1098,9 @@ public final class IndicatorRenderer {
             QPainter painter = new QPainter(this);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             painter.setFont(labelFont);
-            double availableSize = Math.min(width(), height()) - 2 * indicatorOutlinePadding;
-            IndicatorWidget.PolygonLayout polygonLayout =
-                    IndicatorWidget.polygonLayout(availableSize, edgeCount);
+            double availableSize = Math.min(width(), height()) - 2 * layerOutlinePadding;
+            IndicatorLayerWidget.PolygonLayout polygonLayout =
+                    IndicatorLayerWidget.polygonLayout(availableSize, edgeCount);
             double centerX = width() / 2.0 + polygonLayout.offsetX();
             double centerY = height() / 2.0 + polygonLayout.offsetY();
             drawLabelText(painter, labelText, labelFont, centerX, centerY,
