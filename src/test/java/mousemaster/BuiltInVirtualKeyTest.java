@@ -26,7 +26,7 @@ class BuiltInVirtualKeyTest {
     @Test
     void theyAreDeclaredWithoutAVirtualKeysLine() {
         for (Key key : KEYS) {
-            Configuration configuration = parse("idle-mode.indicator.color=#FF0000 | _{" +
+            Configuration configuration = parse("idle-mode.indicator.fill-color=#FF0000 | _{" +
                                                 key.name() + "} -> #00FF00");
             assertTrue(configuration.virtualKeys().contains(key), key.name());
             assertFalse(configuration.initiallyPressedVirtualKeys().contains(key),

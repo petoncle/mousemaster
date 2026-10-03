@@ -20,10 +20,10 @@ class IndicatorLayerTest {
     @Test
     void aLayerTakesItsDefaultsFromTheDefaultIndicatorNotFromTheModeIndicator() {
         Mode mode = parse("idle-mode.indicator.size=40",
-                "idle-mode.ripple-indicator.color=#00FF00").modeMap().get(Mode.IDLE_MODE_NAME);
+                "idle-mode.ripple-indicator.fill-color=#00FF00").modeMap().get(Mode.IDLE_MODE_NAME);
         assertTrue(layer(mode, "ripple-indicator").enabled());
         assertEquals(26, layer(mode, "ripple-indicator").size());
-        assertEquals(Color.parse("#00FF00"), layer(mode, "ripple-indicator").color());
+        assertEquals(Color.parse("#00FF00"), layer(mode, "ripple-indicator").fillColor());
         assertEquals(40, layer(mode, "indicator").size());
     }
 
@@ -32,9 +32,9 @@ class IndicatorLayerTest {
         Mode mode = parse("idle-mode.to.normal-mode=+leftshift",
                 "idle-mode.ripple-indicator.size=40",
                 "normal-mode=idle-mode",
-                "normal-mode.ripple-indicator.color=#00FF00").modeMap().get("normal-mode");
+                "normal-mode.ripple-indicator.fill-color=#00FF00").modeMap().get("normal-mode");
         assertEquals(40, layer(mode, "ripple-indicator").size());
-        assertEquals(Color.parse("#00FF00"), layer(mode, "ripple-indicator").color());
+        assertEquals(Color.parse("#00FF00"), layer(mode, "ripple-indicator").fillColor());
         assertFalse(layer(mode, "indicator").enabled());
     }
 
@@ -72,5 +72,25 @@ class IndicatorLayerTest {
                 () -> parse("idle-mode.to.normal-mode=+leftshift",
                         "idle-mode.ripple-indicator.size=40",
                         "normal-mode.ripple-indicator=idle-mode.ripple-indicator"));
+    }
+
+    @Test
+    void aStrokeLengthIsAPercentOfThePerimeter() {
+        Mode mode = parse("idle-mode.indicator.stroke-length-percent=-0.6",
+                "idle-mode.indicator.stroke-anchor=middle").modeMap().get(Mode.IDLE_MODE_NAME);
+        assertEquals(-0.6, layer(mode, "indicator").stroke().lengthPercent());
+        assertEquals(StrokeAnchor.MIDDLE, layer(mode, "indicator").stroke().anchor());
+        assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.indicator.stroke-length-percent=60%"));
+    }
+
+    @Test
+    void theOutlinesAreGone() {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.indicator.inner-outline-thickness=1"));
+        assertTrue(e.getMessage().contains("stroke"), e.getMessage());
+        e = assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.indicator.color=#FF0000"));
+        assertTrue(e.getMessage().contains("fill-color"), e.getMessage());
     }
 }

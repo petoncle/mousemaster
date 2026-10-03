@@ -207,23 +207,16 @@ public class ConfigurationParser {
         layer.enabled(false).z(0);
         layer.size(26)
              .edgeCount(100)
-             .color(Color.parse("#FF0000"))
-             .opacity(0.2)
+             .fillColor(Color.parse("#FF0000"))
+             .fillOpacity(0.2)
              .position(IndicatorPosition.CENTER);
-        layer.outerOutline()
-             .thickness(0)
+        layer.stroke()
+             .thickness(1)
              .color(Color.parse("#FF0000"))
              .opacity(1.0)
-             .fillPercent(1.0)
-             .fillStartAngle(180)
-             .fillDirection(FillDirection.COUNTERCLOCKWISE);
-        layer.innerOutline()
-             .thickness(0.5)
-             .color(Color.parse("#FF0000"))
-             .opacity(1.0)
-             .fillPercent(1.0)
-             .fillStartAngle(180)
-             .fillDirection(FillDirection.COUNTERCLOCKWISE);
+             .startAngle(0)
+             .lengthPercent(1)
+             .anchor(StrokeAnchor.START);
         layer.labelEnabled(false);
         layer.labelFontStyle()
              .name("Arial")
@@ -2603,22 +2596,18 @@ public class ConfigurationParser {
             case "enabled" -> ModePropertyHandler.of(prefix.append("enabled"), v -> Boolean.parseBoolean(v), v -> layer.enabled(v));
             case "fade-animation-enabled", "fade-animation-duration-millis", "transition-animation-duration-millis", "transition-animation-easing", "transition-animation-switch-at" -> throw new IllegalArgumentException(layerName + "." + key + " has been removed: animate the indicator with keyframes on an animation instead, like indicator.size=26 | _{clickanimation} -> 0% 1; 100% 78");
             case "z" -> ModePropertyHandler.of(prefix.append("z"), v -> Integer.parseInt(v), v -> layer.z(v));
-            case "size" -> ModePropertyHandler.of(prefix.append("size"), v -> parseUnsignedInteger(v, 1, 1000), v -> layer.size(v));
+            case "color", "opacity" -> throw new IllegalArgumentException(layerName + "." + key + " has been removed: use " + layerName + ".fill-" + key + " instead");
+            case "outer-outline-thickness", "outer-outline-color", "outer-outline-opacity", "outer-outline-fill-percent", "outer-outline-fill-start-angle", "outer-outline-fill-direction", "outline-thickness", "outline-color", "outline-opacity", "outline-fill-percent", "outline-fill-start-angle", "outline-fill-direction", "inner-outline-thickness", "inner-outline-color", "inner-outline-opacity", "inner-outline-fill-percent", "inner-outline-fill-start-angle", "inner-outline-fill-direction" -> throw new IllegalArgumentException(layerName + "." + key + " has been removed: an outline is the stroke of the layer (stroke-thickness, stroke-color, stroke-opacity, stroke-start-angle, stroke-length-percent, stroke-anchor), drawn centered on its edge, and a second outline is a second layer");
+            case "size" -> ModePropertyHandler.of(prefix.append("size"), v -> parseDouble(v, false, 0, 1000), v -> layer.size(v));
             case "edge-count" -> ModePropertyHandler.of(prefix.append("edgeCount"), v -> parseUnsignedInteger(v, 3, 1000), v -> layer.edgeCount(v));
-            case "color" -> ModePropertyHandler.of(prefix.append("color"), v -> Color.parse(v, colorAliases), v -> layer.color(v));
-            case "opacity" -> ModePropertyHandler.of(prefix.append("opacity"), v -> parseDouble(v, true, 0, 1), v -> layer.opacity(v));
-            case "outer-outline-thickness", "outline-thickness" -> ModePropertyHandler.of(prefix.append("outerOutline").append("thickness"), v -> parseDouble(v, true, 0, 100), v -> layer.outerOutline().thickness(v));
-            case "outer-outline-color", "outline-color" -> ModePropertyHandler.of(prefix.append("outerOutline").append("color"), v -> Color.parse(v, colorAliases), v -> layer.outerOutline().color(v));
-            case "outer-outline-opacity", "outline-opacity" -> ModePropertyHandler.of(prefix.append("outerOutline").append("opacity"), v -> parseDouble(v, true, 0, 1), v -> layer.outerOutline().opacity(v));
-            case "outer-outline-fill-percent", "outline-fill-percent" -> ModePropertyHandler.of(prefix.append("outerOutline").append("fillPercent"), v -> parseDouble(v, true, 0, 1), v -> layer.outerOutline().fillPercent(v));
-            case "outer-outline-fill-start-angle", "outline-fill-start-angle" -> ModePropertyHandler.of(prefix.append("outerOutline").append("fillStartAngle"), v -> parseDouble(v, true, 0, 360), v -> layer.outerOutline().fillStartAngle(v));
-            case "outer-outline-fill-direction", "outline-fill-direction" -> ModePropertyHandler.of(prefix.append("outerOutline").append("fillDirection"), v -> FillDirection.fromString(v), v -> layer.outerOutline().fillDirection(v));
-            case "inner-outline-thickness" -> ModePropertyHandler.of(prefix.append("innerOutline").append("thickness"), v -> parseDouble(v, true, 0, 100), v -> layer.innerOutline().thickness(v));
-            case "inner-outline-color" -> ModePropertyHandler.of(prefix.append("innerOutline").append("color"), v -> Color.parse(v, colorAliases), v -> layer.innerOutline().color(v));
-            case "inner-outline-opacity" -> ModePropertyHandler.of(prefix.append("innerOutline").append("opacity"), v -> parseDouble(v, true, 0, 1), v -> layer.innerOutline().opacity(v));
-            case "inner-outline-fill-percent" -> ModePropertyHandler.of(prefix.append("innerOutline").append("fillPercent"), v -> parseDouble(v, true, 0, 1), v -> layer.innerOutline().fillPercent(v));
-            case "inner-outline-fill-start-angle" -> ModePropertyHandler.of(prefix.append("innerOutline").append("fillStartAngle"), v -> parseDouble(v, true, 0, 360), v -> layer.innerOutline().fillStartAngle(v));
-            case "inner-outline-fill-direction" -> ModePropertyHandler.of(prefix.append("innerOutline").append("fillDirection"), v -> FillDirection.fromString(v), v -> layer.innerOutline().fillDirection(v));
+            case "fill-color" -> ModePropertyHandler.of(prefix.append("fillColor"), v -> Color.parse(v, colorAliases), v -> layer.fillColor(v));
+            case "fill-opacity" -> ModePropertyHandler.of(prefix.append("fillOpacity"), v -> parseDouble(v, true, 0, 1), v -> layer.fillOpacity(v));
+            case "stroke-thickness" -> ModePropertyHandler.of(prefix.append("stroke").append("thickness"), v -> parseDouble(v, true, 0, 1000), v -> layer.stroke().thickness(v));
+            case "stroke-color" -> ModePropertyHandler.of(prefix.append("stroke").append("color"), v -> Color.parse(v, colorAliases), v -> layer.stroke().color(v));
+            case "stroke-opacity" -> ModePropertyHandler.of(prefix.append("stroke").append("opacity"), v -> parseDouble(v, true, 0, 1), v -> layer.stroke().opacity(v));
+            case "stroke-start-angle" -> ModePropertyHandler.of(prefix.append("stroke").append("startAngle"), v -> parseDouble(v, true, 0, 360), v -> layer.stroke().startAngle(v));
+            case "stroke-length-percent" -> ModePropertyHandler.of(prefix.append("stroke").append("lengthPercent"), v -> parseDouble(v, true, -1, 1), v -> layer.stroke().lengthPercent(v));
+            case "stroke-anchor" -> ModePropertyHandler.of(prefix.append("stroke").append("anchor"), v -> StrokeAnchor.fromString(v), v -> layer.stroke().anchor(v));
             case "label-enabled" -> ModePropertyHandler.of(prefix.append("labelEnabled"), v -> Boolean.parseBoolean(v), v -> layer.labelEnabled(v));
             case "label-text" -> ModePropertyHandler.of(prefix.append("labelText"), v -> v, v -> layer.labelText(v));
             case "label-font-name" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("name"), v -> v, v -> layer.labelFontStyle().name(v));

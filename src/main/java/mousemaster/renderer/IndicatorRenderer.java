@@ -127,23 +127,17 @@ public final class IndicatorRenderer {
                 sweep.direction().start(sweepArea), sweep.direction().end(sweepArea));
     }
 
-    private int layerSize(IndicatorLayerConfiguration layer, double screenScale) {
+    private double layerSize(IndicatorLayerConfiguration layer, double screenScale) {
+        return layer.size() * screenScale;
+    }
+
+    private int layerSizeWithStroke(IndicatorLayerConfiguration layer, double screenScale) {
         // An odd size puts the center of a centered layer half a pixel off, so it would
         // shift as the size changes parity.
-        int size = (int) Math.floor(layer.size() * screenScale);
-        return size - size % 2;
-    }
-
-    private int layerOutlinePadding(IndicatorLayerConfiguration layer, double screenScale) {
-        double scaled = Math.max(
-                layer.outerOutline().thickness(),
-                layer.innerOutline().thickness()) * screenScale;
-        return (int) Math.ceil(IndicatorLayerWidget.miterPadding(scaled, layer.edgeCount()));
-    }
-
-    private int layerSizeWithOutlines(IndicatorLayerConfiguration layer, double screenScale) {
-        return layerSize(layer, screenScale) +
-               2 * layerOutlinePadding(layer, screenScale);
+        int size = (int) Math.ceil(layerSize(layer, screenScale) +
+                2 * IndicatorLayerWidget.strokePadding(
+                        layer.stroke().thickness() * screenScale, layer.edgeCount()));
+        return size + size % 2;
     }
 
     private int indicatorShadowPadding(Shadow shadow, double scale) {
@@ -184,7 +178,7 @@ public final class IndicatorRenderer {
         List<Point> topLefts = new ArrayList<>();
         for (IndicatorLayerConfiguration layer : enabledLayers) {
             Point topLeft = layerTopLeft(mouseRectangle, cursorVisualCenter, activeScreen,
-                    zoom, layer, layerSizeWithOutlines(layer, screenScale));
+                    zoom, layer, layerSizeWithStroke(layer, screenScale));
             topLefts.add(new Point(Math.round(topLeft.x()), Math.round(topLeft.y())));
         }
         Rectangle layersRectangle = layersRectangle(enabledLayers, topLefts, screenScale);
@@ -212,13 +206,13 @@ public final class IndicatorRenderer {
         int right = Integer.MIN_VALUE;
         int bottom = Integer.MIN_VALUE;
         for (int i = 0; i < layers.size(); i++) {
-            int layerSizeWithOutlines = layerSizeWithOutlines(layers.get(i), screenScale);
+            int layerSizeWithStroke = layerSizeWithStroke(layers.get(i), screenScale);
             int x = (int) topLefts.get(i).x();
             int y = (int) topLefts.get(i).y();
             left = Math.min(left, x);
             top = Math.min(top, y);
-            right = Math.max(right, x + layerSizeWithOutlines);
-            bottom = Math.max(bottom, y + layerSizeWithOutlines);
+            right = Math.max(right, x + layerSizeWithStroke);
+            bottom = Math.max(bottom, y + layerSizeWithStroke);
         }
         return new Rectangle(left, top, right - left, bottom - top);
     }
@@ -236,19 +230,19 @@ public final class IndicatorRenderer {
         for (int i = 0; i < layers.size(); i++) {
             IndicatorLayerConfiguration layer = layers.get(i);
             Point topLeft = topLefts.get(i);
-            int layerSizeWithOutlines =
-                    points(layerSizeWithOutlines(layer, screenScale), pointsPerPixel);
+            int layerSizeWithStroke =
+                    points(layerSizeWithStroke(layer, screenScale), pointsPerPixel);
             IndicatorLayerWidget widget = widget(i);
-            widget.setOutlineScale(screenScale);
+            widget.setStrokeScale(screenScale);
+            widget.setLayerSize(layerSize(layer, screenScale) / pointsPerPixel);
             widget.move(points(topLeft.x() - layersTopLeft.x(), pointsPerPixel),
                     points(topLeft.y() - layersTopLeft.y(), pointsPerPixel));
-            widget.resize(layerSizeWithOutlines, layerSizeWithOutlines);
+            widget.resize(layerSizeWithStroke, layerSizeWithStroke);
             IndicatorLabelWidget labelWidget = labelWidgets.get(i);
             labelWidget.move(points(topLeft.x() - windowTopLeft.x(), pointsPerPixel),
                     points(topLeft.y() - windowTopLeft.y(), pointsPerPixel));
-            labelWidget.resize(layerSizeWithOutlines, layerSizeWithOutlines);
-            labelWidget.setLayerOutlinePadding(
-                    points(layerOutlinePadding(layer, screenScale), pointsPerPixel));
+            labelWidget.resize(layerSizeWithStroke, layerSizeWithStroke);
+            labelWidget.setLayerSize(layerSize(layer, screenScale) / pointsPerPixel);
         }
     }
 
@@ -266,7 +260,7 @@ public final class IndicatorRenderer {
      */
     private Point layerTopLeft(Rectangle mouseRectangle, Point cursorVisualCenter,
                                Screen activeScreen, Zoom zoom, IndicatorLayerConfiguration layer,
-                               int layerSizeWithOutlines) {
+                               int layerSizeWithStroke) {
         Rectangle screen = activeScreen.rectangle();
         if (layer.position() == IndicatorPosition.CENTER) {
             double centerX = mouseRectangle.x() + cursorVisualCenter.x();
@@ -275,8 +269,8 @@ public final class IndicatorRenderer {
                     screen.x() + screen.width()));
             centerY = Math.max(screen.y(), Math.min(centerY,
                     screen.y() + screen.height()));
-            return new Point(zoomedX(centerX, zoom) - layerSizeWithOutlines / 2.0,
-                    zoomedY(centerY, zoom) - layerSizeWithOutlines / 2.0);
+            return new Point(zoomedX(centerX, zoom) - layerSizeWithStroke / 2.0,
+                    zoomedY(centerY, zoom) - layerSizeWithStroke / 2.0);
         }
         int mouseX = Math.max(screen.x(), Math.min(mouseRectangle.x(),
                 screen.x() + screen.width()));
@@ -293,14 +287,14 @@ public final class IndicatorRenderer {
                 screen.x() + layerEdgeThreshold;
         boolean placeRight = defaultRight ? !nearRightEdge : nearLeftEdge;
         int layerX = placeRight ?
-                mouseX + mouseRectangle.width() / 2 : mouseX - layerSizeWithOutlines;
+                mouseX + mouseRectangle.width() / 2 : mouseX - layerSizeWithStroke;
         boolean nearBottomEdge = mouseY >=
                 screen.y() + screen.height() - layerEdgeThreshold;
         boolean nearTopEdge = mouseY <=
                 screen.y() + layerEdgeThreshold;
         boolean placeBottom = defaultBottom ? !nearBottomEdge : nearTopEdge;
         int layerY = placeBottom ?
-                mouseY + mouseRectangle.height() / 2 : mouseY - layerSizeWithOutlines;
+                mouseY + mouseRectangle.height() / 2 : mouseY - layerSizeWithStroke;
         return new Point(zoomedX(layerX, zoom), zoomedY(layerY, zoom));
     }
 
@@ -323,29 +317,24 @@ public final class IndicatorRenderer {
                                          Screen activeScreen) {
         setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
         List<IndicatorLayerConfiguration> enabledLayers = enabledLayers(indicator);
-        int maxLayerSize = 0;
-        int maxLayerSizeWithOutlines = 0;
-        for (IndicatorLayerConfiguration layer : enabledLayers) {
-            maxLayerSize = Math.max(maxLayerSize, layerSize(layer, scale));
-            maxLayerSizeWithOutlines = Math.max(maxLayerSizeWithOutlines,
-                    layerSizeWithOutlines(layer, scale));
-        }
-        if (maxLayerSize <= 0)
-            return null;
+        int maxLayerSizeWithStroke = 0;
+        for (IndicatorLayerConfiguration layer : enabledLayers)
+            maxLayerSizeWithStroke = Math.max(maxLayerSizeWithStroke,
+                    layerSizeWithStroke(layer, scale));
         int shadowPadding = indicatorShadowPadding(indicator.shadow(), scale);
-        int imageSize = maxLayerSizeWithOutlines + 2 * shadowPadding;
+        int imageSize = maxLayerSizeWithStroke + 2 * shadowPadding;
         List<Point> topLefts = new ArrayList<>();
         for (IndicatorLayerConfiguration layer : enabledLayers) {
-            int layerSizeWithOutlines = layerSizeWithOutlines(layer, scale);
-            topLefts.add(new Point(gradientPoint.x() - layerSizeWithOutlines / 2.0,
-                    gradientPoint.y() - layerSizeWithOutlines / 2.0));
+            int layerSizeWithStroke = layerSizeWithStroke(layer, scale);
+            topLefts.add(new Point(gradientPoint.x() - layerSizeWithStroke / 2.0,
+                    gradientPoint.y() - layerSizeWithStroke / 2.0));
         }
-        Point layersTopLeft = new Point(gradientPoint.x() - maxLayerSizeWithOutlines / 2.0,
-                gradientPoint.y() - maxLayerSizeWithOutlines / 2.0);
+        Point layersTopLeft = new Point(gradientPoint.x() - maxLayerSizeWithStroke / 2.0,
+                gradientPoint.y() - maxLayerSizeWithStroke / 2.0);
         window();
         window.resize(imageSize, imageSize);
-        placeLayers(enabledLayers, topLefts, layersTopLeft, maxLayerSizeWithOutlines,
-                maxLayerSizeWithOutlines,
+        placeLayers(enabledLayers, topLefts, layersTopLeft, maxLayerSizeWithStroke,
+                maxLayerSizeWithStroke,
                 new Point(layersTopLeft.x() - shadowPadding, layersTopLeft.y() - shadowPadding),
                 scale, 1);
         applyIndicator(indicator, scale, lastSelectedHintBoxHexColor);
@@ -417,23 +406,12 @@ public final class IndicatorRenderer {
                             double shadowScale, String lastSelectedHintBoxHexColor) {
         widget.setSweepArea(sweepArea(topLeft));
         widget.setEdgeCount(layer.edgeCount());
-        widget.setColor(QtColorUtil.qColor(hex(layer.color(), lastSelectedHintBoxHexColor), layer.opacity()),
-                sweep(layer.color()));
-        IndicatorOutline outer = layer.outerOutline();
-        IndicatorOutline inner = layer.innerOutline();
-        widget.setOutlines(
-                outer.thickness(),
-                QtColorUtil.qColor(hex(outer.color(), lastSelectedHintBoxHexColor), outer.opacity()),
-                sweep(outer.color()),
-                outer.fillPercent(),
-                outer.fillStartAngle(),
-                outer.fillDirection(),
-                inner.thickness(),
-                QtColorUtil.qColor(hex(inner.color(), lastSelectedHintBoxHexColor), inner.opacity()),
-                sweep(inner.color()),
-                inner.fillPercent(),
-                inner.fillStartAngle(),
-                inner.fillDirection());
+        widget.setFill(QtColorUtil.qColor(hex(layer.fillColor(), lastSelectedHintBoxHexColor), layer.fillOpacity()),
+                sweep(layer.fillColor()));
+        IndicatorStroke stroke = layer.stroke();
+        widget.setStroke(stroke,
+                QtColorUtil.qColor(hex(stroke.color(), lastSelectedHintBoxHexColor), stroke.opacity()),
+                sweep(stroke.color()));
         widget.show();
         if (layer.labelEnabled() && layer.labelText() != null &&
             layer.labelFontStyle() != null) {
@@ -488,14 +466,10 @@ public final class IndicatorRenderer {
     }
 
     boolean indicatorHasTransparency() {
-        for (IndicatorLayerConfiguration layer : currentEnabledLayers) {
-            IndicatorOutline outer = layer.outerOutline();
-            IndicatorOutline inner = layer.innerOutline();
-            if (layer.opacity() < 1.0 ||
-                outer.thickness() > 0 && outer.opacity() < 1.0 ||
-                inner.thickness() > 0 && inner.opacity() < 1.0)
+        for (IndicatorLayerConfiguration layer : currentEnabledLayers)
+            if (layer.fillOpacity() < 1.0 ||
+                layer.stroke().thickness() > 0 && layer.stroke().opacity() < 1.0)
                 return true;
-        }
         return false;
     }
 
@@ -557,93 +531,55 @@ public final class IndicatorRenderer {
 
     private class IndicatorLayerWidget extends QWidget {
 
-        private QColor color;
+        private double layerSize;
         private int edgeCount;
-        private double outerOutlineThickness;
-        private QColor outerOutlineColor;
-        private double outerOutlineFillPercent;
-        private double outerOutlineFillStartAngle;
-        private FillDirection outerOutlineFillDirection;
-        private double innerOutlineThickness;
-        private QColor innerOutlineColor;
-        private GradientColor sweep;
-        private GradientColor outerOutlineSweep;
-        private GradientColor innerOutlineSweep;
+        private QColor fillColor;
+        private GradientColor fillSweep;
+        private IndicatorStroke stroke;
+        private QColor strokeColor;
+        private GradientColor strokeSweep;
         private Rectangle sweepArea;
-        private double innerOutlineFillPercent;
-        private double innerOutlineFillStartAngle;
-        private FillDirection innerOutlineFillDirection;
-        private double outlineScale;
+        private double strokeScale;
 
         IndicatorLayerWidget(QWidget parent) {
             super(parent);
         }
 
-        void setOutlineScale(double outlineScale) {
-            this.outlineScale = outlineScale;
+        void setLayerSize(double layerSize) {
+            this.layerSize = layerSize;
         }
 
-        void setColor(QColor color, GradientColor sweep) {
-            if (this.color != null)
-                this.color.dispose();
-            this.color = color;
-            this.sweep = sweep;
+        void setStrokeScale(double strokeScale) {
+            this.strokeScale = strokeScale;
         }
 
         void setEdgeCount(int edgeCount) {
             this.edgeCount = edgeCount;
         }
 
-        void setOutlines(double outerOutlineThickness, QColor outerOutlineColor,
-                         GradientColor outerOutlineSweep,
-                         double outerOutlineFillPercent,
-                         double outerOutlineFillStartAngle,
-                         FillDirection outerOutlineFillDirection,
-                         double innerOutlineThickness, QColor innerOutlineColor,
-                         GradientColor innerOutlineSweep,
-                         double innerOutlineFillPercent,
-                         double innerOutlineFillStartAngle,
-                         FillDirection innerOutlineFillDirection) {
-            if (this.outerOutlineColor != null)
-                this.outerOutlineColor.dispose();
-            if (this.innerOutlineColor != null)
-                this.innerOutlineColor.dispose();
-            this.outerOutlineThickness = outerOutlineThickness;
-            this.outerOutlineColor = outerOutlineColor;
-            this.outerOutlineSweep = outerOutlineSweep;
-            this.outerOutlineFillPercent = outerOutlineFillPercent;
-            this.outerOutlineFillStartAngle = outerOutlineFillStartAngle;
-            this.outerOutlineFillDirection = outerOutlineFillDirection;
-            this.innerOutlineThickness = innerOutlineThickness;
-            this.innerOutlineColor = innerOutlineColor;
-            this.innerOutlineSweep = innerOutlineSweep;
-            this.innerOutlineFillPercent = innerOutlineFillPercent;
-            this.innerOutlineFillStartAngle = innerOutlineFillStartAngle;
-            this.innerOutlineFillDirection = innerOutlineFillDirection;
+        void setFill(QColor fillColor, GradientColor fillSweep) {
+            if (this.fillColor != null)
+                this.fillColor.dispose();
+            this.fillColor = fillColor;
+            this.fillSweep = fillSweep;
+        }
+
+        void setStroke(IndicatorStroke stroke, QColor strokeColor, GradientColor strokeSweep) {
+            if (this.strokeColor != null)
+                this.strokeColor.dispose();
+            this.stroke = stroke;
+            this.strokeColor = strokeColor;
+            this.strokeSweep = strokeSweep;
         }
 
         /**
-         * Radial distance from a fill vertex to the outline's miter tip,
-         * measured along the circumradius direction.
-         * The pen center path is at fillRadius + (corrected - 1) / 2 from center
-         * (1 = inward overlap). For a regular n-gon, offsetting edges outward by
-         * penWidth/2 gives a circumradius of R + penWidth / (2*cos(pi/n)),
-         * where penWidth = corrected + 1 (includes inward overlap).
-         */
-        private static double radialMiterPadding(double visualThickness, int edgeCount) {
-            double cos = Math.cos(Math.PI / edgeCount);
-            double corrected = (2 * visualThickness - (1 - cos)) / (1 + cos);
-            return (corrected - 1.0) / 2.0 + (corrected + 1.0) / (2.0 * cos);
-        }
-
-        /**
-         * Axis-aligned padding needed around the fill's bounding box to fit
-         * the outline's miter tips within a rectangular widget.
+         * Axis-aligned padding needed around the shape's bounding box to fit a stroke
+         * centered on its edge, miter tips included.
          * Projects the radial miter extension onto the x/y axes for each vertex
          * and returns the maximum.
          */
-        static double miterPadding(double visualThickness, int edgeCount) {
-            double radial = radialMiterPadding(visualThickness, edgeCount);
+        static double strokePadding(double strokeThickness, int edgeCount) {
+            double radial = strokeThickness / 2 / Math.cos(Math.PI / edgeCount);
             double startAngle = polygonStartAngle(edgeCount);
             double maxProjection = 0;
             for (int i = 0; i < edgeCount; i++) {
@@ -654,11 +590,6 @@ public final class IndicatorRenderer {
             return radial * maxProjection;
         }
 
-        private double correctedOutlineThickness(double visualThickness) {
-            double cos = Math.cos(Math.PI / edgeCount);
-            return (2 * visualThickness - (1 - cos)) / (1 + cos);
-        }
-
         private QBrush brush(QColor color, GradientColor sweep) {
             return IndicatorRenderer.brush(color, sweep, sweepArea);
         }
@@ -666,12 +597,6 @@ public final class IndicatorRenderer {
         void setSweepArea(Rectangle sweepArea) {
             this.sweepArea = sweepArea;
         }
-
-        double maxOutlineThickness() {
-            double scaled = Math.max(outerOutlineThickness, innerOutlineThickness) * outlineScale;
-            return miterPadding(scaled, edgeCount);
-        }
-
 
         private static double polygonStartAngle(int edgeCount) {
             // Odd edge count: vertex at top (pointy top, e.g. triangle ▲).
@@ -734,14 +659,14 @@ public final class IndicatorRenderer {
 
         /**
          * Builds an open path tracing a portion of the polygon outline.
-         * fillStartAngle: 0 = top (12 o'clock), increases clockwise, in degrees.
-         * fillDirection: BOTH = expand symmetrically from anchor.
+         * startAngle: 0 = top (12 o'clock), increases clockwise, in degrees.
+         * lengthPercent: a fraction of the perimeter, negative going counterclockwise.
+         * anchor: MIDDLE = expand symmetrically from startAngle.
          */
         private static QPainterPath partialPolygonPath(double centerX, double centerY,
                                                        double radius, int edgeCount,
-                                                       double fillPercent,
-                                                       double fillStartAngle,
-                                                       FillDirection fillDirection) {
+                                                       double startAngle, double lengthPercent,
+                                                       StrokeAnchor anchor) {
             double polyStartAngle = polygonStartAngle(edgeCount);
             double[] vx = new double[edgeCount];
             double[] vy = new double[edgeCount];
@@ -752,11 +677,11 @@ public final class IndicatorRenderer {
             }
             double edgeLength = Math.hypot(vx[1] - vx[0], vy[1] - vy[0]);
             double totalLength = edgeCount * edgeLength;
-            double fillLength = fillPercent * totalLength;
-            // Convert fillStartAngle (0=top, CW) to math angle for ray intersection.
+            double fillLength = Math.abs(lengthPercent) * totalLength;
+            // Convert startAngle (0=top, CW) to math angle for ray intersection.
             // Math convention: 0=right, counter-clockwise positive.
             // Screen coords: y increases downward, so sin is negated.
-            double mathAngle = Math.toRadians(90 - fillStartAngle);
+            double mathAngle = Math.toRadians(90 - startAngle);
             double rayDx = Math.cos(mathAngle);
             double rayDy = -Math.sin(mathAngle); // negate for screen coords
             // Find anchor position on perimeter by intersecting ray from center with polygon edges.
@@ -764,7 +689,7 @@ public final class IndicatorRenderer {
                     vx, vy, edgeCount, edgeLength);
             // Build path(s) based on direction.
             // Vertex order is clockwise on screen. Forward = CW, backward = CCW.
-            if (fillDirection == FillDirection.BOTH) {
+            if (anchor == StrokeAnchor.MIDDLE) {
                 double halfLength = fillLength / 2.0;
                 QPainterPath cwPath = traceAlongPerimeter(
                         vx, vy, edgeCount, edgeLength, totalLength, anchorPos, halfLength, true);
@@ -777,7 +702,7 @@ public final class IndicatorRenderer {
                 return combined;
             }
             else {
-                boolean forward = fillDirection == FillDirection.CLOCKWISE;
+                boolean forward = lengthPercent > 0;
                 return traceAlongPerimeter(
                         vx, vy, edgeCount, edgeLength, totalLength, anchorPos, fillLength, forward);
             }
@@ -887,100 +812,45 @@ public final class IndicatorRenderer {
             return path;
         }
 
-        private void drawOutline(QPainter painter, double centerX, double centerY,
-                                 double fillRadius, double thickness, QColor color,
-                                 GradientColor sweep,
-                                 double fillPercent, double fillStartAngle,
-                                 FillDirection fillDirection, double inwardOverlap) {
-            if (thickness <= 0 || color == null || color.alpha() == 0 || fillPercent <= 0)
-                return;
-            // Extend the inner edge inward by inwardOverlap so that the
-            // antialiased inner pixels blend with the layer below (e.g. fill)
-            // rather than with a different-colored outline underneath.
-            double effectiveThickness = thickness + inwardOverlap;
-            QPen pen = new QPen(color);
-            if (sweep != null)
-                pen.setBrush(brush(color, sweep));
-            pen.setWidthF(effectiveThickness);
-            pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin);
-            painter.setBrush(Qt.BrushStyle.NoBrush);
-            // Outer edge stays at fillRadius + thickness.
-            // Inner edge moves to fillRadius - inwardOverlap.
-            double outlineRadius = fillRadius + (thickness - inwardOverlap) / 2.0;
-            if (fillPercent >= 1.0) {
-                painter.setPen(pen);
-                QPainterPath outlinePath = polygonPath(centerX, centerY, outlineRadius, edgeCount);
-                painter.drawPath(outlinePath);
-                outlinePath.dispose();
-            }
-            else {
-                pen.setCapStyle(Qt.PenCapStyle.FlatCap);
-                painter.setPen(pen);
-                QPainterPath outlinePath = partialPolygonPath(
-                        centerX, centerY, outlineRadius, edgeCount, fillPercent,
-                        fillStartAngle, fillDirection);
-                painter.drawPath(outlinePath);
-                outlinePath.dispose();
-            }
-            pen.dispose();
-        }
-
-        void drawContent(QPainter painter, QColor fillColor,
-                         QColor outerOutlineColor, QColor innerOutlineColor) {
-            double maxOutlinePadding = maxOutlineThickness();
-            int outlinePadding = (int) Math.ceil(maxOutlinePadding);
-            double availableSize = Math.min(width(), height()) - 2 * outlinePadding;
-            PolygonLayout layout = polygonLayout(availableSize, edgeCount);
+        void drawContent(QPainter painter, QColor fillColor, QColor strokeColor) {
+            PolygonLayout layout = polygonLayout(layerSize, edgeCount);
             double centerX = width() / 2.0 + layout.offsetX;
             double centerY = height() / 2.0 + layout.offsetY;
-            double fillRadius = layout.radius;
-            QPainterPath fillPath = polygonPath(centerX, centerY, fillRadius, edgeCount);
-            double scaledOuter = outerOutlineThickness * outlineScale;
-            double scaledInner = innerOutlineThickness * outlineScale;
-            double correctedOuter = correctedOutlineThickness(scaledOuter);
-            double correctedInner = correctedOutlineThickness(scaledInner);
-            // Draw fill first, then outlines on top. Outlines cover the fill
-            // boundary with their inwardOverlap, preventing artifacts from
-            // opacity differences between fill and outline.
+            QPainterPath path = polygonPath(centerX, centerY, layout.radius, edgeCount);
             if (fillColor.alpha() != 0) {
                 painter.setPen(Qt.PenStyle.NoPen);
-                painter.setBrush(brush(fillColor, sweep));
-                painter.drawPath(fillPath);
+                painter.setBrush(brush(fillColor, fillSweep));
+                painter.drawPath(path);
             }
-            // Draw outer outline on top of fill.
-            drawOutline(painter, centerX, centerY, fillRadius,
-                    correctedOuter, outerOutlineColor, outerOutlineSweep, outerOutlineFillPercent,
-                    outerOutlineFillStartAngle, outerOutlineFillDirection, 1.0);
-            // Draw inner outline on top of outer outline. Compute a larger
-            // inwardOverlap so the inner outline's inner miter tip extends
-            // past the outer outline's inner miter tip by at least `margin`
-            // pixels. Without this, the outer outline color bleeds through
-            // the inner outline's antialiased inner edge, especially at
-            // vertices of low-edge-count polygons (e.g. triangles).
-            // Formula derived from equating the radial miter tip positions:
-            //   tip = fillRadius + (corrected - overlap)/2
-            //         - (corrected + overlap) / (2*cos(PI/n))
-            double innerInwardOverlap;
-            if (correctedOuter > 0 && correctedInner > 0) {
-                double cos = Math.cos(Math.PI / edgeCount);
-                double D = correctedOuter - correctedInner;
-                double margin = 1.5;
-                innerInwardOverlap = D * (1 - cos) / (1 + cos)
-                        + 1.0 + 2.0 * margin * cos / (1 + cos);
-                innerInwardOverlap = Math.max(innerInwardOverlap, 1.0);
+            double strokeThickness = stroke.thickness() * strokeScale;
+            if (strokeThickness > 0 && strokeColor.alpha() != 0 && stroke.lengthPercent() != 0) {
+                QPen pen = new QPen(strokeColor);
+                if (strokeSweep != null)
+                    pen.setBrush(brush(strokeColor, strokeSweep));
+                pen.setWidthF(strokeThickness);
+                pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin);
+                painter.setBrush(Qt.BrushStyle.NoBrush);
+                if (Math.abs(stroke.lengthPercent()) >= 1) {
+                    painter.setPen(pen);
+                    painter.drawPath(path);
+                }
+                else {
+                    pen.setCapStyle(Qt.PenCapStyle.FlatCap);
+                    painter.setPen(pen);
+                    QPainterPath strokePath = partialPolygonPath(centerX, centerY,
+                            layout.radius, edgeCount, stroke.startAngle(), stroke.lengthPercent(),
+                            stroke.anchor());
+                    painter.drawPath(strokePath);
+                    strokePath.dispose();
+                }
+                pen.dispose();
             }
-            else {
-                innerInwardOverlap = fillColor.alpha() == 0 ? 0 : 1.0;
-            }
-            drawOutline(painter, centerX, centerY, fillRadius,
-                    correctedInner, innerOutlineColor, innerOutlineSweep, innerOutlineFillPercent,
-                    innerOutlineFillStartAngle, innerOutlineFillDirection, innerInwardOverlap);
-            fillPath.dispose();
+            path.dispose();
         }
 
         void redrawSourceOverShadow(QPainter painter) {
             painter.translate(x(), y());
-            drawContent(painter, color, outerOutlineColor, innerOutlineColor);
+            drawContent(painter, fillColor, strokeColor);
             painter.translate(-x(), -y());
         }
 
@@ -1006,13 +876,11 @@ public final class IndicatorRenderer {
                 return;
             }
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            QColor opaqueColor = opaque(color);
-            QColor opaqueOuterOutlineColor = opaque(outerOutlineColor);
-            QColor opaqueInnerOutlineColor = opaque(innerOutlineColor);
-            drawContent(painter, opaqueColor, opaqueOuterOutlineColor, opaqueInnerOutlineColor);
-            opaqueColor.dispose();
-            opaqueOuterOutlineColor.dispose();
-            opaqueInnerOutlineColor.dispose();
+            QColor opaqueFillColor = opaque(fillColor);
+            QColor opaqueStrokeColor = opaque(strokeColor);
+            drawContent(painter, opaqueFillColor, opaqueStrokeColor);
+            opaqueFillColor.dispose();
+            opaqueStrokeColor.dispose();
             painter.end();
             painter.dispose();
         }
@@ -1062,15 +930,15 @@ public final class IndicatorRenderer {
         private int outlineThickness;
         private QColor outlineColor;
         private int edgeCount;
-        private int layerOutlinePadding;
+        private double layerSize;
 
         IndicatorLabelWidget(QWidget parent) {
             super(parent);
             setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents);
         }
 
-        void setLayerOutlinePadding(int padding) {
-            this.layerOutlinePadding = padding;
+        void setLayerSize(double layerSize) {
+            this.layerSize = layerSize;
         }
 
         void setLabel(String labelText, QFont labelFont, QColor labelColor,
@@ -1098,9 +966,8 @@ public final class IndicatorRenderer {
             QPainter painter = new QPainter(this);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             painter.setFont(labelFont);
-            double availableSize = Math.min(width(), height()) - 2 * layerOutlinePadding;
             IndicatorLayerWidget.PolygonLayout polygonLayout =
-                    IndicatorLayerWidget.polygonLayout(availableSize, edgeCount);
+                    IndicatorLayerWidget.polygonLayout(layerSize, edgeCount);
             double centerX = width() / 2.0 + polygonLayout.offsetX();
             double centerY = height() / 2.0 + polygonLayout.offsetY();
             drawLabelText(painter, labelText, labelFont, centerX, centerY,

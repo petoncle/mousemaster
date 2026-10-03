@@ -124,20 +124,20 @@ class PreconditionOnlyMutationTest {
     }
 
     private Color color() {
-        return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").color();
+        return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").fillColor();
     }
 
-    private int size() {
+    private double size() {
         return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").size();
     }
 
     private double opacity() {
-        return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").opacity();
+        return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").fillOpacity();
     }
 
     @Test
     void aMutationReachesAnIndicatorProperty() {
-        load("idle-mode.indicator.color=#FF0000 | _{isidling} -> #00FF00");
+        load("idle-mode.indicator.fill-color=#FF0000 | _{isidling} -> #00FF00");
         tick();
         assertEquals(Color.parse("#FF0000"), color());
 
@@ -169,13 +169,13 @@ class PreconditionOnlyMutationTest {
     @Test
     void aClickNotifiesOnceWithEveryMutationApplied() {
         load("idle-mode.indicator.size=26 | +ismousepressing -> 50",
-                "idle-mode.indicator.color=#FF0000 | +isleftmousepressing -> #00FF00");
+                "idle-mode.indicator.fill-color=#FF0000 | +isleftmousepressing -> #00FF00");
         notifiedModes.clear();
 
         leftClick();
         assertEquals(1, notifiedModes.size(), "notified " + notifiedModes.size() + " times");
         assertEquals(50, notifiedModes.getFirst().indicator().layerByName().get("indicator").size());
-        assertEquals(Color.parse("#00FF00"), notifiedModes.getFirst().indicator().layerByName().get("indicator").color());
+        assertEquals(Color.parse("#00FF00"), notifiedModes.getFirst().indicator().layerByName().get("indicator").fillColor());
     }
 
     /** A hint mode's click presses and releases within one iteration, and the mouse state is
@@ -183,8 +183,8 @@ class PreconditionOnlyMutationTest {
     @Test
     void aClickReleasedWithinOneIterationIsStillPressing() {
         load("idle-mode.indicator.size=26 | _{ismousepressing} -> 50",
-                "idle-mode.indicator.color=#FF0000 | _{isleftmousepressing} -> #00FF00",
-                "idle-mode.indicator.opacity=1 | _{isidling} -> 0.5");
+                "idle-mode.indicator.fill-color=#FF0000 | _{isleftmousepressing} -> #00FF00",
+                "idle-mode.indicator.fill-opacity=1 | _{isidling} -> 0.5");
         MouseManager mouseManager = mouseManager();
         MouseState mouseState = new MouseState(mouseManager);
         setMouseAndKeyboardKeys(mouseState);

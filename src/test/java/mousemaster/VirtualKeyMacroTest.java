@@ -57,10 +57,10 @@ class VirtualKeyMacroTest {
     }
 
     private Color color() {
-        return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").color();
+        return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").fillColor();
     }
 
-    private int size() {
+    private double size() {
         return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").size();
     }
 
@@ -69,7 +69,7 @@ class VirtualKeyMacroTest {
         load("virtual-keys=flag other",
                 "idle-mode.macro.x=+a -> #flag wait-100 ~flag",
                 "idle-mode.macro.y=+b -> #other wait-100 ~other",
-                "idle-mode.indicator.color=#FF0000 | _{flag} -> #00FF00",
+                "idle-mode.indicator.fill-color=#FF0000 | _{flag} -> #00FF00",
                 "idle-mode.indicator.size=26 | _{other} -> 42");
         submit("x");
         submit("y");
@@ -86,7 +86,7 @@ class VirtualKeyMacroTest {
     void pressingTheSameMacroAgainStartsItOver() {
         load("virtual-keys=flag",
                 "idle-mode.macro.x=+a -> #flag wait-100 ~flag",
-                "idle-mode.indicator.color=#FF0000 | _{flag} -> #00FF00");
+                "idle-mode.indicator.fill-color=#FF0000 | _{flag} -> #00FF00");
         submit("x");
         macroPlayer.update(0.01);
         macroPlayer.update(0.05);
@@ -102,7 +102,7 @@ class VirtualKeyMacroTest {
     void aSlowUpdateDoesNotShortenTheWaitItStarts() {
         load("virtual-keys=flag",
                 "idle-mode.macro.x=+a -> #flag wait-100 ~flag",
-                "idle-mode.indicator.color=#FF0000 | _{flag} -> #00FF00");
+                "idle-mode.indicator.fill-color=#FF0000 | _{flag} -> #00FF00");
         submit("x");
         // The 80ms of this update elapsed before the macro was submitted.
         macroPlayer.update(0.08);
@@ -119,7 +119,7 @@ class VirtualKeyMacroTest {
     void aResetReleasesWhatIsStillPressed() {
         load("virtual-keys=flag",
                 "idle-mode.macro.x=+a -> #flag wait-100 ~flag",
-                "idle-mode.indicator.color=#FF0000 | _{flag} -> #00FF00");
+                "idle-mode.indicator.fill-color=#FF0000 | _{flag} -> #00FF00");
         submit("x");
         macroPlayer.update(0.01);
         assertEquals(Color.parse("#00FF00"), color());
