@@ -205,8 +205,11 @@ public class ConfigurationParser {
                  .stackCount(1);
         IndicatorLayerConfigurationBuilder layer = indicator.layer("indicator");
         layer.enabled(false).z(0);
-        layer.size(26)
-             .edgeCount(100)
+        layer.shape(IndicatorShape.CIRCLE)
+             .size(26)
+             .aspectRatio(1)
+             .borderRadius(0)
+             .points(List.of())
              .fillColor(Color.parse("#FF0000"))
              .fillOpacity(0.2)
              .position(IndicatorPosition.CENTER)
@@ -2600,7 +2603,11 @@ public class ConfigurationParser {
             case "color", "opacity" -> throw new IllegalArgumentException(layerName + "." + key + " has been removed: use " + layerName + ".fill-" + key + " instead");
             case "outer-outline-thickness", "outer-outline-color", "outer-outline-opacity", "outer-outline-fill-percent", "outer-outline-fill-start-angle", "outer-outline-fill-direction", "outline-thickness", "outline-color", "outline-opacity", "outline-fill-percent", "outline-fill-start-angle", "outline-fill-direction", "inner-outline-thickness", "inner-outline-color", "inner-outline-opacity", "inner-outline-fill-percent", "inner-outline-fill-start-angle", "inner-outline-fill-direction" -> throw new IllegalArgumentException(layerName + "." + key + " has been removed: an outline is the stroke of the layer (stroke-thickness, stroke-color, stroke-opacity, stroke-start-angle, stroke-length-percent, stroke-anchor), drawn centered on its edge, and a second outline is a second layer");
             case "size" -> ModePropertyHandler.of(prefix.append("size"), v -> parseDouble(v, false, 0, 1000), v -> layer.size(v));
-            case "edge-count" -> ModePropertyHandler.of(prefix.append("edgeCount"), v -> parseUnsignedInteger(v, 3, 1000), v -> layer.edgeCount(v));
+            case "edge-count" -> throw new IllegalArgumentException(layerName + ".edge-count has been removed: use " + layerName + ".shape=circle, triangle, rectangle, star or path instead");
+            case "shape" -> ModePropertyHandler.of(prefix.append("shape"), v -> IndicatorShape.fromString(v), v -> layer.shape(v));
+            case "aspect-ratio" -> ModePropertyHandler.of(prefix.append("aspectRatio"), v -> parseDouble(v, false, 0, 100), v -> layer.aspectRatio(v));
+            case "border-radius" -> ModePropertyHandler.of(prefix.append("borderRadius"), v -> parseDouble(v, true, 0, 1000), v -> layer.borderRadius(v));
+            case "points" -> ModePropertyHandler.of(prefix.append("points"), v -> parsePoints(v), v -> layer.points(v));
             case "fill-color" -> ModePropertyHandler.of(prefix.append("fillColor"), v -> Color.parse(v, colorAliases), v -> layer.fillColor(v));
             case "fill-opacity" -> ModePropertyHandler.of(prefix.append("fillOpacity"), v -> parseDouble(v, true, 0, 1), v -> layer.fillOpacity(v));
             case "stroke-thickness" -> ModePropertyHandler.of(prefix.append("stroke").append("thickness"), v -> parseDouble(v, true, 0, 1000), v -> layer.stroke().thickness(v));
@@ -3207,6 +3214,22 @@ public class ConfigurationParser {
                     "Invalid property value in " + integer + ": " +
                     " must be less than or equal to " + max);
         return integer;
+    }
+
+    private static List<Point> parsePoints(String propertyValue) {
+        List<Point> points = new ArrayList<>();
+        for (String point : propertyValue.strip().split("\\s+")) {
+            String[] coordinates = point.split(",");
+            if (coordinates.length != 2)
+                throw new IllegalArgumentException(
+                        "Invalid point " + point + ": must be x,y, like 0,-10");
+            points.add(new Point(Double.parseDouble(coordinates[0]),
+                    Double.parseDouble(coordinates[1])));
+        }
+        if (points.size() < 3)
+            throw new IllegalArgumentException(
+                    "Invalid points " + propertyValue + ": a path needs at least 3 points");
+        return List.copyOf(points);
     }
 
     private static double parseNonZeroPercent(String propertyValue,

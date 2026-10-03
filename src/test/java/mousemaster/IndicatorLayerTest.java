@@ -101,4 +101,24 @@ class IndicatorLayerTest {
                 () -> parse("idle-mode.indicator.color=#FF0000"));
         assertTrue(e.getMessage().contains("fill-color"), e.getMessage());
     }
+
+    @Test
+    void aLayerIsAShapeInABoxOfItsSizeAndAspectRatio() {
+        Mode mode = parse("idle-mode.indicator.shape=rectangle",
+                "idle-mode.indicator.aspect-ratio=2",
+                "idle-mode.indicator.border-radius=4",
+                "idle-mode.path-indicator.shape=path",
+                "idle-mode.path-indicator.points=0,0 10,0 5,8").modeMap().get(Mode.IDLE_MODE_NAME);
+        assertEquals(IndicatorShape.RECTANGLE, layer(mode, "indicator").shape());
+        assertEquals(2, layer(mode, "indicator").aspectRatio());
+        assertEquals(4, layer(mode, "indicator").borderRadius());
+        assertEquals(IndicatorShape.PATH, layer(mode, "path-indicator").shape());
+        assertEquals(List.of(new Point(0, 0), new Point(10, 0), new Point(5, 8)),
+                layer(mode, "path-indicator").points());
+        assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.indicator.points=0,0 10,0"));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.indicator.edge-count=6"));
+        assertTrue(e.getMessage().contains("shape"), e.getMessage());
+    }
 }

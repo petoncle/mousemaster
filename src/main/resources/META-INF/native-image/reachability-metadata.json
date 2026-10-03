@@ -7049,8 +7049,11 @@
           "parameterTypes": [
             "boolean",
             "int",
+            "mousemaster.IndicatorShape",
             "double",
-            "int",
+            "double",
+            "double",
+            "java.util.List",
             "mousemaster.Color",
             "double",
             "mousemaster.IndicatorStroke",
@@ -7062,7 +7065,11 @@
           ]
         },
         {
-          "name": "edgeCount",
+          "name": "aspectRatio",
+          "parameterTypes": []
+        },
+        {
+          "name": "borderRadius",
           "parameterTypes": []
         },
         {
@@ -7094,7 +7101,15 @@
           "parameterTypes": []
         },
         {
+          "name": "points",
+          "parameterTypes": []
+        },
+        {
           "name": "position",
+          "parameterTypes": []
+        },
+        {
+          "name": "shape",
           "parameterTypes": []
         },
         {
