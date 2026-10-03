@@ -136,12 +136,20 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
             return Color.rgb(hexColor());
         double scaled = Math.clamp(t, 0, 1) * (hexColors.size() - 1);
         int index = Math.min((int) scaled, hexColors.size() - 2);
-        double[] from = oklab(hexColors.get(index));
-        double[] to = oklab(hexColors.get(index + 1));
-        double segmentPosition = scaled - index;
-        return rgb(from[0] + (to[0] - from[0]) * segmentPosition,
-                from[1] + (to[1] - from[1]) * segmentPosition,
-                from[2] + (to[2] - from[2]) * segmentPosition);
+        return mixRgb(hexColors.get(index), hexColors.get(index + 1), scaled - index);
+    }
+
+    /** The color t of the way from one hex color to another, mixed in OkLab. */
+    public static String mix(String fromHexColor, String toHexColor, double t) {
+        return Color.hexColor(mixRgb(fromHexColor, toHexColor, t));
+    }
+
+    private static int mixRgb(String fromHexColor, String toHexColor, double t) {
+        double[] from = oklab(fromHexColor);
+        double[] to = oklab(toHexColor);
+        return rgb(from[0] + (to[0] - from[0]) * t,
+                from[1] + (to[1] - from[1]) * t,
+                from[2] + (to[2] - from[2]) * t);
     }
 
     private static final Map<String, double[]> oklabByHexColor = new ConcurrentHashMap<>();

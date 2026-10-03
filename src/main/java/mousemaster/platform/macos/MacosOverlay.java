@@ -1,6 +1,7 @@
 package mousemaster.platform.macos;
 
 import io.qt.core.QPoint;
+import mousemaster.EffectFrame;
 import mousemaster.Grid;
 import mousemaster.Hint;
 import mousemaster.HintMesh;
@@ -14,6 +15,7 @@ import mousemaster.platform.Overlay;
 import mousemaster.platform.DesktopCapture;
 import mousemaster.qt.QtHintFont;
 import mousemaster.qt.TransparentWindow;
+import mousemaster.renderer.EffectRenderer;
 import mousemaster.renderer.GridRenderer;
 import mousemaster.renderer.HintMeshRenderer;
 import mousemaster.renderer.IndicatorRenderer;
@@ -37,6 +39,7 @@ public class MacosOverlay implements Overlay {
 
     private IndicatorRenderer indicatorRenderer;
     private GridRenderer gridRenderer;
+    private EffectRenderer effectRenderer;
     private MacosZoomRenderer zoomRenderer;
     private Zoom currentZoom;
     private long nextZoomFrameNanos;
@@ -190,6 +193,32 @@ public class MacosOverlay implements Overlay {
         Point visualCenter = MacosCursor.visualCenter();
         return new Point(visualCenter.x() * activeScreen.scale(),
                 visualCenter.y() * activeScreen.scale());
+    }
+
+    @Override
+    public void setEffects(List<EffectFrame> effectFrames) {
+        if (effectRenderer == null) {
+            effectRenderer = new EffectRenderer();
+            MacosWindow.applyOverlayProperties(effectRenderer.window());
+        }
+        QPoint mousePosition = mouse.findMousePosition();
+        Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
+        // The renderer takes screen pixels; the mouse position is in points.
+        effectRenderer.setEffects(effectFrames,
+                (int) Math.round(mousePosition.x() * activeScreen.scale()),
+                (int) Math.round(mousePosition.y() * activeScreen.scale()),
+                activeScreen);
+    }
+
+    @Override
+    public void hideEffects() {
+        if (effectRenderer != null)
+            effectRenderer.hide();
+    }
+
+    @Override
+    public boolean effectFollowingMouse() {
+        return effectRenderer != null && effectRenderer.followingMouse();
     }
 
     @Override
