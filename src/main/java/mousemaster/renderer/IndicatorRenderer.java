@@ -242,9 +242,10 @@ public final class IndicatorRenderer {
         List<Point> topLefts = new ArrayList<>();
         for (String layerName : enabledLayerNames(indicator)) {
             IndicatorLayerConfiguration layer = indicator.layerByName().get(layerName);
-            LayerAnchor anchor = layer.followMouse() ?
-                    new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen) :
-                    anchorByLayerName.get(layerName);
+            LayerAnchor mouseAnchor =
+                    new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen);
+            LayerAnchor anchor = layer.followMouse() ? mouseAnchor :
+                    anchorByLayerName.computeIfAbsent(layerName, name -> mouseAnchor);
             Point topLeft = layerTopLeft(anchor.mouseRectangle(), anchor.cursorVisualCenter(),
                     anchor.activeScreen(), zoom, layer,
                     layerSizeWithStroke(layer, activeScreen.scale()));
