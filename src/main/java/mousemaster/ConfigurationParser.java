@@ -228,23 +228,10 @@ public class ConfigurationParser {
              .dashGap(0)
              .dashOffset(0)
              .cap(StrokeCap.FLAT);
-        layer.labelEnabled(false);
-        layer.labelFontStyle()
-             .name("Arial")
-             .weight(FontWeight.NORMAL)
-             .size(8d)
-             .color(Color.parse("#FFFFFF"))
-             .opacity(1.0)
-             .outlineThickness(0d)
-             .outlineColor(Color.parse("#000000"))
-             .outlineOpacity(0d);
-        layer.labelFontStyle().shadow()
-             .blurRadius(10d)
-             .color(Color.parse("#000000"))
-             .opacity(0d)
-             .horizontalOffset(0d)
-             .verticalOffset(0d)
-             .stackCount(1);
+        layer.text("")
+             .fontName("Arial")
+             .fontSize(8)
+             .fontWeight(FontWeight.NORMAL);
         HideCursorBuilder hideCursor =
                 new HideCursorBuilder().enabled(false).idleDuration(Duration.ZERO);
         ZoomConfigurationBuilder zoom = new ZoomConfigurationBuilder();
@@ -1653,8 +1640,6 @@ public class ConfigurationParser {
                                 "Invalid indicator property key: " +
                                 keyMatcher.group(group4));
                     String key = keyMatcher.group(group4);
-                    if (key.startsWith("label-") && layer.labelEnabled() == null)
-                        layer.labelEnabled(true);
                     parseIndicatorProperty(mode.indicator.builder, group2, key, propertyValue,
                             mode.indicator.mutateModeCommands,
                             mode.indicator.setPropertyPaths,
@@ -2630,22 +2615,11 @@ public class ConfigurationParser {
             case "stroke-dash-gap" -> ModePropertyHandler.of(prefix.append("stroke").append("dashGap"), v -> parseDouble(v, true, 0, 10_000), v -> layer.stroke().dashGap(v));
             case "stroke-dash-offset" -> ModePropertyHandler.of(prefix.append("stroke").append("dashOffset"), v -> parseDouble(v, true, -1_000_000, 1_000_000), v -> layer.stroke().dashOffset(v));
             case "stroke-cap" -> ModePropertyHandler.of(prefix.append("stroke").append("cap"), v -> StrokeCap.fromString(v), v -> layer.stroke().cap(v));
-            case "label-enabled" -> ModePropertyHandler.of(prefix.append("labelEnabled"), v -> Boolean.parseBoolean(v), v -> layer.labelEnabled(v));
-            case "label-text" -> ModePropertyHandler.of(prefix.append("labelText"), v -> v, v -> layer.labelText(v));
-            case "label-font-name" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("name"), v -> v, v -> layer.labelFontStyle().name(v));
-            case "label-font-size" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("size"), v -> parseDouble(v, false, 0, 1000), v -> layer.labelFontStyle().size(v));
-            case "label-font-color" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("color"), v -> Color.parse(v, colorAliases), v -> layer.labelFontStyle().color(v));
-            case "label-font-weight" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("weight"), v -> FontWeight.of(v), v -> layer.labelFontStyle().weight(v));
-            case "label-font-opacity" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("opacity"), v -> parseDouble(v, true, 0, 1), v -> layer.labelFontStyle().opacity(v));
-            case "label-font-outline-thickness" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> layer.labelFontStyle().outlineThickness(v));
-            case "label-font-outline-color" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("outlineColor"), v -> Color.parse(v, colorAliases), v -> layer.labelFontStyle().outlineColor(v));
-            case "label-font-outline-opacity" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("outlineOpacity"), v -> parseDouble(v, true, 0, 1), v -> layer.labelFontStyle().outlineOpacity(v));
-            case "label-font-shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("shadow").append("blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> layer.labelFontStyle().shadow().blurRadius(v));
-            case "label-font-shadow-color" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("shadow").append("color"), v -> Color.parse(v, colorAliases), v -> layer.labelFontStyle().shadow().color(v));
-            case "label-font-shadow-opacity" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("shadow").append("opacity"), v -> parseDouble(v, true, 0, 1), v -> layer.labelFontStyle().shadow().opacity(v));
-            case "label-font-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("shadow").append("stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> layer.labelFontStyle().shadow().stackCount(v));
-            case "label-font-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("shadow").append("horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> layer.labelFontStyle().shadow().horizontalOffset(v));
-            case "label-font-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("shadow").append("verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> layer.labelFontStyle().shadow().verticalOffset(v));
+            case "label-enabled", "label-text", "label-font-name", "label-font-size", "label-font-color", "label-font-weight", "label-font-opacity", "label-font-outline-thickness", "label-font-outline-color", "label-font-outline-opacity", "label-font-shadow-blur-radius", "label-font-shadow-color", "label-font-shadow-opacity", "label-font-shadow-stack-count", "label-font-shadow-horizontal-offset", "label-font-shadow-vertical-offset" -> throw new IllegalArgumentException(layerName + "." + key + " has been removed: draw text with a layer of shape=text, set with text, font-name, font-size and font-weight, its fill coloring the letters and its stroke outlining them");
+            case "text" -> ModePropertyHandler.of(prefix.append("text"), v -> v, v -> layer.text(v));
+            case "font-name" -> ModePropertyHandler.of(prefix.append("fontName"), v -> v, v -> layer.fontName(v));
+            case "font-size" -> ModePropertyHandler.of(prefix.append("fontSize"), v -> parseDouble(v, false, 0, 1000), v -> layer.fontSize(v));
+            case "font-weight" -> ModePropertyHandler.of(prefix.append("fontWeight"), v -> FontWeight.of(v), v -> layer.fontWeight(v));
             case "position" -> ModePropertyHandler.of(prefix.append("position"), v -> IndicatorPosition.fromString(v), v -> layer.position(v));
             case "follow-mouse" -> ModePropertyHandler.of(prefix.append("followMouse"), v -> Boolean.parseBoolean(v), v -> layer.followMouse(v));
             // @formatter:on

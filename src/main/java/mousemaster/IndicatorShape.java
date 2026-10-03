@@ -7,7 +7,8 @@ public enum IndicatorShape {
     STAR,
     LINE,
     CROSS,
-    PATH;
+    PATH,
+    TEXT;
 
     public static IndicatorShape fromString(String value) {
         return switch (value) {
@@ -18,15 +19,16 @@ public enum IndicatorShape {
             case "line" -> LINE;
             case "cross" -> CROSS;
             case "path" -> PATH;
+            case "text" -> TEXT;
             default -> throw new IllegalArgumentException(
                     "Invalid shape: " + value + ", must be 'circle', 'triangle', 'rectangle'," +
-                    " 'star', 'line', 'cross' or 'path'");
+                    " 'star', 'line', 'cross', 'path' or 'text'");
         };
     }
 
-    /** A partial stroke follows the closed outline around a shape. A line or a cross has
-     *  none, so it is always stroked in full. */
-    public boolean closed() {
-        return this != LINE && this != CROSS;
+    /** A partial stroke follows the one closed outline around a shape. A line or a cross has
+     *  no closed outline and text has one per letter, so they are always stroked in full. */
+    public boolean hasOneOutline() {
+        return this != LINE && this != CROSS && this != TEXT;
     }
 }
