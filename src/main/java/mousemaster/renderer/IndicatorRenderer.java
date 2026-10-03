@@ -157,6 +157,14 @@ public final class IndicatorRenderer {
                            double scale) {
     }
 
+    private boolean drawn(TextKey key) {
+        for (IndicatorLayerConfiguration layer : currentEnabledLayers)
+            if (key.equals(new TextKey(layer.text(), layer.fontName(), layer.fontSize(),
+                    layer.fontWeight(), key.scale())))
+                return true;
+        return false;
+    }
+
     /** The text's outline, centered on its ink. Laying text out costs about 100us, and the
      *  layout is asked for on every mouse move. */
     private QPainterPath textOutline(IndicatorLayerConfiguration layer, double scale) {
@@ -492,6 +500,12 @@ public final class IndicatorRenderer {
                                 String lastSelectedHintBoxHexColor) {
         currentIndicator = indicator;
         currentEnabledLayers = enabledLayers(indicator);
+        outlineByText.entrySet().removeIf(entry -> {
+            if (drawn(entry.getKey()))
+                return false;
+            entry.getValue().dispose();
+            return true;
+        });
         cleared = false;
         applyShadowEffect(shadowScale, lastSelectedHintBoxHexColor);
         for (int i = 0; i < widgets.size(); i++) {
