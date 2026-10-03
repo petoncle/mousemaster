@@ -468,6 +468,13 @@ class AnimationTest {
     }
 
     @Test
+    void onlyIndicatorAndHideCursorPropertiesHaveKeyframes() {
+        assertThrows(IllegalArgumentException.class,
+                () -> load("click-animation.duration-millis=100",
+                        "idle-mode.mouse.max-velocity=1000 | _{clickanimation} -> 0% 1000; 100% 100"));
+    }
+
+    @Test
     void everyGroupOfAKeyframesBranchNeedsItsAnimation() {
         assertThrows(IllegalArgumentException.class,
                 () -> load("click-animation.duration-millis=100",

@@ -3174,6 +3174,12 @@ public class ConfigurationParser {
                             unresolvedNames, unresolvedNameNegatedSet, remap);
                 }
                 else if (isTimeline(comboPropertyValue.valueString())) {
+                    for (ModePropertyPath comboMutationPath : comboMutationPaths)
+                        if (!List.of("indicator", "hideCursor")
+                                 .contains(comboMutationPath.fieldNames().getFirst()))
+                            throw new IllegalArgumentException(
+                                    "Invalid keyframes " + comboPropertyValue.valueString() +
+                                    ": only indicator and hide-cursor properties have keyframes");
                     parsedValue = parseTimeline(comboPropertyValue.valueString(), combo,
                             valueParser, keyResolver);
                 }
