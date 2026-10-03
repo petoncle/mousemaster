@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,7 +39,15 @@ public final class IndicatorRenderer {
     private Point gradientPoint;
     private final List<Point> currentTopLefts = new ArrayList<>();
     private final Map<String, LayerAnchor> anchorByLayerName = new HashMap<>();
-    private final Map<Text, QPainterPath> outlineByText = new HashMap<>();
+    private final Map<Text, QPainterPath> outlineByText = new LinkedHashMap<>(16, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<Text, QPainterPath> eldest) {
+            if (size() <= 64)
+                return false;
+            eldest.getValue().dispose();
+            return true;
+        }
+    };
     private IndicatorImage windowImage;
     private IndicatorConfiguration windowImageIndicator;
     private List<Point> windowImageOffsets;

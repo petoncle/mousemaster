@@ -62,6 +62,22 @@ class IndicatorWindowImageTest {
     }
 
     @Test
+    void aTextLayerIsDrawnAgainAfterManyFontSizes() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        IndicatorRenderer renderer = new IndicatorRenderer();
+        WindowImage first = render(renderer, indicator("idle-mode.indicator.shape=text",
+                "idle-mode.indicator.text=ab", "idle-mode.indicator.font-size=10"), Set.of(), 500);
+        for (int fontSize = 11; fontSize < 110; fontSize++)
+            render(renderer, indicator("idle-mode.indicator.shape=text",
+                    "idle-mode.indicator.text=ab", "idle-mode.indicator.font-size=" + fontSize),
+                    Set.of(), 500);
+        WindowImage again = render(renderer, indicator("idle-mode.indicator.shape=text",
+                "idle-mode.indicator.text=ab", "idle-mode.indicator.font-size=10"), Set.of(), 500);
+        assertEquals(first.image().width(), again.image().width());
+        assertArrayEquals(first.image().argb(), again.image().argb());
+    }
+
+    @Test
     void anAnchoredLayerIsDrawnAgainWhereItWas() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         IndicatorConfiguration indicator = indicator("idle-mode.indicator.enabled=true",
