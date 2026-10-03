@@ -122,7 +122,7 @@ class AnimationTest {
                 "idle-mode.ripple-indicator.follow-mouse=false",
                 "idle-mode.ripple-indicator.size=10 | _{rippleanimation} -> 0% 10; 100% 40");
         tick(0);
-        assertEquals(Set.of("indicator", "ripple-indicator"), anchored.getLast());
+        assertEquals(Set.of("ripple-indicator"), anchored.getLast());
         tick(0.01);
         assertEquals(Set.of(), anchored.getLast());
         tap("a");
@@ -133,6 +133,19 @@ class AnimationTest {
         tap("a");
         tick(0.01);
         assertEquals(Set.of("ripple-indicator"), anchored.getLast());
+    }
+
+    @Test
+    void aLayerIsAnchoredWhenItStopsFollowingTheMouse() {
+        load("idle-mode.indicator.enabled=true",
+                "idle-mode.indicator.follow-mouse=true | _{a} -> false");
+        tick(0);
+        assertEquals(Set.of(), anchored.getLast());
+        comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, Key.ofName("a")));
+        tick(0.01);
+        assertEquals(Set.of("indicator"), anchored.getLast());
+        tick(0.01);
+        assertEquals(Set.of(), anchored.getLast());
     }
 
     @Test

@@ -18,7 +18,7 @@ public class IndicatorManager implements ModeListener {
     private final Map<ModePropertyPath, Timeline> timelineByPropertyPath = new HashMap<>();
     private final Map<ModePropertyPath, Double> elapsedByPropertyPath = new HashMap<>();
     private final Map<ModePropertyPath, Object> currentByPropertyPath = new HashMap<>();
-    private final Set<String> enabledLayerNames = new HashSet<>();
+    private final Set<String> anchoredLayerNames = new HashSet<>();
     private final Set<String> layerNamesToAnchor = new HashSet<>();
 
     public IndicatorManager(Overlay overlay, AnimationPlayer animationPlayer) {
@@ -55,14 +55,14 @@ public class IndicatorManager implements ModeListener {
         updateTimelines();
         IndicatorConfiguration indicator = withTimelines(currentMode.indicator());
         resolvedIndicator = enabled(indicator) ? indicator : null;
-        Set<String> previousEnabledLayerNames = Set.copyOf(enabledLayerNames);
-        enabledLayerNames.clear();
+        Set<String> previousAnchoredLayerNames = Set.copyOf(anchoredLayerNames);
+        anchoredLayerNames.clear();
         for (Map.Entry<String, IndicatorLayerConfiguration> entry : indicator.layerByName()
                                                                              .entrySet()) {
-            if (!entry.getValue().enabled())
+            if (!entry.getValue().enabled() || entry.getValue().followMouse())
                 continue;
-            enabledLayerNames.add(entry.getKey());
-            if (!previousEnabledLayerNames.contains(entry.getKey()))
+            anchoredLayerNames.add(entry.getKey());
+            if (!previousAnchoredLayerNames.contains(entry.getKey()))
                 layerNamesToAnchor.add(entry.getKey());
         }
         return indicator;
