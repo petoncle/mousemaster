@@ -291,6 +291,20 @@ class AnimationTest {
     }
 
     @Test
+    void aStepHoldsTheValueUntilItsKeyframe() {
+        load("ripple-animation.duration-millis=100",
+                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30 step");
+        tick(0);
+        tap("a");
+        tick(0);
+        tick(0.05);
+        assertEquals(10, drawnSize(), 1e-9);
+        tick(0.049);
+        assertEquals(10, drawnSize(), 1e-9);
+    }
+
+    @Test
     void anAnimationRepeatsItsCycles() {
         load("ripple-animation.duration-millis=100",
                 "ripple-animation.repeat=2",
