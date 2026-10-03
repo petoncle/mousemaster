@@ -130,4 +130,17 @@ class IndicatorLayerTest {
         assertEquals(-10, layer(mode, "indicator").y());
         assertEquals(45, layer(mode, "indicator").rotation());
     }
+
+    @Test
+    void aStrokeCanBeDashedAndCapped() {
+        IndicatorStroke stroke = layer(parse("idle-mode.indicator.stroke-dash-length=6",
+                "idle-mode.indicator.stroke-dash-gap=4",
+                "idle-mode.indicator.stroke-dash-offset=2",
+                "idle-mode.indicator.stroke-cap=round").modeMap().get(Mode.IDLE_MODE_NAME),
+                "indicator").stroke();
+        assertEquals(6, stroke.dashLength());
+        assertEquals(4, stroke.dashGap());
+        assertEquals(2, stroke.dashOffset());
+        assertEquals(StrokeCap.ROUND, stroke.cap());
+    }
 }

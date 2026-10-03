@@ -223,7 +223,11 @@ public class ConfigurationParser {
              .opacity(1.0)
              .startAngle(0)
              .lengthPercent(1)
-             .anchor(StrokeAnchor.START);
+             .anchor(StrokeAnchor.START)
+             .dashLength(0)
+             .dashGap(0)
+             .dashOffset(0)
+             .cap(StrokeCap.FLAT);
         layer.labelEnabled(false);
         layer.labelFontStyle()
              .name("Arial")
@@ -2622,6 +2626,10 @@ public class ConfigurationParser {
             case "stroke-start-angle" -> ModePropertyHandler.of(prefix.append("stroke").append("startAngle"), v -> parseDouble(v, true, 0, 360), v -> layer.stroke().startAngle(v));
             case "stroke-length-percent" -> ModePropertyHandler.of(prefix.append("stroke").append("lengthPercent"), v -> parseDouble(v, true, -1, 1), v -> layer.stroke().lengthPercent(v));
             case "stroke-anchor" -> ModePropertyHandler.of(prefix.append("stroke").append("anchor"), v -> StrokeAnchor.fromString(v), v -> layer.stroke().anchor(v));
+            case "stroke-dash-length" -> ModePropertyHandler.of(prefix.append("stroke").append("dashLength"), v -> parseDouble(v, true, 0, 10_000), v -> layer.stroke().dashLength(v));
+            case "stroke-dash-gap" -> ModePropertyHandler.of(prefix.append("stroke").append("dashGap"), v -> parseDouble(v, true, 0, 10_000), v -> layer.stroke().dashGap(v));
+            case "stroke-dash-offset" -> ModePropertyHandler.of(prefix.append("stroke").append("dashOffset"), v -> parseDouble(v, true, -1_000_000, 1_000_000), v -> layer.stroke().dashOffset(v));
+            case "stroke-cap" -> ModePropertyHandler.of(prefix.append("stroke").append("cap"), v -> StrokeCap.fromString(v), v -> layer.stroke().cap(v));
             case "label-enabled" -> ModePropertyHandler.of(prefix.append("labelEnabled"), v -> Boolean.parseBoolean(v), v -> layer.labelEnabled(v));
             case "label-text" -> ModePropertyHandler.of(prefix.append("labelText"), v -> v, v -> layer.labelText(v));
             case "label-font-name" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("name"), v -> v, v -> layer.labelFontStyle().name(v));
