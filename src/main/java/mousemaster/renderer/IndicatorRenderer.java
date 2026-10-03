@@ -25,7 +25,7 @@ public final class IndicatorRenderer {
     private TransparentWindow window;
     private IndicatorWidget widget;
     private IndicatorLabelWidget labelWidget;
-    private IndicatorConfiguration currentIndicator;
+    private IndicatorLayerConfiguration currentIndicator;
     private Rectangle gradientArea;
     private Point gradientPoint;
     private Point widgetOrigin;
@@ -56,7 +56,7 @@ public final class IndicatorRenderer {
         return showing;
     }
 
-    public IndicatorConfiguration currentIndicator() {
+    public IndicatorLayerConfiguration currentIndicator() {
         return currentIndicator;
     }
 
@@ -104,21 +104,21 @@ public final class IndicatorRenderer {
                 sweep.direction().start(sweepArea), sweep.direction().end(sweepArea));
     }
 
-    private int indicatorSize(IndicatorConfiguration indicator, double screenScale) {
+    private int indicatorSize(IndicatorLayerConfiguration indicator, double screenScale) {
         // An odd size puts the center of a centered indicator half a pixel off, so it would
         // shift as the size changes parity.
         int size = (int) Math.floor(indicator.size() * screenScale);
         return size - size % 2;
     }
 
-    private int indicatorOutlinePadding(IndicatorConfiguration indicator, double screenScale) {
+    private int indicatorOutlinePadding(IndicatorLayerConfiguration indicator, double screenScale) {
         double scaled = Math.max(
                 indicator.outerOutline().thickness(),
                 indicator.innerOutline().thickness()) * screenScale;
         return (int) Math.ceil(IndicatorWidget.miterPadding(scaled, indicator.edgeCount()));
     }
 
-    private int indicatorShadowPadding(IndicatorConfiguration indicator, double scale) {
+    private int indicatorShadowPadding(IndicatorLayerConfiguration indicator, double scale) {
         if (indicator.shadow().blurRadius() == 0)
             return 0;
         return (int) Math.ceil((indicator.shadow().blurRadius() +
@@ -130,11 +130,11 @@ public final class IndicatorRenderer {
     /** Shows/updates the indicator: detects what changed, repositions when needed, and
      *  renders. The overlay supplies the cursor rectangle, its visual center, and the
      *  active screen and zoom. */
-    public void setIndicator(IndicatorConfiguration indicator,
+    public void setIndicator(IndicatorLayerConfiguration indicator,
                              Rectangle mouseRectangle, Point cursorVisualCenter,
                              Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
         setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
-        IndicatorConfiguration oldIndicator = currentIndicator;
+        IndicatorLayerConfiguration oldIndicator = currentIndicator;
         if (showing && oldIndicator != null && oldIndicator.equals(indicator))
             return;
         boolean wasShowing = showing;
@@ -173,7 +173,7 @@ public final class IndicatorRenderer {
         reposition(currentIndicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
     }
 
-    private void reposition(IndicatorConfiguration indicator, Rectangle mouseRectangle,
+    private void reposition(IndicatorLayerConfiguration indicator, Rectangle mouseRectangle,
                             Point cursorVisualCenter, Screen activeScreen, Zoom zoom) {
         double screenScale = activeScreen.scale();
         // Screen pixels: the configured size does not change with the zoom. Only the
@@ -198,7 +198,7 @@ public final class IndicatorRenderer {
      * flipping to the opposite side when near the corresponding screen edge.
      */
     private Point indicatorTopLeft(Rectangle mouseRectangle, Point cursorVisualCenter,
-                                   Screen activeScreen, Zoom zoom, IndicatorConfiguration indicator,
+                                   Screen activeScreen, Zoom zoom, IndicatorLayerConfiguration indicator,
                                    int visualSize) {
         Rectangle screen = activeScreen.rectangle();
         if (indicator.position() == IndicatorPosition.CENTER) {
@@ -250,7 +250,7 @@ public final class IndicatorRenderer {
 
     /** Renders the indicator's widget tree into a premultiplied-ARGB image for use as the
      *  system cursor, centered on the indicator's visual center. */
-    public CursorImage renderCursorImage(IndicatorConfiguration indicator, double scale,
+    public CursorImage renderCursorImage(IndicatorLayerConfiguration indicator, double scale,
                                          String lastSelectedHintBoxHexColor,
                                          Rectangle mouseRectangle, Point cursorVisualCenter,
                                          Screen activeScreen) {
@@ -328,7 +328,7 @@ public final class IndicatorRenderer {
 
     /** Applies the indicator to the widgets (shape, outlines, shadow effect, label) without
      *  showing or positioning. Shared by the on-screen path and the offscreen cursor render. */
-    private void applyIndicator(IndicatorConfiguration indicator, boolean applyShadow,
+    private void applyIndicator(IndicatorLayerConfiguration indicator, boolean applyShadow,
                                 double shadowScale, String lastSelectedHintBoxHexColor) {
         currentIndicator = indicator;
         if (applyShadow)
@@ -390,7 +390,7 @@ public final class IndicatorRenderer {
     }
 
     /** Applies the indicator, then shows the window. */
-    private void showIndicator(IndicatorConfiguration indicator, boolean applyShadow,
+    private void showIndicator(IndicatorLayerConfiguration indicator, boolean applyShadow,
                                double shadowScale, String lastSelectedHintBoxHexColor) {
         applyIndicator(indicator, applyShadow, shadowScale, lastSelectedHintBoxHexColor);
         window.show();

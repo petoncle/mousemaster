@@ -25,9 +25,9 @@ class ColorAliasTest {
         GradientColor expected =
                 GradientColor.parse("across-screen per-pixel center-to-edge #F97316 #3B82F6");
         assertEquals(expected, mode.hintMesh().styleByFilter().map().values().iterator().next().boxColor());
-        assertEquals(expected, mode.indicator().color());
-        assertEquals(expected, mode.indicator().innerOutline().color());
-        assertEquals(expected, mode.indicator().shadow().color());
+        assertEquals(expected, mode.indicator().layerByName().get("indicator").color());
+        assertEquals(expected, mode.indicator().layerByName().get("indicator").innerOutline().color());
+        assertEquals(expected, mode.indicator().layerByName().get("indicator").shadow().color());
     }
 
     @Test

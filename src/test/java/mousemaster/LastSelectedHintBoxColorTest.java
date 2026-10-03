@@ -23,7 +23,7 @@ public class LastSelectedHintBoxColorTest {
     }
 
     private Color indicatorColor(Configuration configuration) {
-        return configuration.modeMap().get("hint-mode").indicator().color();
+        return configuration.modeMap().get("hint-mode").indicator().layerByName().get("indicator").color();
     }
 
     @Test

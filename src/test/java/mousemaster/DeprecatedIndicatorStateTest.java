@@ -17,7 +17,7 @@ class DeprecatedIndicatorStateTest {
     }
 
     private static Color color(String... lines) {
-        return parse(lines).modeMap().get(Mode.IDLE_MODE_NAME).indicator().color();
+        return parse(lines).modeMap().get(Mode.IDLE_MODE_NAME).indicator().layerByName().get("indicator").color();
     }
 
     /** Presses the keys the runtime would press together, then reads the mutated color. */
@@ -42,7 +42,7 @@ class DeprecatedIndicatorStateTest {
         for (Key pressedKey : pressedKeys)
             comboWatcher.setVirtualKeyPressed(pressedKey, true);
         comboWatcher.update(0.01);
-        return comboWatcher.getMutatedMode().indicator().color();
+        return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").color();
     }
 
     @Test

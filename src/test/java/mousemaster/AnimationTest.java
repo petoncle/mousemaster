@@ -18,14 +18,16 @@ class AnimationTest {
 
     private Instant now = Instant.parse("2026-01-01T00:00:00Z");
     private ComboWatcher comboWatcher;
+    private ModeMap modeMap;
     private AnimationPlayer animationPlayer;
     private IndicatorManager indicatorManager;
-    private final List<IndicatorConfiguration> drawn = new ArrayList<>();
+    private final List<IndicatorLayerConfiguration> drawn = new ArrayList<>();
+    private IndicatorConfiguration drawnIndicator;
 
     private void load(String... lines) {
         Configuration configuration = ConfigurationParser.parse(List.of(lines),
                 KeyboardLayout.keyboardLayout("00000409", null));
-        ModeMap modeMap = configuration.modeMap();
+        modeMap = configuration.modeMap();
         Set<Key> pressedPreconditionKeys = new HashSet<>();
         for (Mode mode : modeMap.modes())
             for (Combo combo : mode.comboMap().commandsByCombo().keySet())
@@ -36,8 +38,10 @@ class AnimationTest {
         Overlay overlay = (Overlay) Proxy.newProxyInstance(
                 Overlay.class.getClassLoader(), new Class<?>[] {Overlay.class},
                 (proxy, method, args) -> {
-                    if (method.getName().equals("setIndicator"))
-                        drawn.add((IndicatorConfiguration) args[0]);
+                    if (method.getName().equals("setIndicator")) {
+                        drawnIndicator = (IndicatorConfiguration) args[0];
+                        drawn.add(drawnIndicator.layerByName().get("indicator"));
+                    }
                     else if (method.getName().equals("hideIndicator"))
                         drawn.add(null);
                     return null;
@@ -104,7 +108,7 @@ class AnimationTest {
     }
 
     private int size() {
-        return comboWatcher.getMutatedMode().indicator().size();
+        return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").size();
     }
 
     @Test
@@ -369,6 +373,25 @@ class AnimationTest {
         comboWatcher.keyEvent(new KeyEvent.ReleaseKeyEvent(now, Key.ofName("b")));
         tick(0);
         assertEquals(Color.parse("#00FF00"), drawn.getLast().color());
+    }
+
+    @Test
+    void currentIsTheLayersOwnValueWhenTheModeItCameFromHasNoSuchLayer() {
+        load("ripple-animation.duration-millis=100",
+                "ripple-animation.repeat=loop",
+                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.to.other-mode=+b",
+                "idle-mode.indicator.enabled=true",
+                "other-mode.indicator.enabled=true",
+                "idle-mode.ripple-indicator.size=20 | _{rippleanimation} -> 100% current");
+        tick(0);
+        tap("a");
+        tick(0.01);
+        comboWatcher.modeChanged(modeMap.get("other-mode"));
+        tick(0.01);
+        comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
+        tick(0.05);
+        assertEquals(20, drawnIndicator.layerByName().get("ripple-indicator").size(), 1e-9);
     }
 
     @Test
