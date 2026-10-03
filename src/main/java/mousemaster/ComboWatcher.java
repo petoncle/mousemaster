@@ -32,8 +32,8 @@ public class ComboWatcher {
     private final Set<Key> pressedComboPreconditionKeys;
     private final KeyRedactor keyRedactor;
     private final Set<Key> unpressedComboPreconditionKeys;
-    private final Map<Mode, Set<Key>> pressedPreconditionKeysByMode;
-    private final Map<Mode, Set<Key>> sequenceKeysByMode;
+    private final Map<String, Set<Key>> pressedPreconditionKeysByModeName;
+    private final Map<String, Set<Key>> sequenceKeysByModeName;
     private Set<Key> currentModePressedPreconditionKeys;
     private Set<Key> currentModeSequenceKeys = Set.of();
     private List<ModeListener> modeListeners;
@@ -100,11 +100,11 @@ public class ComboWatcher {
     private Map<Combo, Instant> leadingWaitBeginTimeByCombo = new HashMap<>();
     private App lastActiveApp;
 
-    private final Map<Mode, Duration> comboPreparationRetainDurationByMode;
-    private final Map<Mode, Integer> comboPreparationMinRetainEventCountByMode;
+    private final Map<String, Duration> comboPreparationRetainDurationByModeName;
+    private final Map<String, Integer> comboPreparationMinRetainEventCountByModeName;
 
-    static Map<Mode, Duration> comboPreparationRetainDurationByMode(ModeMap modeMap) {
-        Map<Mode, Duration> result = new HashMap<>();
+    static Map<String, Duration> comboPreparationRetainDurationByModeName(ModeMap modeMap) {
+        Map<String, Duration> result = new HashMap<>();
         for (Mode mode : modeMap.modes()) {
             Duration max = Duration.ZERO;
             boolean unbounded = false;
@@ -151,13 +151,13 @@ public class ComboWatcher {
                 if (waitDurationSum.compareTo(max) > 0)
                     max = waitDurationSum;
             }
-            result.put(mode, unbounded ? null : max);
+            result.put(mode.name(), unbounded ? null : max);
         }
         return result;
     }
 
-    static Map<Mode, Integer> comboPreparationMinRetainEventCountByMode(ModeMap modeMap) {
-        Map<Mode, Integer> result = new HashMap<>();
+    static Map<String, Integer> comboPreparationMinRetainEventCountByModeName(ModeMap modeMap) {
+        Map<String, Integer> result = new HashMap<>();
         for (Mode mode : modeMap.modes()) {
             int max = 0;
             for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
@@ -167,7 +167,7 @@ public class ComboWatcher {
                 if (comboEventCount > max)
                     max = comboEventCount;
             }
-            result.put(mode, max);
+            result.put(mode.name(), max);
         }
         return result;
     }
@@ -205,11 +205,11 @@ public class ComboWatcher {
         this.pressedComboPreconditionKeys =
                 pressedComboPreconditionKeys;
         this.keyRedactor = keyRedactor;
-        this.comboPreparationRetainDurationByMode = comboPreparationRetainDurationByMode(modeMap);
-        this.comboPreparationMinRetainEventCountByMode = comboPreparationMinRetainEventCountByMode(modeMap);
+        this.comboPreparationRetainDurationByModeName = comboPreparationRetainDurationByModeName(modeMap);
+        this.comboPreparationMinRetainEventCountByModeName = comboPreparationMinRetainEventCountByModeName(modeMap);
         for (Mode mode : modeMap.modes()) {
-            Duration retainDuration = comboPreparationRetainDurationByMode.get(mode);
-            int minRetainEventCount = comboPreparationMinRetainEventCountByMode.get(mode);
+            Duration retainDuration = comboPreparationRetainDurationByModeName.get(mode.name());
+            int minRetainEventCount = comboPreparationMinRetainEventCountByModeName.get(mode.name());
             logger.trace("Combo preparation for " + mode.name() +
                          " will retain events from the last " +
                          (retainDuration != null
@@ -218,8 +218,8 @@ public class ComboWatcher {
                          ", min " + minRetainEventCount + " events");
         }
         this.comboPreparation = ComboPreparation.empty();
-        Map<Mode, Set<Key>> preconditionKeysByMode = new HashMap<>();
-        Map<Mode, Set<Key>> sequenceKeysByMode = new HashMap<>();
+        Map<String, Set<Key>> preconditionKeysByModeName = new HashMap<>();
+        Map<String, Set<Key>> sequenceKeysByModeName = new HashMap<>();
         for (Mode mode : modeMap.modes()) {
             Set<Key> keys = new HashSet<>();
             Set<Key> sequenceKeys = new HashSet<>();
@@ -230,11 +230,11 @@ public class ComboWatcher {
                                  .allKeys());
                 sequenceKeys.addAll(combo.sequence().allKeys());
             }
-            preconditionKeysByMode.put(mode, keys);
-            sequenceKeysByMode.put(mode, sequenceKeys);
+            preconditionKeysByModeName.put(mode.name(), keys);
+            sequenceKeysByModeName.put(mode.name(), sequenceKeys);
         }
-        this.pressedPreconditionKeysByMode = preconditionKeysByMode;
-        this.sequenceKeysByMode = sequenceKeysByMode;
+        this.pressedPreconditionKeysByModeName = preconditionKeysByModeName;
+        this.sequenceKeysByModeName = sequenceKeysByModeName;
         // Pressed before the first mode change, which applies the mutations that read them.
         updateScreenFilterKeys();
     }
@@ -684,8 +684,8 @@ public class ComboWatcher {
         }
         comboPreparation.events().add(event);
         List<KeyEvent> preparationEvents = comboPreparation.events();
-        Duration retainDuration = comboPreparationRetainDurationByMode.get(baseMode);
-        int minRetainEventCount = comboPreparationMinRetainEventCountByMode.getOrDefault(baseMode, 0);
+        Duration retainDuration = comboPreparationRetainDurationByModeName.get(baseMode.name());
+        int minRetainEventCount = comboPreparationMinRetainEventCountByModeName.getOrDefault(baseMode.name(), 0);
         // A virtual key event must not push a combo's own events out of the preparation.
         for (KeyEvent preparationEvent : preparationEvents)
             if (virtualKeys.contains(preparationEvent.key()))
@@ -1646,8 +1646,8 @@ public class ComboWatcher {
         mutatedMode = newMode;
         activeMutations.clear();
         currentModePressedPreconditionKeys =
-                pressedPreconditionKeysByMode.getOrDefault(newMode, Set.of());
-        currentModeSequenceKeys = sequenceKeysByMode.getOrDefault(newMode, Set.of());
+                pressedPreconditionKeysByModeName.getOrDefault(newMode.name(), Set.of());
+        currentModeSequenceKeys = sequenceKeysByModeName.getOrDefault(newMode.name(), Set.of());
         computePreconditionOnlyByPropertyPath();
         if (!refreshPreconditionOnlyMutations(activeApp))
             notifyMutatedMode();
