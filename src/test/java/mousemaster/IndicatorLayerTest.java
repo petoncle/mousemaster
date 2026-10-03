@@ -47,6 +47,14 @@ class IndicatorLayerTest {
     }
 
     @Test
+    void aLayerFollowsTheMouseUnlessItIsAnchored() {
+        Mode mode = parse("idle-mode.indicator.size=40",
+                "idle-mode.ripple-indicator.follow-mouse=false").modeMap().get(Mode.IDLE_MODE_NAME);
+        assertTrue(layer(mode, "indicator").followMouse());
+        assertFalse(layer(mode, "ripple-indicator").followMouse());
+    }
+
+    @Test
     void aMutationReachesALayer() {
         Mode mode = parse("idle-mode.ripple-indicator.size=40 | _{isidling} -> 50")
                 .modeMap().get(Mode.IDLE_MODE_NAME);

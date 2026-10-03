@@ -209,7 +209,8 @@ public class ConfigurationParser {
              .edgeCount(100)
              .fillColor(Color.parse("#FF0000"))
              .fillOpacity(0.2)
-             .position(IndicatorPosition.CENTER);
+             .position(IndicatorPosition.CENTER)
+             .followMouse(true);
         layer.stroke()
              .thickness(1)
              .color(Color.parse("#FF0000"))
@@ -2625,6 +2626,7 @@ public class ConfigurationParser {
             case "label-font-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("shadow").append("horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> layer.labelFontStyle().shadow().horizontalOffset(v));
             case "label-font-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("shadow").append("verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> layer.labelFontStyle().shadow().verticalOffset(v));
             case "position" -> ModePropertyHandler.of(prefix.append("position"), v -> IndicatorPosition.fromString(v), v -> layer.position(v));
+            case "follow-mouse" -> ModePropertyHandler.of(prefix.append("followMouse"), v -> Boolean.parseBoolean(v), v -> layer.followMouse(v));
             // @formatter:on
             default -> null;
         };

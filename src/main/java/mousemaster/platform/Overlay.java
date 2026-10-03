@@ -29,8 +29,8 @@ public interface Overlay {
                                     int topInset, int bottomInset,
                                     int leftInset, int rightInset);
 
-    void setIndicator(IndicatorConfiguration indicator, boolean animating,
-                      boolean includeOriginalCursor);
+    void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
+                      boolean animating, boolean includeOriginalCursor);
 
     /** Captures the desktop inside bounds, excluding mousemaster's own windows. */
     DesktopCapture captureDesktop(Rectangle bounds, int scaledWidth, int scaledHeight);

@@ -9,7 +9,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                                           IndicatorStroke stroke,
                                           boolean labelEnabled, String labelText,
                                           FontStyle labelFontStyle,
-                                          IndicatorPosition position) {
+                                          IndicatorPosition position, boolean followMouse) {
 
     public IndicatorLayerConfigurationBuilder builder() {
         return new IndicatorLayerConfigurationBuilder(this);
@@ -28,6 +28,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         private String labelText;
         private FontStyleBuilder labelFontStyle = new FontStyleBuilder();
         private IndicatorPosition position;
+        private Boolean followMouse;
 
         public IndicatorLayerConfigurationBuilder() {
         }
@@ -44,6 +45,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             this.labelText = layer.labelText;
             this.labelFontStyle = new FontStyleBuilder(layer.labelFontStyle);
             this.position = layer.position;
+            this.followMouse = layer.followMouse;
         }
 
         public IndicatorLayerConfigurationBuilder enabled(boolean enabled) {
@@ -135,6 +137,15 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             return position;
         }
 
+        public IndicatorLayerConfigurationBuilder followMouse(boolean followMouse) {
+            this.followMouse = followMouse;
+            return this;
+        }
+
+        public Boolean followMouse() {
+            return followMouse;
+        }
+
         public void extend(IndicatorLayerConfigurationBuilder parent) {
             if (enabled == null) enabled = parent.enabled;
             if (z == null) z = parent.z;
@@ -147,12 +158,14 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             if (labelText == null) labelText = parent.labelText;
             labelFontStyle.extend(parent.labelFontStyle);
             if (position == null) position = parent.position;
+            if (followMouse == null) followMouse = parent.followMouse;
         }
 
         public IndicatorLayerConfiguration build() {
             return new IndicatorLayerConfiguration(enabled, z, size, edgeCount, fillColor,
                     fillOpacity, stroke.build(),
-                    labelEnabled, labelText, labelFontStyle.build(), position);
+                    labelEnabled, labelText, labelFontStyle.build(), position,
+                    followMouse);
         }
     }
 }

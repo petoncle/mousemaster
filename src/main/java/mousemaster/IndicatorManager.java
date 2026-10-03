@@ -3,9 +3,11 @@ package mousemaster;
 import mousemaster.platform.Overlay;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class IndicatorManager implements ModeListener {
 
@@ -16,6 +18,8 @@ public class IndicatorManager implements ModeListener {
     private final Map<ModePropertyPath, Timeline> timelineByPropertyPath = new HashMap<>();
     private final Map<ModePropertyPath, Double> elapsedByPropertyPath = new HashMap<>();
     private final Map<ModePropertyPath, Object> currentByPropertyPath = new HashMap<>();
+    private final Set<String> enabledLayerNames = new HashSet<>();
+    private final Set<String> layerNamesToAnchor = new HashSet<>();
 
     public IndicatorManager(Overlay overlay, AnimationPlayer animationPlayer) {
         this.overlay = overlay;
@@ -30,10 +34,12 @@ public class IndicatorManager implements ModeListener {
         IndicatorConfiguration indicator = resolve();
         if (!enabled(indicator)) {
             overlay.hideIndicator();
+            layerNamesToAnchor.clear();
             return;
         }
-        overlay.setIndicator(indicator, animating(),
+        overlay.setIndicator(indicator, Set.copyOf(layerNamesToAnchor), animating(),
                 !animationPlayer.animate(currentMode, "hideCursor").hideCursor().enabled());
+        layerNamesToAnchor.clear();
     }
 
     /** The mode being left is resolved too: a state that lasts less than a frame is what
@@ -49,6 +55,16 @@ public class IndicatorManager implements ModeListener {
         updateTimelines();
         IndicatorConfiguration indicator = withTimelines(currentMode.indicator());
         resolvedIndicator = enabled(indicator) ? indicator : null;
+        Set<String> previousEnabledLayerNames = Set.copyOf(enabledLayerNames);
+        enabledLayerNames.clear();
+        for (Map.Entry<String, IndicatorLayerConfiguration> entry : indicator.layerByName()
+                                                                             .entrySet()) {
+            if (!entry.getValue().enabled())
+                continue;
+            enabledLayerNames.add(entry.getKey());
+            if (!previousEnabledLayerNames.contains(entry.getKey()))
+                layerNamesToAnchor.add(entry.getKey());
+        }
         return indicator;
     }
 
@@ -75,6 +91,8 @@ public class IndicatorManager implements ModeListener {
             currentByPropertyPath.put(propertyPath, current == null ?
                     ModePropertyMutator.getModeProperty(currentMode.indicator(),
                             indicatorFieldNames(propertyPath)) : current);
+            if (propertyPath.fieldNames().get(1).equals("layerByName"))
+                layerNamesToAnchor.add(propertyPath.fieldNames().get(2));
         }
     }
 

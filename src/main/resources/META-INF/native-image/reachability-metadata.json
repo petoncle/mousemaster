@@ -7044,7 +7044,8 @@
             "boolean",
             "java.lang.String",
             "mousemaster.FontStyle",
-            "mousemaster.IndicatorPosition"
+            "mousemaster.IndicatorPosition",
+            "boolean"
           ]
         },
         {
@@ -7061,6 +7062,10 @@
         },
         {
           "name": "fillOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "followMouse",
           "parameterTypes": []
         },
         {
