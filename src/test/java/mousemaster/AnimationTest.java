@@ -454,4 +454,23 @@ class AnimationTest {
                         "idle-mode.indicator.size=26 | _{aanimation banimation} -> 0% 10; 100% 36"));
     }
 
+    @Test
+    void everyGroupOfAKeyframesBranchNeedsItsAnimation() {
+        assertThrows(IllegalArgumentException.class,
+                () -> load("click-animation.duration-millis=100",
+                        "idle-mode.indicator.size=26 | _{clickanimation | b} -> 0% 10; 100% 36"));
+        assertThrows(IllegalArgumentException.class,
+                () -> load("click-animation.duration-millis=100",
+                        "idle-mode.indicator.size=26 | _{clickanimation*b} -> 0% 10; 100% 36"));
+        load("click-animation.duration-millis=100",
+                "idle-mode.indicator.size=26 | _{clickanimation a | clickanimation b} -> 0% 10; 100% 36");
+    }
+
+    @Test
+    void aMacroCannotPressAnAnimation() {
+        assertThrows(IllegalArgumentException.class,
+                () -> load("click-animation.duration-millis=100",
+                        "idle-mode.macro.press=+a -> #clickanimation"));
+    }
+
 }

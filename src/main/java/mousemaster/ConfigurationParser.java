@@ -1972,18 +1972,20 @@ public class ConfigurationParser {
     private static Timeline parseTimeline(String value, Combo combo,
                                           Function<String, Object> valueParser,
                                           KeyResolver keyResolver) {
-        List<String> animationNames = combo.precondition()
-                                           .keyPrecondition()
-                                           .pressedKeyPrecondition()
-                                           .allKeys()
-                                           .stream()
-                                           .map(Key::name)
-                                           .filter(keyResolver::isAnimation)
-                                           .toList();
-        if (animationNames.size() != 1)
+        ComboPrecondition.PressedKeyPrecondition pressedKeyPrecondition =
+                combo.precondition().keyPrecondition().pressedKeyPrecondition();
+        List<String> animationNames = pressedKeyPrecondition.allKeys()
+                                                            .stream()
+                                                            .map(Key::name)
+                                                            .filter(keyResolver::isAnimation)
+                                                            .toList();
+        if (animationNames.size() != 1 ||
+            !pressedKeyPrecondition.groups().stream().allMatch(group -> group.keySets().contains(
+                    Set.of(keyResolver.resolve(animationNames.getFirst())))))
             throw new IllegalArgumentException(
                     "Invalid keyframes " + value +
-                    ": the branch should name exactly one animation, like _{clickanimation}");
+                    ": the branch should name exactly one animation, like _{clickanimation}," +
+                    " and each of its | groups should need it");
         List<Timeline.Keyframe> keyframes = new ArrayList<>();
         for (String keyframeString : value.split("\\s*;\\s*")) {
             String[] tokens = keyframeString.split("\\s+");
