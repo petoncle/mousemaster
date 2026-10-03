@@ -121,4 +121,13 @@ class IndicatorLayerTest {
                 () -> parse("idle-mode.indicator.edge-count=6"));
         assertTrue(e.getMessage().contains("shape"), e.getMessage());
     }
+
+    @Test
+    void aLayerCanBeOffsetAndRotated() {
+        Mode mode = parse("idle-mode.indicator.x=30", "idle-mode.indicator.y=-10",
+                "idle-mode.indicator.rotation=45").modeMap().get(Mode.IDLE_MODE_NAME);
+        assertEquals(30, layer(mode, "indicator").x());
+        assertEquals(-10, layer(mode, "indicator").y());
+        assertEquals(45, layer(mode, "indicator").rotation());
+    }
 }

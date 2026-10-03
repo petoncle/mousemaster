@@ -7054,6 +7054,9 @@
             "double",
             "double",
             "java.util.List",
+            "double",
+            "double",
+            "double",
             "mousemaster.Color",
             "double",
             "mousemaster.IndicatorStroke",
@@ -7113,11 +7116,23 @@
           "parameterTypes": []
         },
         {
+          "name": "rotation",
+          "parameterTypes": []
+        },
+        {
           "name": "size",
           "parameterTypes": []
         },
         {
           "name": "stroke",
+          "parameterTypes": []
+        },
+        {
+          "name": "x",
+          "parameterTypes": []
+        },
+        {
+          "name": "y",
           "parameterTypes": []
         },
         {
