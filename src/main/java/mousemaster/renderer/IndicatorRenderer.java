@@ -42,7 +42,6 @@ public final class IndicatorRenderer {
     private IndicatorConfiguration windowImageIndicator;
     private List<Point> windowImageOffsets;
     private double windowImageScale;
-    private int maxIndicatorWindowSize;
     private boolean showing;
     private boolean cleared;
 
@@ -185,10 +184,13 @@ public final class IndicatorRenderer {
         showIndicator(indicator, activeScreen.scale(), lastSelectedHintBoxHexColor);
     }
 
-    /** Repositions/resizes the current indicator for the cursor, screen and zoom. */
+    /** Repositions the current indicator for the cursor, screen and zoom. */
     public void reposition(Rectangle mouseRectangle, Point cursorVisualCenter,
-                           Screen activeScreen, Zoom zoom) {
+                           Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
+        setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
         reposition(currentIndicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
+        if (!looksTheSameAnywhere(currentIndicator))
+            showIndicator(currentIndicator, activeScreen.scale(), lastSelectedHintBoxHexColor);
     }
 
     private void anchor(Set<String> layerNamesToAnchor, Rectangle mouseRectangle,
@@ -224,21 +226,15 @@ public final class IndicatorRenderer {
         List<Point> topLefts = layerTopLefts(indicator, mouseRectangle, cursorVisualCenter,
                 activeScreen, zoom);
         Rectangle layersRectangle = layersRectangle(enabledLayers, topLefts, screenScale);
-        // Never resize the window: the DWM compositor would show the old surface at the new
-        // size for one frame, mispositioning the indicator. It fits the largest indicator drawn
-        // so far; the extra area is transparent and the visible layers stay at their
-        // top-lefts regardless.
-        int windowSize = Math.max(layersRectangle.width(), layersRectangle.height()) +
-                         2 * indicatorShadowPadding(indicator.shadow(), screenScale);
-        maxIndicatorWindowSize = Math.max(maxIndicatorWindowSize, windowSize);
-        windowSize = maxIndicatorWindowSize;
-        int windowX = layersRectangle.x() + layersRectangle.width() / 2 - windowSize / 2;
-        int windowY = layersRectangle.y() + layersRectangle.height() / 2 - windowSize / 2;
-        window.moveAndResizeInPixels(activeScreen, windowX, windowY, windowSize, windowSize);
+        // The window covers the screen and stays put: Qt moves a window at once but repaints
+        // it later, so a layer that does not follow the mouse would shake inside a moving one.
+        window.coverInPixels(activeScreen);
+        Rectangle screen = activeScreen.rectangle();
         placeLayers(enabledLayers, topLefts,
                 new Point(layersRectangle.x(), layersRectangle.y()),
                 layersRectangle.width(), layersRectangle.height(),
-                new Point(windowX, windowY), screenScale, Os.macos ? activeScreen.scale() : 1);
+                new Point(screen.x(), screen.y()), screenScale,
+                Os.macos ? activeScreen.scale() : 1);
     }
 
     private Rectangle layersRectangle(List<IndicatorLayerConfiguration> layers,

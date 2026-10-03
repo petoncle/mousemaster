@@ -169,11 +169,12 @@ public class MacosOverlay implements Overlay {
     }
 
     public void repositionIndicator(QPoint mousePosition) {
-        if (indicatorRenderer == null || indicatorRenderer.currentIndicator() == null)
+        if (indicatorRenderer == null || !indicatorRenderer.showing())
             return;
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
         indicatorRenderer.reposition(cursorRectangle(mousePosition, activeScreen),
-                cursorVisualCenter(activeScreen), activeScreen, null);
+                cursorVisualCenter(activeScreen), activeScreen, null,
+                hintMeshRenderer.lastSelectedHintBoxHexColor());
     }
 
     /** The cursor is measured in points, and the indicator it positions is in pixels. */
