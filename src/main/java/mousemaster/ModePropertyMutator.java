@@ -2,7 +2,6 @@ package mousemaster;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.lang.reflect.RecordComponent;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,13 +16,6 @@ public class ModePropertyMutator {
 
     public static Mode mutateModeProperty(Mode mode, ModePropertyPath propertyPath,
                                            Object newPropertyValue) {
-        if (newPropertyValue instanceof Timeline timeline) {
-            Map<ModePropertyPath, Timeline> timelineByPropertyPath =
-                    new HashMap<>(mode.timelineByPropertyPath());
-            timelineByPropertyPath.put(propertyPath, timeline);
-            return (Mode) createWithField(mode, "timelineByPropertyPath",
-                    Map.copyOf(timelineByPropertyPath));
-        }
         return (Mode) mutateModeProperty(mode, propertyPath.fieldNames(),
                 newPropertyValue, propertyPath.screenFilter());
     }
