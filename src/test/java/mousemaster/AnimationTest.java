@@ -23,7 +23,9 @@ class AnimationTest {
     private IndicatorManager indicatorManager;
     private final List<IndicatorLayerConfiguration> drawn = new ArrayList<>();
     private IndicatorConfiguration drawnIndicator;
+    private final List<Set<String>> anchored = new ArrayList<>();
 
+    @SuppressWarnings("unchecked")
     private void load(String... lines) {
         Configuration configuration = ConfigurationParser.parse(List.of(lines),
                 KeyboardLayout.keyboardLayout("00000409", null));
@@ -41,6 +43,7 @@ class AnimationTest {
                     if (method.getName().equals("setIndicator")) {
                         drawnIndicator = (IndicatorConfiguration) args[0];
                         drawn.add(drawnIndicator.layerByName().get("indicator"));
+                        anchored.add((Set<String>) args[1]);
                     }
                     else if (method.getName().equals("hideIndicator"))
                         drawn.add(null);
@@ -109,6 +112,27 @@ class AnimationTest {
 
     private double size() {
         return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").size();
+    }
+
+    @Test
+    void aLayerIsAnchoredWhenEnabledAndWhenItsKeyframesStartOver() {
+        load("ripple-animation.duration-millis=100",
+                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.indicator.enabled=true",
+                "idle-mode.ripple-indicator.follow-mouse=false",
+                "idle-mode.ripple-indicator.size=10 | _{rippleanimation} -> 0% 10; 100% 40");
+        tick(0);
+        assertEquals(Set.of("indicator", "ripple-indicator"), anchored.getLast());
+        tick(0.01);
+        assertEquals(Set.of(), anchored.getLast());
+        tap("a");
+        tick(0.01);
+        assertEquals(Set.of("ripple-indicator"), anchored.getLast());
+        tick(0.05);
+        assertEquals(Set.of(), anchored.getLast());
+        tap("a");
+        tick(0.01);
+        assertEquals(Set.of("ripple-indicator"), anchored.getLast());
     }
 
     @Test

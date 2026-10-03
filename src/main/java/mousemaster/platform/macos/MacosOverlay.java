@@ -149,13 +149,15 @@ public class MacosOverlay implements Overlay {
     }
 
     @Override
-    public void setIndicator(IndicatorConfiguration indicator, boolean animating,
+    public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
+                             boolean animating,
                              boolean includeOriginalCursor) {
         if (indicatorRenderer == null)
             createIndicatorWindow();
         QPoint mousePosition = mouse.findMousePosition();
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
-        indicatorRenderer.setIndicator(indicator, cursorRectangle(mousePosition, activeScreen),
+        indicatorRenderer.setIndicator(indicator, layerNamesToAnchor,
+                cursorRectangle(mousePosition, activeScreen),
                 cursorVisualCenter(activeScreen), activeScreen, null,
                 hintMeshRenderer.lastSelectedHintBoxHexColor());
     }

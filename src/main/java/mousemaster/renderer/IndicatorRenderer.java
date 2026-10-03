@@ -13,7 +13,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -34,6 +37,7 @@ public final class IndicatorRenderer {
     private Rectangle gradientArea;
     private Point gradientPoint;
     private final List<Point> currentTopLefts = new ArrayList<>();
+    private final Map<String, LayerAnchor> anchorByLayerName = new HashMap<>();
     private int maxIndicatorWindowSize;
     private boolean showing;
     private boolean cleared;
@@ -73,13 +77,26 @@ public final class IndicatorRenderer {
         return currentIndicator;
     }
 
+    private record LayerAnchor(Rectangle mouseRectangle, Point cursorVisualCenter,
+                               Screen activeScreen) {
+    }
+
+    private static List<String> enabledLayerNames(IndicatorConfiguration indicator) {
+        List<String> layerNames = new ArrayList<>();
+        for (Map.Entry<String, IndicatorLayerConfiguration> entry : indicator.layerByName()
+                                                                             .entrySet())
+            if (entry.getValue().enabled())
+                layerNames.add(entry.getKey());
+        layerNames.sort(Comparator.comparingInt(
+                layerName -> indicator.layerByName().get(layerName).z()));
+        return layerNames;
+    }
+
     private static List<IndicatorLayerConfiguration> enabledLayers(
             IndicatorConfiguration indicator) {
         List<IndicatorLayerConfiguration> layers = new ArrayList<>();
-        for (IndicatorLayerConfiguration layer : indicator.layerByName().values())
-            if (layer.enabled())
-                layers.add(layer);
-        layers.sort(Comparator.comparingInt(IndicatorLayerConfiguration::z));
+        for (String layerName : enabledLayerNames(indicator))
+            layers.add(indicator.layerByName().get(layerName));
         return layers;
     }
 
@@ -152,11 +169,14 @@ public final class IndicatorRenderer {
     /** Shows/updates the indicator: repositions and renders unless nothing changed. The
      *  overlay supplies the cursor rectangle, its visual center, and the active screen and
      *  zoom. */
-    public void setIndicator(IndicatorConfiguration indicator,
+    public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
                              Rectangle mouseRectangle, Point cursorVisualCenter,
                              Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
         setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
-        if (showing && indicator.equals(currentIndicator))
+        for (String layerName : layerNamesToAnchor)
+            anchorByLayerName.put(layerName,
+                    new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen));
+        if (showing && indicator.equals(currentIndicator) && layerNamesToAnchor.isEmpty())
             return;
         // Position the (hidden) window before showIndicator shows it.
         reposition(indicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
@@ -172,13 +192,18 @@ public final class IndicatorRenderer {
     private void reposition(IndicatorConfiguration indicator, Rectangle mouseRectangle,
                             Point cursorVisualCenter, Screen activeScreen, Zoom zoom) {
         double screenScale = activeScreen.scale();
-        List<IndicatorLayerConfiguration> enabledLayers = enabledLayers(indicator);
+        List<IndicatorLayerConfiguration> enabledLayers = new ArrayList<>();
         // Screen pixels: the configured size does not change with the zoom. Only the
         // position does, because the cursor it marks is a desktop point.
         List<Point> topLefts = new ArrayList<>();
-        for (IndicatorLayerConfiguration layer : enabledLayers) {
-            Point topLeft = layerTopLeft(mouseRectangle, cursorVisualCenter, activeScreen,
-                    zoom, layer, layerSizeWithStroke(layer, screenScale));
+        for (String layerName : enabledLayerNames(indicator)) {
+            IndicatorLayerConfiguration layer = indicator.layerByName().get(layerName);
+            enabledLayers.add(layer);
+            LayerAnchor anchor = layer.followMouse() ?
+                    new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen) :
+                    anchorByLayerName.get(layerName);
+            Point topLeft = layerTopLeft(anchor.mouseRectangle(), anchor.cursorVisualCenter(),
+                    anchor.activeScreen(), zoom, layer, layerSizeWithStroke(layer, screenScale));
             topLefts.add(new Point(Math.round(topLeft.x()), Math.round(topLeft.y())));
         }
         Rectangle layersRectangle = layersRectangle(enabledLayers, topLefts, screenScale);

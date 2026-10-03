@@ -374,13 +374,15 @@ public class WindowsOverlay implements Overlay {
     }
 
     @Override
-    public void setIndicator(IndicatorConfiguration indicator, boolean animating,
+    public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
+                             boolean animating,
                              boolean includeOriginalCursor) {
         Objects.requireNonNull(indicator);
-        boolean renderAsCursor = indicator.renderAsCursor();
+        boolean renderAsCursor = indicator.renderAsCursor() && followsMouse(indicator);
         if (!renderAsCursor && !indicatorIsCursor && indicatorRenderer != null &&
             indicatorRenderer.showing() &&
-            indicator.equals(indicatorRenderer.currentIndicator()))
+            indicator.equals(indicatorRenderer.currentIndicator()) &&
+            layerNamesToAnchor.isEmpty())
             return;
         if (mouse.tryFindMousePosition() == null) {
             if (!mousePositionMissing)
@@ -421,7 +423,8 @@ public class WindowsOverlay implements Overlay {
         if (indicatorHwnd == null)
             createIndicatorWindow();
         boolean wasShowing = indicatorRenderer.showing();
-        indicatorRenderer.setIndicator(indicator, mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
+        indicatorRenderer.setIndicator(indicator, layerNamesToAnchor,
+                mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                 WindowsScreen.findActiveScreen(mousePosition), currentZoom,
                 hintMeshRenderer.lastSelectedHintBoxHexColor());
         if (!wasShowing)
@@ -506,6 +509,13 @@ public class WindowsOverlay implements Overlay {
                                                      WinDef.WPARAM wParam,
                                                      WinDef.LPARAM lParam) {
         return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
+    }
+
+    private static boolean followsMouse(IndicatorConfiguration indicator) {
+        for (IndicatorLayerConfiguration layer : indicator.layerByName().values())
+            if (layer.enabled() && !layer.followMouse())
+                return false;
+        return true;
     }
 
     @Override

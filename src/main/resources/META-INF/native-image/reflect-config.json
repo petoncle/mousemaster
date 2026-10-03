@@ -848,7 +848,7 @@
 {
   "name":"mousemaster.IndicatorLayerConfiguration",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["boolean","int","double","int","mousemaster.Color","double","mousemaster.IndicatorStroke","boolean","java.lang.String","mousemaster.FontStyle","mousemaster.IndicatorPosition"] }, {"name":"edgeCount","parameterTypes":[] }, {"name":"enabled","parameterTypes":[] }, {"name":"fillColor","parameterTypes":[] }, {"name":"fillOpacity","parameterTypes":[] }, {"name":"labelEnabled","parameterTypes":[] }, {"name":"labelFontStyle","parameterTypes":[] }, {"name":"labelText","parameterTypes":[] }, {"name":"position","parameterTypes":[] }, {"name":"size","parameterTypes":[] }, {"name":"stroke","parameterTypes":[] }, {"name":"z","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["boolean","int","double","int","mousemaster.Color","double","mousemaster.IndicatorStroke","boolean","java.lang.String","mousemaster.FontStyle","mousemaster.IndicatorPosition","boolean"] }, {"name":"edgeCount","parameterTypes":[] }, {"name":"enabled","parameterTypes":[] }, {"name":"fillColor","parameterTypes":[] }, {"name":"fillOpacity","parameterTypes":[] }, {"name":"followMouse","parameterTypes":[] }, {"name":"labelEnabled","parameterTypes":[] }, {"name":"labelFontStyle","parameterTypes":[] }, {"name":"labelText","parameterTypes":[] }, {"name":"position","parameterTypes":[] }, {"name":"size","parameterTypes":[] }, {"name":"stroke","parameterTypes":[] }, {"name":"z","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.IndicatorStroke",
