@@ -1,6 +1,5 @@
 package mousemaster;
 
-import mousemaster.FontStyle.FontStyleBuilder;
 import mousemaster.IndicatorStroke.IndicatorStrokeBuilder;
 
 import java.util.List;
@@ -12,8 +11,8 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                                           double rotation, Color fillColor,
                                           double fillOpacity,
                                           IndicatorStroke stroke,
-                                          boolean labelEnabled, String labelText,
-                                          FontStyle labelFontStyle,
+                                          String text, String fontName, double fontSize,
+                                          FontWeight fontWeight,
                                           IndicatorPosition position, boolean followMouse) {
 
     public IndicatorLayerConfigurationBuilder builder() {
@@ -35,9 +34,10 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         private Color fillColor;
         private Double fillOpacity;
         private IndicatorStrokeBuilder stroke = new IndicatorStrokeBuilder();
-        private Boolean labelEnabled;
-        private String labelText;
-        private FontStyleBuilder labelFontStyle = new FontStyleBuilder();
+        private String text;
+        private String fontName;
+        private Double fontSize;
+        private FontWeight fontWeight;
         private IndicatorPosition position;
         private Boolean followMouse;
 
@@ -58,9 +58,10 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             this.fillColor = layer.fillColor;
             this.fillOpacity = layer.fillOpacity;
             this.stroke = new IndicatorStrokeBuilder(layer.stroke);
-            this.labelEnabled = layer.labelEnabled;
-            this.labelText = layer.labelText;
-            this.labelFontStyle = new FontStyleBuilder(layer.labelFontStyle);
+            this.text = layer.text;
+            this.fontName = layer.fontName;
+            this.fontSize = layer.fontSize;
+            this.fontWeight = layer.fontWeight;
             this.position = layer.position;
             this.followMouse = layer.followMouse;
         }
@@ -177,26 +178,40 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             return stroke;
         }
 
-        public IndicatorLayerConfigurationBuilder labelEnabled(boolean labelEnabled) {
-            this.labelEnabled = labelEnabled;
+        public IndicatorLayerConfigurationBuilder text(String text) {
+            this.text = text;
             return this;
         }
 
-        public Boolean labelEnabled() {
-            return labelEnabled;
+        public String text() {
+            return text;
         }
 
-        public IndicatorLayerConfigurationBuilder labelText(String labelText) {
-            this.labelText = labelText;
+        public IndicatorLayerConfigurationBuilder fontName(String fontName) {
+            this.fontName = fontName;
             return this;
         }
 
-        public String labelText() {
-            return labelText;
+        public String fontName() {
+            return fontName;
         }
 
-        public FontStyleBuilder labelFontStyle() {
-            return labelFontStyle;
+        public IndicatorLayerConfigurationBuilder fontSize(double fontSize) {
+            this.fontSize = fontSize;
+            return this;
+        }
+
+        public Double fontSize() {
+            return fontSize;
+        }
+
+        public IndicatorLayerConfigurationBuilder fontWeight(FontWeight fontWeight) {
+            this.fontWeight = fontWeight;
+            return this;
+        }
+
+        public FontWeight fontWeight() {
+            return fontWeight;
         }
 
         public IndicatorLayerConfigurationBuilder position(IndicatorPosition position) {
@@ -231,9 +246,10 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             if (fillColor == null) fillColor = parent.fillColor;
             if (fillOpacity == null) fillOpacity = parent.fillOpacity;
             stroke.extend(parent.stroke);
-            if (labelEnabled == null) labelEnabled = parent.labelEnabled;
-            if (labelText == null) labelText = parent.labelText;
-            labelFontStyle.extend(parent.labelFontStyle);
+            if (text == null) text = parent.text;
+            if (fontName == null) fontName = parent.fontName;
+            if (fontSize == null) fontSize = parent.fontSize;
+            if (fontWeight == null) fontWeight = parent.fontWeight;
             if (position == null) position = parent.position;
             if (followMouse == null) followMouse = parent.followMouse;
         }
@@ -241,7 +257,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         public IndicatorLayerConfiguration build() {
             return new IndicatorLayerConfiguration(enabled, z, shape, size, aspectRatio,
                     borderRadius, points, x, y, rotation, fillColor, fillOpacity, stroke.build(),
-                    labelEnabled, labelText, labelFontStyle.build(), position, followMouse);
+                    text, fontName, fontSize, fontWeight, position, followMouse);
         }
     }
 }

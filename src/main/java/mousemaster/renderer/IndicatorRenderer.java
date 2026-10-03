@@ -21,8 +21,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Cross-platform Qt rendering of the mouse indicator: owns a widget and a label widget per
- * layer and the shadow effects, and computes where and how big to draw each layer.
+ * Cross-platform Qt rendering of the mouse indicator: owns a widget per layer and the shadow
+ * effect, and computes where and how big to draw each layer.
  * The platform overlay owns the native window (styles its handle) and supplies the cursor,
  * screen and zoom.
  */
@@ -31,7 +31,6 @@ public final class IndicatorRenderer {
     private TransparentWindow window;
     private QWidget layersWidget;
     private final List<IndicatorLayerWidget> widgets = new ArrayList<>();
-    private final List<IndicatorLabelWidget> labelWidgets = new ArrayList<>();
     private IndicatorShadowEffect shadowEffect;
     private IndicatorConfiguration currentIndicator;
     private List<IndicatorLayerConfiguration> currentEnabledLayers;
@@ -39,6 +38,7 @@ public final class IndicatorRenderer {
     private Point gradientPoint;
     private final List<Point> currentTopLefts = new ArrayList<>();
     private final Map<String, LayerAnchor> anchorByLayerName = new HashMap<>();
+    private final Map<Text, QPainterPath> outlineByText = new HashMap<>();
     private IndicatorImage windowImage;
     private IndicatorConfiguration windowImageIndicator;
     private List<Point> windowImageOffsets;
@@ -56,12 +56,8 @@ public final class IndicatorRenderer {
     }
 
     private IndicatorLayerWidget widget(int index) {
-        if (index == widgets.size()) {
+        if (index == widgets.size())
             widgets.add(new IndicatorLayerWidget(layersWidget));
-            // Label widget is a child of window (not widget) so it renders on top
-            // of the shadow effect and can clear/redraw the fill area.
-            labelWidgets.add(new IndicatorLabelWidget(window));
-        }
         return widgets.get(index);
     }
 
@@ -149,7 +145,40 @@ public final class IndicatorRenderer {
     }
 
     private double layerSize(IndicatorLayerConfiguration layer, double screenScale) {
-        return layer.size() * screenScale;
+        if (layer.shape() != IndicatorShape.TEXT)
+            return layer.size() * screenScale;
+        QRectF bounds = textOutline(layer, screenScale).boundingRect();
+        double layerSize = Math.max(bounds.width(), bounds.height());
+        bounds.dispose();
+        return layerSize;
+    }
+
+    private record Text(String text, String fontName, double fontSize, FontWeight fontWeight,
+                        double scale) {
+    }
+
+    /** The text's outline, centered on its ink. Laying text out costs about 100us, and the
+     *  layout is asked for on every mouse move. */
+    private QPainterPath textOutline(IndicatorLayerConfiguration layer, double scale) {
+        return outlineByText.computeIfAbsent(new Text(layer.text(), layer.fontName(),
+                layer.fontSize(), layer.fontWeight(), scale), text -> {
+            QFont font = textFont(layer, scale);
+            QPainterPath outline = new QPainterPath();
+            outline.addText(0, 0, font, text.text());
+            QRectF bounds = outline.boundingRect();
+            outline.translate(-bounds.x() - bounds.width() / 2,
+                    -bounds.y() - bounds.height() / 2);
+            bounds.dispose();
+            font.dispose();
+            return outline;
+        });
+    }
+
+    /** A point is 1/72 inch, and a screen at scale 1 has 96 dots per inch. */
+    private static QFont textFont(IndicatorLayerConfiguration layer, double scale) {
+        QFont font = QtHintFont.qFont(layer.fontName(), layer.fontSize(), layer.fontWeight());
+        font.setPixelSize((int) Math.round(layer.fontSize() * 96 / 72 * scale));
+        return font;
     }
 
     private int layerSizeWithStroke(IndicatorLayerConfiguration layer, double screenScale) {
@@ -277,15 +306,11 @@ public final class IndicatorRenderer {
             int layerSizeWithStroke =
                     points(layerSizeWithStroke(layer, screenScale), pointsPerPixel);
             IndicatorLayerWidget widget = widget(i);
-            widget.setStrokeScale(screenScale);
+            widget.setScale(screenScale / pointsPerPixel);
             widget.setLayerSize(layerSize(layer, screenScale) / pointsPerPixel);
             widget.move(points(topLeft.x() - layersTopLeft.x(), pointsPerPixel),
                     points(topLeft.y() - layersTopLeft.y(), pointsPerPixel));
             widget.resize(layerSizeWithStroke, layerSizeWithStroke);
-            IndicatorLabelWidget labelWidget = labelWidgets.get(i);
-            labelWidget.move(points(topLeft.x() - windowTopLeft.x(), pointsPerPixel),
-                    points(topLeft.y() - windowTopLeft.y(), pointsPerPixel));
-            labelWidget.resize(layerSizeWithStroke, layerSizeWithStroke);
         }
     }
 
@@ -399,15 +424,10 @@ public final class IndicatorRenderer {
     private static boolean looksTheSameAnywhere(IndicatorConfiguration indicator) {
         if (!looksTheSameAnywhere(indicator.shadow().color()))
             return false;
-        for (IndicatorLayerConfiguration layer : enabledLayers(indicator)) {
-            FontStyle labelFontStyle = layer.labelFontStyle();
+        for (IndicatorLayerConfiguration layer : enabledLayers(indicator))
             if (!looksTheSameAnywhere(layer.fillColor()) ||
-                !looksTheSameAnywhere(layer.stroke().color()) ||
-                !looksTheSameAnywhere(labelFontStyle.color()) ||
-                !looksTheSameAnywhere(labelFontStyle.outlineColor()) ||
-                !looksTheSameAnywhere(labelFontStyle.shadow().color()))
+                !looksTheSameAnywhere(layer.stroke().color()))
                 return false;
-        }
         return true;
     }
 
@@ -456,9 +476,6 @@ public final class IndicatorRenderer {
     private IndicatorImage render(int width, int height, double scale) {
         QImage image = new QImage(width, height, QImage.Format.Format_ARGB32_Premultiplied);
         image.fill(0);
-        // The label's point-size font resolves against the image's DPI; match the target
-        // screen so it renders at the right size on any screen.
-        HintMeshRenderer.setQImageDpiForScreen(image, scale);
         window.render(image);
         int[] argb = new int[width * height];
         ByteBuffer buffer = image.bits();
@@ -468,36 +485,7 @@ public final class IndicatorRenderer {
         return new IndicatorImage(argb, width, height);
     }
 
-    /** Draws label text centered at (centerX, centerY): outline (if any) then fill, using the
-     *  caller's already-sized font. Shared by the on-screen label widget and the cursor. */
-    static void drawLabelText(QPainter painter, String text, QFont font, double centerX,
-                              double centerY, int outlineThickness, QColor outlineColor,
-                              QColor labelColor) {
-        QFontMetrics fontMetrics = new QFontMetrics(font);
-        int textX = (int) Math.round(centerX - fontMetrics.horizontalAdvance(text) / 2.0);
-        QRect tightRect = fontMetrics.tightBoundingRect(text);
-        int textY = (int) Math.round(centerY - tightRect.y() - tightRect.height() / 2.0);
-        tightRect.dispose();
-        fontMetrics.dispose();
-        if (outlineThickness != 0 && outlineColor != null && outlineColor.alpha() != 0) {
-            QPen outlinePen = new QPen(outlineColor);
-            outlinePen.setWidth(outlineThickness);
-            outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
-            painter.setPen(outlinePen);
-            painter.setBrush(Qt.BrushStyle.NoBrush);
-            QPainterPath textPath = new QPainterPath();
-            textPath.addText(textX, textY, font, text);
-            painter.drawPath(textPath);
-            textPath.dispose();
-            outlinePen.dispose();
-        }
-        if (labelColor != null && labelColor.alpha() != 0) {
-            painter.setPen(labelColor);
-            painter.drawText(textX, textY, text);
-        }
-    }
-
-    /** Applies the indicator to the widgets (shape, outlines, shadow effect, label) without
+    /** Applies the indicator to the widgets (shape, fill, stroke, shadow effect) without
      *  showing or positioning. Shared by the on-screen path and the offscreen cursor render. */
     private void applyIndicator(IndicatorConfiguration indicator, double shadowScale,
                                 String lastSelectedHintBoxHexColor) {
@@ -507,58 +495,24 @@ public final class IndicatorRenderer {
         applyShadowEffect(shadowScale, lastSelectedHintBoxHexColor);
         for (int i = 0; i < widgets.size(); i++) {
             if (i < currentEnabledLayers.size())
-                applyLayer(currentEnabledLayers.get(i), widgets.get(i), labelWidgets.get(i),
-                        currentTopLefts.get(i), shadowScale, lastSelectedHintBoxHexColor);
-            else {
+                applyLayer(currentEnabledLayers.get(i), widgets.get(i), currentTopLefts.get(i),
+                        lastSelectedHintBoxHexColor);
+            else
                 widgets.get(i).hide();
-                labelWidgets.get(i).hide();
-            }
         }
     }
 
     private void applyLayer(IndicatorLayerConfiguration layer, IndicatorLayerWidget widget,
-                            IndicatorLabelWidget labelWidget, Point topLeft,
-                            double shadowScale, String lastSelectedHintBoxHexColor) {
+                            Point topLeft, String lastSelectedHintBoxHexColor) {
         widget.setSweepArea(sweepArea(topLeft));
-        widget.setShape(layer.shape(), layer.aspectRatio(), layer.borderRadius(),
-                layer.points(), layer.rotation());
+        widget.setLayer(layer);
         widget.setFill(QtColorUtil.qColor(hex(layer.fillColor(), lastSelectedHintBoxHexColor), layer.fillOpacity()),
                 sweep(layer.fillColor()));
         IndicatorStroke stroke = layer.stroke();
-        widget.setStroke(stroke,
+        widget.setStroke(
                 QtColorUtil.qColor(hex(stroke.color(), lastSelectedHintBoxHexColor), stroke.opacity()),
                 sweep(stroke.color()));
         widget.show();
-        if (layer.labelEnabled() && layer.labelText() != null &&
-            layer.labelFontStyle() != null) {
-            FontStyle labelFontStyle = layer.labelFontStyle();
-            QFont labelFont = QtHintFont.qFont(labelFontStyle.name(), labelFontStyle.size(), labelFontStyle.weight());
-            QColor labelColor = QtColorUtil.qColor(hex(labelFontStyle.color(), lastSelectedHintBoxHexColor), labelFontStyle.opacity());
-            QColor labelOutlineColor = QtColorUtil.qColor(hex(labelFontStyle.outlineColor(), lastSelectedHintBoxHexColor), labelFontStyle.outlineOpacity());
-            labelWidget.setLabel(layer.labelText(), labelFont, labelColor,
-                    (int) Math.round(labelFontStyle.outlineThickness()), labelOutlineColor);
-            Shadow labelShadow = labelFontStyle.shadow();
-            QColor labelShadowColor = QtColorUtil.qColor(hex(labelShadow.color(), lastSelectedHintBoxHexColor), labelShadow.opacity());
-            if (labelShadowColor.alpha() != 0) {
-                StackedShadowEffect effect = new StackedShadowEffect();
-                effect.setBlurRadius(labelShadow.blurRadius() * shadowScale);
-                effect.setOffset(labelShadow.horizontalOffset() * shadowScale,
-                        labelShadow.verticalOffset() * shadowScale);
-                effect.setColor(labelShadowColor);
-                effect.setStackCount(labelShadow.stackCount());
-                labelWidget.setGraphicsEffect(effect);
-            }
-            else {
-                labelWidget.setGraphicsEffect(null);
-            }
-            labelShadowColor.dispose();
-            labelWidget.show();
-        }
-        else {
-            labelWidget.setLabel(null, null, null, 0, null);
-            labelWidget.setGraphicsEffect(null);
-            labelWidget.hide();
-        }
     }
 
     /** Applies the indicator, then shows the window. */
@@ -647,18 +601,13 @@ public final class IndicatorRenderer {
     private class IndicatorLayerWidget extends QWidget {
 
         private double layerSize;
-        private IndicatorShape shape;
-        private double aspectRatio;
-        private double borderRadius;
-        private List<Point> points;
-        private double rotation;
+        private IndicatorLayerConfiguration layer;
         private QColor fillColor;
         private GradientColor fillSweep;
-        private IndicatorStroke stroke;
         private QColor strokeColor;
         private GradientColor strokeSweep;
         private Rectangle sweepArea;
-        private double strokeScale;
+        private double scale;
 
         IndicatorLayerWidget(QWidget parent) {
             super(parent);
@@ -668,17 +617,12 @@ public final class IndicatorRenderer {
             this.layerSize = layerSize;
         }
 
-        void setStrokeScale(double strokeScale) {
-            this.strokeScale = strokeScale;
+        void setScale(double scale) {
+            this.scale = scale;
         }
 
-        void setShape(IndicatorShape shape, double aspectRatio, double borderRadius,
-                      List<Point> points, double rotation) {
-            this.shape = shape;
-            this.aspectRatio = aspectRatio;
-            this.borderRadius = borderRadius;
-            this.points = points;
-            this.rotation = rotation;
+        void setLayer(IndicatorLayerConfiguration layer) {
+            this.layer = layer;
         }
 
         void setFill(QColor fillColor, GradientColor fillSweep) {
@@ -688,10 +632,9 @@ public final class IndicatorRenderer {
             this.fillSweep = fillSweep;
         }
 
-        void setStroke(IndicatorStroke stroke, QColor strokeColor, GradientColor strokeSweep) {
+        void setStroke(QColor strokeColor, GradientColor strokeSweep) {
             if (this.strokeColor != null)
                 this.strokeColor.dispose();
-            this.stroke = stroke;
             this.strokeColor = strokeColor;
             this.strokeSweep = strokeSweep;
         }
@@ -722,19 +665,20 @@ public final class IndicatorRenderer {
         /** The shape fills a box centered in the widget: size is the box's largest dimension
          *  and aspectRatio its width over its height. */
         private QPainterPath shapePath() {
+            double aspectRatio = layer.aspectRatio();
             double boxWidth = aspectRatio >= 1 ? layerSize : layerSize * aspectRatio;
             double boxHeight = aspectRatio >= 1 ? layerSize / aspectRatio : layerSize;
             double left = (width() - boxWidth) / 2;
             double top = (height() - boxHeight) / 2;
             QPainterPath path = new QPainterPath();
-            switch (shape) {
+            switch (layer.shape()) {
                 case CIRCLE -> path.addEllipse(left, top, boxWidth, boxHeight);
                 case RECTANGLE -> path.addRoundedRect(left, top, boxWidth, boxHeight,
-                        borderRadius * strokeScale, borderRadius * strokeScale,
+                        layer.borderRadius() * scale, layer.borderRadius() * scale,
                         Qt.SizeMode.AbsoluteSize);
                 case TRIANGLE -> addPolygon(path, trianglePoints, left, top, boxWidth, boxHeight);
                 case STAR -> addPolygon(path, starPoints, left, top, boxWidth, boxHeight);
-                case PATH -> addPolygon(path, points, left, top, boxWidth, boxHeight);
+                case PATH -> addPolygon(path, layer.points(), left, top, boxWidth, boxHeight);
                 case LINE -> {
                     path.moveTo(left, top + boxHeight / 2);
                     path.lineTo(left + boxWidth, top + boxHeight / 2);
@@ -744,6 +688,10 @@ public final class IndicatorRenderer {
                     path.lineTo(left + boxWidth, top + boxHeight);
                     path.moveTo(left + boxWidth, top);
                     path.lineTo(left, top + boxHeight);
+                }
+                case TEXT -> {
+                    path.addPath(textOutline(layer, scale));
+                    path.translate(width() / 2.0, height() / 2.0);
                 }
             }
             return path;
@@ -887,7 +835,7 @@ public final class IndicatorRenderer {
         void drawContent(QPainter painter, QColor fillColor, QColor strokeColor) {
             painter.save();
             painter.translate(width() / 2.0, height() / 2.0);
-            painter.rotate(rotation);
+            painter.rotate(layer.rotation());
             painter.translate(-width() / 2.0, -height() / 2.0);
             QPainterPath path = shapePath();
             if (fillColor.alpha() != 0) {
@@ -895,7 +843,8 @@ public final class IndicatorRenderer {
                 painter.setBrush(brush(fillColor, fillSweep));
                 painter.drawPath(path);
             }
-            double strokeThickness = stroke.thickness() * strokeScale;
+            IndicatorStroke stroke = layer.stroke();
+            double strokeThickness = stroke.thickness() * scale;
             if (strokeThickness > 0 && strokeColor.alpha() != 0 && stroke.lengthPercent() != 0) {
                 QPen pen = new QPen(strokeColor);
                 if (strokeSweep != null)
@@ -909,12 +858,12 @@ public final class IndicatorRenderer {
                 });
                 // Qt measures dashes in pen widths.
                 if (stroke.dashLength() > 0 && stroke.dashGap() > 0) {
-                    pen.setDashPattern(List.of(stroke.dashLength() * strokeScale / strokeThickness,
-                            stroke.dashGap() * strokeScale / strokeThickness));
-                    pen.setDashOffset(stroke.dashOffset() * strokeScale / strokeThickness);
+                    pen.setDashPattern(List.of(stroke.dashLength() * scale / strokeThickness,
+                            stroke.dashGap() * scale / strokeThickness));
+                    pen.setDashOffset(stroke.dashOffset() * scale / strokeThickness);
                 }
                 painter.setBrush(Qt.BrushStyle.NoBrush);
-                if (Math.abs(stroke.lengthPercent()) >= 1 || !shape.closed()) {
+                if (Math.abs(stroke.lengthPercent()) >= 1 || !layer.shape().hasOneOutline()) {
                     painter.setPen(pen);
                     painter.drawPath(path);
                 }
@@ -1001,50 +950,6 @@ public final class IndicatorRenderer {
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             for (IndicatorLayerWidget widget : widgets)
                 widget.redrawSourceOverShadow(painter);
-        }
-    }
-
-
-    private class IndicatorLabelWidget extends QWidget {
-
-        private String labelText;
-        private QFont labelFont;
-        private QColor labelColor;
-        private int outlineThickness;
-        private QColor outlineColor;
-
-        IndicatorLabelWidget(QWidget parent) {
-            super(parent);
-            setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents);
-        }
-
-        void setLabel(String labelText, QFont labelFont, QColor labelColor,
-                      int outlineThickness, QColor outlineColor) {
-            if (this.labelFont != null)
-                this.labelFont.dispose();
-            if (this.labelColor != null)
-                this.labelColor.dispose();
-            if (this.outlineColor != null)
-                this.outlineColor.dispose();
-            this.labelText = labelText;
-            this.labelFont = labelFont;
-            this.labelColor = labelColor;
-            this.outlineThickness = outlineThickness;
-            this.outlineColor = outlineColor;
-            update();
-        }
-
-        @Override
-        protected void paintEvent(QPaintEvent event) {
-            if (labelText == null || labelFont == null || labelColor == null)
-                return;
-            QPainter painter = new QPainter(this);
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            painter.setFont(labelFont);
-            drawLabelText(painter, labelText, labelFont, width() / 2.0, height() / 2.0,
-                    outlineThickness, outlineColor, labelColor);
-            painter.end();
-            painter.dispose();
         }
     }
 

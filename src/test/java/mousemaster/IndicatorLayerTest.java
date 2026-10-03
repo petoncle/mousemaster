@@ -143,4 +143,21 @@ class IndicatorLayerTest {
         assertEquals(2, stroke.dashOffset());
         assertEquals(StrokeCap.ROUND, stroke.cap());
     }
+
+    @Test
+    void textIsALayerOfShapeText() {
+        IndicatorLayerConfiguration layer = layer(parse("idle-mode.text-indicator.shape=text",
+                "idle-mode.text-indicator.text=ab", "idle-mode.text-indicator.font-name=Consolas",
+                "idle-mode.text-indicator.font-size=12",
+                "idle-mode.text-indicator.font-weight=bold").modeMap().get(Mode.IDLE_MODE_NAME),
+                "text-indicator");
+        assertEquals(IndicatorShape.TEXT, layer.shape());
+        assertEquals("ab", layer.text());
+        assertEquals("Consolas", layer.fontName());
+        assertEquals(12, layer.fontSize());
+        assertEquals(FontWeight.BOLD, layer.fontWeight());
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.indicator.label-text=ab"));
+        assertTrue(e.getMessage().contains("shape=text"), e.getMessage());
+    }
 }

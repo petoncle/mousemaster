@@ -7060,9 +7060,10 @@
             "mousemaster.Color",
             "double",
             "mousemaster.IndicatorStroke",
-            "boolean",
             "java.lang.String",
-            "mousemaster.FontStyle",
+            "java.lang.String",
+            "double",
+            "mousemaster.FontWeight",
             "mousemaster.IndicatorPosition",
             "boolean"
           ]
@@ -7092,15 +7093,15 @@
           "parameterTypes": []
         },
         {
-          "name": "labelEnabled",
+          "name": "fontName",
           "parameterTypes": []
         },
         {
-          "name": "labelFontStyle",
+          "name": "fontSize",
           "parameterTypes": []
         },
         {
-          "name": "labelText",
+          "name": "fontWeight",
           "parameterTypes": []
         },
         {
@@ -7113,6 +7114,10 @@
         },
         {
           "name": "shape",
+          "parameterTypes": []
+        },
+        {
+          "name": "text",
           "parameterTypes": []
         },
         {
