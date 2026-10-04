@@ -43,6 +43,10 @@ public class StackedShadowEffect extends QtDropShadowEffect {
         this.transparencyOnly = transparencyOnly;
     }
 
+    protected boolean transparencyOnly() {
+        return transparencyOnly;
+    }
+
     @Override
     protected void draw(QPainter painter) {
         long before = System.nanoTime();
