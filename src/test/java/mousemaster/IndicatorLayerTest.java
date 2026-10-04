@@ -170,4 +170,18 @@ class IndicatorLayerTest {
         assertThrows(IllegalArgumentException.class,
                 () -> parse("idle-mode.indicator.text-format=html"));
     }
+
+    @Test
+    void aTextNamesTheKeysOfAKeyAlias() {
+        Mode mode = parse("key-alias.exit=q p",
+                "idle-mode.indicator.text={exit}  exit").modeMap().get(Mode.IDLE_MODE_NAME);
+        assertEquals("q p  exit", layer(mode, "indicator").text());
+    }
+
+    @Test
+    void aTextNamesOnlyKeyAliases() {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.indicator.text={exit}  exit"));
+        assertTrue(e.getMessage().contains("exit is not a key alias"), e.getMessage());
+    }
 }
