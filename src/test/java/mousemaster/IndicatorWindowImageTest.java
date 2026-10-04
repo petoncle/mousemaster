@@ -62,6 +62,47 @@ class IndicatorWindowImageTest {
     }
 
     @Test
+    void aRichTextIsColoredByItsStyleSheetAndLaidOutTheSameAtEveryScale() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        int[] inkWidths = new int[2];
+        for (int scaleIndex = 0; scaleIndex < 2; scaleIndex++) {
+            double scale = scaleIndex == 0 ? 1 : 3;
+            IndicatorConfiguration indicator = indicator("idle-mode.indicator.shape=text",
+                    "idle-mode.indicator.text-format=rich",
+                    "idle-mode.indicator.text-style-sheet=.key { color: #00FF00 }",
+                    "idle-mode.indicator.text=<table><tr><td class=key>abc<td>de</table>",
+                    "idle-mode.indicator.fill-color=#0000FF",
+                    "idle-mode.indicator.fill-opacity=1",
+                    "idle-mode.indicator.stroke-thickness=0");
+            IndicatorRenderer.IndicatorImage image = new IndicatorRenderer().renderWindowImage(
+                    indicator, Set.of(), new Rectangle(500, 500, 32, 32), new Point(4, 4),
+                    new Screen(new Rectangle(0, 0, 3840, 2160), (int) (96 * scale), scale),
+                    null, "#000000").image();
+            boolean green = false, blue = false;
+            for (int argb : image.argb()) {
+                green |= (argb >> 8 & 255) > 200 && (argb & 255) < 50;
+                blue |= (argb & 255) > 200 && (argb >> 8 & 255) < 50;
+            }
+            assertTrue(green && blue, "scale " + scale);
+            inkWidths[scaleIndex] = ink(image).width();
+        }
+        assertEquals(inkWidths[0] * 3, inkWidths[1], 3);
+    }
+
+    private static Rectangle ink(IndicatorRenderer.IndicatorImage image) {
+        int minX = image.width(), maxX = -1, minY = image.height(), maxY = -1;
+        for (int y = 0; y < image.height(); y++)
+            for (int x = 0; x < image.width(); x++)
+                if (image.argb()[y * image.width() + x] >>> 24 != 0) {
+                    minX = Math.min(minX, x);
+                    maxX = Math.max(maxX, x);
+                    minY = Math.min(minY, y);
+                    maxY = Math.max(maxY, y);
+                }
+        return new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1);
+    }
+
+    @Test
     void anAnchoredLayerIsDrawnAgainWhereItWas() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         IndicatorConfiguration indicator = indicator("idle-mode.indicator.enabled=true",

@@ -2873,6 +2873,60 @@
       "jniAccessible": true
     },
     {
+      "type": "io.qt.gui.QAbstractTextDocumentLayout",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "documentSizeChanged"
+        },
+        {
+          "name": "pageCountChanged"
+        },
+        {
+          "name": "update"
+        },
+        {
+          "name": "updateBlock"
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QTextDocument",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "baseUrlChanged"
+        },
+        {
+          "name": "blockCountChanged"
+        },
+        {
+          "name": "contentsChange"
+        },
+        {
+          "name": "contentsChanged"
+        },
+        {
+          "name": "cursorPositionChanged"
+        },
+        {
+          "name": "documentLayoutChanged"
+        },
+        {
+          "name": "modificationChanged"
+        },
+        {
+          "name": "redoAvailable"
+        },
+        {
+          "name": "undoAvailable"
+        },
+        {
+          "name": "undoCommandAdded"
+        }
+      ]
+    },
+    {
       "type": "io.qt.gui.QTextObjectInterface",
       "jniAccessible": true
     },
@@ -7064,6 +7118,8 @@
             "java.lang.String",
             "double",
             "mousemaster.FontWeight",
+            "mousemaster.TextFormat",
+            "java.lang.String",
             "mousemaster.IndicatorPosition",
             "boolean"
           ]
@@ -7118,6 +7174,14 @@
         },
         {
           "name": "text",
+          "parameterTypes": []
+        },
+        {
+          "name": "textFormat",
+          "parameterTypes": []
+        },
+        {
+          "name": "textStyleSheet",
           "parameterTypes": []
         },
         {
