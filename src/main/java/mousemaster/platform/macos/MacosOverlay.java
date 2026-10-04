@@ -35,7 +35,8 @@ public class MacosOverlay implements Overlay {
     private final HintMeshRenderer hintMeshRenderer;
     private final List<MacosDesktopCapture> desktopCaptures = new ArrayList<>();
 
-    private IndicatorRenderer indicatorRenderer;
+    private IndicatorRenderer followingIndicatorRenderer;
+    private IndicatorRenderer anchoredIndicatorRenderer;
     private GridRenderer gridRenderer;
     private MacosZoomRenderer zoomRenderer;
     private Zoom currentZoom;
@@ -97,18 +98,26 @@ public class MacosOverlay implements Overlay {
         QtHintFont.preWarm(hintMeshConfigurations);
         logger.debug("Screens " + MacosScreens.screens());
         hintMeshRenderer.preWarmHintMeshWindows(MacosScreens.screens());
-        if (indicatorRenderer != null)
+        if (followingIndicatorRenderer != null)
             return;
         long before = System.nanoTime();
-        createIndicatorWindow();
-        indicatorRenderer.preWarm();
+        createIndicatorWindows();
+        for (IndicatorRenderer indicatorRenderer : indicatorRenderers())
+            indicatorRenderer.preWarm();
         logger.debug("Pre-warmed the indicator window in " +
                      (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
 
-    private void createIndicatorWindow() {
-        indicatorRenderer = new IndicatorRenderer();
-        MacosWindow.applyOverlayProperties(indicatorRenderer.window());
+    private void createIndicatorWindows() {
+        followingIndicatorRenderer = new IndicatorRenderer();
+        anchoredIndicatorRenderer = new IndicatorRenderer();
+        for (IndicatorRenderer indicatorRenderer : indicatorRenderers())
+            MacosWindow.applyOverlayProperties(indicatorRenderer.window());
+    }
+
+    private List<IndicatorRenderer> indicatorRenderers() {
+        return followingIndicatorRenderer == null ? List.of() :
+                List.of(followingIndicatorRenderer, anchoredIndicatorRenderer);
     }
 
     private TransparentWindow createStyledHintMeshWindow() {
@@ -152,9 +161,23 @@ public class MacosOverlay implements Overlay {
     public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
                              boolean animating,
                              boolean includeOriginalCursor) {
-        if (indicatorRenderer == null)
-            createIndicatorWindow();
+        if (followingIndicatorRenderer == null)
+            createIndicatorWindows();
         QPoint mousePosition = mouse.findMousePosition();
+        setIndicator(followingIndicatorRenderer,
+                IndicatorRenderer.followingMouse(indicator, true), Set.of(), mousePosition);
+        setIndicator(anchoredIndicatorRenderer,
+                IndicatorRenderer.followingMouse(indicator, false), layerNamesToAnchor,
+                mousePosition);
+    }
+
+    private void setIndicator(IndicatorRenderer indicatorRenderer,
+                              IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
+                              QPoint mousePosition) {
+        if (!indicator.enabled()) {
+            indicatorRenderer.hide();
+            return;
+        }
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
         indicatorRenderer.setIndicator(indicator, layerNamesToAnchor,
                 cursorRectangle(mousePosition, activeScreen),
@@ -164,17 +187,17 @@ public class MacosOverlay implements Overlay {
 
     @Override
     public void hideIndicator() {
-        if (indicatorRenderer != null)
+        for (IndicatorRenderer indicatorRenderer : indicatorRenderers())
             indicatorRenderer.hide();
     }
 
     public void repositionIndicator(QPoint mousePosition) {
-        if (indicatorRenderer == null || !indicatorRenderer.showing())
-            return;
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
-        indicatorRenderer.reposition(cursorRectangle(mousePosition, activeScreen),
-                cursorVisualCenter(activeScreen), activeScreen, null,
-                hintMeshRenderer.lastSelectedHintBoxHexColor());
+        for (IndicatorRenderer indicatorRenderer : indicatorRenderers())
+            if (indicatorRenderer.showing())
+                indicatorRenderer.reposition(cursorRectangle(mousePosition, activeScreen),
+                        cursorVisualCenter(activeScreen), activeScreen, null,
+                        hintMeshRenderer.lastSelectedHintBoxHexColor());
     }
 
     /** The cursor is measured in points, and the indicator it positions is in pixels. */

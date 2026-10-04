@@ -9,6 +9,13 @@ import java.util.Map;
 public record IndicatorConfiguration(boolean renderAsCursor, Shadow shadow,
                                      Map<String, IndicatorLayerConfiguration> layerByName) {
 
+    public boolean enabled() {
+        for (IndicatorLayerConfiguration layer : layerByName.values())
+            if (layer.enabled())
+                return true;
+        return false;
+    }
+
     public static class IndicatorConfigurationBuilder {
 
         private Boolean renderAsCursor;

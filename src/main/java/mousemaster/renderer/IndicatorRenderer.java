@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -99,6 +100,17 @@ public final class IndicatorRenderer {
         for (String layerName : enabledLayerNames(indicator))
             layers.add(indicator.layerByName().get(layerName));
         return layers;
+    }
+
+    public static IndicatorConfiguration followingMouse(IndicatorConfiguration indicator,
+                                                        boolean followMouse) {
+        Map<String, IndicatorLayerConfiguration> layerByName = new LinkedHashMap<>();
+        for (Map.Entry<String, IndicatorLayerConfiguration> entry : indicator.layerByName()
+                                                                             .entrySet())
+            if (entry.getValue().followMouse() == followMouse)
+                layerByName.put(entry.getKey(), entry.getValue());
+        return new IndicatorConfiguration(indicator.renderAsCursor(), indicator.shadow(),
+                layerByName);
     }
 
     private void setGradientSampling(Rectangle mouseRectangle, Point cursorVisualCenter,
