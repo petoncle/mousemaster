@@ -184,4 +184,14 @@ class IndicatorLayerTest {
                 () -> parse("idle-mode.indicator.text={exit}  exit"));
         assertTrue(e.getMessage().contains("exit is not a key alias"), e.getMessage());
     }
+
+    @Test
+    void aPositionIsRelativeToTheMouseOrTheScreen() {
+        Mode mode = parse("idle-mode.indicator.position=mouse-top-left").modeMap()
+                                                                     .get(Mode.IDLE_MODE_NAME);
+        assertEquals(IndicatorPosition.MOUSE_TOP_LEFT, layer(mode, "indicator").position());
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.indicator.position=center"));
+        assertTrue(e.getMessage().endsWith("renamed mouse"), e.getMessage());
+    }
 }

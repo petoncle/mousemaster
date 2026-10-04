@@ -215,7 +215,7 @@ public class ConfigurationParser {
              .rotation(0)
              .fillColor(Color.parse("#FF0000"))
              .fillOpacity(0.2)
-             .position(IndicatorPosition.CENTER)
+             .position(IndicatorPosition.MOUSE)
              .followMouse(true);
         layer.stroke()
              .thickness(1)

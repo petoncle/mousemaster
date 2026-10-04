@@ -367,7 +367,10 @@ public final class IndicatorRenderer {
                                Screen activeScreen, Zoom zoom, IndicatorLayerConfiguration layer,
                                int layerSizeWithStroke) {
         Rectangle screen = activeScreen.rectangle();
-        if (layer.position() == IndicatorPosition.CENTER) {
+        if (layer.position() == IndicatorPosition.SCREEN_CENTER)
+            return new Point(screen.x() + (screen.width() - layerSizeWithStroke) / 2.0,
+                    screen.y() + (screen.height() - layerSizeWithStroke) / 2.0);
+        if (layer.position() == IndicatorPosition.MOUSE) {
             double centerX = mouseRectangle.x() + cursorVisualCenter.x();
             double centerY = mouseRectangle.y() + cursorVisualCenter.y();
             centerX = Math.max(screen.x(), Math.min(centerX,
@@ -382,10 +385,10 @@ public final class IndicatorRenderer {
         int mouseY = Math.max(screen.y(), Math.min(mouseRectangle.y(),
                 screen.y() + screen.height()));
         IndicatorPosition position = layer.position();
-        boolean defaultRight = position == IndicatorPosition.BOTTOM_RIGHT ||
-                               position == IndicatorPosition.TOP_RIGHT;
-        boolean defaultBottom = position == IndicatorPosition.BOTTOM_RIGHT ||
-                                position == IndicatorPosition.BOTTOM_LEFT;
+        boolean defaultRight = position == IndicatorPosition.MOUSE_BOTTOM_RIGHT ||
+                               position == IndicatorPosition.MOUSE_TOP_RIGHT;
+        boolean defaultBottom = position == IndicatorPosition.MOUSE_BOTTOM_RIGHT ||
+                                position == IndicatorPosition.MOUSE_BOTTOM_LEFT;
         boolean nearRightEdge = mouseX >=
                 screen.x() + screen.width() - layerEdgeThreshold;
         boolean nearLeftEdge = mouseX <=

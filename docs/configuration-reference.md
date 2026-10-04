@@ -320,14 +320,14 @@ The polygon shape, size, color, and opacity:
 ```properties
 normal-mode.indicator.size=26
 normal-mode.indicator.edge-count=100
-normal-mode.indicator.position=center
+normal-mode.indicator.position=mouse
 normal-mode.indicator.color=#FF0000
 normal-mode.indicator.opacity=0.2
 ```
 
 - **`size`**: Size of the indicator in pixels (1-100, default 26)
 - **`edge-count`**: Number of polygon edges (3-1000, default 100). 3 = triangle, 4 = square, 6 = hexagon, 30+ = circle
-- **`position`**: Position relative to the mouse cursor: `center` (default), `top-left`, `top-right`, `bottom-left`, `bottom-right`. `center` places the indicator behind the cursor, centered on it (best used with a low opacity so the cursor remains visible).
+- **`position`**: `mouse` (default), `mouse-top-left`, `mouse-top-right`, `mouse-bottom-left`, `mouse-bottom-right` or `screen-center`. `mouse` places the indicator behind the cursor, centered on it (best used with a low opacity so the cursor remains visible).
 - **`color`** / **`opacity`**: Fill color (hex, default #FF0000) and opacity (0-1, default 0.2)
 
 #### Outlines

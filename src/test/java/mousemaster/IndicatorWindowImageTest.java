@@ -103,6 +103,19 @@ class IndicatorWindowImageTest {
     }
 
     @Test
+    void aScreenCenterLayerIsCenteredOnTheScreenWhereverTheMouseIs() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        IndicatorConfiguration indicator = indicator("idle-mode.indicator.size=40",
+                "idle-mode.indicator.position=screen-center");
+        for (int mouseX : new int[] {100, 1500}) {
+            WindowImage image = render(new IndicatorRenderer(), indicator, Set.of("indicator"),
+                    mouseX);
+            assertEquals(960, image.x() + image.image().width() / 2);
+            assertEquals(540, image.y() + image.image().height() / 2);
+        }
+    }
+
+    @Test
     void anAnchoredLayerIsDrawnAgainWhereItWas() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         IndicatorConfiguration indicator = indicator("idle-mode.indicator.enabled=true",
