@@ -2023,6 +2023,20 @@ public class ConfigurationParser {
         };
     }
 
+    private static final Pattern textKeyAliasPattern = Pattern.compile("\\{([^}]*)}");
+
+    /** Replaces each {alias} with the names of the alias's keys. */
+    private static String parseText(String text, Map<String, KeyAlias> keyAliases) {
+        return textKeyAliasPattern.matcher(text).replaceAll(match -> {
+            KeyAlias keyAlias = keyAliases.get(match.group(1));
+            if (keyAlias == null)
+                throw new IllegalArgumentException(
+                        "Invalid text " + text + ": " + match.group(1) + " is not a key alias");
+            return Matcher.quoteReplacement(
+                    keyAlias.keys().stream().map(Key::name).collect(Collectors.joining(" ")));
+        });
+    }
+
     private static boolean isIndicatorName(String name) {
         return name.equals("indicator") || name.endsWith("-indicator");
     }
@@ -2424,7 +2438,7 @@ public class ConfigurationParser {
         ModePropertyHandler handler = layerName.equals("indicator") ?
                 indicatorHandler(indicator, key, colorAliases) : null;
         if (handler == null)
-            handler = indicatorLayerHandler(indicator, layerName, key, colorAliases);
+            handler = indicatorLayerHandler(indicator, layerName, key, colorAliases, keyAliases);
         if (handler == null)
             throw new IllegalArgumentException("Invalid indicator property key: " + key);
         if (!tryParseComboProperty(propertyValue, modeName, handler.propertyPath(),
@@ -2587,7 +2601,8 @@ public class ConfigurationParser {
 
     private static ModePropertyHandler indicatorLayerHandler(
             IndicatorConfigurationBuilder indicator, String layerName,
-            String key, Map<String, GradientColor> colorAliases) {
+            String key, Map<String, GradientColor> colorAliases,
+            Map<String, KeyAlias> keyAliases) {
         ModePropertyPath prefix =
                 new ModePropertyPath(List.of("indicator", "layerByName", layerName));
         IndicatorLayerConfigurationBuilder layer = indicator.layer(layerName);
@@ -2620,7 +2635,7 @@ public class ConfigurationParser {
             case "stroke-dash-offset" -> ModePropertyHandler.of(prefix.append("stroke").append("dashOffset"), v -> parseDouble(v, true, -1_000_000, 1_000_000), v -> layer.stroke().dashOffset(v));
             case "stroke-cap" -> ModePropertyHandler.of(prefix.append("stroke").append("cap"), v -> StrokeCap.fromString(v), v -> layer.stroke().cap(v));
             case "label-enabled", "label-text", "label-font-name", "label-font-size", "label-font-color", "label-font-weight", "label-font-opacity", "label-font-outline-thickness", "label-font-outline-color", "label-font-outline-opacity", "label-font-shadow-blur-radius", "label-font-shadow-color", "label-font-shadow-opacity", "label-font-shadow-stack-count", "label-font-shadow-horizontal-offset", "label-font-shadow-vertical-offset" -> throw new IllegalArgumentException(layerName + "." + key + " has been removed: draw text with a layer of shape=text, set with text, font-name, font-size and font-weight, its fill coloring the letters and its stroke outlining them");
-            case "text" -> ModePropertyHandler.of(prefix.append("text"), v -> v, v -> layer.text(v));
+            case "text" -> ModePropertyHandler.of(prefix.append("text"), v -> parseText(v, keyAliases), v -> layer.text(v));
             case "font-name" -> ModePropertyHandler.of(prefix.append("fontName"), v -> v, v -> layer.fontName(v));
             case "font-size" -> ModePropertyHandler.of(prefix.append("fontSize"), v -> parseDouble(v, false, 0, 1000), v -> layer.fontSize(v));
             case "font-weight" -> ModePropertyHandler.of(prefix.append("fontWeight"), v -> FontWeight.of(v), v -> layer.fontWeight(v));
