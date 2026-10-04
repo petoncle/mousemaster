@@ -39,6 +39,7 @@ public final class IndicatorRenderer {
     private final List<Point> currentTopLefts = new ArrayList<>();
     private final Map<String, LayerAnchor> anchorByLayerName = new HashMap<>();
     private final Map<TextKey, QPainterPath> outlineByText = new HashMap<>();
+    private final Map<TextKey, QTextDocument> documentByText = new HashMap<>();
     private IndicatorImage windowImage;
     private IndicatorConfiguration windowImageIndicator;
     private List<Point> windowImageOffsets;
@@ -147,29 +148,42 @@ public final class IndicatorRenderer {
     private double layerSize(IndicatorLayerConfiguration layer, double screenScale) {
         if (layer.shape() != IndicatorShape.TEXT)
             return layer.size() * screenScale;
-        QRectF bounds = textOutline(layer, screenScale).boundingRect();
+        QRectF bounds = textBox(layer, screenScale);
         double layerSize = Math.max(bounds.width(), bounds.height());
         bounds.dispose();
         return layerSize;
     }
 
     private record TextKey(String text, String fontName, double fontSize, FontWeight fontWeight,
-                           double scale) {
+                           String textStyleSheet, double scale) {
+    }
+
+    private static TextKey textKey(IndicatorLayerConfiguration layer, double scale) {
+        return new TextKey(layer.text(), layer.fontName(), layer.fontSize(), layer.fontWeight(),
+                layer.textStyleSheet(), scale);
     }
 
     private boolean drawn(TextKey key) {
         for (IndicatorLayerConfiguration layer : currentEnabledLayers)
-            if (key.equals(new TextKey(layer.text(), layer.fontName(), layer.fontSize(),
-                    layer.fontWeight(), key.scale())))
+            if (key.equals(textKey(layer, key.scale())))
                 return true;
         return false;
+    }
+
+    private QRectF textBox(IndicatorLayerConfiguration layer, double scale) {
+        if (layer.textFormat() == TextFormat.PLAIN)
+            return textOutline(layer, scale).boundingRect();
+        QSizeF size = textDocument(layer).size();
+        QRectF box = new QRectF(-size.width() / 2 * scale, -size.height() / 2 * scale,
+                size.width() * scale, size.height() * scale);
+        size.dispose();
+        return box;
     }
 
     /** The text's outline, centered on its ink. Laying text out costs about 100us, and the
      *  layout is asked for on every mouse move. */
     private QPainterPath textOutline(IndicatorLayerConfiguration layer, double scale) {
-        return outlineByText.computeIfAbsent(new TextKey(layer.text(), layer.fontName(),
-                layer.fontSize(), layer.fontWeight(), scale), key -> {
+        return outlineByText.computeIfAbsent(textKey(layer, scale), key -> {
             QFont font = textFont(layer, scale);
             QPainterPath outline = new QPainterPath();
             outline.addText(0, 0, font, key.text());
@@ -179,6 +193,20 @@ public final class IndicatorRenderer {
             bounds.dispose();
             font.dispose();
             return outline;
+        });
+    }
+
+    /** Laid out at scale 1 and drawn scaled, so that the layout is the same on every screen. */
+    private QTextDocument textDocument(IndicatorLayerConfiguration layer) {
+        return documentByText.computeIfAbsent(textKey(layer, 1), key -> {
+            QTextDocument document = new QTextDocument();
+            document.setDocumentMargin(0);
+            QFont font = textFont(layer, 1);
+            document.setDefaultFont(font);
+            font.dispose();
+            document.setDefaultStyleSheet(key.textStyleSheet());
+            document.setHtml(key.text());
+            return document;
         });
     }
 
@@ -501,6 +529,12 @@ public final class IndicatorRenderer {
         currentIndicator = indicator;
         currentEnabledLayers = enabledLayers(indicator);
         outlineByText.entrySet().removeIf(entry -> {
+            if (drawn(entry.getKey()))
+                return false;
+            entry.getValue().dispose();
+            return true;
+        });
+        documentByText.entrySet().removeIf(entry -> {
             if (drawn(entry.getKey()))
                 return false;
             entry.getValue().dispose();
@@ -851,6 +885,11 @@ public final class IndicatorRenderer {
             painter.save();
             painter.translate(width() / 2.0, height() / 2.0);
             painter.rotate(layer.rotation());
+            if (layer.shape() == IndicatorShape.TEXT && layer.textFormat() == TextFormat.RICH) {
+                drawDocument(painter, fillColor);
+                painter.restore();
+                return;
+            }
             painter.translate(-width() / 2.0, -height() / 2.0);
             QPainterPath path = shapePath();
             if (fillColor.alpha() != 0) {
@@ -893,6 +932,25 @@ public final class IndicatorRenderer {
             }
             path.dispose();
             painter.restore();
+        }
+
+        private void drawDocument(QPainter painter, QColor fillColor) {
+            QTextDocument document = textDocument(layer);
+            QSizeF size = document.size();
+            painter.scale(scale, scale);
+            painter.translate(-size.width() / 2, -size.height() / 2);
+            painter.setOpacity(fillColor.alphaF());
+            QColor textColor = new QColor(fillColor.red(), fillColor.green(), fillColor.blue());
+            QPalette palette = new QPalette();
+            palette.setColor(QPalette.ColorRole.Text, textColor);
+            QAbstractTextDocumentLayout.PaintContext context =
+                    new QAbstractTextDocumentLayout.PaintContext();
+            context.setPalette(palette);
+            document.documentLayout().draw(painter, context);
+            context.dispose();
+            palette.dispose();
+            textColor.dispose();
+            size.dispose();
         }
 
         void redrawSourceOverShadow(QPainter painter) {

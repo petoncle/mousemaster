@@ -162,4 +162,12 @@ class IndicatorLayerTest {
                 () -> parse("idle-mode.indicator.label-text=ab"));
         assertTrue(e.getMessage().contains("shape=text"), e.getMessage());
     }
+
+    @Test
+    void aTextIsPlainOrRich() {
+        Mode mode = parse("idle-mode.indicator.text-format=rich").modeMap().get(Mode.IDLE_MODE_NAME);
+        assertEquals(TextFormat.RICH, layer(mode, "indicator").textFormat());
+        assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.indicator.text-format=html"));
+    }
 }
