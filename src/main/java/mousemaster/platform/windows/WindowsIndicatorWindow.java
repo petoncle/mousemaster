@@ -9,6 +9,7 @@ import com.sun.jna.platform.win32.WinGDI;
 import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.platform.win32.WinUser;
 import com.sun.jna.ptr.PointerByReference;
+import mousemaster.renderer.IndicatorRenderer;
 import mousemaster.renderer.IndicatorRenderer.IndicatorImage;
 
 /**
@@ -17,6 +18,7 @@ import mousemaster.renderer.IndicatorRenderer.IndicatorImage;
  */
 final class WindowsIndicatorWindow {
 
+    private final IndicatorRenderer renderer = new IndicatorRenderer();
     private final WinDef.HWND hwnd;
     // Kept in a field: the callback must outlive the registration.
     private final WinUser.WindowProc windowProc;
@@ -41,6 +43,10 @@ final class WindowsIndicatorWindow {
         hwnd = User32.INSTANCE.CreateWindowEx(0, windowClass.lpszClassName,
                 "MousemasterIndicator", WinUser.WS_POPUP, 0, 0, 1, 1, null, null,
                 Kernel32.INSTANCE.GetModuleHandle(null), null);
+    }
+
+    IndicatorRenderer renderer() {
+        return renderer;
     }
 
     WinDef.HWND hwnd() {

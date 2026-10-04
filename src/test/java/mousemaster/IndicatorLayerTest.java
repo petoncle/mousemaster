@@ -1,5 +1,6 @@
 package mousemaster;
 
+import mousemaster.renderer.IndicatorRenderer;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -193,5 +194,17 @@ class IndicatorLayerTest {
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
                 () -> parse("idle-mode.indicator.position=center"));
         assertTrue(e.getMessage().endsWith("renamed mouse"), e.getMessage());
+    }
+
+    @Test
+    void anIndicatorSplitsIntoTheLayersThatFollowTheMouseAndTheOthers() {
+        IndicatorConfiguration indicator = parse("idle-mode.indicator.enabled=true",
+                "idle-mode.sheet-indicator.follow-mouse=false").modeMap().get(Mode.IDLE_MODE_NAME)
+                                                              .indicator();
+        assertEquals(java.util.Set.of("indicator"),
+                IndicatorRenderer.followingMouse(indicator, true).layerByName().keySet());
+        assertEquals(java.util.Set.of("sheet-indicator"),
+                IndicatorRenderer.followingMouse(indicator, false).layerByName().keySet());
+        assertTrue(IndicatorRenderer.followingMouse(indicator, false).enabled());
     }
 }

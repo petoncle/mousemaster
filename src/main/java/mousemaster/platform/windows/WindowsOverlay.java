@@ -28,9 +28,8 @@ public class WindowsOverlay implements Overlay {
 
     private final WindowsMouseController mouse;
     private boolean waitForZoom;
-    private IndicatorRenderer indicatorRenderer;
-    private WindowsIndicatorWindow indicatorWindow;
-    private WinDef.HWND indicatorHwnd;
+    private WindowsIndicatorWindow followingIndicatorWindow;
+    private WindowsIndicatorWindow anchoredIndicatorWindow;
     private boolean indicatorIsCursor;
     private IndicatorConfiguration currentCursorIndicator;
     private double currentCursorScale;
@@ -196,8 +195,9 @@ public class WindowsOverlay implements Overlay {
             (gridRenderer.showing() ? hwnds : notTopmostHwnds).add(gridHwnd);
         for (TransparentWindow window : hintMeshRenderer.windows())
             (hintMeshRenderer.showing() ? hwnds : notTopmostHwnds).add(hwnd(window));
-        if (indicatorHwnd != null && indicatorWindow.showing())
-            hwnds.add(indicatorHwnd);
+        for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
+            if (indicatorWindow.showing())
+                hwnds.add(indicatorWindow.hwnd());
         if (zoomHwnd != null)
             (currentZoom != null ? hwnds : notTopmostHwnds).add(zoomHwnd);
         // The shell demotes the taskbar under a topmost window that covers a screen.
@@ -260,20 +260,50 @@ public class WindowsOverlay implements Overlay {
     }
 
     private void moveAndResizeIndicatorWindow(WinDef.POINT mousePosition) {
-        if (!indicatorWindow.showing())
-            return;
-        showIndicatorWindow(indicatorRenderer.currentIndicator(), Set.of(), mousePosition);
+        for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
+            if (indicatorWindow.showing())
+                showIndicatorWindow(indicatorWindow,
+                        indicatorWindow.renderer().currentIndicator(), Set.of(),
+                        mousePosition);
     }
 
-    private void showIndicatorWindow(IndicatorConfiguration indicator,
+    private void showIndicatorWindow(WindowsIndicatorWindow indicatorWindow,
+                                     IndicatorConfiguration indicator,
                                      Set<String> layerNamesToAnchor,
                                      WinDef.POINT mousePosition) {
         IndicatorRenderer.WindowImage windowImage =
-                indicatorRenderer.renderWindowImage(indicator, layerNamesToAnchor,
+                indicatorWindow.renderer().renderWindowImage(indicator, layerNamesToAnchor,
                         mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                         WindowsScreen.findActiveScreen(mousePosition), currentZoom,
                         hintMeshRenderer.lastSelectedHintBoxHexColor());
         indicatorWindow.show(windowImage.image(), windowImage.x(), windowImage.y());
+    }
+
+    private void setIndicatorWindow(WindowsIndicatorWindow indicatorWindow,
+                                    IndicatorConfiguration indicator,
+                                    Set<String> layerNamesToAnchor,
+                                    WinDef.POINT mousePosition) {
+        if (!indicator.enabled()) {
+            indicatorWindow.hide();
+            return;
+        }
+        boolean wasShowing = indicatorWindow.showing();
+        showIndicatorWindow(indicatorWindow, indicator, layerNamesToAnchor, mousePosition);
+        if (!wasShowing)
+            setTopmost();
+    }
+
+    private static boolean shows(WindowsIndicatorWindow indicatorWindow,
+                                 IndicatorConfiguration indicator) {
+        return indicator.enabled() ?
+                indicatorWindow.showing() &&
+                indicator.equals(indicatorWindow.renderer().currentIndicator()) :
+                !indicatorWindow.showing();
+    }
+
+    private List<WindowsIndicatorWindow> indicatorWindows() {
+        return followingIndicatorWindow == null ? List.of() :
+                List.of(followingIndicatorWindow, anchoredIndicatorWindow);
     }
 
     /** The cursor's bounding rectangle (position + size) at the given mouse position. */
@@ -283,12 +313,11 @@ public class WindowsOverlay implements Overlay {
                 mouseSize.width(), mouseSize.height());
     }
 
-    private void createIndicatorWindow() {
-        if (indicatorRenderer == null)
-            indicatorRenderer = new IndicatorRenderer();
-        indicatorWindow = new WindowsIndicatorWindow();
-        indicatorHwnd = indicatorWindow.hwnd();
-        applyOverlayExStyles(indicatorHwnd);
+    private void createIndicatorWindows() {
+        followingIndicatorWindow = new WindowsIndicatorWindow();
+        anchoredIndicatorWindow = new WindowsIndicatorWindow();
+        for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
+            applyOverlayExStyles(indicatorWindow.hwnd());
     }
 
     private void applyOverlayExStyles(WinDef.HWND hwnd) {
@@ -325,11 +354,12 @@ public class WindowsOverlay implements Overlay {
         QtHintFont.preWarm(hintMeshConfigurations);
         hintMeshRenderer.preWarmHintMeshWindows(WindowsScreen.findScreens());
         preWarmZoomWindow();
-        if (indicatorHwnd != null)
+        if (followingIndicatorWindow != null)
             return;
         long before = System.nanoTime();
-        createIndicatorWindow();
-        indicatorRenderer.preWarm();
+        createIndicatorWindows();
+        for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
+            indicatorWindow.renderer().preWarm();
         logger.debug("Pre-warmed the indicator window in " +
                     (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
@@ -388,11 +418,14 @@ public class WindowsOverlay implements Overlay {
                              boolean animating,
                              boolean includeOriginalCursor) {
         Objects.requireNonNull(indicator);
-        boolean renderAsCursor = indicator.renderAsCursor() && followsMouse(indicator);
-        if (!renderAsCursor && !indicatorIsCursor && indicatorWindow != null &&
-            indicatorWindow.showing() &&
-            indicator.equals(indicatorRenderer.currentIndicator()) &&
-            layerNamesToAnchor.isEmpty())
+        if (followingIndicatorWindow == null)
+            createIndicatorWindows();
+        IndicatorConfiguration following = IndicatorRenderer.followingMouse(indicator, true);
+        IndicatorConfiguration anchored = IndicatorRenderer.followingMouse(indicator, false);
+        boolean renderAsCursor = following.renderAsCursor() && following.enabled();
+        if (!renderAsCursor && !indicatorIsCursor &&
+            shows(followingIndicatorWindow, following) &&
+            shows(anchoredIndicatorWindow, anchored) && layerNamesToAnchor.isEmpty())
             return;
         if (mouse.tryFindMousePosition() == null) {
             if (!mousePositionMissing)
@@ -402,40 +435,40 @@ public class WindowsOverlay implements Overlay {
         }
         mousePositionMissing = false;
         WinDef.POINT mousePosition = mouse.findMousePosition();
-        if (renderAsCursor) {
-            double scale = WindowsScreen.findActiveScreen(mousePosition).scale();
-            if (indicatorIsCursor && indicator.equals(currentCursorIndicator) &&
-                scale == currentCursorScale &&
-                includeOriginalCursor == currentIncludeOriginalCursor)
-                return;
-            if (indicatorWindow != null)
-                indicatorWindow.hide();
-            if (indicatorRenderer == null)
-                indicatorRenderer = new IndicatorRenderer();
-            IndicatorRenderer.IndicatorImage image =
-                    indicatorRenderer.renderCursorImage(indicator, scale,
-                            hintMeshRenderer.lastSelectedHintBoxHexColor(),
-                            mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
-                            WindowsScreen.findActiveScreen(mousePosition));
-            mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
-                    includeOriginalCursor, !animating);
-            indicatorIsCursor = true;
-            currentCursorIndicator = indicator;
-            currentCursorScale = scale;
-            currentIncludeOriginalCursor = includeOriginalCursor;
+        if (renderAsCursor)
+            setIndicatorCursor(following, animating, includeOriginalCursor, mousePosition);
+        else {
+            if (indicatorIsCursor) {
+                mouse.showCursor();
+                indicatorIsCursor = false;
+                currentCursorIndicator = null;
+            }
+            setIndicatorWindow(followingIndicatorWindow, following, Set.of(), mousePosition);
+        }
+        setIndicatorWindow(anchoredIndicatorWindow, anchored, layerNamesToAnchor,
+                mousePosition);
+    }
+
+    private void setIndicatorCursor(IndicatorConfiguration indicator, boolean animating,
+                                    boolean includeOriginalCursor,
+                                    WinDef.POINT mousePosition) {
+        double scale = WindowsScreen.findActiveScreen(mousePosition).scale();
+        if (indicatorIsCursor && indicator.equals(currentCursorIndicator) &&
+            scale == currentCursorScale &&
+            includeOriginalCursor == currentIncludeOriginalCursor)
             return;
-        }
-        if (indicatorIsCursor) {
-            mouse.showCursor();
-            indicatorIsCursor = false;
-            currentCursorIndicator = null;
-        }
-        if (indicatorHwnd == null)
-            createIndicatorWindow();
-        boolean wasShowing = indicatorWindow.showing();
-        showIndicatorWindow(indicator, layerNamesToAnchor, mousePosition);
-        if (!wasShowing)
-            setTopmost();
+        followingIndicatorWindow.hide();
+        IndicatorRenderer.IndicatorImage image =
+                followingIndicatorWindow.renderer().renderCursorImage(indicator, scale,
+                        hintMeshRenderer.lastSelectedHintBoxHexColor(),
+                        mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
+                        WindowsScreen.findActiveScreen(mousePosition));
+        mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
+                includeOriginalCursor, !animating);
+        indicatorIsCursor = true;
+        currentCursorIndicator = indicator;
+        currentCursorScale = scale;
+        currentIncludeOriginalCursor = includeOriginalCursor;
     }
 
     @Override
@@ -483,7 +516,7 @@ public class WindowsOverlay implements Overlay {
             updateCaptureExclusions();
             zoomDuplication.releaseDuplication();
         }
-        if (indicatorHwnd != null)
+        if (followingIndicatorWindow != null)
             moveAndResizeIndicatorWindow();
         if (hintMeshRenderer.showing()) {
             for (TransparentWindow window : hintMeshRenderer.windows())
@@ -506,8 +539,8 @@ public class WindowsOverlay implements Overlay {
     private void updateCaptureExclusions() {
         if (gridHwnd != null)
             applyCaptureExclusion(gridHwnd);
-        if (indicatorHwnd != null)
-            applyCaptureExclusion(indicatorHwnd);
+        for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
+            applyCaptureExclusion(indicatorWindow.hwnd());
         for (TransparentWindow window : hintMeshRenderer.windows())
             applyCaptureExclusion(hwnd(window));
     }
@@ -518,22 +551,14 @@ public class WindowsOverlay implements Overlay {
         return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
-    private static boolean followsMouse(IndicatorConfiguration indicator) {
-        for (IndicatorLayerConfiguration layer : indicator.layerByName().values())
-            if (layer.enabled() && !layer.followMouse())
-                return false;
-        return true;
-    }
-
     @Override
     public void hideIndicator() {
         if (indicatorIsCursor) {
             mouse.showCursor();
             indicatorIsCursor = false;
             currentCursorIndicator = null;
-            return;
         }
-        if (indicatorWindow != null)
+        for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
             indicatorWindow.hide();
     }
 
@@ -624,7 +649,8 @@ public class WindowsOverlay implements Overlay {
             double scale = WindowsScreen.findActiveScreen(mousePosition).scale();
             if (scale != currentCursorScale && currentCursorIndicator != null) {
                 IndicatorRenderer.IndicatorImage image =
-                        indicatorRenderer.renderCursorImage(currentCursorIndicator, scale,
+                        followingIndicatorWindow.renderer().renderCursorImage(
+                                currentCursorIndicator, scale,
                                 hintMeshRenderer.lastSelectedHintBoxHexColor(),
                                 mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                                 WindowsScreen.findActiveScreen(mousePosition));
@@ -634,7 +660,7 @@ public class WindowsOverlay implements Overlay {
             }
             return;
         }
-        if (indicatorHwnd == null)
+        if (followingIndicatorWindow == null)
              return;
         // During zoom, currentZoom still has the previous frame's zoom center
         // (it will be updated right after by ZoomManager in WindowsPlatform.sleep).
@@ -680,8 +706,10 @@ public class WindowsOverlay implements Overlay {
         if (hintMeshRenderer.showing())
             for (TransparentWindow window : hintMeshRenderer.windows())
                 ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd(window), affinity);
-        if (indicatorHwnd != null && indicatorWindow.showing())
-            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(indicatorHwnd, affinity);
+        for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
+            if (indicatorWindow.showing())
+                ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(indicatorWindow.hwnd(),
+                        affinity);
         if (excluded)
             Dwmapi.INSTANCE.DwmFlush();
     }
