@@ -660,6 +660,12 @@ public final class IndicatorRenderer {
         private GradientColor strokeSweep;
         private Rectangle sweepArea;
         private double scale;
+        private final Map<ImageKey, QImage> imageByKey = new HashMap<>();
+
+        private record ImageKey(IndicatorLayerConfiguration layer, double layerSize, double scale,
+                                int width, int height, double devicePixelRatio, int fillRgba,
+                                int strokeRgba) {
+        }
 
         IndicatorLayerWidget(QWidget parent) {
             super(parent);
@@ -884,7 +890,7 @@ public final class IndicatorRenderer {
                     from.y() + fraction * (to.y() - from.y()));
         }
 
-        void drawContent(QPainter painter, QColor fillColor, QColor strokeColor) {
+        private void drawShape(QPainter painter, QColor fillColor, QColor strokeColor) {
             painter.save();
             painter.translate(width() / 2.0, height() / 2.0);
             painter.rotate(layer.rotation());
@@ -956,9 +962,53 @@ public final class IndicatorRenderer {
             size.dispose();
         }
 
-        void redrawSourceOverShadow(QPainter painter) {
+        void drawContent(QPainter painter, QColor fillColor, QColor strokeColor) {
+            if (fillSweep != null || strokeSweep != null) {
+                drawShape(painter, fillColor, strokeColor);
+                return;
+            }
+            double devicePixelRatio = painter.device().devicePixelRatioF();
+            ImageKey key = new ImageKey(layer, layerSize, scale, width(), height(),
+                    devicePixelRatio, fillColor.rgba(), strokeColor.rgba());
+            QImage image = imageByKey.get(key);
+            if (image == null) {
+                imageByKey.entrySet().removeIf(entry -> {
+                    if (entry.getKey().layer().equals(layer) &&
+                        entry.getKey().layerSize() == layerSize &&
+                        entry.getKey().width() == width() && entry.getKey().height() == height())
+                        return false;
+                    entry.getValue().dispose();
+                    return true;
+                });
+                image = new QImage((int) Math.ceil((width() + 2 * miterReach()) * devicePixelRatio),
+                        (int) Math.ceil((height() + 2 * miterReach()) * devicePixelRatio),
+                        QImage.Format.Format_ARGB32_Premultiplied);
+                image.setDevicePixelRatio(devicePixelRatio);
+                image.fill(0);
+                QPainter imagePainter = new QPainter(image);
+                imagePainter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+                imagePainter.translate(miterReach(), miterReach());
+                drawShape(imagePainter, fillColor, strokeColor);
+                imagePainter.end();
+                imagePainter.dispose();
+                imageByKey.put(key, image);
+            }
+            painter.drawImage(-miterReach(), -miterReach(), image);
+        }
+
+        private int miterReach() {
+            return (int) Math.ceil(layer.stroke().thickness() * scale);
+        }
+
+        void redrawSourceOverShadow(QPainter painter, boolean opaque) {
             painter.translate(x(), y());
-            drawContent(painter, fillColor, strokeColor);
+            QColor drawnFillColor = opaque ? opaque(fillColor) : fillColor;
+            QColor drawnStrokeColor = opaque ? opaque(strokeColor) : strokeColor;
+            drawContent(painter, drawnFillColor, drawnStrokeColor);
+            if (opaque) {
+                drawnFillColor.dispose();
+                drawnStrokeColor.dispose();
+            }
             painter.translate(-x(), -y());
         }
 
@@ -1020,12 +1070,15 @@ public final class IndicatorRenderer {
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             List<IndicatorLayerWidget> widgets =
                     renderer.widgets.subList(0, renderer.currentEnabledLayers.size());
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
+            if (!transparencyOnly()) {
+                painter.setCompositionMode(
+                        QPainter.CompositionMode.CompositionMode_DestinationOut);
+                for (IndicatorLayerWidget widget : widgets)
+                    widget.redrawSourceOverShadow(painter, true);
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+            }
             for (IndicatorLayerWidget widget : widgets)
-                widget.redrawSourceOverShadow(painter);
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-            for (IndicatorLayerWidget widget : widgets)
-                widget.redrawSourceOverShadow(painter);
+                widget.redrawSourceOverShadow(painter, false);
         }
     }
 
