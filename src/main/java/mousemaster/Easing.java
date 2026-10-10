@@ -29,7 +29,9 @@ public sealed interface Easing {
     }
 
     record ExponentialOut(double halvings) implements Easing {
-        public double apply(double t) { return 1 - Math.pow(2, -halvings * t); }
+        public double apply(double t) {
+            return (1 - Math.pow(2, -halvings * t)) / (1 - Math.pow(2, -halvings));
+        }
     }
 
 }
