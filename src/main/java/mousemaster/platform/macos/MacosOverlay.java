@@ -112,8 +112,9 @@ public class MacosOverlay implements Overlay {
     private void createIndicatorWindows() {
         followingIndicatorRenderer = new IndicatorRenderer();
         anchoredIndicatorRenderer = new IndicatorRenderer();
-        for (IndicatorRenderer indicatorRenderer : indicatorRenderers())
-            MacosWindow.applyOverlayProperties(indicatorRenderer.window());
+        MacosWindow.applyOverlayProperties(followingIndicatorRenderer.window());
+        MacosWindow.applyOverlayProperties(anchoredIndicatorRenderer.window(),
+                MacosWindow.aboveOverlaysLevel);
     }
 
     private List<IndicatorRenderer> indicatorRenderers() {
