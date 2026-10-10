@@ -229,11 +229,23 @@ public final class IndicatorRenderer {
         return font;
     }
 
+    private static double aspectRatio(IndicatorLayerConfiguration layer) {
+        return switch (layer.shape()) {
+            case TRIANGLE, STAR, PATH -> {
+                List<Point> points = IndicatorLayerWidget.points(layer);
+                Point min = IndicatorLayerWidget.minPoint(points);
+                Point max = IndicatorLayerWidget.maxPoint(points);
+                yield layer.aspectRatio() * (max.x() - min.x()) / (max.y() - min.y());
+            }
+            default -> layer.aspectRatio();
+        };
+    }
+
     private int layerSizeWithStroke(IndicatorLayerConfiguration layer, double screenScale) {
         // A rotated box reaches as far as its diagonal.
         double layerSize = layer.rotation() % 360 == 0 ? layerSize(layer, screenScale) :
                 Math.hypot(layerSize(layer, screenScale), layerSize(layer, screenScale) /
-                        Math.max(layer.aspectRatio(), 1 / layer.aspectRatio()));
+                        Math.max(aspectRatio(layer), 1 / aspectRatio(layer)));
         // An odd size puts the center of a centered layer half a pixel off, so it would
         // shift as the size changes parity. A miter reaches as far as the stroke is thick,
         // Qt's default miter limit.
@@ -735,7 +747,7 @@ public final class IndicatorRenderer {
         /** The shape fills a box centered in the widget: size is the box's largest dimension
          *  and aspectRatio its width over its height. */
         private QPainterPath shapePath() {
-            double aspectRatio = layer.aspectRatio();
+            double aspectRatio = aspectRatio(layer);
             double boxWidth = aspectRatio >= 1 ? layerSize : layerSize * aspectRatio;
             double boxHeight = aspectRatio >= 1 ? layerSize / aspectRatio : layerSize;
             double left = (width() - boxWidth) / 2;
@@ -746,9 +758,8 @@ public final class IndicatorRenderer {
                 case RECTANGLE -> path.addRoundedRect(left, top, boxWidth, boxHeight,
                         layer.borderRadius() * scale, layer.borderRadius() * scale,
                         Qt.SizeMode.AbsoluteSize);
-                case TRIANGLE -> addPolygon(path, trianglePoints, left, top, boxWidth, boxHeight);
-                case STAR -> addPolygon(path, starPoints, left, top, boxWidth, boxHeight);
-                case PATH -> addPolygon(path, layer.points(), left, top, boxWidth, boxHeight);
+                case TRIANGLE, STAR, PATH ->
+                        addPolygon(path, points(layer), left, top, boxWidth, boxHeight);
                 case LINE -> {
                     path.moveTo(left, top + boxHeight / 2);
                     path.lineTo(left + boxWidth, top + boxHeight / 2);
@@ -771,23 +782,43 @@ public final class IndicatorRenderer {
          *  box: points can be written in any units. */
         private static void addPolygon(QPainterPath path, List<Point> points, double left,
                                        double top, double width, double height) {
-            double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE;
-            double minY = Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
-            for (Point point : points) {
-                minX = Math.min(minX, point.x());
-                maxX = Math.max(maxX, point.x());
-                minY = Math.min(minY, point.y());
-                maxY = Math.max(maxY, point.y());
-            }
+            Point min = minPoint(points);
+            Point max = maxPoint(points);
             for (int i = 0; i < points.size(); i++) {
-                double x = left + (points.get(i).x() - minX) / (maxX - minX) * width;
-                double y = top + (points.get(i).y() - minY) / (maxY - minY) * height;
+                double x = left + (points.get(i).x() - min.x()) / (max.x() - min.x()) * width;
+                double y = top + (points.get(i).y() - min.y()) / (max.y() - min.y()) * height;
                 if (i == 0)
                     path.moveTo(x, y);
                 else
                     path.lineTo(x, y);
             }
             path.closeSubpath();
+        }
+
+        private static List<Point> points(IndicatorLayerConfiguration layer) {
+            return switch (layer.shape()) {
+                case TRIANGLE -> trianglePoints;
+                case STAR -> starPoints;
+                default -> layer.points();
+            };
+        }
+
+        private static Point minPoint(List<Point> points) {
+            double x = Double.MAX_VALUE, y = Double.MAX_VALUE;
+            for (Point point : points) {
+                x = Math.min(x, point.x());
+                y = Math.min(y, point.y());
+            }
+            return new Point(x, y);
+        }
+
+        private static Point maxPoint(List<Point> points) {
+            double x = -Double.MAX_VALUE, y = -Double.MAX_VALUE;
+            for (Point point : points) {
+                x = Math.max(x, point.x());
+                y = Math.max(y, point.y());
+            }
+            return new Point(x, y);
         }
 
         /**
