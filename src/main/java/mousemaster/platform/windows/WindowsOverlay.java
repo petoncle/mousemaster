@@ -31,6 +31,7 @@ public class WindowsOverlay implements Overlay {
     private WindowsIndicatorWindow followingIndicatorWindow;
     private WindowsIndicatorWindow anchoredIndicatorWindow;
     private boolean indicatorIsCursor;
+    private boolean indicatorExcludedFromCapture;
     private IndicatorConfiguration currentCursorIndicator;
     private double currentCursorScale;
     private boolean currentIncludeOriginalCursor;
@@ -330,7 +331,7 @@ public class WindowsOverlay implements Overlay {
                         ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
         User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
                 new Pointer(newStyle));
-        applyCaptureExclusion(hwnd);
+        applyCaptureExclusion(hwnd, currentZoom != null);
         // enforceTopmost skips windows that are not showing.
         setWindowTopmost(hwnd);
     }
@@ -420,6 +421,12 @@ public class WindowsOverlay implements Overlay {
         Objects.requireNonNull(indicator);
         if (followingIndicatorWindow == null)
             createIndicatorWindows();
+        if (indicator.excludeFromCapture() != indicatorExcludedFromCapture) {
+            indicatorExcludedFromCapture = indicator.excludeFromCapture();
+            for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
+                applyCaptureExclusion(indicatorWindow.hwnd(),
+                        currentZoom != null || indicatorExcludedFromCapture);
+        }
         IndicatorConfiguration following = IndicatorRenderer.followingMouse(indicator, true);
         IndicatorConfiguration anchored = IndicatorRenderer.followingMouse(indicator, false);
         boolean renderAsCursor = following.renderAsCursor() && following.enabled();
@@ -530,19 +537,19 @@ public class WindowsOverlay implements Overlay {
      * This hides them from every capture, not just ours, so it is cleared with the zoom.
      * Each call makes the windows it touches flicker: never call it per frame.
      */
-    private void applyCaptureExclusion(WinDef.HWND hwnd) {
+    private static void applyCaptureExclusion(WinDef.HWND hwnd, boolean excluded) {
         ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd,
-                currentZoom != null ? ExtendedUser32.WDA_EXCLUDEFROMCAPTURE
-                                    : ExtendedUser32.WDA_NONE);
+                excluded ? ExtendedUser32.WDA_EXCLUDEFROMCAPTURE : ExtendedUser32.WDA_NONE);
     }
 
     private void updateCaptureExclusions() {
         if (gridHwnd != null)
-            applyCaptureExclusion(gridHwnd);
+            applyCaptureExclusion(gridHwnd, currentZoom != null);
         for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
-            applyCaptureExclusion(indicatorWindow.hwnd());
+            applyCaptureExclusion(indicatorWindow.hwnd(),
+                    currentZoom != null || indicatorExcludedFromCapture);
         for (TransparentWindow window : hintMeshRenderer.windows())
-            applyCaptureExclusion(hwnd(window));
+            applyCaptureExclusion(hwnd(window), currentZoom != null);
     }
 
     private WinDef.LRESULT zoomWindowCallback(WinDef.HWND hwnd, int uMsg,
@@ -703,15 +710,13 @@ public class WindowsOverlay implements Overlay {
     }
 
     private void setOverlaysExcludedFromCapture(boolean excluded) {
-        int affinity = excluded ? ExtendedUser32.WDA_EXCLUDEFROMCAPTURE
-                                : ExtendedUser32.WDA_NONE;
         if (hintMeshRenderer.showing())
             for (TransparentWindow window : hintMeshRenderer.windows())
-                ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd(window), affinity);
+                applyCaptureExclusion(hwnd(window), excluded);
         for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
             if (indicatorWindow.showing())
-                ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(indicatorWindow.hwnd(),
-                        affinity);
+                applyCaptureExclusion(indicatorWindow.hwnd(),
+                        excluded || indicatorExcludedFromCapture);
         if (excluded)
             Dwmapi.INSTANCE.DwmFlush();
     }

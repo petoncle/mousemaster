@@ -115,7 +115,8 @@ public class IndicatorManager implements ModeListener {
                 indicator = (IndicatorConfiguration) ModePropertyMutator.mutateModeProperty(
                         indicator, fieldNames, value, null);
         }
-        return new IndicatorConfiguration(indicator.renderAsCursor(), indicator.shadow(),
+        return new IndicatorConfiguration(indicator.renderAsCursor(),
+                indicator.excludeFromCapture(), indicator.shadow(),
                 layerByName);
     }
 

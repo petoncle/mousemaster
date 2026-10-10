@@ -6,7 +6,8 @@ import mousemaster.Shadow.ShadowBuilder;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public record IndicatorConfiguration(boolean renderAsCursor, Shadow shadow,
+public record IndicatorConfiguration(boolean renderAsCursor, boolean excludeFromCapture,
+                                     Shadow shadow,
                                      Map<String, IndicatorLayerConfiguration> layerByName) {
 
     public boolean enabled() {
@@ -19,6 +20,7 @@ public record IndicatorConfiguration(boolean renderAsCursor, Shadow shadow,
     public static class IndicatorConfigurationBuilder {
 
         private Boolean renderAsCursor;
+        private Boolean excludeFromCapture;
         private final ShadowBuilder shadow = new ShadowBuilder();
         private final Map<String, IndicatorLayerConfigurationBuilder> layerByName =
                 new LinkedHashMap<>();
@@ -30,6 +32,15 @@ public record IndicatorConfiguration(boolean renderAsCursor, Shadow shadow,
 
         public Boolean renderAsCursor() {
             return renderAsCursor;
+        }
+
+        public IndicatorConfigurationBuilder excludeFromCapture(boolean excludeFromCapture) {
+            this.excludeFromCapture = excludeFromCapture;
+            return this;
+        }
+
+        public Boolean excludeFromCapture() {
+            return excludeFromCapture;
         }
 
         public ShadowBuilder shadow() {
@@ -47,6 +58,7 @@ public record IndicatorConfiguration(boolean renderAsCursor, Shadow shadow,
 
         public void extend(IndicatorConfigurationBuilder parent) {
             if (renderAsCursor == null) renderAsCursor = parent.renderAsCursor;
+            if (excludeFromCapture == null) excludeFromCapture = parent.excludeFromCapture;
             shadow.extend(parent.shadow);
             for (Map.Entry<String, IndicatorLayerConfigurationBuilder> entry : parent.layerByName.entrySet())
                 layer(entry.getKey()).extend(entry.getValue());
@@ -56,7 +68,8 @@ public record IndicatorConfiguration(boolean renderAsCursor, Shadow shadow,
             Map<String, IndicatorLayerConfiguration> builtLayerByName = new LinkedHashMap<>();
             for (Map.Entry<String, IndicatorLayerConfigurationBuilder> entry : layerByName.entrySet())
                 builtLayerByName.put(entry.getKey(), entry.getValue().build());
-            return new IndicatorConfiguration(renderAsCursor, shadow.build(), builtLayerByName);
+            return new IndicatorConfiguration(renderAsCursor, excludeFromCapture, shadow.build(),
+                    builtLayerByName);
         }
     }
 }

@@ -850,7 +850,7 @@
 {
   "name":"mousemaster.IndicatorConfiguration",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["boolean","mousemaster.Shadow","java.util.Map"] }, {"name":"layerByName","parameterTypes":[] }, {"name":"renderAsCursor","parameterTypes":[] }, {"name":"shadow","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["boolean","boolean","mousemaster.Shadow","java.util.Map"] }, {"name":"excludeFromCapture","parameterTypes":[] }, {"name":"layerByName","parameterTypes":[] }, {"name":"renderAsCursor","parameterTypes":[] }, {"name":"shadow","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.IndicatorLayerConfiguration",

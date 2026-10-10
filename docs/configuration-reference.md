@@ -302,8 +302,9 @@ normal-mode.ring-indicator.fill-opacity=0
 ```
 
 Every layer starts from the same defaults (a disabled 26-pixel red circle), not from the mode's
-`indicator`, and a mode that extends another extends each of its layers by name. The shadow and
-`render-as-cursor` belong to the whole indicator, so they are set on `<mode>.indicator` only.
+`indicator`, and a mode that extends another extends each of its layers by name. The shadow,
+`render-as-cursor` and `exclude-from-capture` belong to the whole indicator, so they are set on
+`<mode>.indicator` only.
 
 Any color property takes a hex color (`#FFFFFF`), a gradient (see [hint appearance](#hint-appearance)),
 or `last-selected-hint-box-color`, the color at the center of the box of the hint selected last,
@@ -495,7 +496,19 @@ indicator disappears right after a key press and only comes back once the pointe
 Turn that option off (Mouse Properties > Pointer Options > Visibility) if you see this; the
 overlay indicator is not affected. See [#86](https://github.com/petoncle/mousemaster/issues/86).
 
-#### Animations
+#### Excluding from capture
+
+```properties
+screenshot-animation.duration-millis=300
+normal-mode.screenshot-animation.start=#printscreen
+normal-mode.flash-indicator.enabled=false | _{screenshotanimation} -> true
+normal-mode.indicator.exclude-from-capture=false | _{screenshotanimation} -> true
+```
+
+`exclude-from-capture` keeps the indicator out of screenshots and screen recordings while it
+stays on screen (default false), here only while a screenshot flash plays. It applies to the
+indicator's windows; drawn as the cursor, the indicator follows the capture tool's own cursor
+setting.
 
 An animation is a named clock, defined once for the whole configuration and started by combos:
 

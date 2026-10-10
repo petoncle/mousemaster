@@ -37,6 +37,7 @@ public class MacosOverlay implements Overlay {
 
     private IndicatorRenderer followingIndicatorRenderer;
     private IndicatorRenderer anchoredIndicatorRenderer;
+    private boolean indicatorExcludedFromCapture;
     private GridRenderer gridRenderer;
     private MacosZoomRenderer zoomRenderer;
     private Zoom currentZoom;
@@ -163,6 +164,12 @@ public class MacosOverlay implements Overlay {
                              boolean includeOriginalCursor) {
         if (followingIndicatorRenderer == null)
             createIndicatorWindows();
+        if (indicator.excludeFromCapture() != indicatorExcludedFromCapture) {
+            indicatorExcludedFromCapture = indicator.excludeFromCapture();
+            for (IndicatorRenderer indicatorRenderer : indicatorRenderers())
+                MacosWindow.setExcludedFromCapture(indicatorRenderer.window(),
+                        indicatorExcludedFromCapture);
+        }
         QPoint mousePosition = mouse.findMousePosition();
         setIndicator(followingIndicatorRenderer,
                 IndicatorRenderer.followingMouse(indicator, true), Set.of(), mousePosition);

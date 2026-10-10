@@ -109,7 +109,8 @@ public final class IndicatorRenderer {
                                                                              .entrySet())
             if (entry.getValue().followMouse() == followMouse)
                 layerByName.put(entry.getKey(), entry.getValue());
-        return new IndicatorConfiguration(indicator.renderAsCursor(), indicator.shadow(),
+        return new IndicatorConfiguration(indicator.renderAsCursor(),
+                indicator.excludeFromCapture(), indicator.shadow(),
                 layerByName);
     }
 

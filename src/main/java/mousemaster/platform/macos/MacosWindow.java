@@ -19,6 +19,8 @@ public final class MacosWindow {
     /** macOS derives a window's shadow from its alpha, so hints would each cast one. */
     private static final Pointer setHasShadow =
             objectiveC.sel_registerName("setHasShadow:");
+    private static final Pointer setSharingType =
+            objectiveC.sel_registerName("setSharingType:");
 
     private static final Pointer sharedApplication =
             objectiveC.sel_registerName("sharedApplication");
@@ -31,6 +33,8 @@ public final class MacosWindow {
     private static final long canJoinAllSpaces = 1;
     private static final long stationary = 1 << 4;
     private static final long fullScreenAuxiliary = 1 << 8;
+    private static final long sharingNone = 0;
+    private static final long sharingReadOnly = 1;
 
     private MacosWindow() {
     }
@@ -64,6 +68,14 @@ public final class MacosWindow {
                 canJoinAllSpaces | stationary | fullScreenAuxiliary);
         objectiveC.objc_msgSend(nsWindow, setIgnoresMouseEvents, 1);
         objectiveC.objc_msgSend(nsWindow, setHasShadow, 0);
+    }
+
+    public static void setExcludedFromCapture(QWidget widget, boolean excluded) {
+        Pointer nsWindow = nsWindow(widget);
+        if (nsWindow == null)
+            return;
+        objectiveC.objc_msgSend(nsWindow, setSharingType,
+                excluded ? sharingNone : sharingReadOnly);
     }
 
 }

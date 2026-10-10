@@ -195,7 +195,7 @@ public class ConfigurationParser {
         ModeTimeoutBuilder timeout =
                 new ModeTimeoutBuilder().enabled(false).onlyIfIdle(true);
         IndicatorConfigurationBuilder indicator =
-                new IndicatorConfigurationBuilder().renderAsCursor(false);
+                new IndicatorConfigurationBuilder().renderAsCursor(false).excludeFromCapture(false);
         indicator.shadow()
                  .blurRadius(10d)
                  .color(Color.parse("#000000"))
@@ -2595,6 +2595,7 @@ public class ConfigurationParser {
         return switch (key) {
             // @formatter:off
             case "render-as-cursor" -> ModePropertyHandler.of(prefix.append("renderAsCursor"), v -> Boolean.parseBoolean(v), v -> indicator.renderAsCursor(v));
+            case "exclude-from-capture" -> ModePropertyHandler.of(prefix.append("excludeFromCapture"), v -> Boolean.parseBoolean(v), v -> indicator.excludeFromCapture(v));
             case "shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("shadow").append("blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> indicator.shadow().blurRadius(v));
             case "shadow-color" -> ModePropertyHandler.of(prefix.append("shadow").append("color"), v -> Color.parse(v, colorAliases), v -> indicator.shadow().color(v));
             case "shadow-opacity" -> ModePropertyHandler.of(prefix.append("shadow").append("opacity"), v -> parseDouble(v, true, 0, 1), v -> indicator.shadow().opacity(v));

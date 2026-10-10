@@ -70,9 +70,13 @@ class IndicatorLayerTest {
     }
 
     @Test
-    void renderAsCursorAndTheShadowBelongToTheIndicator() {
+    void renderAsCursorExcludeFromCaptureAndTheShadowBelongToTheIndicator() {
         assertThrows(IllegalArgumentException.class,
                 () -> parse("idle-mode.ripple-indicator.render-as-cursor=true"));
+        assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.ripple-indicator.exclude-from-capture=true"));
+        assertTrue(parse("idle-mode.indicator.exclude-from-capture=true").modeMap()
+                .get(Mode.IDLE_MODE_NAME).indicator().excludeFromCapture());
         assertThrows(IllegalArgumentException.class,
                 () -> parse("idle-mode.ripple-indicator.shadow-opacity=1"));
         assertEquals(1, parse("idle-mode.indicator.shadow-opacity=1").modeMap()
