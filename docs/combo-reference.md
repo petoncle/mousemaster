@@ -500,7 +500,7 @@ Some virtual keys are maintained by mousemaster. They can be read like any other
 
 ```
 _{isidling} +a                                     combo only works while the mouse is idle
-mode.indicator.color=... | _{iswheeling} -> gray   wheel-only property value
+mode.indicator.fill-color=... | _{iswheeling} -> gray   wheel-only property value
 _{300%} +a                                         combo only works on a 300% screen
 mode.grid.line-thickness=1 | _{300%} -> 0.66667    one pixel on a 300% screen
 ```

@@ -114,7 +114,7 @@ Modes can inherit properties from other modes to avoid duplication. For example,
 
 ```properties
 normal-mode.indicator.enabled=true
-normal-mode.indicator.color=#FF0000
+normal-mode.indicator.fill-color=#FF0000
 normal-mode.indicator.size=26
 ```
 
@@ -126,7 +126,7 @@ slow-mode.indicator=normal-mode.indicator
 This applies all indicator properties from `normal-mode` to `slow-mode`. You can still override specific properties:
 ```properties
 slow-mode.indicator=normal-mode.indicator
-slow-mode.indicator.color=#0000FF  # Override just this property
+slow-mode.indicator.fill-color=#0000FF  # Override just this property
 ```
 
 A mode can also inherit everything from one or more other modes:
@@ -239,7 +239,7 @@ When shift is released, the property reverts to its default. Mutations are most 
 
 ```properties
 # Change the indicator color while leftctrl is held
-normal-mode.indicator.color=#00FF00 | _{leftctrl} -> #FF0000
+normal-mode.indicator.fill-color=#00FF00 | _{leftctrl} -> #FF0000
 ```
 
 Mutations can also be driven by [virtual keys](combo-reference.md#virtual-keys) instead of held keys, so the value
@@ -290,17 +290,29 @@ The properties mean what the mouse ones do, except that `acceleration-easing` de
 
 ### Indicator properties
 
-The indicator is a small polygon displayed next to the cursor. Properties use the format `<mode>.indicator.<property>`.
-
-Any color property takes either `#FFFFFF` or `last-selected-hint-box-color`, the color at the
-center of the box of the hint selected last, which is black until one has been selected. It plays
-a click in the color of the hint that was clicked:
+The indicator is drawn around the cursor as one or more layers, each a shape with a fill and a
+stroke. `<mode>.indicator.<property>` sets the main layer, and `<mode>.<name>-indicator.<property>`
+adds a layer of that name:
 
 ```properties
-_hint-indicator-mode.indicator.color=last-selected-hint-box-color
+normal-mode.indicator.enabled=true
+normal-mode.ring-indicator.enabled=true
+normal-mode.ring-indicator.size=40
+normal-mode.ring-indicator.fill-opacity=0
 ```
 
-A box fill (`box-color`) is a gradient rather than a single color, so it takes hex colors only.
+Every layer starts from the same defaults (a disabled 26-pixel red circle), not from the mode's
+`indicator`, and a mode that extends another extends each of its layers by name. The shadow and
+`render-as-cursor` belong to the whole indicator, so they are set on `<mode>.indicator` only.
+
+Any color property takes a hex color (`#FFFFFF`), a gradient (see [hint appearance](#hint-appearance)),
+or `last-selected-hint-box-color`, the color at the center of the box of the hint selected last,
+which is black until one has been selected. It plays a click in the color of the hint that was
+clicked:
+
+```properties
+_hint-indicator-mode.indicator.fill-color=last-selected-hint-box-color
+```
 
 #### Following the mouse state
 
@@ -309,59 +321,121 @@ Any indicator property can take a different value per mouse state, with a
 of that state. The rightmost matching branch wins:
 
 ```properties
-normal-mode.indicator.color=#FF0000 | _{iswheeling} -> #FFFF00 | _{ismousepressing} -> #00FF00 | _{isunhandledkeypressing} -> #0000FF
-normal-mode.indicator.opacity=0 | _{isleftmousepressing ismoving} -> 1
+normal-mode.indicator.fill-color=#FF0000 | _{iswheeling} -> #FFFF00 | _{ismousepressing} -> #00FF00 | _{isunhandledkeypressing} -> #0000FF
+normal-mode.indicator.fill-opacity=0 | _{isleftmousepressing ismoving} -> 1
 ```
 
-#### Polygon shape and appearance
+#### Layers
 
-The polygon shape, size, color, and opacity:
+- **`enabled`**: Whether the layer is drawn (default `false`).
+- **`z`**: The layer's order, higher on top (default `0`).
+
+#### Shape
 
 ```properties
-normal-mode.indicator.size=26
-normal-mode.indicator.edge-count=100
-normal-mode.indicator.position=mouse
-normal-mode.indicator.color=#FF0000
-normal-mode.indicator.opacity=0.2
+normal-mode.indicator.shape=rectangle
+normal-mode.indicator.size=30
+normal-mode.indicator.aspect-ratio=2
+normal-mode.indicator.border-radius=4
+normal-mode.indicator.rotation=45
 ```
 
-- **`size`**: Size of the indicator in pixels (1-100, default 26)
-- **`edge-count`**: Number of polygon edges (3-1000, default 100). 3 = triangle, 4 = square, 6 = hexagon, 30+ = circle
-- **`position`**: `mouse` (default), `mouse-top-left`, `mouse-top-right`, `mouse-bottom-left`, `mouse-bottom-right` or `screen-center`. `mouse` places the indicator behind the cursor, centered on it (best used with a low opacity so the cursor remains visible).
-- **`color`** / **`opacity`**: Fill color (hex, default #FF0000) and opacity (0-1, default 0.2)
+- **`shape`**: `circle` (default), `triangle`, `rectangle`, `star`, `line`, `cross`, `path` or `text`.
+- **`size`**: The largest side of the shape's box, in pixels (default `26`).
+- **`aspect-ratio`**: How much wider than tall the box is (default `1`). A triangle, a star and a
+  path keep the proportions of their points, which `aspect-ratio` then stretches.
+- **`border-radius`**: The radius of a rectangle's corners, in pixels (default `0`).
+- **`points`**: The points of a `path`, like `0,0 10,0 5,8`: at least three, spanning a width and
+  a height, in any units, since they are scaled to the box.
+- **`x`** / **`y`**: An offset from the layer's position, in pixels (default `0`).
+- **`rotation`**: In degrees, clockwise (default `0`).
 
-#### Outlines
-
-Two optional outlines can be drawn around the polygon: an outer outline and an inner outline.
+#### Fill and stroke
 
 ```properties
-# Outer outline
-normal-mode.indicator.outer-outline-thickness=3
-normal-mode.indicator.outer-outline-color=#FFFFFF
-normal-mode.indicator.outer-outline-opacity=1
-normal-mode.indicator.outer-outline-fill-percent=1.0
-normal-mode.indicator.outer-outline-fill-start-angle=180
-normal-mode.indicator.outer-outline-fill-direction=counterclockwise
-
-# Inner outline
-normal-mode.indicator.inner-outline-thickness=1
-normal-mode.indicator.inner-outline-color=#CC0000
-normal-mode.indicator.inner-outline-opacity=1
-normal-mode.indicator.inner-outline-fill-percent=1
-normal-mode.indicator.inner-outline-fill-start-angle=180
-normal-mode.indicator.inner-outline-fill-direction=counterclockwise
+normal-mode.indicator.fill-color=#FF0000
+normal-mode.indicator.fill-opacity=0.2
+normal-mode.indicator.stroke-thickness=2
+normal-mode.indicator.stroke-color=#FFFFFF
+normal-mode.indicator.stroke-length-percent=0.6
+normal-mode.indicator.stroke-start-angle=180
 ```
 
-- **`outer-outline-thickness`** / **`inner-outline-thickness`**: Outline width in pixels (0-100, default 0 for the outer one, 0.5 for the inner one — 0 draws nothing)
-- **`outer-outline-fill-percent`** / **`inner-outline-fill-percent`**: How much of the outline is filled (0.0-1.0, default 1.0)
-- **`outer-outline-fill-start-angle`** / **`inner-outline-fill-start-angle`**: Angle where the fill starts, in degrees (0-360, default 180). 0 = top (12 o'clock), 90 = 3 o'clock, 180 = bottom (6 o'clock), 270 = 9 o'clock. Increases clockwise.
-- **`outer-outline-fill-direction`** / **`inner-outline-fill-direction`**: Direction the fill grows from the start angle (`clockwise`, `counterclockwise`, or `both`, default `counterclockwise`). `both` = expands symmetrically.
+- **`fill-color`** / **`fill-opacity`**: The inside of the shape (default `#FF0000` at `0.2`).
+- **`stroke-thickness`** / **`stroke-color`** / **`stroke-opacity`**: The outline, centered on the
+  shape's edge (default `1` pixel of `#FF0000` at `1`). A second outline is a second layer.
+- **`stroke-length-percent`**: How much of the outline is drawn, from `-1` to `1` (default `1`).
+  A negative length goes counterclockwise.
+- **`stroke-start-angle`**: Where a partial outline starts, in degrees clockwise from 12 o'clock
+  (default `0`).
+- **`stroke-anchor`**: `start` (default) grows a partial outline from its start angle, `middle`
+  grows it both ways.
+- **`stroke-dash-length`** / **`stroke-dash-gap`** / **`stroke-dash-offset`**: Dashes, in pixels
+  (default `0`, no dashes).
+- **`stroke-cap`**: The ends of the outline and of its dashes: `flat` (default), `round` or
+  `square`.
 
-`outline-*` is equivalent to `outer-outline-*`.
+A line, a cross and the letters of a text have no single outline, so they are always stroked in
+full.
+
+#### Text
+
+With `shape=text`, the letters are the shape: the fill colors them, the stroke outlines them, and
+their size comes from the font rather than from `size` and `aspect-ratio`.
+
+```properties
+typing-mode.text-indicator.enabled=true
+typing-mode.text-indicator.shape=text
+typing-mode.text-indicator.text=n
+typing-mode.text-indicator.font-name=Consolas | _{ismacos} -> Menlo
+typing-mode.text-indicator.font-size=9
+typing-mode.text-indicator.font-weight=bold
+```
+
+- **`text`**: The text. `{alias}` is replaced with the keys of a [key alias](#key-aliases), like
+  `{exit}` for `q p`.
+- **`font-name`** / **`font-size`** / **`font-weight`**: The font, its size in points, and its weight
+  from `thin` to `black` (default Arial, `8`, `normal`).
+
+On any other shape, the text is rich text (the subset of HTML that Qt draws) drawn over the shape,
+and the shape takes the text's size: `size` and `aspect-ratio` no longer apply. The fill, the
+stroke and the `border-radius` style the box around the text, and `text-style-sheet` styles the
+text with CSS. The neo-mousekeys-ijkl cheatsheet is such a layer:
+
+```properties
+normal-mode.cheatsheet-indicator.shape=rectangle
+normal-mode.cheatsheet-indicator.position=screen-center
+normal-mode.cheatsheet-indicator.text-style-sheet=\
+td { color: #A9B1D6; } \
+.title { font-family: 'Segoe UI', 'Helvetica Neue'; font-size: x-large; color: #C0CAF5; } \
+.key { color: #E0AF68; }
+normal-mode.cheatsheet-indicator.text=<table cellpadding=14><tr><td><table>\
+<tr><td colspan=2 class=title>neo-mousekeys-ijkl\
+<tr><td class=key>{up} {left} {down} {right}<td>move\
+</table></table>
+normal-mode.cheatsheet-indicator.font-name=Consolas | _{ismacos} -> Menlo
+normal-mode.cheatsheet-indicator.font-size=9
+normal-mode.cheatsheet-indicator.border-radius=14
+normal-mode.cheatsheet-indicator.fill-color=#1A1B26
+```
+
+- The letters take their color from the style sheet, or the system's text color, usually black.
+  Qt ignores a `body` rule, so a default color goes on the elements the text is made of, like `td`.
+- `font-size` sets the size of the whole text, and the style sheet sizes parts of it relative to
+  that: `small`, `medium`, `large`, `x-large` and `xx-large`. An absolute size in the style sheet
+  would ignore `font-size` and its per-screen values.
+- The padding of an outer table is the margin between the text and its box.
+
+#### Position
+
+- **`position`**: `mouse` (default), `mouse-top-left`, `mouse-top-right`, `mouse-bottom-left`,
+  `mouse-bottom-right` or `screen-center`. `mouse` centers the layer behind the cursor, best with a
+  low opacity so the cursor stays visible. Near a screen edge, a corner position moves to the
+  other side of the cursor.
+- **`follow-mouse`**: Whether the layer moves with the cursor (default `true`). With `false`, the
+  layer stays where it was when it was enabled, or when its keyframes started over.
 
 #### Shadow
-
-An optional drop shadow can be added to the indicator:
 
 ```properties
 normal-mode.indicator.shadow-blur-radius=10
@@ -372,47 +446,12 @@ normal-mode.indicator.shadow-vertical-offset=2
 ```
 
 - **`shadow-blur-radius`**: Blur radius in pixels (0-1000, default 10)
-- **`shadow-color`**: Hex color of the shadow (default #000000)
+- **`shadow-color`**: Color of the shadow (default #000000)
 - **`shadow-opacity`**: Opacity (0.0-1.0, default 0 = no shadow). Set to > 0 to enable.
 - **`shadow-stack-count`**: Number of times the shadow is composited on itself for a stronger effect (1-100, default 1)
 - **`shadow-horizontal-offset`** / **`shadow-vertical-offset`**: Shadow offset in pixels (-100 to 100, default 0)
 
-#### Label
-
-An optional text label can be displayed inside the indicator:
-
-```properties
-normal-mode.indicator.label-enabled=false
-normal-mode.indicator.label-text=N
-normal-mode.indicator.label-font-name=Arial
-normal-mode.indicator.label-font-size=8
-normal-mode.indicator.label-font-weight=normal
-normal-mode.indicator.label-font-color=#FFFFFF
-normal-mode.indicator.label-font-opacity=1.0
-
-# Label font outline
-normal-mode.indicator.label-font-outline-thickness=0
-normal-mode.indicator.label-font-outline-color=#000000
-normal-mode.indicator.label-font-outline-opacity=0.0
-
-# Label font shadow
-normal-mode.indicator.label-font-shadow-blur-radius=0
-normal-mode.indicator.label-font-shadow-color=#000000
-normal-mode.indicator.label-font-shadow-opacity=0.0
-normal-mode.indicator.label-font-shadow-horizontal-offset=0
-normal-mode.indicator.label-font-shadow-vertical-offset=0
-```
-
-- **`label-enabled`**: Whether to show a text label (default false). Automatically set to true if any `label-` property is set.
-- **`label-text`**: The text to display
-- **`label-font-name`**: Font family name (default Arial)
-- **`label-font-size`**: Font size in points
-- **`label-font-weight`**: Font weight (e.g. normal, bold)
-- **`label-font-color`**: Hex color of the label text
-- **`label-font-opacity`**: Opacity of the label text (0.0-1.0)
-
-The label font takes the same outline and shadow properties as a hint font, prefixed with
-`label-font-`, including `label-font-shadow-stack-count`.
+The shadow is cast by all the layers together.
 
 #### Rendering as the system cursor
 
@@ -420,10 +459,10 @@ The label font takes the same outline and shadow properties as a hint font, pref
 normal-mode.indicator.render-as-cursor=true
 ```
 
-`render-as-cursor` draws the indicator into the system cursor image, with the real cursor glyph
-composited on top, instead of into an overlay window that follows the pointer. Nothing can lag
-behind, since there is nothing to follow. Windows only (default false); it is ignored on macOS,
-where the indicator is always an overlay window.
+`render-as-cursor` draws the layers that follow the mouse into the system cursor image, with the
+real cursor glyph composited on top, instead of into an overlay window that follows the pointer.
+Nothing can lag behind, since there is nothing to follow. Windows only (default false); it is
+ignored on macOS, where the indicator is always an overlay window.
 
 Because the indicator then *is* the cursor, anything that hides the cursor hides the indicator
 too. In particular, the Windows pointer option "Hide pointer while typing" (on by default)
@@ -432,38 +471,49 @@ indicator disappears right after a key press and only comes back once the pointe
 Turn that option off (Mouse Properties > Pointer Options > Visibility) if you see this; the
 overlay indicator is not affected. See [#86](https://github.com/petoncle/mousemaster/issues/86).
 
-#### Fade animation
+#### Animations
 
-When the indicator appears, disappears, or changes color (e.g. when switching modes), it fades in and out instead of popping abruptly.
-
-```properties
-normal-mode.indicator.fade-animation-enabled=true
-normal-mode.indicator.fade-animation-duration-millis=100
-```
-
-- **`fade-animation-enabled`**: Whether to fade the indicator (default `true`).
-- **`fade-animation-duration-millis`**: Duration of the fade in/out in milliseconds (default `100`).
-
-The fade animation is automatically suppressed when the surrounding mode change also changes zoom, to avoid the faded indicator clashing with the zoom screenshot.
-
-#### Transition animation
-
-When the indicator changes, it eases to the new one instead of jumping to it. Sizes, edge counts, thicknesses, opacities, blur radii, offsets and fill percents are interpolated. The edge count morphs two edges at a time, keeping the parity it starts from, because an odd count puts a vertex at the top of the polygon and an even one a flat edge.
-
-Everything else switches rather than eases, because it has no meaningful in-between: the colors, the fill start angle and direction, the shadow stack count, the label, the font name and weight, the position. `transition-animation-switch-at` decides whether they switch at the start of the transition or at its end. Like the duration and the easing, it is read from the indicator being transitioned to, so each direction chooses for itself. Giving the indicator a larger size while a mouse button is pressed makes a click stand out:
+An animation is a named clock, defined once for the whole configuration and started by combos:
 
 ```properties
-normal-mode.indicator.size=26 | _{ismousepressing} -> 39
-normal-mode.indicator.transition-animation-duration-millis=200 | _{ismousepressing} -> 50
-normal-mode.indicator.transition-animation-easing=smootherstep
-normal-mode.indicator.transition-animation-switch-at=end | _{ismousepressing} -> start
+click-animation.duration-millis=500
+_indicator-mode.click-animation.start=+isleftmousepressing | +ismiddlemousepressing | +isrightmousepressing
+_indicator-mode.click-animation.stop=_{clickanimation ismousepressing} wait-250
 ```
 
-- **`transition-animation-duration-millis`**: How long the indicator takes to reach the new one, in milliseconds (default `100`). `0` makes the change immediate.
-- **`transition-animation-easing`**: `smoothstep`, `smootherstep`, `logarithmic`, `exponential`, or a polynomial exponent (default `smootherstep`).
-- **`transition-animation-switch-at`**: When the values that cannot be eased take the new indicator's, `start` or `end` (default `start`). Above, pressing a mouse button colors the indicator at once, and releasing it keeps that color until the indicator has finished shrinking.
+- **`<name>-animation.duration-millis`**: The length of one cycle. Required.
+- **`<name>-animation.repeat`**: A number of cycles (default `1`) or `loop`.
+- **`<name>-animation.direction`**: `forward` (default) or `alternate`, which plays every other
+  cycle backwards.
+- **`<mode>.<name>-animation.start`** / **`stop`**: The combos that start and stop it in that mode.
+  Starting a running animation starts it over.
 
-The animation belongs to the indicator that is transitioned to, so each direction has its own duration: above, the indicator turns green and grows in 50ms when a mouse button is pressed, then takes 200ms to shrink back when it is released, turning red once it has. The indicator that appears first is not transitioned to. A change that interrupts a running animation eases from the indicator it had reached, so nothing snaps.
+While it runs, an animation reads as a pressed key named without its hyphens (`clickanimation`),
+so `_{clickanimation}` matches while it runs and `-clickanimation` when it ends or is stopped.
+A loop runs until it is stopped. An animation keeps running across mode changes, but the layers
+it animates belong to their mode. To start one on entering a mode, use `start=#{*}-0`.
+
+A branch on an animation can give a property keyframes instead of a value:
+
+```properties
+rest-animation.duration-millis=80
+_indicator-mode.rest-animation.start=-clickanimation
+_indicator-mode.indicator.size=26 | _{restanimation} -> 0% current; 100% 26 0.7 | _{clickanimation} -> 0% 13; 100% 78 exponential-out-10
+_indicator-mode.indicator.stroke-opacity=1 | _{clickanimation} -> 0% 1; 250ms 1; 500ms 0 0.7
+```
+
+- A keyframe is a position, a value and an optional easing. The position is a percent of the
+  animation or a time (`250ms`).
+- `current` is the value the property had when the branch took over, so an animation can start
+  from wherever the previous one left it.
+- The easing shapes the change that ends at the keyframe: a polynomial exponent (`1`, the default,
+  is linear), `smoothstep`, `smootherstep`, `logarithmic`, `exponential`, `exponential-out-<n>`, or
+  `step`, which holds the previous value until the keyframe.
+- Numbers ease, and so do colors with as many colors on both sides. Anything else (a shape, a
+  text, `follow-mouse`...) switches at its keyframe.
+- The frame at 100% is drawn before the animation ends.
+- Keyframes need a branch that names exactly one animation, and only indicator and `hide-cursor`
+  properties take them.
 
 ### Cursor properties
 
