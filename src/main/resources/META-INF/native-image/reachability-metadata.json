@@ -7118,7 +7118,6 @@
             "java.lang.String",
             "double",
             "mousemaster.FontWeight",
-            "mousemaster.TextFormat",
             "java.lang.String",
             "mousemaster.IndicatorPosition",
             "boolean"
@@ -7174,10 +7173,6 @@
         },
         {
           "name": "text",
-          "parameterTypes": []
-        },
-        {
-          "name": "textFormat",
           "parameterTypes": []
         },
         {

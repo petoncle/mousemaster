@@ -12,8 +12,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                                           double fillOpacity,
                                           IndicatorStroke stroke,
                                           String text, String fontName, double fontSize,
-                                          FontWeight fontWeight,
-                                          TextFormat textFormat, String textStyleSheet,
+                                          FontWeight fontWeight, String textStyleSheet,
                                           IndicatorPosition position, boolean followMouse) {
 
     public IndicatorLayerConfigurationBuilder builder() {
@@ -39,7 +38,6 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         private String fontName;
         private Double fontSize;
         private FontWeight fontWeight;
-        private TextFormat textFormat;
         private String textStyleSheet;
         private IndicatorPosition position;
         private Boolean followMouse;
@@ -65,7 +63,6 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             this.fontName = layer.fontName;
             this.fontSize = layer.fontSize;
             this.fontWeight = layer.fontWeight;
-            this.textFormat = layer.textFormat;
             this.textStyleSheet = layer.textStyleSheet;
             this.position = layer.position;
             this.followMouse = layer.followMouse;
@@ -219,15 +216,6 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             return fontWeight;
         }
 
-        public IndicatorLayerConfigurationBuilder textFormat(TextFormat textFormat) {
-            this.textFormat = textFormat;
-            return this;
-        }
-
-        public TextFormat textFormat() {
-            return textFormat;
-        }
-
         public IndicatorLayerConfigurationBuilder textStyleSheet(String textStyleSheet) {
             this.textStyleSheet = textStyleSheet;
             return this;
@@ -273,7 +261,6 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             if (fontName == null) fontName = parent.fontName;
             if (fontSize == null) fontSize = parent.fontSize;
             if (fontWeight == null) fontWeight = parent.fontWeight;
-            if (textFormat == null) textFormat = parent.textFormat;
             if (textStyleSheet == null) textStyleSheet = parent.textStyleSheet;
             if (position == null) position = parent.position;
             if (followMouse == null) followMouse = parent.followMouse;
@@ -282,7 +269,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         public IndicatorLayerConfiguration build() {
             return new IndicatorLayerConfiguration(enabled, z, shape, size, aspectRatio,
                     borderRadius, points, x, y, rotation, fillColor, fillOpacity, stroke.build(),
-                    text, fontName, fontSize, fontWeight, textFormat, textStyleSheet, position,
+                    text, fontName, fontSize, fontWeight, textStyleSheet, position,
                     followMouse);
         }
     }

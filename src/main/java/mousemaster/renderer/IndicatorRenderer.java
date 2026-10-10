@@ -158,7 +158,7 @@ public final class IndicatorRenderer {
     }
 
     private double layerSize(IndicatorLayerConfiguration layer, double screenScale) {
-        if (layer.shape() != IndicatorShape.TEXT)
+        if (layer.shape() != IndicatorShape.TEXT && layer.text().isEmpty())
             return layer.size() * screenScale;
         QRectF bounds = textBox(layer, screenScale);
         double layerSize = Math.max(bounds.width(), bounds.height());
@@ -183,7 +183,7 @@ public final class IndicatorRenderer {
     }
 
     private QRectF textBox(IndicatorLayerConfiguration layer, double scale) {
-        if (layer.textFormat() == TextFormat.PLAIN)
+        if (layer.shape() == IndicatorShape.TEXT)
             return textOutline(layer, scale).boundingRect();
         QSizeF size = textDocument(layer).size();
         QRectF box = new QRectF(-size.width() / 2 * scale, -size.height() / 2 * scale,
@@ -230,7 +230,7 @@ public final class IndicatorRenderer {
     }
 
     private double aspectRatio(IndicatorLayerConfiguration layer) {
-        if (layer.shape() == IndicatorShape.TEXT && layer.textFormat() == TextFormat.RICH) {
+        if (layer.shape() != IndicatorShape.TEXT && !layer.text().isEmpty()) {
             QSizeF size = textDocument(layer).size();
             double aspectRatio = size.width() / size.height();
             size.dispose();
@@ -759,10 +759,7 @@ public final class IndicatorRenderer {
             double left = (width() - boxWidth) / 2;
             double top = (height() - boxHeight) / 2;
             QPainterPath path = new QPainterPath();
-            IndicatorShape shape = layer.shape() == IndicatorShape.TEXT &&
-                                   layer.textFormat() == TextFormat.RICH ?
-                    IndicatorShape.RECTANGLE : layer.shape();
-            switch (shape) {
+            switch (layer.shape()) {
                 case CIRCLE -> path.addEllipse(left, top, boxWidth, boxHeight);
                 case RECTANGLE -> path.addRoundedRect(left, top, boxWidth, boxHeight,
                         layer.borderRadius() * scale, layer.borderRadius() * scale,
@@ -987,7 +984,7 @@ public final class IndicatorRenderer {
                 pen.dispose();
             }
             path.dispose();
-            if (layer.shape() == IndicatorShape.TEXT && layer.textFormat() == TextFormat.RICH) {
+            if (layer.shape() != IndicatorShape.TEXT && !layer.text().isEmpty()) {
                 painter.translate(width() / 2.0, height() / 2.0);
                 drawDocument(painter);
             }
