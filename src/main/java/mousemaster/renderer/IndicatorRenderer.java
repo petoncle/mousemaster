@@ -473,7 +473,7 @@ public final class IndicatorRenderer {
         return new WindowImage(windowImage, x, y);
     }
 
-    private static boolean looksTheSameAnywhere(IndicatorConfiguration indicator) {
+    public static boolean looksTheSameAnywhere(IndicatorConfiguration indicator) {
         if (!looksTheSameAnywhere(indicator.shadow().color()))
             return false;
         for (IndicatorLayerConfiguration layer : enabledLayers(indicator))

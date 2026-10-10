@@ -645,9 +645,11 @@ public class WindowsOverlay implements Overlay {
     void mouseMoved(WinDef.POINT mousePosition) {
         if (indicatorIsCursor) {
             // The OS moves the cursor; only re-install when the screen scale changes
-            // (cursors don't auto-scale per-monitor DPI).
+            // (cursors don't auto-scale per-monitor DPI) or a color depends on where it is.
             double scale = WindowsScreen.findActiveScreen(mousePosition).scale();
-            if (scale != currentCursorScale && currentCursorIndicator != null) {
+            boolean scaleChanged = scale != currentCursorScale;
+            if (currentCursorIndicator != null && (scaleChanged ||
+                    !IndicatorRenderer.looksTheSameAnywhere(currentCursorIndicator))) {
                 IndicatorRenderer.IndicatorImage image =
                         followingIndicatorWindow.renderer().renderCursorImage(
                                 currentCursorIndicator, scale,
@@ -655,7 +657,7 @@ public class WindowsOverlay implements Overlay {
                                 mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                                 WindowsScreen.findActiveScreen(mousePosition));
                 mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
-                        currentIncludeOriginalCursor, true);
+                        currentIncludeOriginalCursor, scaleChanged);
                 currentCursorScale = scale;
             }
             return;
