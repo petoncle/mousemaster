@@ -28,13 +28,17 @@ public class AnimationPlayer {
 
     public void update(double delta) {
         for (String animationName : List.copyOf(runningAnimationNames)) {
-            double elapsed = elapsedByAnimationName.get(animationName) + delta;
-            elapsedByAnimationName.put(animationName, elapsed);
-            Integer repeatCount =
-                    animationConfigurationByName.get(animationName).repeatCount();
-            if (repeatCount != null && elapsed >= repeatCount * cycleSeconds(animationName))
+            if (ended(animationName))
                 runningAnimationNames.remove(animationName);
+            else
+                elapsedByAnimationName.merge(animationName, delta, Double::sum);
         }
+    }
+
+    private boolean ended(String animationName) {
+        Integer repeatCount = animationConfigurationByName.get(animationName).repeatCount();
+        return repeatCount != null &&
+               elapsed(animationName) >= repeatCount * cycleSeconds(animationName);
     }
 
     public Set<String> animationNames() {
@@ -52,7 +56,7 @@ public class AnimationPlayer {
     public double progress(String animationName) {
         AnimationConfiguration animation = animationConfigurationByName.get(animationName);
         double cycles = elapsed(animationName) / cycleSeconds(animationName);
-        boolean ended = animation.repeatCount() != null && cycles >= animation.repeatCount();
+        boolean ended = ended(animationName);
         long cycle = ended ? animation.repeatCount() - 1 : (long) cycles;
         double progress = ended ? 1 : cycles - cycle;
         boolean backward =
