@@ -229,7 +229,13 @@ public final class IndicatorRenderer {
         return font;
     }
 
-    private static double aspectRatio(IndicatorLayerConfiguration layer) {
+    private double aspectRatio(IndicatorLayerConfiguration layer) {
+        if (layer.shape() == IndicatorShape.TEXT && layer.textFormat() == TextFormat.RICH) {
+            QSizeF size = textDocument(layer).size();
+            double aspectRatio = size.width() / size.height();
+            size.dispose();
+            return aspectRatio;
+        }
         return switch (layer.shape()) {
             case TRIANGLE, STAR, PATH -> {
                 List<Point> points = IndicatorLayerWidget.points(layer);
@@ -753,7 +759,10 @@ public final class IndicatorRenderer {
             double left = (width() - boxWidth) / 2;
             double top = (height() - boxHeight) / 2;
             QPainterPath path = new QPainterPath();
-            switch (layer.shape()) {
+            IndicatorShape shape = layer.shape() == IndicatorShape.TEXT &&
+                                   layer.textFormat() == TextFormat.RICH ?
+                    IndicatorShape.RECTANGLE : layer.shape();
+            switch (shape) {
                 case CIRCLE -> path.addEllipse(left, top, boxWidth, boxHeight);
                 case RECTANGLE -> path.addRoundedRect(left, top, boxWidth, boxHeight,
                         layer.borderRadius() * scale, layer.borderRadius() * scale,
@@ -937,11 +946,6 @@ public final class IndicatorRenderer {
             painter.save();
             painter.translate(width() / 2.0, height() / 2.0);
             painter.rotate(layer.rotation());
-            if (layer.shape() == IndicatorShape.TEXT && layer.textFormat() == TextFormat.RICH) {
-                drawDocument(painter, fillColor);
-                painter.restore();
-                return;
-            }
             painter.translate(-width() / 2.0, -height() / 2.0);
             QPainterPath path = shapePath();
             if (fillColor.alpha() != 0) {
@@ -983,25 +987,22 @@ public final class IndicatorRenderer {
                 pen.dispose();
             }
             path.dispose();
+            if (layer.shape() == IndicatorShape.TEXT && layer.textFormat() == TextFormat.RICH) {
+                painter.translate(width() / 2.0, height() / 2.0);
+                drawDocument(painter);
+            }
             painter.restore();
         }
 
-        private void drawDocument(QPainter painter, QColor fillColor) {
+        private void drawDocument(QPainter painter) {
             QTextDocument document = textDocument(layer);
             QSizeF size = document.size();
             painter.scale(scale, scale);
             painter.translate(-size.width() / 2, -size.height() / 2);
-            painter.setOpacity(fillColor.alphaF());
-            QColor textColor = new QColor(fillColor.red(), fillColor.green(), fillColor.blue());
-            QPalette palette = new QPalette();
-            palette.setColor(QPalette.ColorRole.Text, textColor);
             QAbstractTextDocumentLayout.PaintContext context =
                     new QAbstractTextDocumentLayout.PaintContext();
-            context.setPalette(palette);
             document.documentLayout().draw(painter, context);
             context.dispose();
-            palette.dispose();
-            textColor.dispose();
             size.dispose();
         }
 
