@@ -192,13 +192,14 @@ public class WindowsOverlay implements Overlay {
         List<WinDef.HWND> hwnds = new ArrayList<>();
         List<WinDef.HWND> notTopmostHwnds = new ArrayList<>();
         // First in the hwnds list means drawn on top.
+        if (anchoredIndicatorWindow != null && anchoredIndicatorWindow.showing())
+            hwnds.add(anchoredIndicatorWindow.hwnd());
         if (gridHwnd != null)
             (gridRenderer.showing() ? hwnds : notTopmostHwnds).add(gridHwnd);
         for (TransparentWindow window : hintMeshRenderer.windows())
             (hintMeshRenderer.showing() ? hwnds : notTopmostHwnds).add(hwnd(window));
-        for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
-            if (indicatorWindow.showing())
-                hwnds.add(indicatorWindow.hwnd());
+        if (followingIndicatorWindow != null && followingIndicatorWindow.showing())
+            hwnds.add(followingIndicatorWindow.hwnd());
         if (zoomHwnd != null)
             (currentZoom != null ? hwnds : notTopmostHwnds).add(zoomHwnd);
         // The shell demotes the taskbar under a topmost window that covers a screen.
