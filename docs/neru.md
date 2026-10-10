@@ -29,6 +29,7 @@ From idle — or to switch between modes — hold **Ctrl+Shift** and press:
 - **Move** the cursor: hold the **arrow keys** (speeds up while held).
 - **Click**: `Shift+L` left, `Shift+R` right, `Shift+M` middle.
 - **Drag**: hold `Shift+L` while moving — or `Shift+I` to press the left button and `Shift+U` to release it.
+- **Cheatsheet**: hold `F1` to show the keys.
 
 Clicks use Shift so they don't clash with the keys used to pick hints.
 

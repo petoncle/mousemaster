@@ -25,6 +25,7 @@ The layout above shows normal mode ([warpd-keyboardlayouteditor.json](assets/war
 - Slow down mouse movement (decelerate) by holding _d_ while moving the mouse.
 - Accelerate mouse movement by holding _a_ while moving the mouse.
 - Copy and exit with _c_.
+- Show a cheatsheet of the keys while holding _f1_.
 - Exit with _esc_.
 
 ## Hint Mode (_leftalt + x_ or _x_ in normal mode)

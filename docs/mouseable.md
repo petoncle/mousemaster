@@ -24,6 +24,7 @@ The layout above shows normal mode ([mouseable-keyboardlayouteditor.json](assets
 - Scroll vertically or horizontally (wheel) with _y_, _u_, _i_, _o_.
 - Slow down mouse movement by holding _space_ while moving the mouse (slow mode, called sniper mode in original mouseable).
 - Accelerate mouse movement by holding _f_ while moving the mouse.
+- Show a cheatsheet of the keys while holding _f1_.
 - Exit with _;_ or _esc_.
 
 ## Hint Mode (_leftalt, leftalt_)
