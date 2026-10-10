@@ -69,10 +69,9 @@ class IndicatorWindowImageTest {
             double scale = scaleIndex == 0 ? 1 : 3;
             IndicatorConfiguration indicator = indicator("idle-mode.indicator.shape=text",
                     "idle-mode.indicator.text-format=rich",
-                    "idle-mode.indicator.text-style-sheet=.key { color: #00FF00 }",
+                    "idle-mode.indicator.text-style-sheet=td { color: #0000FF } .key { color: #00FF00 }",
                     "idle-mode.indicator.text=<table><tr><td class=key>abc<td>de</table>",
-                    "idle-mode.indicator.fill-color=#0000FF",
-                    "idle-mode.indicator.fill-opacity=1",
+                    "idle-mode.indicator.fill-opacity=0",
                     "idle-mode.indicator.stroke-thickness=0");
             IndicatorRenderer.IndicatorImage image = new IndicatorRenderer().renderWindowImage(
                     indicator, Set.of(), new Rectangle(500, 500, 32, 32), new Point(4, 4),
@@ -87,6 +86,24 @@ class IndicatorWindowImageTest {
             inkWidths[scaleIndex] = ink(image).width();
         }
         assertEquals(inkWidths[0] * 3, inkWidths[1], 3);
+    }
+
+    @Test
+    void aRichTextIsDrawnOnABoxAroundIt() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        int[] boxWidths = new int[2];
+        String[] texts = {"ab", "abcdef"};
+        for (int textIndex = 0; textIndex < 2; textIndex++) {
+            IndicatorRenderer.IndicatorImage image = render(new IndicatorRenderer(), indicator(
+                    "idle-mode.indicator.shape=text", "idle-mode.indicator.text-format=rich",
+                    "idle-mode.indicator.text=" + texts[textIndex],
+                    "idle-mode.indicator.fill-color=#FF0000", "idle-mode.indicator.fill-opacity=1",
+                    "idle-mode.indicator.stroke-thickness=0"), Set.of(), 500).image();
+            Rectangle box = ink(image);
+            assertEquals(0xFFFF0000, image.argb()[box.y() * image.width() + box.x()]);
+            boxWidths[textIndex] = box.width();
+        }
+        assertTrue(boxWidths[1] > boxWidths[0] * 2, boxWidths[0] + " " + boxWidths[1]);
     }
 
     private static Rectangle ink(IndicatorRenderer.IndicatorImage image) {
