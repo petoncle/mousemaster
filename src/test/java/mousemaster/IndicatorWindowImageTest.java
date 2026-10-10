@@ -62,13 +62,12 @@ class IndicatorWindowImageTest {
     }
 
     @Test
-    void aRichTextIsColoredByItsStyleSheetAndLaidOutTheSameAtEveryScale() {
+    void aTextOnAShapeIsColoredByItsStyleSheetAndLaidOutTheSameAtEveryScale() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         int[] inkWidths = new int[2];
         for (int scaleIndex = 0; scaleIndex < 2; scaleIndex++) {
             double scale = scaleIndex == 0 ? 1 : 3;
-            IndicatorConfiguration indicator = indicator("idle-mode.indicator.shape=text",
-                    "idle-mode.indicator.text-format=rich",
+            IndicatorConfiguration indicator = indicator("idle-mode.indicator.shape=rectangle",
                     "idle-mode.indicator.text-style-sheet=td { color: #0000FF } .key { color: #00FF00 }",
                     "idle-mode.indicator.text=<table><tr><td class=key>abc<td>de</table>",
                     "idle-mode.indicator.fill-opacity=0",
@@ -89,13 +88,13 @@ class IndicatorWindowImageTest {
     }
 
     @Test
-    void aRichTextIsDrawnOnABoxAroundIt() {
+    void aShapeWithATextIsSizedByIt() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         int[] boxWidths = new int[2];
         String[] texts = {"ab", "abcdef"};
         for (int textIndex = 0; textIndex < 2; textIndex++) {
             IndicatorRenderer.IndicatorImage image = render(new IndicatorRenderer(), indicator(
-                    "idle-mode.indicator.shape=text", "idle-mode.indicator.text-format=rich",
+                    "idle-mode.indicator.shape=rectangle",
                     "idle-mode.indicator.text=" + texts[textIndex],
                     "idle-mode.indicator.fill-color=#FF0000", "idle-mode.indicator.fill-opacity=1",
                     "idle-mode.indicator.stroke-thickness=0"), Set.of(), 500).image();

@@ -232,7 +232,6 @@ public class ConfigurationParser {
              .fontName("Arial")
              .fontSize(8)
              .fontWeight(FontWeight.NORMAL)
-             .textFormat(TextFormat.PLAIN)
              .textStyleSheet("");
         HideCursorBuilder hideCursor =
                 new HideCursorBuilder().enabled(false).idleDuration(Duration.ZERO);
@@ -2639,7 +2638,6 @@ public class ConfigurationParser {
             case "font-name" -> ModePropertyHandler.of(prefix.append("fontName"), v -> v, v -> layer.fontName(v));
             case "font-size" -> ModePropertyHandler.of(prefix.append("fontSize"), v -> parseDouble(v, false, 0, 1000), v -> layer.fontSize(v));
             case "font-weight" -> ModePropertyHandler.of(prefix.append("fontWeight"), v -> FontWeight.of(v), v -> layer.fontWeight(v));
-            case "text-format" -> ModePropertyHandler.of(prefix.append("textFormat"), v -> TextFormat.of(v), v -> layer.textFormat(v));
             case "text-style-sheet" -> ModePropertyHandler.of(prefix.append("textStyleSheet"), v -> v, v -> layer.textStyleSheet(v));
             case "position" -> ModePropertyHandler.of(prefix.append("position"), v -> IndicatorPosition.fromString(v), v -> layer.position(v));
             case "follow-mouse" -> ModePropertyHandler.of(prefix.append("followMouse"), v -> Boolean.parseBoolean(v), v -> layer.followMouse(v));

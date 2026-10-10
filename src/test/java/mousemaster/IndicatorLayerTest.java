@@ -165,14 +165,6 @@ class IndicatorLayerTest {
     }
 
     @Test
-    void aTextIsPlainOrRich() {
-        Mode mode = parse("idle-mode.indicator.text-format=rich").modeMap().get(Mode.IDLE_MODE_NAME);
-        assertEquals(TextFormat.RICH, layer(mode, "indicator").textFormat());
-        assertThrows(IllegalArgumentException.class,
-                () -> parse("idle-mode.indicator.text-format=html"));
-    }
-
-    @Test
     void aTextNamesTheKeysOfAKeyAlias() {
         Mode mode = parse("key-alias.exit=q p",
                 "idle-mode.indicator.text={exit}  exit").modeMap().get(Mode.IDLE_MODE_NAME);
