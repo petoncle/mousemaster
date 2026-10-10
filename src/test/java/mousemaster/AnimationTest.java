@@ -326,6 +326,18 @@ class AnimationTest {
     }
 
     @Test
+    void anExponentialOutReachesItsKeyframe() {
+        load("ripple-animation.duration-millis=100",
+                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30 exponential-out-10");
+        tick(0);
+        tap("a");
+        tick(0);
+        tick(0.1);
+        assertEquals(30, drawnSize(), 1e-9);
+    }
+
+    @Test
     void anAnimationRepeatsItsCycles() {
         load("ripple-animation.duration-millis=100",
                 "ripple-animation.repeat=2",

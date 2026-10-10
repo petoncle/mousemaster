@@ -358,7 +358,8 @@ public class MouseManager implements ModeListener, MousePositionListener {
                 double range = maxVelocity - initialVelocity;
                 double T = range / acceleration;
                 double normalizedV = Math.min(1, (velocity - initialVelocity) / range);
-                yield Math.min(T, -Math.log(1 - normalizedV) /
+                yield Math.min(T, -Math.log(1 - normalizedV *
+                                            (1 - Math.pow(2, -e.halvings()))) /
                                   (Math.log(2) * e.halvings()) * T);
             }
             case Easing.Step s -> (maxVelocity - initialVelocity) / acceleration;
