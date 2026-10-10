@@ -765,7 +765,8 @@ public final class IndicatorRenderer {
                         layer.borderRadius() * scale, layer.borderRadius() * scale,
                         Qt.SizeMode.AbsoluteSize);
                 case TRIANGLE, STAR, PATH ->
-                        addPolygon(path, points(layer), left, top, boxWidth, boxHeight);
+                        addPolygon(path, points(layer), left, top, boxWidth, boxHeight,
+                                layer.borderRadius() * scale);
                 case LINE -> {
                     path.moveTo(left, top + boxHeight / 2);
                     path.lineTo(left + boxWidth, top + boxHeight / 2);
@@ -787,18 +788,45 @@ public final class IndicatorRenderer {
         /** Moves and stretches the points so that the rectangle around them fills the shape's
          *  box: points can be written in any units. */
         private static void addPolygon(QPainterPath path, List<Point> points, double left,
-                                       double top, double width, double height) {
+                                       double top, double width, double height,
+                                       double borderRadius) {
             Point min = minPoint(points);
             Point max = maxPoint(points);
-            for (int i = 0; i < points.size(); i++) {
-                double x = left + (points.get(i).x() - min.x()) / (max.x() - min.x()) * width;
-                double y = top + (points.get(i).y() - min.y()) / (max.y() - min.y()) * height;
+            List<Point> corners = new ArrayList<>();
+            for (Point point : points)
+                corners.add(new Point(left + (point.x() - min.x()) / (max.x() - min.x()) * width,
+                        top + (point.y() - min.y()) / (max.y() - min.y()) * height));
+            for (int i = 0; i < corners.size(); i++) {
+                Point previous = corners.get((i + corners.size() - 1) % corners.size());
+                Point corner = corners.get(i);
+                Point next = corners.get((i + 1) % corners.size());
+                double toPrevious =
+                        Math.hypot(previous.x() - corner.x(), previous.y() - corner.y());
+                double toNext = Math.hypot(next.x() - corner.x(), next.y() - corner.y());
+                double angle = Math.acos(((previous.x() - corner.x()) * (next.x() - corner.x()) +
+                                          (previous.y() - corner.y()) * (next.y() - corner.y())) /
+                                         (toPrevious * toNext));
+                double cut = borderRadius == 0 ? 0 : Math.min(borderRadius / Math.tan(angle / 2),
+                        Math.min(toPrevious, toNext) / 2);
+                Point from = towards(corner, previous, cut);
                 if (i == 0)
-                    path.moveTo(x, y);
+                    path.moveTo(from.x(), from.y());
                 else
-                    path.lineTo(x, y);
+                    path.lineTo(from.x(), from.y());
+                if (cut > 0) {
+                    Point to = towards(corner, next, cut);
+                    path.quadTo(corner.x(), corner.y(), to.x(), to.y());
+                }
             }
             path.closeSubpath();
+        }
+
+        private static Point towards(Point from, Point to, double distance) {
+            if (distance == 0)
+                return from;
+            double length = Math.hypot(to.x() - from.x(), to.y() - from.y());
+            return new Point(from.x() + (to.x() - from.x()) * distance / length,
+                    from.y() + (to.y() - from.y()) * distance / length);
         }
 
         private static List<Point> points(IndicatorLayerConfiguration layer) {
