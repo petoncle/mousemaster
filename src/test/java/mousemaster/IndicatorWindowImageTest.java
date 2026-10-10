@@ -116,6 +116,17 @@ class IndicatorWindowImageTest {
     }
 
     @Test
+    void aPathKeepsTheProportionsOfItsPoints() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        Rectangle ink = ink(render(new IndicatorRenderer(), indicator(
+                "idle-mode.indicator.shape=path", "idle-mode.indicator.points=0,0 10,0 5,8",
+                "idle-mode.indicator.size=40", "idle-mode.indicator.fill-opacity=1",
+                "idle-mode.indicator.stroke-thickness=0"), Set.of(), 500).image());
+        assertEquals(40, ink.width(), 1);
+        assertEquals(32, ink.height(), 1);
+    }
+
+    @Test
     void anAnchoredLayerIsDrawnAgainWhereItWas() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         IndicatorConfiguration indicator = indicator("idle-mode.indicator.enabled=true",
