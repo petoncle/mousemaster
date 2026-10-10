@@ -114,6 +114,31 @@ class AnimationTest {
         return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").size();
     }
 
+    private String text() {
+        return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").text();
+    }
+
+    @Test
+    void aTextShowsTheKeyThatMatchedItsAliasInPlace() {
+        load("key-alias.move=i j",
+                "keycast-animation.duration-millis=100",
+                "idle-mode.keycast-animation.start=+move",
+                "idle-mode.indicator.text={move} | +move -> You pressed <b>{move}</b>");
+        assertEquals("i j", text());
+        tap("i");
+        assertEquals("You pressed <b>I</b>", text());
+        tap("j");
+        assertEquals("You pressed <b>J</b>", text());
+    }
+
+    @Test
+    void aRemapShowsAKeyAsAnything() {
+        load("key-alias.move=i j",
+                "idle-mode.indicator.text= | +move -> move=up left -> {move} moves");
+        tap("j");
+        assertEquals("left moves", text());
+    }
+
     @Test
     void aLayerIsAnchoredWhenEnabledAndWhenItsKeyframesStartOver() {
         load("ripple-animation.duration-millis=100",

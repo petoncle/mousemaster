@@ -2,25 +2,29 @@ package mousemaster;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-/**
- * Stored as {@link Command.MutateMode#newPropertyValue()} when the combo property
- * value string contains alias or negated names that must be resolved to key labels
- * at combo completion time.
- * Names in {@code nameNegatedSet} are resolved via {@link AliasResolution#negatedKeyByName()};
- * the rest are resolved via {@link AliasResolution#keysByAlias()}.
- * An optional {@code remapByName} maps keys to arbitrary string values
- * (instead of the default {@link Key#hintLabel()}).
- */
-public record UnresolvedAliasComboPropertyValue(List<String> names,
-                                                Set<String> nameNegatedSet,
+public record UnresolvedAliasComboPropertyValue(String text,
                                                 Map<String, AliasRemap<String>> remapByName) {
 
-    @Override
-    public String toString() {
-        return names + (nameNegatedSet.isEmpty() ? "" : " negated " + nameNegatedSet) +
-               (remapByName.isEmpty() ? "" : " remapped " + remapByName.keySet());
+    static final Pattern placeholderPattern = Pattern.compile("\\{(!?)([^}]*)}");
+
+    String resolve(AliasResolution resolution) {
+        return placeholderPattern.matcher(text).replaceAll(match -> {
+            String name = match.group(2);
+            List<Key> keys = match.group(1).isEmpty() ?
+                    resolution.keysByAlias().getOrDefault(name, List.of()) :
+                    Stream.ofNullable(resolution.negatedKeyByName().get(name)).toList();
+            AliasRemap<String> remap = remapByName.get(name);
+            return Matcher.quoteReplacement(keys.stream()
+                                                .map(key -> remap == null ? key.hintLabel() :
+                                                        remap.remap().getOrDefault(key,
+                                                                key.hintLabel()))
+                                                .collect(Collectors.joining()));
+        });
     }
 
 }

@@ -393,8 +393,13 @@ typing-mode.text-indicator.font-size=9
 typing-mode.text-indicator.font-weight=bold
 ```
 
-- **`text`**: The text. `{alias}` is replaced with the keys of a [key alias](#key-aliases), like
-  `{exit}` for `q p`.
+- **`text`**: The text. `{alias}` is replaced with the names of the keys of a
+  [key alias](#key-aliases), like `{exit}` for `q p`. When the value comes from a combo that
+  pressed keys of that alias, it is instead the labels of the keys it pressed (`I`, `⇧`, `␣`...),
+  and `{!alias}` the key a `+!alias` pressed. A remap between the combo and the value gives
+  each key a text of its own instead of its label: with
+  `| +move -> move=up left down right -> {move}`, pressing `j` shows `left` (see
+  [alias remap](combo-reference.md#alias-remap)).
 - **`font-name`** / **`font-size`** / **`font-weight`**: The font, its size in points, and its weight
   from `thin` to `black` (default Arial, `8`, `normal`).
 
@@ -427,6 +432,19 @@ normal-mode.cheatsheet-indicator.fill-color=#1A1B26
   would ignore `font-size` and its per-screen values.
 - The padding of an outer table is the margin between the text and its box, and its width is
   where the text wraps: `<table width=200>`.
+
+A value that comes from a combo stays after its keys are released, so a text can show the last
+key pressed for as long as an animation runs:
+
+```properties
+key-alias.move=i j k l
+keycast-animation.duration-millis=1000
+normal-mode.keycast-animation.start=+move
+normal-mode.keycast-indicator.enabled=false | _{keycastanimation} -> true
+normal-mode.keycast-indicator.shape=rectangle
+normal-mode.keycast-indicator.text-style-sheet=td { color: #FFFFFF; }
+normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You pressed <b>{move}</b></table>
+```
 
 #### Position
 
