@@ -162,7 +162,9 @@ public final class IndicatorRenderer {
         if (layer.shape() != IndicatorShape.TEXT && layer.text().isEmpty())
             return layer.size() * screenScale;
         QRectF bounds = textBox(layer, screenScale);
-        double layerSize = Math.max(bounds.width(), bounds.height());
+        double layerSize = 2 * Math.max(
+                Math.max(-bounds.left(), bounds.right()),
+                Math.max(-bounds.top(), bounds.bottom()));
         bounds.dispose();
         return layerSize;
     }
@@ -193,17 +195,17 @@ public final class IndicatorRenderer {
         return box;
     }
 
-    /** The text's outline, centered on its ink. Laying text out costs about 100us, and the
-     *  layout is asked for on every mouse move. */
+    /** The text's outline, centered on its line box so that the baseline stays put whatever
+     *  the letters are. Laying text out costs about 100us, and the layout is asked for on
+     *  every mouse move. */
     private QPainterPath textOutline(IndicatorLayerConfiguration layer, double scale) {
         return outlineByText.computeIfAbsent(textKey(layer, scale), key -> {
             QFont font = textFont(layer, scale);
+            QFontMetricsF metrics = new QFontMetricsF(font);
             QPainterPath outline = new QPainterPath();
-            outline.addText(0, 0, font, key.text());
-            QRectF bounds = outline.boundingRect();
-            outline.translate(-bounds.x() - bounds.width() / 2,
-                    -bounds.y() - bounds.height() / 2);
-            bounds.dispose();
+            outline.addText(-metrics.horizontalAdvance(key.text()) / 2,
+                    (metrics.ascent() - metrics.descent()) / 2, font, key.text());
+            metrics.dispose();
             font.dispose();
             return outline;
         });
@@ -339,8 +341,8 @@ public final class IndicatorRenderer {
         double halfWidth, halfHeight;
         if (layer.rotation() % 360 == 0) {
             QRectF box = textBox(layer, scale);
-            halfWidth = box.width() / 2 + layer.stroke().thickness() * scale;
-            halfHeight = box.height() / 2 + layer.stroke().thickness() * scale;
+            halfWidth = Math.max(-box.left(), box.right()) + layer.stroke().thickness() * scale;
+            halfHeight = Math.max(-box.top(), box.bottom()) + layer.stroke().thickness() * scale;
             box.dispose();
         }
         else {

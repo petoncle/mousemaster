@@ -114,6 +114,21 @@ class IndicatorWindowImageTest {
     }
 
     @Test
+    void aTextKeepsItsBaselineWhateverItsLetters() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        int[] inkTops = new int[2];
+        String[] texts = {"x", "xg"};
+        for (int textIndex = 0; textIndex < 2; textIndex++) {
+            WindowImage image = render(new IndicatorRenderer(), indicator(
+                    "idle-mode.indicator.shape=text", "idle-mode.indicator.text=" + texts[textIndex],
+                    "idle-mode.indicator.font-size=16", "idle-mode.indicator.fill-opacity=1",
+                    "idle-mode.indicator.stroke-thickness=0"), Set.of(), 500);
+            inkTops[textIndex] = image.y() + ink(image.image()).y();
+        }
+        assertEquals(inkTops[0], inkTops[1]);
+    }
+
+    @Test
     void aTextWrapsAtTheWidthOfItsTable() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         Rectangle[] boxes = new Rectangle[2];
