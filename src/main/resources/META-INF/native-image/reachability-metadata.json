@@ -7077,9 +7077,14 @@
           "name": "<init>",
           "parameterTypes": [
             "boolean",
+            "boolean",
             "mousemaster.Shadow",
             "java.util.Map"
           ]
+        },
+        {
+          "name": "excludeFromCapture",
+          "parameterTypes": []
         },
         {
           "name": "layerByName",

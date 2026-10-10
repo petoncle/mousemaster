@@ -119,6 +119,22 @@ class AnimationTest {
     }
 
     @Test
+    void theIndicatorIsExcludedFromCaptureWhileAnAnimationRuns() {
+        load("screenshot-animation.duration-millis=100",
+                "idle-mode.screenshot-animation.start=+a",
+                "idle-mode.indicator.enabled=true",
+                "idle-mode.indicator.exclude-from-capture=false | _{screenshotanimation} -> true");
+        tick(0);
+        assertFalse(drawnIndicator.excludeFromCapture());
+        tap("a");
+        tick(0);
+        assertTrue(drawnIndicator.excludeFromCapture());
+        tick(0.1);
+        tick(0);
+        assertFalse(drawnIndicator.excludeFromCapture());
+    }
+
+    @Test
     void aTextShowsTheKeyThatMatchedItsAliasInPlace() {
         load("key-alias.move=i j",
                 "keycast-animation.duration-millis=100",
