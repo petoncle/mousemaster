@@ -157,6 +157,8 @@ class AnimationTest {
         assertEquals(42, size());
 
         tick(0.1);
+        assertEquals(42, size());
+        tick(0);
         assertEquals(26, size());
     }
 
@@ -172,6 +174,8 @@ class AnimationTest {
         assertEquals(42, size());
 
         tick(0.05);
+        assertEquals(42, size());
+        tick(0);
         assertEquals(26, size());
     }
 
@@ -259,6 +263,8 @@ class AnimationTest {
         tick(0.05);
         assertEquals(23, drawnSize(), 1e-9);
         tick(0.06);
+        assertEquals(36, drawnSize(), 1e-9);
+        tick(0);
         assertEquals(26, drawnSize(), 1e-9);
     }
 
@@ -315,6 +321,8 @@ class AnimationTest {
         assertEquals(10, drawnSize(), 1e-9);
         tick(0.049);
         assertEquals(10, drawnSize(), 1e-9);
+        tick(0.001);
+        assertEquals(30, drawnSize(), 1e-9);
     }
 
     @Test
@@ -328,6 +336,8 @@ class AnimationTest {
         tick(0.15);
         assertEquals(20, drawnSize(), 1e-9);
         tick(0.06);
+        assertEquals(30, drawnSize(), 1e-9);
+        tick(0);
         assertEquals(26, drawnSize(), 1e-9);
     }
 
@@ -376,8 +386,12 @@ class AnimationTest {
                 "idle-mode.indicator.size=26 | _{burstanimation} -> 42 | _{fadeanimation} -> 30 | _{cutanimation} -> 10");
         tap("a");
         tick(0.25);
+        assertEquals(42, size());
+        tick(0);
         assertEquals(10, size());
         tick(0.04);
+        assertEquals(10, size());
+        tick(0);
         assertEquals(26, size());
     }
 
