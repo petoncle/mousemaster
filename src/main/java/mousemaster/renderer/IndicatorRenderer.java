@@ -314,13 +314,41 @@ public final class IndicatorRenderer {
                     new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen);
             LayerAnchor anchor = layer.followMouse() ? mouseAnchor :
                     anchorByLayerName.computeIfAbsent(layerName, name -> mouseAnchor);
+            int layerSizeWithStroke = layerSizeWithStroke(layer, activeScreen.scale());
             Point topLeft = layerTopLeft(anchor.mouseRectangle(), anchor.cursorVisualCenter(),
-                    anchor.activeScreen(), zoom, layer,
-                    layerSizeWithStroke(layer, activeScreen.scale()));
-            topLefts.add(new Point(Math.round(topLeft.x() + layer.x() * activeScreen.scale()),
-                    Math.round(topLeft.y() + layer.y() * activeScreen.scale())));
+                    anchor.activeScreen(), zoom, layer, layerSizeWithStroke);
+            topLeft = new Point(topLeft.x() + layer.x() * activeScreen.scale(),
+                    topLeft.y() + layer.y() * activeScreen.scale());
+            if (!layer.text().isEmpty())
+                topLeft = keptOnScreen(topLeft, layerSizeWithStroke, layer,
+                        activeScreen.scale(), anchor.activeScreen());
+            topLefts.add(new Point(Math.round(topLeft.x()), Math.round(topLeft.y())));
         }
         return topLefts;
+    }
+
+    private Point keptOnScreen(Point topLeft, int layerSizeWithStroke,
+                               IndicatorLayerConfiguration layer, double scale, Screen screen) {
+        double halfWidth, halfHeight;
+        if (layer.rotation() % 360 == 0) {
+            QRectF box = textBox(layer, scale);
+            halfWidth = box.width() / 2 + layer.stroke().thickness() * scale;
+            halfHeight = box.height() / 2 + layer.stroke().thickness() * scale;
+            box.dispose();
+        }
+        else {
+            halfWidth = layerSizeWithStroke / 2.0;
+            halfHeight = layerSizeWithStroke / 2.0;
+        }
+        Rectangle rectangle = screen.rectangle();
+        double centerX = Math.max(rectangle.x() + halfWidth, Math.min(
+                topLeft.x() + layerSizeWithStroke / 2.0,
+                rectangle.x() + rectangle.width() - halfWidth));
+        double centerY = Math.max(rectangle.y() + halfHeight, Math.min(
+                topLeft.y() + layerSizeWithStroke / 2.0,
+                rectangle.y() + rectangle.height() - halfHeight));
+        return new Point(centerX - layerSizeWithStroke / 2.0,
+                centerY - layerSizeWithStroke / 2.0);
     }
 
     private void reposition(IndicatorConfiguration indicator, Rectangle mouseRectangle,

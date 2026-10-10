@@ -6,6 +6,7 @@ import mousemaster.renderer.IndicatorRenderer.WindowImage;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -85,6 +86,31 @@ class IndicatorWindowImageTest {
             inkWidths[scaleIndex] = ink(image).width();
         }
         assertEquals(inkWidths[0] * 3, inkWidths[1], 3);
+    }
+
+    @Test
+    void aTextIsKeptOnTheScreenAndAShapeIsNot() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        String[] label = {"idle-mode.indicator.shape=text",
+                "idle-mode.indicator.text=a label near the edge",
+                "idle-mode.indicator.font-size=16", "idle-mode.indicator.fill-opacity=1"};
+        assertTrue(inkRight(render(new IndicatorRenderer(), indicator(label), Set.of(), 1910)) <= 1920);
+        String[] rotatedLabel = Arrays.copyOf(label, label.length + 1);
+        rotatedLabel[label.length] = "idle-mode.indicator.rotation=30";
+        assertTrue(inkRight(render(new IndicatorRenderer(), indicator(rotatedLabel), Set.of(),
+                1910)) <= 1920);
+        WindowImage zoomed = new IndicatorRenderer().renderWindowImage(indicator(label), Set.of(),
+                new Rectangle(1700, 500, 32, 32), new Point(4, 4), SCREEN,
+                new Zoom(3, new Point(1400, 540), SCREEN.rectangle()), "#000000");
+        assertTrue(inkRight(zoomed) <= 1920);
+        assertTrue(inkRight(render(new IndicatorRenderer(), indicator(
+                "idle-mode.indicator.size=100", "idle-mode.indicator.fill-opacity=1"), Set.of(),
+                1910)) > 1920);
+    }
+
+    private static int inkRight(WindowImage image) {
+        Rectangle ink = ink(image.image());
+        return image.x() + ink.x() + ink.width();
     }
 
     @Test

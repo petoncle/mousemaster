@@ -433,7 +433,7 @@ normal-mode.cheatsheet-indicator.fill-color=#1A1B26
 - **`position`**: `mouse` (default), `mouse-top-left`, `mouse-top-right`, `mouse-bottom-left`,
   `mouse-bottom-right` or `screen-center`. `mouse` centers the layer behind the cursor, best with a
   low opacity so the cursor stays visible. Near a screen edge, a corner position moves to the
-  other side of the cursor.
+  other side of the cursor, and a layer with a text moves inward instead of being cut.
 - **`follow-mouse`**: Whether the layer moves with the cursor (default `true`). With `false`, the
   layer stays where it was when it was enabled, or when its keyframes started over.
 
