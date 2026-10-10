@@ -23,6 +23,7 @@
 - Super slow down mouse and scroll movement by holding _capslock_ while moving.
 - Accelerate mouse movement by holding _u_, _v_ or _b_ while moving.
 - Accelerate scroll movement by holding _u_, _v_ or _b_ while scrolling.
+- Show a cheatsheet of the keys while holding _t_.
 
 ## Key remappings
 - Press _leftalt + ijkl_ to simulate the arrow keys.

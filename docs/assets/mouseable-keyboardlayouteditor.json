@@ -9,9 +9,12 @@
     "Esc\n\n\n\n\n\nExit",
     {
       "x": 1,
+      "c": "#f9cc9a"
+    },
+    "F1\nSheet\n\n\n\n\nCheat",
+    {
       "c": "#cccccc"
     },
-    "F1",
     "F2",
     "F3",
     "F4",
