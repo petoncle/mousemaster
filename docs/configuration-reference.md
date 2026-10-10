@@ -425,7 +425,8 @@ normal-mode.cheatsheet-indicator.fill-color=#1A1B26
 - `font-size` sets the size of the whole text, and the style sheet sizes parts of it relative to
   that: `small`, `medium`, `large`, `x-large` and `xx-large`. An absolute size in the style sheet
   would ignore `font-size` and its per-screen values.
-- The padding of an outer table is the margin between the text and its box.
+- The padding of an outer table is the margin between the text and its box, and its width is
+  where the text wraps: `<table width=200>`.
 
 #### Position
 
