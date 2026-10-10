@@ -88,6 +88,23 @@ class IndicatorWindowImageTest {
     }
 
     @Test
+    void aTextWrapsAtTheWidthOfItsTable() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        Rectangle[] boxes = new Rectangle[2];
+        String[] texts = {"<table><tr><td>aaa bbb ccc ddd eee</table>",
+                "<table width=60><tr><td>aaa bbb ccc ddd eee</table>"};
+        for (int textIndex = 0; textIndex < 2; textIndex++)
+            boxes[textIndex] = ink(render(new IndicatorRenderer(), indicator(
+                    "idle-mode.indicator.shape=rectangle",
+                    "idle-mode.indicator.text=" + texts[textIndex],
+                    "idle-mode.indicator.fill-opacity=1",
+                    "idle-mode.indicator.stroke-thickness=0"), Set.of(), 500).image());
+        assertEquals(60, boxes[1].width(), 1);
+        assertTrue(boxes[1].height() > boxes[0].height() * 2,
+                boxes[0].height() + " " + boxes[1].height());
+    }
+
+    @Test
     void aShapeWithATextIsSizedByIt() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         int[] boxWidths = new int[2];

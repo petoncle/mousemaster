@@ -218,6 +218,8 @@ public final class IndicatorRenderer {
             font.dispose();
             document.setDefaultStyleSheet(key.textStyleSheet());
             document.setHtml(key.text());
+            document.setTextWidth(1 << 24);
+            document.setTextWidth(document.idealWidth());
             return document;
         });
     }
