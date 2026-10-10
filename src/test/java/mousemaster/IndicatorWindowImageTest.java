@@ -162,6 +162,23 @@ class IndicatorWindowImageTest {
     }
 
     @Test
+    void aLayerIsOffsetByADistanceAtAnAngleClockwiseFromTwelveOClock() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        String[][] polarAndCartesian = {{"distance=30", "angle=90", "x=30"},
+                {"distance=30", "angle=180", "y=30"}};
+        for (String[] offsets : polarAndCartesian) {
+            WindowImage polar = render(new IndicatorRenderer(), indicator(
+                    "idle-mode.indicator.enabled=true", "idle-mode.indicator." + offsets[0],
+                    "idle-mode.indicator." + offsets[1]), Set.of(), 500);
+            WindowImage cartesian = render(new IndicatorRenderer(), indicator(
+                    "idle-mode.indicator.enabled=true", "idle-mode.indicator." + offsets[2]),
+                    Set.of(), 500);
+            assertEquals(cartesian.x(), polar.x(), offsets[2]);
+            assertEquals(cartesian.y(), polar.y(), offsets[2]);
+        }
+    }
+
+    @Test
     void aScreenCenterLayerIsCenteredOnTheScreenWhereverTheMouseIs() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         IndicatorConfiguration indicator = indicator("idle-mode.indicator.size=40",

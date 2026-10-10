@@ -317,14 +317,20 @@ public final class IndicatorRenderer {
             int layerSizeWithStroke = layerSizeWithStroke(layer, activeScreen.scale());
             Point topLeft = layerTopLeft(anchor.mouseRectangle(), anchor.cursorVisualCenter(),
                     anchor.activeScreen(), zoom, layer, layerSizeWithStroke);
-            topLeft = new Point(topLeft.x() + layer.x() * activeScreen.scale(),
-                    topLeft.y() + layer.y() * activeScreen.scale());
+            Point offset = offset(layer, activeScreen.scale());
+            topLeft = new Point(topLeft.x() + offset.x(), topLeft.y() + offset.y());
             if (!layer.text().isEmpty())
                 topLeft = keptOnScreen(topLeft, layerSizeWithStroke, layer,
                         activeScreen.scale(), anchor.activeScreen());
             topLefts.add(new Point(Math.round(topLeft.x()), Math.round(topLeft.y())));
         }
         return topLefts;
+    }
+
+    private static Point offset(IndicatorLayerConfiguration layer, double scale) {
+        double radians = Math.toRadians(layer.angle());
+        return new Point((layer.x() + layer.distance() * Math.sin(radians)) * scale,
+                (layer.y() - layer.distance() * Math.cos(radians)) * scale);
     }
 
     private Point keptOnScreen(Point topLeft, int layerSizeWithStroke,
@@ -552,15 +558,17 @@ public final class IndicatorRenderer {
         int layersSize = 0;
         for (IndicatorLayerConfiguration layer : enabledLayers)
             layersSize = Math.max(layersSize, layerSizeWithStroke(layer, scale) + 2 * (int)
-                    Math.round(Math.max(Math.abs(layer.x()), Math.abs(layer.y())) * scale));
+                    Math.round((Math.max(Math.abs(layer.x()), Math.abs(layer.y())) +
+                                Math.abs(layer.distance())) * scale));
         int shadowPadding = indicatorShadowPadding(indicator.shadow(), scale);
         int imageSize = layersSize + 2 * shadowPadding;
         List<Point> topLefts = new ArrayList<>();
         for (IndicatorLayerConfiguration layer : enabledLayers) {
             int layerSizeWithStroke = layerSizeWithStroke(layer, scale);
+            Point offset = offset(layer, scale);
             topLefts.add(new Point(
-                    gradientPoint.x() - layerSizeWithStroke / 2.0 + Math.round(layer.x() * scale),
-                    gradientPoint.y() - layerSizeWithStroke / 2.0 + Math.round(layer.y() * scale)));
+                    gradientPoint.x() - layerSizeWithStroke / 2.0 + Math.round(offset.x()),
+                    gradientPoint.y() - layerSizeWithStroke / 2.0 + Math.round(offset.y())));
         }
         Point layersTopLeft = new Point(gradientPoint.x() - layersSize / 2.0,
                 gradientPoint.y() - layersSize / 2.0);
