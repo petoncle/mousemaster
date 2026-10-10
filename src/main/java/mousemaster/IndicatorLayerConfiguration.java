@@ -8,6 +8,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                                           IndicatorShape shape, double size,
                                           double aspectRatio, double borderRadius,
                                           List<Point> points, double x, double y,
+                                          double distance, double angle,
                                           double rotation, Color fillColor,
                                           double fillOpacity,
                                           IndicatorStroke stroke,
@@ -30,6 +31,8 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         private List<Point> points;
         private Double x;
         private Double y;
+        private Double distance;
+        private Double angle;
         private Double rotation;
         private Color fillColor;
         private Double fillOpacity;
@@ -55,6 +58,8 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             this.points = layer.points;
             this.x = layer.x;
             this.y = layer.y;
+            this.distance = layer.distance;
+            this.angle = layer.angle;
             this.rotation = layer.rotation;
             this.fillColor = layer.fillColor;
             this.fillOpacity = layer.fillOpacity;
@@ -147,6 +152,24 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
 
         public Double y() {
             return y;
+        }
+
+        public IndicatorLayerConfigurationBuilder distance(double distance) {
+            this.distance = distance;
+            return this;
+        }
+
+        public Double distance() {
+            return distance;
+        }
+
+        public IndicatorLayerConfigurationBuilder angle(double angle) {
+            this.angle = angle;
+            return this;
+        }
+
+        public Double angle() {
+            return angle;
         }
 
         public IndicatorLayerConfigurationBuilder rotation(double rotation) {
@@ -253,6 +276,8 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             if (points == null) points = parent.points;
             if (x == null) x = parent.x;
             if (y == null) y = parent.y;
+            if (distance == null) distance = parent.distance;
+            if (angle == null) angle = parent.angle;
             if (rotation == null) rotation = parent.rotation;
             if (fillColor == null) fillColor = parent.fillColor;
             if (fillOpacity == null) fillOpacity = parent.fillOpacity;
@@ -268,7 +293,8 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
 
         public IndicatorLayerConfiguration build() {
             return new IndicatorLayerConfiguration(enabled, z, shape, size, aspectRatio,
-                    borderRadius, points, x, y, rotation, fillColor, fillOpacity, stroke.build(),
+                    borderRadius, points, x, y, distance, angle, rotation, fillColor, fillOpacity,
+                    stroke.build(),
                     text, fontName, fontSize, fontWeight, textStyleSheet, position,
                     followMouse);
         }

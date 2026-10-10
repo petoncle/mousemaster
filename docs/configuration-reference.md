@@ -349,7 +349,11 @@ normal-mode.indicator.rotation=45
 - **`points`**: The points of a `path`, like `0,0 10,0 5,8`: at least three, spanning a width and
   a height, in any units, since they are scaled to the box.
 - **`x`** / **`y`**: An offset from the layer's position, in pixels (default `0`).
-- **`rotation`**: In degrees, clockwise (default `0`).
+- **`distance`** / **`angle`**: A further offset of `distance` pixels in the direction of `angle`,
+  in degrees clockwise from 12 o'clock like `stroke-start-angle` (default `0`). Animating `angle`
+  moves the layer around its position, and `rotation` turns it where it is:
+  `distance=30` and `angle=0 | _{orbitanimation} -> 0% 0; 100% 360` orbit the cursor.
+- **`rotation`**: In degrees, clockwise, around the layer's own center (default `0`).
 
 #### Fill and stroke
 

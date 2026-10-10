@@ -7111,6 +7111,8 @@
             "double",
             "double",
             "double",
+            "double",
+            "double",
             "mousemaster.Color",
             "double",
             "mousemaster.IndicatorStroke",
@@ -7124,11 +7126,19 @@
           ]
         },
         {
+          "name": "angle",
+          "parameterTypes": []
+        },
+        {
           "name": "aspectRatio",
           "parameterTypes": []
         },
         {
           "name": "borderRadius",
+          "parameterTypes": []
+        },
+        {
+          "name": "distance",
           "parameterTypes": []
         },
         {

@@ -212,6 +212,8 @@ public class ConfigurationParser {
              .points(List.of())
              .x(0)
              .y(0)
+             .distance(0)
+             .angle(0)
              .rotation(0)
              .fillColor(Color.parse("#FF0000"))
              .fillOpacity(0.2)
@@ -2626,6 +2628,8 @@ public class ConfigurationParser {
             case "points" -> ModePropertyHandler.of(prefix.append("points"), v -> parsePoints(v), v -> layer.points(v));
             case "x" -> ModePropertyHandler.of(prefix.append("x"), v -> parseDouble(v, true, -10_000, 10_000), v -> layer.x(v));
             case "y" -> ModePropertyHandler.of(prefix.append("y"), v -> parseDouble(v, true, -10_000, 10_000), v -> layer.y(v));
+            case "distance" -> ModePropertyHandler.of(prefix.append("distance"), v -> parseDouble(v, true, -10_000, 10_000), v -> layer.distance(v));
+            case "angle" -> ModePropertyHandler.of(prefix.append("angle"), v -> parseDouble(v, true, -100_000, 100_000), v -> layer.angle(v));
             case "rotation" -> ModePropertyHandler.of(prefix.append("rotation"), v -> parseDouble(v, true, -100_000, 100_000), v -> layer.rotation(v));
             case "fill-color" -> ModePropertyHandler.of(prefix.append("fillColor"), v -> Color.parse(v, colorAliases), v -> layer.fillColor(v));
             case "fill-opacity" -> ModePropertyHandler.of(prefix.append("fillOpacity"), v -> parseDouble(v, true, 0, 1), v -> layer.fillOpacity(v));
