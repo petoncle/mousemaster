@@ -2030,15 +2030,21 @@ public class ConfigurationParser {
         };
     }
 
-    private static final Pattern textKeyAliasPattern = Pattern.compile("\\{([^}]*)}");
-
-    /** Replaces each {alias} with the names of the alias's keys. */
-    private static String parseText(String text, Map<String, KeyAlias> keyAliases) {
-        return textKeyAliasPattern.matcher(text).replaceAll(match -> {
-            KeyAlias keyAlias = keyAliases.get(match.group(1));
+    /** Replaces each {alias} with the names of the alias's keys, except the unresolved
+     *  placeholders, which are replaced by the keys the combo matches. */
+    private static String parseText(String text, Map<String, KeyAlias> keyAliases,
+                                    Set<String> unresolvedPlaceholders) {
+        Matcher placeholders = UnresolvedAliasComboPropertyValue.placeholderPattern.matcher(text);
+        return placeholders.replaceAll(match -> {
+            if (unresolvedPlaceholders.contains(match.group()))
+                return match.group();
+            if (!match.group(1).isEmpty())
+                throw new IllegalArgumentException("Invalid text " + text + ": " +
+                                                   match.group(2) + " is not negated by the combo");
+            KeyAlias keyAlias = keyAliases.get(match.group(2));
             if (keyAlias == null)
                 throw new IllegalArgumentException(
-                        "Invalid text " + text + ": " + match.group(1) + " is not a key alias");
+                        "Invalid text " + text + ": " + match.group(2) + " is not a key alias");
             return Matcher.quoteReplacement(
                     keyAlias.keys().stream().map(Key::name).collect(Collectors.joining(" ")));
         });
@@ -2642,7 +2648,7 @@ public class ConfigurationParser {
             case "stroke-dash-offset" -> ModePropertyHandler.of(prefix.append("stroke").append("dashOffset"), v -> parseDouble(v, true, -1_000_000, 1_000_000), v -> layer.stroke().dashOffset(v));
             case "stroke-cap" -> ModePropertyHandler.of(prefix.append("stroke").append("cap"), v -> StrokeCap.fromString(v), v -> layer.stroke().cap(v));
             case "label-enabled", "label-text", "label-font-name", "label-font-size", "label-font-color", "label-font-weight", "label-font-opacity", "label-font-outline-thickness", "label-font-outline-color", "label-font-outline-opacity", "label-font-shadow-blur-radius", "label-font-shadow-color", "label-font-shadow-opacity", "label-font-shadow-stack-count", "label-font-shadow-horizontal-offset", "label-font-shadow-vertical-offset" -> throw new IllegalArgumentException(layerName + "." + key + " has been removed: draw text with a layer of shape=text, set with text, font-name, font-size and font-weight, its fill coloring the letters and its stroke outlining them");
-            case "text" -> ModePropertyHandler.of(prefix.append("text"), v -> parseText(v, keyAliases), v -> layer.text(v));
+            case "text" -> ModePropertyHandler.of(prefix.append("text"), v -> parseText(v, keyAliases, Set.of()), v -> layer.text(v));
             case "font-name" -> ModePropertyHandler.of(prefix.append("fontName"), v -> v, v -> layer.fontName(v));
             case "font-size" -> ModePropertyHandler.of(prefix.append("fontSize"), v -> parseDouble(v, false, 0, 1000), v -> layer.fontSize(v));
             case "font-weight" -> ModePropertyHandler.of(prefix.append("fontWeight"), v -> FontWeight.of(v), v -> layer.fontWeight(v));
@@ -3173,21 +3179,15 @@ public class ConfigurationParser {
                 Object parsedValue;
                 Set<String> aliasNames = combo.sequence().aliasNames();
                 Set<String> negatedNames = combo.sequence().negatedNames();
-                List<String> valueTokens = List.of(
-                        comboPropertyValue.valueString().split(" "));
-                List<String> unresolvedNames = new ArrayList<>();
-                Set<String> unresolvedNameNegatedSet = new HashSet<>();
-                for (String token : valueTokens) {
-                    if (aliasNames.contains(token)) {
-                        unresolvedNames.add(token);
-                    }
-                    else if (token.startsWith("!") &&
-                             negatedNames.contains(token.substring(1))) {
-                        unresolvedNames.add(token.substring(1));
-                        unresolvedNameNegatedSet.add(token.substring(1));
-                    }
-                }
-                if (!unresolvedNames.isEmpty()) {
+                Set<String> unresolvedPlaceholders = new HashSet<>();
+                Matcher placeholders = UnresolvedAliasComboPropertyValue.placeholderPattern
+                        .matcher(comboPropertyValue.valueString());
+                while (placeholders.find())
+                    if (placeholders.group(1).isEmpty() ?
+                            aliasNames.contains(placeholders.group(2)) :
+                            negatedNames.contains(placeholders.group(2)))
+                        unresolvedPlaceholders.add(placeholders.group());
+                if (!unresolvedPlaceholders.isEmpty()) {
                     Map<String, AliasRemap<String>> remap =
                             comboPropertyValue.remapString() != null ?
                                     AliasRemap.stringValues(
@@ -3196,7 +3196,8 @@ public class ConfigurationParser {
                                             "mutation") :
                                     Map.of();
                     parsedValue = new UnresolvedAliasComboPropertyValue(
-                            unresolvedNames, unresolvedNameNegatedSet, remap);
+                            parseText(comboPropertyValue.valueString(), keyAliases,
+                                    unresolvedPlaceholders), remap);
                 }
                 else if (isTimeline(comboPropertyValue.valueString())) {
                     for (ModePropertyPath comboMutationPath : comboMutationPaths)

@@ -713,9 +713,9 @@ font (Apple Symbols on macOS):
 ```properties
 key-alias.typingkeys1=typingkeysandspaceandoneshotkeys
 key-alias.typingkeys2=typingkeysandspaceandoneshotkeys
-typing-mode.indicator.label-text= | #typingkeys1 -> typingkeys1 \
-  | #typingkeys1 #{-}-0-500 #typingkeys2 -> typingkeys1 typingkeys2 \
-  | #typingkeys1 #{-}-0-500 #typingkeys2 #{-}-250 -> typingkeys2
+typing-mode.text-indicator.text= | #typingkeys1 -> {typingkeys1} \
+  | #typingkeys1 #{-}-0-500 #typingkeys2 -> {typingkeys1}{typingkeys2} \
+  | #typingkeys1 #{-}-0-500 #typingkeys2 #{-}-250 -> {typingkeys2}
 ```
 
 `typingkeys1` and `typingkeys2` are the *same key list under two names*: an alias binds to one key per
@@ -725,7 +725,7 @@ collapses the pair to the latest key after 250 ms of quiet. `bigtypingkeys` (fun
 `pageup`, …) drop a point because their glyphs draw larger, with the same two-name trick.
 
 One-shot mode shows the stacked modifiers:
-`label-text= | {#*oneshotkeysandrightctrl+ #{-}-0-2000} -> oneshotkeysandrightctrl` — at least one press
+`text= | {#*oneshotkeysandrightctrl+ #{-}-0-2000} -> {oneshotkeysandrightctrl}` — at least one press
 from the expanded alias in any order, the label being the keys that matched.
 
 `hide-cursor.enabled=true` in the timeout chain, typing mode and one-shot mode drops the arrow glyph, so
