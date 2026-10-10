@@ -132,6 +132,19 @@ class IndicatorWindowImageTest {
     }
 
     @Test
+    void aBorderRadiusRoundsTheCornersOfATriangle() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        int[] inkHeights = new int[2];
+        for (int borderRadius = 0; borderRadius < 2; borderRadius++)
+            inkHeights[borderRadius] = ink(render(new IndicatorRenderer(), indicator(
+                    "idle-mode.indicator.shape=triangle", "idle-mode.indicator.size=40",
+                    "idle-mode.indicator.border-radius=" + borderRadius * 8,
+                    "idle-mode.indicator.fill-opacity=1",
+                    "idle-mode.indicator.stroke-thickness=0"), Set.of(), 500).image()).height();
+        assertTrue(inkHeights[1] < inkHeights[0], inkHeights[0] + " " + inkHeights[1]);
+    }
+
+    @Test
     void aPathKeepsTheProportionsOfItsPoints() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         Rectangle ink = ink(render(new IndicatorRenderer(), indicator(

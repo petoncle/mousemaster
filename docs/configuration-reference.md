@@ -344,7 +344,8 @@ normal-mode.indicator.rotation=45
 - **`size`**: The largest side of the shape's box, in pixels (default `26`).
 - **`aspect-ratio`**: How much wider than tall the box is (default `1`). A triangle, a star and a
   path keep the proportions of their points, which `aspect-ratio` then stretches.
-- **`border-radius`**: The radius of a rectangle's corners, in pixels (default `0`).
+- **`border-radius`**: The radius of the corners of a rectangle, a triangle, a star or a path, in
+  pixels (default `0`).
 - **`points`**: The points of a `path`, like `0,0 10,0 5,8`: at least three, spanning a width and
   a height, in any units, since they are scaled to the box.
 - **`x`** / **`y`**: An offset from the layer's position, in pixels (default `0`).
