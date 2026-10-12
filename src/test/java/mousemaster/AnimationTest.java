@@ -235,12 +235,12 @@ class AnimationTest {
 
     @Test
     void stoppingAnAnimationReleasesItsKey() {
-        load("click-animation.duration-millis=100",
-                "rest-animation.duration-millis=80",
-                "idle-mode.click-animation.start=+a",
-                "idle-mode.click-animation.stop=+b",
-                "idle-mode.rest-animation.start=-clickanimation",
-                "idle-mode.indicator.size=26 | _{restanimation} -> 30 | _{clickanimation} -> 42");
+        load("click-burst-animation.duration-millis=100",
+                "click-rest-animation.duration-millis=80",
+                "idle-mode.click-burst-animation.start=+a",
+                "idle-mode.click-burst-animation.stop=+b",
+                "idle-mode.click-rest-animation.start=-clickburstanimation",
+                "idle-mode.indicator.size=26 | _{clickrestanimation} -> 30 | _{clickburstanimation} -> 42");
         tap("a");
         tick(0.01);
         tap("b");
@@ -251,12 +251,12 @@ class AnimationTest {
     @Test
     void aWaitCanStopAnAnimationPartWay() {
         load("virtual-key.held=pressed",
-                "click-animation.duration-millis=500",
-                "rest-animation.duration-millis=80",
-                "idle-mode.click-animation.start=+a",
-                "idle-mode.click-animation.stop=_{clickanimation held} wait-250",
-                "idle-mode.rest-animation.start=-clickanimation",
-                "idle-mode.indicator.size=26 | _{restanimation} -> 30 | _{clickanimation} -> 42");
+                "click-burst-animation.duration-millis=500",
+                "click-rest-animation.duration-millis=80",
+                "idle-mode.click-burst-animation.start=+a",
+                "idle-mode.click-burst-animation.stop=_{clickburstanimation held} wait-250",
+                "idle-mode.click-rest-animation.start=-clickburstanimation",
+                "idle-mode.indicator.size=26 | _{clickrestanimation} -> 30 | _{clickburstanimation} -> 42");
         tap("a");
         tick(0.2);
         assertEquals(42, size());
@@ -266,11 +266,11 @@ class AnimationTest {
 
     @Test
     void stoppingAnAnimationThatIsNotRunningDoesNothing() {
-        load("click-animation.duration-millis=100",
-                "rest-animation.duration-millis=80",
-                "idle-mode.click-animation.stop=+b",
-                "idle-mode.rest-animation.start=-clickanimation",
-                "idle-mode.indicator.size=26 | _{restanimation} -> 30");
+        load("click-burst-animation.duration-millis=100",
+                "click-rest-animation.duration-millis=80",
+                "idle-mode.click-burst-animation.stop=+b",
+                "idle-mode.click-rest-animation.start=-clickburstanimation",
+                "idle-mode.indicator.size=26 | _{clickrestanimation} -> 30");
         tap("b");
         tick(0);
         assertEquals(26, size());
@@ -450,9 +450,9 @@ class AnimationTest {
 
     @Test
     void keyframesCanHideTheCursorForPartOfAnAnimation() {
-        load("click-animation.duration-millis=100",
-                "idle-mode.click-animation.start=+a",
-                "idle-mode.hide-cursor.enabled=false | _{clickanimation} -> 0% true; 50% false");
+        load("click-burst-animation.duration-millis=100",
+                "idle-mode.click-burst-animation.start=+a",
+                "idle-mode.hide-cursor.enabled=false | _{clickburstanimation} -> 0% true; 50% false");
         tap("a");
         assertTrue(hideCursorEnabled());
         tick(0.06);
@@ -461,9 +461,9 @@ class AnimationTest {
 
     @Test
     void keyframesCanShowTheIndicatorForPartOfAnAnimation() {
-        load("click-animation.duration-millis=100",
-                "idle-mode.click-animation.start=+a",
-                "idle-mode.indicator.enabled=false | _{clickanimation} -> 0% true; 50% false");
+        load("click-burst-animation.duration-millis=100",
+                "idle-mode.click-burst-animation.start=+a",
+                "idle-mode.indicator.enabled=false | _{clickburstanimation} -> 0% true; 50% false");
         tick(0);
         assertNull(drawn.getLast());
         tap("a");
@@ -482,9 +482,9 @@ class AnimationTest {
 
     @Test
     void currentIsTheStateABranchTookOverFromEvenIfItWasNeverDrawn() {
-        load("click-animation.duration-millis=100",
-                "idle-mode.click-animation.start=+a",
-                "idle-mode.indicator.fill-color=#FF0000 | _{clickanimation} -> 0% current | _{b} -> #00FF00");
+        load("click-burst-animation.duration-millis=100",
+                "idle-mode.click-burst-animation.start=+a",
+                "idle-mode.indicator.fill-color=#FF0000 | _{clickburstanimation} -> 0% current | _{b} -> #00FF00");
         tick(0);
         comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, Key.ofName("b")));
         tap("a");
@@ -554,27 +554,27 @@ class AnimationTest {
     @Test
     void onlyIndicatorAndHideCursorPropertiesHaveKeyframes() {
         assertThrows(IllegalArgumentException.class,
-                () -> load("click-animation.duration-millis=100",
-                        "idle-mode.mouse.max-velocity=1000 | _{clickanimation} -> 0% 1000; 100% 100"));
+                () -> load("click-burst-animation.duration-millis=100",
+                        "idle-mode.mouse.max-velocity=1000 | _{clickburstanimation} -> 0% 1000; 100% 100"));
     }
 
     @Test
     void everyGroupOfAKeyframesBranchNeedsItsAnimation() {
         assertThrows(IllegalArgumentException.class,
-                () -> load("click-animation.duration-millis=100",
-                        "idle-mode.indicator.size=26 | _{clickanimation | b} -> 0% 10; 100% 36"));
+                () -> load("click-burst-animation.duration-millis=100",
+                        "idle-mode.indicator.size=26 | _{clickburstanimation | b} -> 0% 10; 100% 36"));
         assertThrows(IllegalArgumentException.class,
-                () -> load("click-animation.duration-millis=100",
-                        "idle-mode.indicator.size=26 | _{clickanimation*b} -> 0% 10; 100% 36"));
-        load("click-animation.duration-millis=100",
-                "idle-mode.indicator.size=26 | _{clickanimation a | clickanimation b} -> 0% 10; 100% 36");
+                () -> load("click-burst-animation.duration-millis=100",
+                        "idle-mode.indicator.size=26 | _{clickburstanimation*b} -> 0% 10; 100% 36"));
+        load("click-burst-animation.duration-millis=100",
+                "idle-mode.indicator.size=26 | _{clickburstanimation a | clickburstanimation b} -> 0% 10; 100% 36");
     }
 
     @Test
     void aMacroCannotPressAnAnimation() {
         assertThrows(IllegalArgumentException.class,
-                () -> load("click-animation.duration-millis=100",
-                        "idle-mode.macro.press=+a -> #clickanimation"));
+                () -> load("click-burst-animation.duration-millis=100",
+                        "idle-mode.macro.press=+a -> #clickburstanimation"));
     }
 
 }

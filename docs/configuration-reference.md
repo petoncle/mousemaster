@@ -513,9 +513,9 @@ setting.
 An animation is a named clock, defined once for the whole configuration and started by combos:
 
 ```properties
-click-animation.duration-millis=500
-_indicator-mode.click-animation.start=+isleftmousepressing | +ismiddlemousepressing | +isrightmousepressing
-_indicator-mode.click-animation.stop=_{clickanimation ismousepressing} wait-250
+click-burst-animation.duration-millis=500
+_indicator-mode.click-burst-animation.start=+isleftmousepressing | +ismiddlemousepressing | +isrightmousepressing
+_indicator-mode.click-burst-animation.stop=_{clickburstanimation ismousepressing} wait-250
 ```
 
 - **`<name>-animation.duration-millis`**: The length of one cycle. Required.
@@ -525,18 +525,19 @@ _indicator-mode.click-animation.stop=_{clickanimation ismousepressing} wait-250
 - **`<mode>.<name>-animation.start`** / **`stop`**: The combos that start and stop it in that mode.
   Starting a running animation starts it over.
 
-While it runs, an animation reads as a pressed key named without its hyphens (`clickanimation`),
-so `_{clickanimation}` matches while it runs and `-clickanimation` when it ends or is stopped.
-A loop runs until it is stopped. An animation keeps running across mode changes, but the layers
-it animates belong to their mode. To start one on entering a mode, use `start=#{*}-0`.
+While it runs, an animation reads as a pressed key named without its hyphens
+(`clickburstanimation`), so `_{clickburstanimation}` matches while it runs and
+`-clickburstanimation` when it ends or is stopped. A loop runs until it is stopped. An animation
+keeps running across mode changes, but the layers it animates belong to their mode. To start one on
+entering a mode, use `start=#{*}-0`.
 
 A branch on an animation can give a property keyframes instead of a value:
 
 ```properties
-rest-animation.duration-millis=80
-_indicator-mode.rest-animation.start=-clickanimation
-_indicator-mode.indicator.size=26 | _{restanimation} -> 0% current; 100% 26 0.7 | _{clickanimation} -> 0% 13; 100% 78 exponential-out-10
-_indicator-mode.indicator.stroke-opacity=1 | _{clickanimation} -> 0% 1; 250ms 1; 500ms 0 0.7
+click-rest-animation.duration-millis=80
+_indicator-mode.click-rest-animation.start=-clickburstanimation
+_indicator-mode.indicator.size=26 | _{clickrestanimation} -> 0% current; 100% 26 0.7 | _{clickburstanimation} -> 0% 13; 100% 78 exponential-out-10
+_indicator-mode.indicator.stroke-opacity=1 | _{clickburstanimation} -> 0% 1; 250ms 1; 500ms 0 0.7
 ```
 
 - A keyframe is a position, a value and an optional easing. The position is a percent of the

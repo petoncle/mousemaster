@@ -1995,7 +1995,7 @@ public class ConfigurationParser {
                     Set.of(keyResolver.resolve(animationNames.getFirst())))))
             throw new IllegalArgumentException(
                     "Invalid keyframes " + value +
-                    ": the branch should name exactly one animation, like _{clickanimation}," +
+                    ": the branch should name exactly one animation, like _{clickburstanimation}," +
                     " and each of its | groups should need it");
         List<Timeline.Keyframe> keyframes = new ArrayList<>();
         for (String keyframeString : value.split("\\s*;\\s*")) {
@@ -2625,7 +2625,7 @@ public class ConfigurationParser {
         return switch (key) {
             // @formatter:off
             case "enabled" -> ModePropertyHandler.of(prefix.append("enabled"), v -> Boolean.parseBoolean(v), v -> layer.enabled(v));
-            case "fade-animation-enabled", "fade-animation-duration-millis", "transition-animation-duration-millis", "transition-animation-easing", "transition-animation-switch-at" -> throw new IllegalArgumentException(layerName + "." + key + " has been removed: animate the indicator with keyframes on an animation instead, like indicator.size=26 | _{clickanimation} -> 0% 1; 100% 78");
+            case "fade-animation-enabled", "fade-animation-duration-millis", "transition-animation-duration-millis", "transition-animation-easing", "transition-animation-switch-at" -> throw new IllegalArgumentException(layerName + "." + key + " has been removed: animate the indicator with keyframes on an animation instead, like indicator.size=26 | _{clickburstanimation} -> 0% 1; 100% 78");
             case "z" -> ModePropertyHandler.of(prefix.append("z"), v -> Integer.parseInt(v), v -> layer.z(v));
             case "color", "opacity" -> throw new IllegalArgumentException(layerName + "." + key + " has been removed: use " + layerName + ".fill-" + key + " instead");
             case "outer-outline-thickness", "outer-outline-color", "outer-outline-opacity", "outer-outline-fill-percent", "outer-outline-fill-start-angle", "outer-outline-fill-direction", "outline-thickness", "outline-color", "outline-opacity", "outline-fill-percent", "outline-fill-start-angle", "outline-fill-direction", "inner-outline-thickness", "inner-outline-color", "inner-outline-opacity", "inner-outline-fill-percent", "inner-outline-fill-start-angle", "inner-outline-fill-direction" -> throw new IllegalArgumentException(layerName + "." + key + " has been removed: an outline is the stroke of the layer (stroke-thickness, stroke-color, stroke-opacity, stroke-start-angle, stroke-length-percent, stroke-anchor), drawn centered on its edge, and a second outline is a second layer");
@@ -3133,7 +3133,7 @@ public class ConfigurationParser {
         if (defaultValue != null && isTimeline(defaultValue))
             throw new IllegalArgumentException(
                     "Invalid default value " + defaultValue +
-                    ": keyframes belong in a branch on an animation, like _{clickanimation} -> " +
+                    ": keyframes belong in a branch on an animation, like _{clickburstanimation} -> " +
                     defaultValue);
         if (defaultValue != null)
             modeBuilderSetter.accept(defaultValue);
