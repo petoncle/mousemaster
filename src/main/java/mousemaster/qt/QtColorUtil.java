@@ -62,6 +62,28 @@ public final class QtColorUtil {
                 color.direction().end(unit), QGradient.CoordinateMode.ObjectBoundingMode);
     }
 
+    private record AreaKey(GradientColor color, int alpha, Rectangle area) {
+    }
+
+    private static final Map<AreaKey, QBrush> brushByArea = new HashMap<>();
+
+    /** The sweep of qBrush(color, opacity) inside area, whatever path it paints. */
+    public static QBrush qBrush(GradientColor color, double opacity, Rectangle area) {
+        return brushByArea.computeIfAbsent(new AreaKey(color, alpha(opacity), area), key -> {
+            Rectangle unit = GradientColor.unitArea;
+            Point start = color.direction().start(unit);
+            Point end = color.direction().end(unit);
+            QBrush brush = gradientBrush(color, key.alpha(), start.x(), start.y(), end.x(),
+                    end.y(), QGradient.CoordinateMode.LogicalMode);
+            QTransform transform = new QTransform();
+            transform.translate(area.x(), area.y());
+            transform.scale(area.width(), area.height());
+            brush.setTransform(transform);
+            transform.dispose();
+            return brush;
+        });
+    }
+
     /** A round sweep takes its extent from the second point: a radius, or two semi-axes. */
     private static QGradient gradient(GradientColor color, double startX, double startY,
                                       double endX, double endY) {
@@ -148,6 +170,7 @@ public final class QtColorUtil {
     public static void clearCaches() {
         brushByRgba.clear();
         brushByGradient.clear();
+        brushByArea.clear();
         brushBySweepStep.clear();
         penByKey.clear();
         opaqueByRgba.clear();

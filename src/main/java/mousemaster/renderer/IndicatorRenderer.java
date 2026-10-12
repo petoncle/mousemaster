@@ -1044,6 +1044,15 @@ public final class IndicatorRenderer {
                     painter.drawPath(path);
                 }
                 else {
+                    if (strokeSweep != null && strokeSweep.area() == GradientArea.ELEMENT) {
+                        QRectF bounds = path.boundingRect();
+                        pen.setBrush(QtColorUtil.qBrush(strokeSweep, strokeColor.alphaF(),
+                                new Rectangle((int) Math.round(bounds.x()),
+                                        (int) Math.round(bounds.y()),
+                                        (int) Math.round(bounds.width()),
+                                        (int) Math.round(bounds.height()))));
+                        bounds.dispose();
+                    }
                     painter.setPen(pen);
                     QPainterPath strokePath = partialPath(path, width() / 2.0, height() / 2.0,
                             stroke.startAngle(), stroke.lengthPercent(), stroke.anchor());
