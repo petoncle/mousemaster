@@ -38,6 +38,8 @@ public interface Platform extends ModeListener {
 
     void requestKillProcess();
 
+    void requestRestartProcess();
+
     Clock clock();
 
     KeyboardLayout activeKeyboardLayout();

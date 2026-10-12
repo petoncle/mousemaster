@@ -85,6 +85,7 @@ public class WindowsPlatform implements Platform {
     private boolean locked;
     private ExtendedKernel32.PhandlerRoutine consoleCtrlHandler;
     private volatile boolean killProcessRequested;
+    private boolean restartProcessRequested;
     private final boolean startedWithAConsole =
             Kernel32.INSTANCE.GetConsoleWindow() != null;
     private double consoleCheckTimer;
@@ -107,6 +108,8 @@ public class WindowsPlatform implements Platform {
 
     @Override
     public void update(double delta) {
+        if (restartProcessRequested)
+            restartProcess();
         if (killProcessRequested)
             killProcess(0);
         killProcessIfConsoleIsGone(delta);
@@ -350,9 +353,25 @@ public class WindowsPlatform implements Platform {
         Kernel32.INSTANCE.TerminateProcess(Kernel32.INSTANCE.GetCurrentProcess(), exitCode);
     }
 
+    private void restartProcess() {
+        shutdown();
+        String commandLine = ExtendedKernel32.INSTANCE.GetCommandLineA()
+                                                      .replace(" " + WindowsUiAccess.respawnFlag, "");
+        if (!Kernel32.INSTANCE.CreateProcess(null, commandLine, null, null, false,
+                new WinDef.DWORD(0), null, null, new WinBase.STARTUPINFO(),
+                new WinBase.PROCESS_INFORMATION()))
+            logger.error("Unable to restart the process (error " + Native.getLastError() + ")");
+        killProcess(0);
+    }
+
     @Override
     public void requestKillProcess() {
         killProcessRequested = true;
+    }
+
+    @Override
+    public void requestRestartProcess() {
+        restartProcessRequested = true;
     }
 
     @Override
@@ -531,7 +550,7 @@ public class WindowsPlatform implements Platform {
     }
 
     private void releaseSingleInstanceMutex() {
-        Kernel32.INSTANCE.ReleaseMutex(singleInstanceMutex);
+        Kernel32.INSTANCE.CloseHandle(singleInstanceMutex);
     }
 
     private WinDef.LRESULT keyboardHookCallback(int nCode, WinDef.WPARAM wParam,

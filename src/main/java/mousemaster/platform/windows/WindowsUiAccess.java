@@ -12,13 +12,14 @@ public class WindowsUiAccess {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsUiAccess.class);
 
+    static final String respawnFlag = "--windows-ui-access-respawn=true";
+
     /**
      * Tries to get UIAccess so that the mousemaster windows can be displayed
      * on top of the Windows start menu, the Windows notifications, the Win + Tab menu, etc.
      */
     public static void checkAndTryToGetUiAccess() {
         String commandLine = ExtendedKernel32.INSTANCE.GetCommandLineA();
-        String respawnFlag = "--windows-ui-access-respawn=true";
         if (commandLine.contains(respawnFlag)) {
             if (!currentProcessHasUiAccess()) {
                 logger.error("Current process is the respawned process but still does not have UI access");

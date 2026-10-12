@@ -27,6 +27,7 @@ import mousemaster.platform.KeyboardController;
 import mousemaster.platform.MouseController;
 import mousemaster.platform.Overlay;
 import mousemaster.platform.UiAutomation;
+import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import mousemaster.Vision;
 import io.qt.core.QPoint;
@@ -46,6 +47,7 @@ import java.util.Set;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class MacosPlatform implements Platform {
 
@@ -97,6 +99,7 @@ public class MacosPlatform implements Platform {
     /** Read by the hid thread, which regrabs a released library if it misses the write. */
     private volatile boolean shutdown;
     private volatile boolean killProcessRequested;
+    private boolean restartProcessRequested;
     private FileChannel singleInstanceChannel;
 
     /** A null grabbedDeviceProduct grabs every keyboard but Karabiner's own devices. */
@@ -150,6 +153,8 @@ public class MacosPlatform implements Platform {
 
     @Override
     public void update(double delta) {
+        if (restartProcessRequested)
+            restartProcess();
         if (killProcessRequested)
             killProcess(0);
         updateGrabPaused(delta);
@@ -428,9 +433,24 @@ public class MacosPlatform implements Platform {
         Libc.INSTANCE._exit(exitCode);
     }
 
+    private void restartProcess() {
+        shutdown();
+        ProcessHandle.Info info = ProcessHandle.current().info();
+        String command = info.command().orElseThrow();
+        if (Libc.INSTANCE.execv(command, Stream.concat(Stream.of(command),
+                Stream.of(info.arguments().orElseThrow())).toArray(String[]::new)) == -1)
+            logger.error("Unable to restart the process (error " + Native.getLastError() + ")");
+        killProcess(0);
+    }
+
     @Override
     public void requestKillProcess() {
         killProcessRequested = true;
+    }
+
+    @Override
+    public void requestRestartProcess() {
+        restartProcessRequested = true;
     }
 
     @Override

@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -118,14 +119,23 @@ public class QtManager {
 
     private static void extractResourceFile(String resourcesPath, Path extractPath)
             throws IOException {
-        try (InputStream inputStream = MousemasterApplication.resourceStream(resourcesPath)) {
-            try (OutputStream outputStream = Files.newOutputStream(extractPath,
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.WRITE)) {
+        for (int attempt = 0; ; attempt++) {
+            try (InputStream inputStream = MousemasterApplication.resourceStream(resourcesPath);
+                 OutputStream outputStream = Files.newOutputStream(extractPath,
+                         StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
+                         StandardOpenOption.WRITE)) {
                 inputStream.transferTo(outputStream);
-            } catch (IOException e) {
-                // java.nio.file.FileSystemException: C:\Users\x\AppData\Local\Temp\mousemaster-110364797\qt\bin\Qt6Core.dll: The process cannot access the file because it is being used by another process
-                // logger.debug("Unable to extract resource file " + resourcesPath, e);
+                return;
+            }
+            catch (FileSystemException e) {
+                if (attempt == 100)
+                    throw e;
+            }
+            try {
+                Thread.sleep(50);
+            }
+            catch (InterruptedException e) {
+                throw new IllegalStateException(e);
             }
         }
     }

@@ -74,6 +74,8 @@ public sealed interface Command {
 
     record Exit() implements Command {}
 
+    record Restart() implements Command {}
+
     record Noop(String name) implements Command {}
 
     record SelectHintKey() implements Command {}

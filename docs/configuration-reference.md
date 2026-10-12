@@ -1510,6 +1510,7 @@ hide-console=true
   - Pressing a combo bound to the `exit` command, for example `normal-mode.exit=+leftctrl +leftalt +q`
   - Using the Task Manager to end the mousemaster.exe process
   - Using Win+R and typing: `taskkill /F /IM mousemaster.exe`
+- Pressing a combo bound to the `restart` command restarts mousemaster with the same arguments, for example `normal-mode.restart=+leftctrl +leftalt +r`
 
 ## Logging
 

@@ -290,6 +290,7 @@ public class ConfigurationParser {
                 new Property<>("break-combo-preparation", Map.of()),
                 new Property<>("break-macro", Map.of()),
                 new Property<>("exit", Map.of()),
+                new Property<>("restart", Map.of()),
                 new Property<>("macro", Map.of()),
                 new Property<>("mutate-mode", Map.of()),
                 new Property<>("set-variable", Map.of()),
@@ -1599,6 +1600,9 @@ public class ConfigurationParser {
                     childPropertiesByParentProperty, nonRootPropertyKeys);
             case "exit" -> mode.comboMap.exit.parseReferenceOr(propertyKey, propertyValue,
                     commandsByCombo -> setCommand(mode.comboMap.exit.builder, propertyValue, new Exit(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                    childPropertiesByParentProperty, nonRootPropertyKeys);
+            case "restart" -> mode.comboMap.restart.parseReferenceOr(propertyKey, propertyValue,
+                    commandsByCombo -> setCommand(mode.comboMap.restart.builder, propertyValue, new Restart(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                     childPropertiesByParentProperty, nonRootPropertyKeys);
             case "noop" -> {
                 if (keyMatcher.group(group3) == null)
@@ -3986,6 +3990,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> breakComboPreparation;
         Property<Map<Combo, List<Command>>> breakMacro;
         Property<Map<Combo, List<Command>>> exit;
+        Property<Map<Combo, List<Command>>> restart;
         Property<Map<Combo, List<Command>>> macro;
         Property<Map<Combo, List<Command>>> mutateMode;
         Property<Map<Combo, List<Command>>> noop;
@@ -4019,6 +4024,7 @@ public class ConfigurationParser {
             breakComboPreparation = new ComboMapProperty("break-combo-preparation", modeName, propertyByKey);
             breakMacro = new ComboMapProperty("break-macro", modeName, propertyByKey);
             exit = new ComboMapProperty("exit", modeName, propertyByKey);
+            restart = new ComboMapProperty("restart", modeName, propertyByKey);
             macro = new ComboMapProperty("macro", modeName, propertyByKey);
             mutateMode = new ComboMapProperty("mutate-mode", modeName, propertyByKey);
             noop = new ComboMapProperty("noop", modeName, propertyByKey);
@@ -4109,6 +4115,7 @@ public class ConfigurationParser {
             add(commandsByCombo, breakComboPreparation.builder);
             add(commandsByCombo, breakMacro.builder);
             add(commandsByCombo, exit.builder);
+            add(commandsByCombo, restart.builder);
             add(commandsByCombo, macro.builder);
             add(commandsByCombo, mutateMode.builder);
             add(commandsByCombo, noop.builder);

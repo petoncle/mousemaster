@@ -110,6 +110,7 @@ public class CommandRunner {
             case BreakMacro breakMacro -> macroPlayer.breakMacro();
 
             case Exit exit -> platform.requestKillProcess();
+            case Restart restart -> platform.requestRestartProcess();
 
             case Noop noop -> {}
 
