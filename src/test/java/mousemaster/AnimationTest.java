@@ -494,6 +494,23 @@ class AnimationTest {
     }
 
     @Test
+    void currentIsTheLeftModeStateThroughTheFirstFrameOfAModeThatHidesTheIndicator() {
+        load("out-animation.duration-millis=100",
+                "idle-mode.to.normal-mode=+x",
+                "normal-mode.indicator.fill-color=#00FFFF",
+                "idle-mode.out-animation.start=#{*}-0",
+                "idle-mode.indicator.enabled=false | _{outanimation} -> true",
+                "idle-mode.indicator.fill-color=#FF0000 | _{outanimation} -> 0% current");
+        comboWatcher.modeChanged(modeMap.get("normal-mode"));
+        tick(0);
+        assertEquals(Color.parse("#00FFFF"), drawn.getLast().fillColor());
+        comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
+        indicatorManager.update();
+        tick(0);
+        assertEquals(Color.parse("#00FFFF"), drawn.getLast().fillColor());
+    }
+
+    @Test
     void currentIsTheLayersOwnValueWhenTheModeItCameFromHasNoSuchLayer() {
         load("ripple-animation.duration-millis=100",
                 "ripple-animation.repeat=loop",

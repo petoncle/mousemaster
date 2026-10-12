@@ -43,7 +43,8 @@ public class IndicatorManager implements ModeListener {
     }
 
     /** The mode being left is resolved too: a state that lasts less than a frame is what
-     *  current is taken from when a branch takes over from it. */
+     *  current is taken from when a branch takes over from it. A hidden indicator keeps the
+     *  last state it was shown in. */
     @Override
     public void modeChanged(Mode newMode) {
         if (currentMode != null)
@@ -54,7 +55,8 @@ public class IndicatorManager implements ModeListener {
     private IndicatorConfiguration resolve() {
         updateTimelines();
         IndicatorConfiguration indicator = withTimelines(currentMode.indicator());
-        resolvedIndicator = indicator.enabled() ? indicator : null;
+        if (indicator.enabled())
+            resolvedIndicator = indicator;
         Set<String> previousAnchoredLayerNames = Set.copyOf(anchoredLayerNames);
         anchoredLayerNames.clear();
         for (Map.Entry<String, IndicatorLayerConfiguration> entry : indicator.layerByName()
