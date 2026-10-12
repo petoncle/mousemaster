@@ -1276,14 +1276,16 @@ public class ComboWatcher {
                                                    .pressedKeyPrecondition();
         // If the combo has a leading wait, keys ignored by that wait
         // could have been pressed before the combo started. Remove them
-        // from candidates since they are unrelated to this combo.
+        // from candidates since they are unrelated to this combo, unless
+        // the precondition names them.
         WaitComboMove leadingWait = null;
         if (!combo.sequence().isEmpty() &&
             combo.sequence().moveSets().getFirst() instanceof WaitMoveSet leadingWaitMoveSet)
             leadingWait = leadingWaitMoveSet.waitMove();
         // If the combo has a trailing wait, keys ignored by that wait
         // could have been pressed during the wait period. Remove them
-        // from candidates since they are unrelated to this combo.
+        // from candidates since they are unrelated to this combo, unless
+        // the precondition names them.
         WaitComboMove trailingWait = null;
         if (!combo.sequence().isEmpty() &&
             combo.sequence().moveSets().getLast() instanceof WaitMoveSet trailingWaitMoveSet)
@@ -1298,9 +1300,11 @@ public class ComboWatcher {
             // Remove keys that were absorbed by a wait (pressed during the wait, not before).
             candidatePressedPreconditionKeys.removeAll(absorbedPressedKeys);
             if (leadingWait != null)
-                removeIgnoredPressedKeys(leadingWait, candidatePressedPreconditionKeys);
+                removeIgnoredPressedKeys(leadingWait, candidatePressedPreconditionKeys,
+                        allGroupKeys);
             if (trailingWait != null)
-                removeIgnoredPressedKeys(trailingWait, candidatePressedPreconditionKeys);
+                removeIgnoredPressedKeys(trailingWait, candidatePressedPreconditionKeys,
+                        allGroupKeys);
             // Remove completed combo keys that are NOT in allGroupKeys.
             for (Key completedKey : currentlyPressedCompletedComboKeys) {
                 if (!allGroupKeys.contains(completedKey))
@@ -1745,16 +1749,18 @@ public class ComboWatcher {
     }
 
     /**
-     * Removes pressed keys from candidates based on the wait move type.
+     * Removes pressed keys from candidates based on the wait move type, keeping the group's keys.
      * KeyWaitComboMove: removes keys in the ignored key set.
      * PressWaitComboMove: all presses are ignored, so remove all candidates.
      * ReleaseWaitComboMove: only releases are ignored, pressed keys are fine.
      */
-    private static void removeIgnoredPressedKeys(WaitComboMove waitMove, Set<Key> candidates) {
+    private static void removeIgnoredPressedKeys(WaitComboMove waitMove, Set<Key> candidates,
+                                                 Set<Key> groupKeys) {
         switch (waitMove) {
             case WaitComboMove.KeyWaitComboMove kwm ->
-                candidates.removeIf(kwm.ignoredKeySet()::contains);
-            case WaitComboMove.PressWaitComboMove ignored -> candidates.clear();
+                candidates.removeIf(key -> kwm.ignoredKeySet().contains(key) &&
+                                           !groupKeys.contains(key));
+            case WaitComboMove.PressWaitComboMove ignored -> candidates.retainAll(groupKeys);
             case WaitComboMove.ReleaseWaitComboMove ignored -> {} // no-op
         }
     }
