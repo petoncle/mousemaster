@@ -142,4 +142,27 @@ class CompletedComboRerunTest {
         twoTaps.addAll(TAP);
         assertEquals(twoTaps, middleButtonCommands());
     }
+
+    /** A wait that ignores every key runs once per entry into its mode: no key starts it again. */
+    @Test
+    void aWaitIgnoringEveryKeyRunsOncePerModeEntry() {
+        load("idle-mode.to.normal-mode=+e",
+                "normal-mode.to.idle-mode=+q",
+                "normal-mode.press.middle=#{*}-0",
+                "normal-mode.release.middle=+j");
+        tap("e");
+        tick(10);
+        tap("j");
+        tick(10);
+        tap("k");
+        tick(10);
+        assertEquals(TAP, middleButtonCommands());
+
+        tap("q");
+        tick(10);
+        tap("e");
+        tick(10);
+        assertEquals(List.of(new Command.PressMiddle(), new Command.ReleaseMiddle(),
+                new Command.PressMiddle()), middleButtonCommands());
+    }
 }

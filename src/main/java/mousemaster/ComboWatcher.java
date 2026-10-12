@@ -408,7 +408,7 @@ public class ComboWatcher {
                 preparationIsNotPrefixAnymore = true;
                 comboPreparation = ComboPreparation.empty();
                 leadingWaitBeginTimeByCombo.clear();
-                combosBlockedFromRerunningCommand.clear();
+                combosBlockedFromRerunningCommand.removeIf(combo -> !combo.sequence().allWaitMoveSets());
                 lastProcessingSet = null;
             }
         }
@@ -675,7 +675,7 @@ public class ComboWatcher {
                 !previousComboMoveDuration.satisfied(previousEvent.time(), event.time())) {
                 comboPreparation = ComboPreparation.empty();
                 clearLeadingWaitBeginTimesExceptIgnored(event);
-                combosBlockedFromRerunningCommand.clear();
+                combosBlockedFromRerunningCommand.removeIf(combo -> !combo.sequence().allWaitMoveSets());
             }
         }
         comboPreparation.events().add(event);
@@ -720,7 +720,7 @@ public class ComboWatcher {
                 !virtualKeys.contains(event.key())) {
                 comboPreparation = ComboPreparation.empty();
                 clearLeadingWaitBeginTimesExceptIgnored(event);
-                combosBlockedFromRerunningCommand.clear();
+                combosBlockedFromRerunningCommand.removeIf(combo -> !combo.sequence().allWaitMoveSets());
             }
             // Check if the event is ignored by a leading wait in any combo.
             // Track whether at least one such wait eats events (+{...}).
@@ -1598,7 +1598,7 @@ public class ComboWatcher {
         comboPreparation = ComboPreparation.empty();
         combosWaitingForLastMoveToComplete.clear();
         leadingWaitBeginTimeByCombo.clear();
-        combosBlockedFromRerunningCommand.clear();
+        combosBlockedFromRerunningCommand.removeIf(combo -> !combo.sequence().allWaitMoveSets());
         lastEventTimeByKey.clear();
         lastPressEventTime = null;
         lastReleaseEventTime = null;
