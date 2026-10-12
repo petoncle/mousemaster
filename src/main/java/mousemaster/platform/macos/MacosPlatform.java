@@ -11,6 +11,7 @@ import mousemaster.Screen;
 import mousemaster.KeyboardLayout;
 import mousemaster.HintMeshConfiguration;
 import mousemaster.KeyboardManager;
+import mousemaster.MacroPlayer;
 import mousemaster.Mode;
 import mousemaster.ModeMap;
 import mousemaster.MouseManager;
@@ -73,8 +74,10 @@ public class MacosPlatform implements Platform {
     /** An event no key maps to, a media key for instance, which is passed on as it is. */
     private final LinkedBlockingDeque<Driverkit.DKEvent> unmappedEventQueue =
             new LinkedBlockingDeque<>();
+    private MouseManager mouseManager;
     private KeyboardManager keyboardManager;
     private KeyRegurgitator keyRegurgitator;
+    private MacroPlayer macroPlayer;
     private KeyRedactor keyRedactor;
     private boolean logLastKeyEventsOnExit;
     private List<MousePositionListener> mousePositionListeners;
@@ -234,7 +237,8 @@ public class MacosPlatform implements Platform {
 
     @Override
     public void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
-                      KeyRegurgitator keyRegurgitator, KeyRedactor keyRedactor,
+                      KeyRegurgitator keyRegurgitator, MacroPlayer macroPlayer,
+                      KeyRedactor keyRedactor,
                       boolean logLastKeyEventsOnExit,
                       ModeMap newModeMap, ZoomManager zoomManager,
                IndicatorManager indicatorManager,
@@ -243,8 +247,10 @@ public class MacosPlatform implements Platform {
                       KeyboardLayout activeKeyboardLayout) {
         // The first call after Qt exists and before any overlay window is shown.
         MacosWindow.makeAccessoryApplication();
+        this.mouseManager = mouseManager;
         this.keyboardManager = keyboardManager;
         this.keyRegurgitator = keyRegurgitator;
+        this.macroPlayer = macroPlayer;
         this.keyRedactor = keyRedactor;
         this.logLastKeyEventsOnExit = logLastKeyEventsOnExit;
         this.zoomManager = zoomManager;
@@ -394,6 +400,11 @@ public class MacosPlatform implements Platform {
         if (shutdown)
             return;
         shutdown = true;
+        // Null when the configuration failed to load.
+        if (macroPlayer != null) {
+            macroPlayer.breakMacro();
+            mouseManager.releaseAll();
+        }
         if (grabbed) {
             Driverkit.INSTANCE.release();
             logger.info("Released the keyboard");
@@ -406,7 +417,6 @@ public class MacosPlatform implements Platform {
                 throw new UncheckedIOException(e);
             }
         }
-        // Null when the configuration failed to load.
         if (logLastKeyEventsOnExit && keyboardManager != null)
             logger.info("Last key events: " +
                         keyRedactor.keyEventAndEatens(keyboardManager.lastKeyEvents()));

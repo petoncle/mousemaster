@@ -556,7 +556,7 @@ public class MouseManager implements ModeListener, MousePositionListener {
         rightPressing = false;
     }
 
-    private void releaseAll() {
+    public void releaseAll() {
         releaseLeft();
         releaseMiddle();
         releaseRight();

@@ -277,8 +277,8 @@ public class Mousemaster {
         commandRunner.setMacroPlayer(macroPlayer);
         hintManager.setModeController(modeController);
         modeController.switchMode(Mode.IDLE_MODE_NAME);
-        platform.reset(mouseManager, keyboardManager, keyRegurgitator, keyRedactor,
-                configuration.logLastKeyEventsOnExit(),
+        platform.reset(mouseManager, keyboardManager, keyRegurgitator, macroPlayer,
+                keyRedactor, configuration.logLastKeyEventsOnExit(),
                 configuration.modeMap(),
                 zoomManager,
                 indicatorManager,

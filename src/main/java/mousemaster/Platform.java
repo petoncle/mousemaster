@@ -18,7 +18,8 @@ public interface Platform extends ModeListener {
     void sleep() throws InterruptedException;
 
     void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
-               KeyRegurgitator keyRegurgitator, KeyRedactor keyRedactor,
+               KeyRegurgitator keyRegurgitator, MacroPlayer macroPlayer,
+               KeyRedactor keyRedactor,
                boolean logLastKeyEventsOnExit,
                ModeMap modeMap,
                ZoomManager zoomManager,

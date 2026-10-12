@@ -44,6 +44,7 @@ public class WindowsPlatform implements Platform {
     private MouseManager mouseManager;
     private KeyboardManager keyboardManager;
     private KeyRegurgitator keyRegurgitator;
+    private MacroPlayer macroPlayer;
     private KeyRedactor keyRedactor;
     private boolean logLastKeyEventsOnExit;
     private List<MousePositionListener> mousePositionListeners;
@@ -176,7 +177,8 @@ public class WindowsPlatform implements Platform {
 
     @Override
     public void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
-                      KeyRegurgitator keyRegurgitator, KeyRedactor keyRedactor,
+                      KeyRegurgitator keyRegurgitator, MacroPlayer macroPlayer,
+                      KeyRedactor keyRedactor,
                       boolean logLastKeyEventsOnExit,
                       ModeMap newModeMap,
                       ZoomManager zoomManager,
@@ -195,6 +197,7 @@ public class WindowsPlatform implements Platform {
         this.mouseManager = mouseManager;
         this.keyboardManager = keyboardManager;
         this.keyRegurgitator = keyRegurgitator;
+        this.macroPlayer = macroPlayer;
         this.keyRedactor = keyRedactor;
         this.logLastKeyEventsOnExit = logLastKeyEventsOnExit;
         this.zoomManager = zoomManager;
@@ -352,6 +355,11 @@ public class WindowsPlatform implements Platform {
         if (shutdown)
             return;
         shutdown = true;
+        // Null when the configuration failed to load.
+        if (macroPlayer != null) {
+            macroPlayer.breakMacro();
+            mouseManager.releaseAll();
+        }
         mouse.showCursor(); // Just in case we are shutting down while cursor is hidden.
         boolean keyboardHookUnhooked =
                 User32.INSTANCE.UnhookWindowsHookEx(keyboardHook);
@@ -361,7 +369,6 @@ public class WindowsPlatform implements Platform {
                 (keyboardHookUnhooked && mouseHookUnhooked ? "successfully" : "unsuccessfully"));
         releaseSingleInstanceMutex();
         logger.trace("Released single instance mutex");
-        // Null when the configuration failed to load.
         if (logLastKeyEventsOnExit && keyboardManager != null)
             logger.info("Last key events: " +
                         keyRedactor.keyEventAndEatens(keyboardManager.lastKeyEvents()));
