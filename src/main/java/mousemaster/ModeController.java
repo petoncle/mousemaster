@@ -44,6 +44,10 @@ public class ModeController {
         comboWatcher.updateBuiltInVirtualKeys(mouseState, keyboardState);
     }
 
+    public Mode currentMode() {
+        return currentMode;
+    }
+
     public void update(double delta) {
         hintManager.completePendingUiHintQuery();
         Mode mutatedMode = comboWatcher.getMutatedMode();

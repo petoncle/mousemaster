@@ -89,12 +89,16 @@ public class Mousemaster {
             platform.pumpEvents();
             timeBeforeOp = System.nanoTime();
             pumpEventsNanos += timeBeforeOp - timeAfterOp;
+            Mode modeBeforeKeyboardUpdate = modeController.currentMode();
             keyboardManager.update(delta);
             timeAfterOp = System.nanoTime();
             long keyboardManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();
             timeBeforeOp = System.nanoTime();
             pumpEventsNanos += timeBeforeOp - timeAfterOp;
+            // A mode switched to runs its entry combos before it is rendered.
+            if (modeController.currentMode() != modeBeforeKeyboardUpdate)
+                keyboardManager.update(0);
             modeController.updateBuiltInVirtualKeys();
             if (!hintManager.waitingForUiElements())
                 indicatorManager.update(delta);
