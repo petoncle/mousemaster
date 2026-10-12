@@ -351,6 +351,11 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
+    public void requestKillProcess() {
+        killProcessRequested = true;
+    }
+
+    @Override
     public void shutdown() {
         if (shutdown)
             return;

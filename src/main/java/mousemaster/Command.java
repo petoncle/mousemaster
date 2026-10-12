@@ -72,6 +72,8 @@ public sealed interface Command {
 
     record BreakMacro() implements Command {}
 
+    record Exit() implements Command {}
+
     record Noop(String name) implements Command {}
 
     record SelectHintKey() implements Command {}

@@ -8,13 +8,15 @@ public class CommandRunner {
     private final MouseManager mouseManager;
     private final GridManager gridManager;
     private final HintManager hintManager;
+    private final Platform platform;
     private MacroPlayer macroPlayer;
 
     public CommandRunner(MouseManager mouseManager, GridManager gridManager,
-                         HintManager hintManager) {
+                         HintManager hintManager, Platform platform) {
         this.mouseManager = mouseManager;
         this.gridManager = gridManager;
         this.hintManager = hintManager;
+        this.platform = platform;
     }
 
     public void setModeController(ModeController modeController) {
@@ -106,6 +108,8 @@ public class CommandRunner {
             case ResetVariables resetVariables -> {}
 
             case BreakMacro breakMacro -> macroPlayer.breakMacro();
+
+            case Exit exit -> platform.requestKillProcess();
 
             case Noop noop -> {}
 

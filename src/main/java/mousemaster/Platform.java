@@ -36,6 +36,8 @@ public interface Platform extends ModeListener {
      */
     void killProcess(int exitCode);
 
+    void requestKillProcess();
+
     Clock clock();
 
     KeyboardLayout activeKeyboardLayout();

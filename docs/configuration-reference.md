@@ -1507,6 +1507,7 @@ hide-console=true
 
 - When the console window is hidden, you won't see any error messages or logs
 - If the console is hidden, you can stop mousemaster by:
+  - Pressing a combo bound to the `exit` command, for example `normal-mode.exit=+leftctrl +leftalt +q`
   - Using the Task Manager to end the mousemaster.exe process
   - Using Win+R and typing: `taskkill /F /IM mousemaster.exe`
 

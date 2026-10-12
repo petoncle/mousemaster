@@ -429,6 +429,11 @@ public class MacosPlatform implements Platform {
     }
 
     @Override
+    public void requestKillProcess() {
+        killProcessRequested = true;
+    }
+
+    @Override
     public Clock clock() {
         return clock;
     }

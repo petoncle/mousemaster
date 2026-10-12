@@ -228,7 +228,7 @@ public class Mousemaster {
                         screenManager, mouseManager, platform.overlay(),
                         platform.uiAutomation(), platform.activeAppFinder(),
                         keyRedactor, platform.vision());
-        commandRunner = new CommandRunner(mouseManager, gridManager, hintManager);
+        commandRunner = new CommandRunner(mouseManager, gridManager, hintManager, platform);
         Set<Key> unpressedComboPreconditionKeys = new HashSet<>();
         Set<Key> pressedComboPreconditionKeys = new HashSet<>();
         for (Mode mode : configuration.modeMap().modes()) {
