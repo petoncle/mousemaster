@@ -65,8 +65,8 @@ _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the
 
 - The same chord works whether mousemaster is activated or not, so the hints are one chord
 away from ordinary typing.
-- Display labels on interactive UI elements (buttons, links, etc.) of the active window.
-- Select a hint to move the mouse to that UI element, and go to normal mode, where _;_ clicks it.
+- Display labels on what stands out in the active window (buttons, links, icons, text, etc.).
+- Select a hint to move the mouse to that element, and go to normal mode, where _;_ clicks it.
 - Undo an accidental key press with _backspace_.
 - Go back with _esc_ or _backspace_, to the mode the hints were opened from: opening them
 while mousemaster is disabled leaves it disabled.

@@ -79,7 +79,7 @@ Each sub-grid row is one keyboard row, left hand then right.
 
 https://github.com/user-attachments/assets/91eef554-bf68-44a7-8d16-5e4d5d353fe0
 
-Labels appear on the active window's clickable elements (buttons, links, …).
+Labels appear on what stands out in the active window (buttons, links, icons, text, …).
 
 - Type a label (`q a s d f g h j k l`) to warp the cursor onto that element.
 - `Backspace` undoes a keystroke; `Esc` or `Backspace` exits.
