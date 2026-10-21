@@ -447,12 +447,14 @@ public class WindowsOverlay implements Overlay {
         if (renderAsCursor)
             setIndicatorCursor(following, animating, includeOriginalCursor, mousePosition);
         else {
+            setIndicatorWindow(followingIndicatorWindow, following, Set.of(), mousePosition);
             if (indicatorIsCursor) {
+                // The cursor changes on the next refresh, the window once it is composited.
+                Dwmapi.INSTANCE.DwmFlush();
                 mouse.showCursor();
                 indicatorIsCursor = false;
                 currentCursorIndicator = null;
             }
-            setIndicatorWindow(followingIndicatorWindow, following, Set.of(), mousePosition);
         }
         setIndicatorWindow(anchoredIndicatorWindow, anchored, layerNamesToAnchor,
                 mousePosition);
