@@ -42,6 +42,14 @@ public class VisionTest {
         return pen;
     }
 
+    private static BufferedImage captured(BufferedImage drawn) {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        image.getGraphics().drawImage(
+                drawn.getScaledInstance(width, height, Image.SCALE_AREA_AVERAGING), 0, 0,
+                null);
+        return image;
+    }
+
     private static List<UiElement> elements(BufferedImage image, int density) {
         return elements(image, 1, density);
     }
@@ -210,11 +218,33 @@ public class VisionTest {
         pen.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 39));
         pen.drawString("past", 300, 450);
         pen.dispose();
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        image.getGraphics().drawImage(
-                drawn.getScaledInstance(width, height, Image.SCALE_AREA_AVERAGING), 0, 0,
-                null);
-        assertEquals(0, elements(image, 3, 1).size());
+        assertEquals(0, elements(captured(drawn), 3, 1).size());
+    }
+
+    @Test
+    public void faintCardOutlineIsNotHintedAtAnyDensity() {
+        BufferedImage drawn = new BufferedImage(3 * width, 3 * height,
+                BufferedImage.TYPE_INT_RGB);
+        Graphics2D pen = pen(drawn);
+        pen.setColor(new Color(0x0D1117));
+        pen.fillRect(0, 0, 3 * width, 3 * height);
+        pen.setColor(new Color(0x3D444D));
+        pen.fillRoundRect(120, 300, 960, 186, 36, 36);
+        pen.setColor(new Color(0x0D1117));
+        pen.fillRoundRect(123, 303, 954, 180, 30, 30);
+        pen.setColor(new Color(0xF0F6FC));
+        pen.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 48));
+        pen.drawString("Native dialogs on Windows", 180, 384);
+        pen.dispose();
+        BufferedImage image = captured(drawn);
+        for (int density = 1; density <= Vision.densities; density++) {
+            List<UiElement> elements = elements(image, 3, density);
+            assertEquals(0, within(elements, 114, 294, 129, 492)
+                            + within(elements, 1071, 294, 1086, 492)
+                            + within(elements, 114, 294, 1086, 309)
+                            + within(elements, 114, 477, 1086, 492),
+                    "density " + density);
+        }
     }
 
     @Test

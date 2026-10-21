@@ -28,6 +28,8 @@ public class XyCut {
                             Rectangle box, double maximumElementArea,
                             int minimumGapColumns, int depth, List<Rectangle> out) {
         List<Rectangle> rows = cutAtProfileValleys(inkTable, box, false, minimumGapColumns);
+        if (rows.isEmpty())
+            return;
         if (rows.size() > 1 && depth < maximumCutDepth) {
             for (Rectangle row : rows)
                 cut(ink, inkTable, width, row, maximumElementArea, minimumGapColumns,
@@ -36,6 +38,8 @@ public class XyCut {
         }
         Rectangle tightened = rows.size() == 1 ? rows.getFirst() : box;
         List<Rectangle> columns = cutAtProfileValleys(inkTable, tightened, true, minimumGapColumns);
+        if (columns.isEmpty())
+            return;
         if (columns.size() > 1 && depth < maximumCutDepth) {
             for (Rectangle column : columns)
                 cut(ink, inkTable, width, column, maximumElementArea, minimumGapColumns,
