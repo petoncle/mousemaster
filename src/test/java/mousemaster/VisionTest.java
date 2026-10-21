@@ -9,6 +9,7 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.util.List;
@@ -18,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class VisionTest {
 
     private static final int density = Vision.densities;
-    private static final int defaultDensity = 5;
+    private static final int defaultDensity = 6;
 
     private static final int width = 400, height = 300;
 
@@ -42,6 +43,10 @@ public class VisionTest {
     }
 
     private static List<UiElement> elements(BufferedImage image, int density) {
+        return elements(image, 1, density);
+    }
+
+    private static List<UiElement> elements(BufferedImage image, int scale, int density) {
         byte[] rgb = new byte[width * height * 3];
         for (int y = 0, i = 0; y < height; y++)
             for (int x = 0; x < width; x++) {
@@ -51,8 +56,8 @@ public class VisionTest {
                 rgb[i++] = (byte) pixel;
             }
         return new Vision(null).findElements(
-                new DesktopCapture(new Rectangle(0, 0, width, height), rgb, width,
-                        height), 1, density);
+                new DesktopCapture(new Rectangle(0, 0, width * scale, height * scale), rgb,
+                        width, height), scale, density);
     }
 
     private static long within(List<UiElement> elements, int x, int y, int right,
@@ -177,6 +182,39 @@ public class VisionTest {
             int scanned = density;
             assertDoesNotThrow(() -> elements(image, scanned), "density " + scanned);
         }
+    }
+
+    @Test
+    public void firstDensityHintsAFaintButtonButNotTheTextBesideIt() {
+        BufferedImage image = screen(Color.BLACK);
+        Graphics2D pen = pen(image);
+        pen.setColor(new Color(0x0E100E));
+        pen.drawRoundRect(40, 100, 90, 32, 12, 12);
+        pen.setColor(new Color(0xF0F6FC));
+        pen.drawString("Sign in", 60, 122);
+        pen.drawString("Assigned to me", 180, 122);
+        pen.dispose();
+        List<UiElement> elements = elements(image, 1);
+        assertEquals(1, within(elements, 40, 100, 130, 132), "the button");
+        assertEquals(0, within(elements, 180, 100, 360, 132), "the text");
+    }
+
+    @Test
+    public void capturedWordAloneIsLeftOutAtTheFirstDensity() {
+        BufferedImage drawn = new BufferedImage(3 * width, 3 * height,
+                BufferedImage.TYPE_INT_RGB);
+        Graphics2D pen = pen(drawn);
+        pen.setColor(new Color(0xF6F6EF));
+        pen.fillRect(0, 0, 3 * width, 3 * height);
+        pen.setColor(new Color(0x828282));
+        pen.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 39));
+        pen.drawString("past", 300, 450);
+        pen.dispose();
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        image.getGraphics().drawImage(
+                drawn.getScaledInstance(width, height, Image.SCALE_AREA_AVERAGING), 0, 0,
+                null);
+        assertEquals(0, elements(image, 3, 1).size());
     }
 
     @Test

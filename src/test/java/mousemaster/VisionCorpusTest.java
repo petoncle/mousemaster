@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class VisionCorpusTest {
 
-    private static final int density = 5;
+    private static final int density = 6;
 
     private static final double scale = 3;
     private static final String[] screens =

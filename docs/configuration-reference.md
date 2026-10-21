@@ -708,7 +708,7 @@ knowing what an element is.
 ```properties
 ui-hint-mode.hint.type=ui-vision
 ui-hint-mode.hint.ui-area=active-screen
-ui-hint-mode.hint.vision-density=5
+ui-hint-mode.hint.vision-density=6
 ```
 
 Vision UI hints read the same **`ui-area`** as accessibility UI hints, and share every
@@ -716,18 +716,21 @@ selection, click and appearance property with them. Detection runs off the keybo
 mousemaster stays responsive while a scan is in progress, and `ishintmeshempty` is pressed when
 a scan finds nothing, exactly as for accessibility UI hints.
 
-- **`vision-density`**: How hard the detection looks, 1 to 7 (default 5). A higher value gives
+- **`vision-density`**: How hard the detection looks, 1 to 8 (default 6). A higher value gives
   more hints, on smaller things. It only applies to `hint.type=ui-vision`, and setting it on
   another hint type is rejected.
-  - 1 to 6 look for **bounded regions** — a button, a field, a panel. Each step accepts a
+  - 1 leaves **plain text** out: it hints only what the ink draws without a gap (an icon, a
+    filled button, a checkbox, a picture) or what a border surrounds on every side (a field,
+    an outlined button).
+  - 2 to 7 look for **bounded regions** — a button, a field, a panel. Each step accepts a
     narrower margin between a region's border and what it encloses, so it finds what the step
     before it was too strict for. A region is parted where its ink changes colour, so a link
     in a sentence, or grey text beside black, gets a hint of its own.
-  - 7 looks at the **ink** itself, parted at its gaps, so a line of text yields a hint per
+  - 8 looks at the **ink** itself, parted at its gaps, so a line of text yields a hint per
     word rather than one per line.
 
   A hint means something was drawn there, not that it can be clicked: on a page of prose, most
-  of the labels at density 5 land on body text. Lower the density when the labels crowd what
+  of the labels at density 6 land on body text. Lower the density when the labels crowd what
   you are reading, raise it when something clickable goes unhinted.
 
 On macOS the capture asks for the Screen Recording permission the first time a scan runs;

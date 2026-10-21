@@ -12,6 +12,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -49,9 +50,10 @@ public class Vision {
     private static final int narrowestEdgeMargin = 1;
     private static final int edgeSteps = widestEdgeMargin - narrowestEdgeMargin + 1;
     private static final int verticalEdgeMargin = 1;
+    private static final int firstDensityEdgeMargin = 4;
     private static final int inkGap = 3;
-    /** One for each edge margin, then one for the ink. */
-    static final int densities = edgeSteps + 1;
+    /** Plain text left out, one for each edge margin, then one for the ink. */
+    static final int densities = edgeSteps + 2;
     private static final String dumpPath = System.getProperty("vision.dump");
 
     private final Overlay overlay;
@@ -109,8 +111,9 @@ public class Vision {
     List<UiElement> findElements(DesktopCapture capture, double scale, int density) {
         int width = capture.scaledWidth();
         int height = capture.scaledHeight();
-        // The edge margin narrows, then the ink parts at its gaps.
-        int step = density - 1;
+        // Plain text left out, then the edge margin narrows, then the ink parts at its gaps.
+        int step = Math.max(density - 2, 0);
+        int edgeMargin = density == 1 ? firstDensityEdgeMargin : widestEdgeMargin - step;
         List<Rectangle> boxes;
         if (step < edgeSteps) {
             List<List<Rectangle>> byMidpoint =
@@ -118,8 +121,7 @@ public class Vision {
                              .parallel()
                              .mapToObj(midpoint -> boundedRegions(capture.scaledRgb(),
                                      width, height, scale,
-                                     widestEdgeMargin - step, verticalEdgeMargin,
-                                     midpoint))
+                                     edgeMargin, verticalEdgeMargin, midpoint))
                              .toList();
             boxes = new ArrayList<>(byMidpoint.getFirst());
             // A lighter midpoint answers only where the first one found nothing.
@@ -127,6 +129,11 @@ public class Vision {
                 for (Rectangle region : byMidpoint.get(midpoint))
                     if (boxes.stream().noneMatch(box -> box.contains(region)))
                         boxes.add(region);
+            if (density == 1)
+                boxes = boxes.parallelStream()
+                             .filter(box -> isGaplessOrBordered(capture.scaledRgb(), width,
+                                 height, box))
+                             .collect(Collectors.toCollection(ArrayList::new));
         }
         else
             boxes = inkBoxes(capture.scaledRgb(), width, height, inkGap);
@@ -211,6 +218,68 @@ public class Vision {
                     bounded.add(part);
         }
         return bounded;
+    }
+
+    /** Ink without a gap, as an icon or a filled button draws, or a border on every side.
+     *  A column under half the strongest is a gap: antialiasing only blurs a word's. */
+    private static boolean isGaplessOrBordered(byte[] rgb, int width, int height,
+                                               Rectangle part) {
+        int background = cornerBackground(rgb, width, height, part);
+        if (background < 0)
+            return false;
+        int[] distances = new int[part.width()];
+        for (int column = 0; column < part.width(); column++)
+            for (int y = part.y(); y < part.y() + part.height(); y++)
+                distances[column] = Math.max(distances[column],
+                        distance(color(rgb, width, part.x() + column, y), background));
+        int strongest = Arrays.stream(distances).max().orElse(0);
+        int runs = 0;
+        boolean inked = false;
+        for (int distance : distances) {
+            boolean ink = isInk(distance) && distance * 2 >= strongest;
+            if (ink && !inked)
+                runs++;
+            inked = ink;
+        }
+        return runs == 1
+               || isBorder(rgb, width, height, part, background, 0, -1)
+                  && isBorder(rgb, width, height, part, background, 0, 1)
+                  && isBorder(rgb, width, height, part, background, -1, 0)
+                  && isBorder(rgb, width, height, part, background, 1, 0);
+    }
+
+    /** Whether the nearest ink on that side of the part is a line along all of it. */
+    private static boolean isBorder(byte[] rgb, int width, int height, Rectangle part,
+                                    int background, int dx, int dy) {
+        for (int outset = 1; ; outset++) {
+            Rectangle line = dy == 0
+                    ? new Rectangle(dx < 0 ? part.x() - outset
+                                           : part.x() + part.width() - 1 + outset,
+                            part.y(), 1, part.height())
+                    : new Rectangle(part.x(), dy < 0 ? part.y() - outset
+                                                     : part.y() + part.height() - 1 + outset,
+                            part.width(), 1);
+            if (line.x() < 0 || line.y() < 0 || line.x() + line.width() > width
+                || line.y() + line.height() > height)
+                return false;
+            int ink = inkPixels(rgb, width, line, background);
+            if (ink > 0)
+                return ink == line.width() * line.height();
+        }
+    }
+
+    private static int inkPixels(byte[] rgb, int width, Rectangle area, int background) {
+        int pixels = 0;
+        for (int y = area.y(); y < area.y() + area.height(); y++)
+            for (int x = area.x(); x < area.x() + area.width(); x++)
+                if (isInk(distance(color(rgb, width, x, y), background)))
+                    pixels++;
+        return pixels;
+    }
+
+    /** A quarter of the ink threshold, which the faintest outlines reach once scaled down. */
+    private static boolean isInk(int distance) {
+        return distance > InkDetector.inkThreshold / 4;
     }
 
     /** The box parted at each gap between ink of two colours. */
