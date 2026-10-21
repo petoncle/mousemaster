@@ -270,6 +270,17 @@ public class VisionTest {
     }
 
     @Test
+    public void menuOfThreeLinesIsHinted() {
+        BufferedImage image = screen(new Color(0x181818));
+        Graphics2D pen = pen(image);
+        pen.setColor(new Color(0xCCCCCC));
+        for (int line = 0; line < 3; line++)
+            pen.fillRect(190, 150 + line * 4, 16, 1);
+        pen.dispose();
+        assertEquals(1, within(elements(image, density), 185, 145, 210, 165));
+    }
+
+    @Test
     public void greyTextBesideBlackIsHintedApart() {
         BufferedImage image = screen(new Color(0xF6F6EF));
         Graphics2D pen = pen(image);

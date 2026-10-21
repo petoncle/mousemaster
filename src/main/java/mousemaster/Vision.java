@@ -111,32 +111,30 @@ public class Vision {
     List<UiElement> findElements(DesktopCapture capture, double scale, int density) {
         int width = capture.scaledWidth();
         int height = capture.scaledHeight();
-        // Plain text left out, then the edge margin narrows, then the ink parts at its gaps.
-        int step = Math.max(density - 2, 0);
+        // Plain text left out, then the edge margin narrows, then the ink no region holds.
+        int step = Math.clamp(density - 2, 0, edgeSteps - 1);
         int edgeMargin = density == 1 ? firstDensityEdgeMargin : widestEdgeMargin - step;
-        List<Rectangle> boxes;
-        if (step < edgeSteps) {
-            List<List<Rectangle>> byMidpoint =
-                    IntStream.range(0, EdgeDetector.contrastMidpoints.length)
-                             .parallel()
-                             .mapToObj(midpoint -> boundedRegions(capture.scaledRgb(),
-                                     width, height, scale,
-                                     edgeMargin, verticalEdgeMargin, midpoint))
-                             .toList();
-            boxes = new ArrayList<>(byMidpoint.getFirst());
-            // A lighter midpoint answers only where the first one found nothing.
-            for (int midpoint = 1; midpoint < byMidpoint.size(); midpoint++)
-                for (Rectangle region : byMidpoint.get(midpoint))
-                    if (boxes.stream().noneMatch(box -> box.contains(region)))
-                        boxes.add(region);
-            if (density == 1)
-                boxes = boxes.parallelStream()
-                             .filter(box -> isGaplessOrBordered(capture.scaledRgb(), width,
+        CompletableFuture<List<Rectangle>> ink = density == densities
+                ? CompletableFuture.supplyAsync(
+                        () -> inkBoxes(capture.scaledRgb(), width, height, inkGap))
+                : CompletableFuture.completedFuture(List.of());
+        List<List<Rectangle>> byMidpoint =
+                IntStream.range(0, EdgeDetector.contrastMidpoints.length)
+                         .parallel()
+                         .mapToObj(midpoint -> boundedRegions(capture.scaledRgb(),
+                                 width, height, scale,
+                                 edgeMargin, verticalEdgeMargin, midpoint))
+                         .toList();
+        List<Rectangle> boxes = new ArrayList<>(byMidpoint.getFirst());
+        // A lighter midpoint answers only where the first one found nothing.
+        for (int midpoint = 1; midpoint < byMidpoint.size(); midpoint++)
+            addUncontained(boxes, byMidpoint.get(midpoint));
+        if (density == 1)
+            boxes = boxes.parallelStream()
+                         .filter(box -> isGaplessOrBordered(capture.scaledRgb(), width,
                                  height, box))
-                             .collect(Collectors.toCollection(ArrayList::new));
-        }
-        else
-            boxes = inkBoxes(capture.scaledRgb(), width, height, inkGap);
+                         .collect(Collectors.toCollection(ArrayList::new));
+        addUncontained(boxes, ink.join());
         if (dumpPath != null)
             dump(capture.scaledRgb(),
                     InkDetector.ink(capture.scaledRgb(), width, height), boxes, width,
@@ -161,6 +159,12 @@ public class Vision {
                 elements.add(new UiElement(centerX, centerY));
         }
         return elements;
+    }
+
+    private static void addUncontained(List<Rectangle> boxes, List<Rectangle> others) {
+        for (Rectangle other : others)
+            if (boxes.stream().noneMatch(box -> box.contains(other)))
+                boxes.add(other);
     }
 
     /** What the ink splits into once cut apart: one hint each. */

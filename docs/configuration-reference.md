@@ -726,8 +726,7 @@ a scan finds nothing, exactly as for accessibility UI hints.
     narrower margin between a region's border and what it encloses, so it finds what the step
     before it was too strict for. A region is parted where its ink changes colour, so a link
     in a sentence, or grey text beside black, gets a hint of its own.
-  - 8 looks at the **ink** itself, parted at its gaps, so a line of text yields a hint per
-    word rather than one per line.
+  - 8 adds to 7 the **ink** that no region holds, parted at its gaps.
 
   A hint means something was drawn there, not that it can be clicked: on a page of prose, most
   of the labels at density 6 land on body text. Lower the density when the labels crowd what
