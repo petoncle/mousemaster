@@ -112,9 +112,12 @@
                         <configuration>
                             <!-- native-image has no option for the executable's VERSIONINFO
                             resource, so the compiled resource is handed to the linker. See
-                            windows/versioninfo/mousemaster.rc. -->
+                            windows/versioninfo/mousemaster.rc. The profiles come from an
+                            instrumented build: a session of use, and vision scans of the test
+                            screens. -->
                             <buildArgs>
                                 <buildArg>-H:NativeLinkerOption=${project.build.directory}/mousemaster.res</buildArg>
+                                <buildArg>--pgo=${project.basedir}/windows/pgo/session.iprof.gz,${project.basedir}/windows/pgo/vision.iprof.gz</buildArg>
                             </buildArgs>
                         </configuration>
                     </plugin>
