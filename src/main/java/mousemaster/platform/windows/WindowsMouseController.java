@@ -770,8 +770,13 @@ public class WindowsMouseController implements MouseController {
             }
             if (bounds == null)
                 return null;
-            double centerX = bounds.x() + bounds.width() / 2.0 - hotspotX;
-            double centerY = bounds.y() + bounds.height() / 2.0 - hotspotY;
+            // An image larger than a system cursor carries more than the pointer, like an app's
+            // drag image, and only its hotspot is where the pointer is.
+            MouseSize mouseSize = mouseSize();
+            boolean largerThanCursor = bounds.width() > mouseSize.width() ||
+                                       bounds.height() > mouseSize.height();
+            double centerX = largerThanCursor ? 0 : bounds.x() + bounds.width() / 2.0 - hotspotX;
+            double centerY = largerThanCursor ? 0 : bounds.y() + bounds.height() / 2.0 - hotspotY;
             logger.info("Cursor visual center: method={}, bounds={}x{} at ({},{}), hotspot=({},{}), center=({},{})",
                     method, bounds.width(), bounds.height(), bounds.x(), bounds.y(),
                     hotspotX, hotspotY, centerX, centerY);
