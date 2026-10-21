@@ -35,6 +35,7 @@ public class WindowsOverlay implements Overlay {
     private IndicatorConfiguration currentCursorIndicator;
     private double currentCursorScale;
     private boolean currentIncludeOriginalCursor;
+    private boolean currentCursorAnimating;
     private boolean mousePositionMissing;
     private GridRenderer gridRenderer;
     private WinDef.HWND gridHwnd;
@@ -463,7 +464,8 @@ public class WindowsOverlay implements Overlay {
         double scale = WindowsScreen.findActiveScreen(mousePosition).scale();
         if (indicatorIsCursor && indicator.equals(currentCursorIndicator) &&
             scale == currentCursorScale &&
-            includeOriginalCursor == currentIncludeOriginalCursor)
+            includeOriginalCursor == currentIncludeOriginalCursor &&
+            animating == currentCursorAnimating)
             return;
         followingIndicatorWindow.hide();
         IndicatorRenderer.IndicatorImage image =
@@ -477,6 +479,7 @@ public class WindowsOverlay implements Overlay {
         currentCursorIndicator = indicator;
         currentCursorScale = scale;
         currentIncludeOriginalCursor = includeOriginalCursor;
+        currentCursorAnimating = animating;
     }
 
     @Override
