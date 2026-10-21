@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -17,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class VisionTest {
 
     private static final int density = 9;
+    private static final int defaultDensity = 4;
 
     private static final int width = 400, height = 300;
 
@@ -39,7 +41,7 @@ public class VisionTest {
         return pen;
     }
 
-    private static List<UiElement> elements(BufferedImage image) {
+    private static List<UiElement> elements(BufferedImage image, int density) {
         byte[] rgb = new byte[width * height * 3];
         for (int y = 0, i = 0; y < height; y++)
             for (int x = 0; x < width; x++) {
@@ -70,7 +72,7 @@ public class VisionTest {
         pen.setColor(new Color(0x5865F2));
         pen.fillRoundRect(150, 100, 100, 100, 30, 30);
         pen.dispose();
-        List<UiElement> elements = elements(image);
+        List<UiElement> elements = elements(image, density);
         assertEquals(1, elements.size(), "a flat icon is one thing to click");
         assertEquals(1, within(elements, 185, 135, 215, 165),
                 "the hint belongs at the centre, not on the corners of the outline");
@@ -83,7 +85,7 @@ public class VisionTest {
         pen.setColor(new Color(0x0078D4));
         pen.fillRect(160, 130, 80, 40);
         pen.dispose();
-        assertEquals(1, within(elements(image), 160, 130, 240, 170));
+        assertEquals(1, within(elements(image, density), 160, 130, 240, 170));
     }
 
     @Test
@@ -98,7 +100,7 @@ public class VisionTest {
         pen.drawString("Cancel", 180, 158);
         pen.drawString("Help", 290, 158);
         pen.dispose();
-        List<UiElement> elements = elements(image);
+        List<UiElement> elements = elements(image, density);
         assertTrue(within(elements, 70, 140, 130, 170) >= 1, "Save");
         assertTrue(within(elements, 170, 140, 240, 170) >= 1, "Cancel");
         assertTrue(within(elements, 280, 140, 340, 170) >= 1, "Help");
@@ -117,7 +119,7 @@ public class VisionTest {
         pen.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 15));
         pen.drawString("Show my flair on this subreddit", 44, 130);
         pen.dispose();
-        assertTrue(within(elements(image), 44, 96, 106, 120) >= 1);
+        assertTrue(within(elements(image, density), 44, 96, 106, 120) >= 1);
     }
 
     @Test
@@ -129,7 +131,7 @@ public class VisionTest {
         pen.drawString("jumps over the lazy dog", 40, 140);
         pen.drawString("Pack my box with jugs", 40, 200);
         pen.dispose();
-        List<UiElement> elements = elements(image);
+        List<UiElement> elements = elements(image, density);
         assertTrue(within(elements, 40, 60, 360, 85) >= 1, "first line");
         assertTrue(within(elements, 40, 120, 360, 145) >= 1, "second line");
         assertTrue(within(elements, 40, 180, 360, 205) >= 1, "third line");
@@ -145,5 +147,51 @@ public class VisionTest {
                     new DesktopCapture(new Rectangle(0, 0, 1, 5), new byte[15], 1, 5), 1,
                     scanned), "density " + scanned);
         }
+    }
+
+    @Test
+    public void linkInASentenceIsHintedApart() {
+        BufferedImage image = screen(Color.WHITE);
+        Graphics2D pen = pen(image);
+        FontMetrics metrics = pen.getFontMetrics();
+        int linkX = 40 + metrics.stringWidth("Before you start, read the ");
+        int linkRight = linkX + metrics.stringWidth("guide");
+        pen.setColor(new Color(0x202122));
+        pen.drawString("Before you start, read the ", 40, 150);
+        pen.setColor(new Color(0x3366CC));
+        pen.drawString("guide", linkX, 150);
+        pen.dispose();
+        assertEquals(1,
+                within(elements(image, defaultDensity), linkX, 130, linkRight, 160));
+    }
+
+    @Test
+    public void lineOnTheEdgeOfTheScreenIsScannedAtEveryDensity() {
+        BufferedImage image = screen(Color.WHITE);
+        Graphics2D pen = pen(image);
+        pen.setColor(new Color(0x333333));
+        pen.drawLine(0, 100, 0, 200);
+        pen.drawLine(width - 1, 100, width - 1, 200);
+        pen.dispose();
+        for (int density = 1; density <= Vision.densities; density++) {
+            int scanned = density;
+            assertDoesNotThrow(() -> elements(image, scanned), "density " + scanned);
+        }
+    }
+
+    @Test
+    public void greyTextBesideBlackIsHintedApart() {
+        BufferedImage image = screen(new Color(0xF6F6EF));
+        Graphics2D pen = pen(image);
+        FontMetrics metrics = pen.getFontMetrics();
+        int domainX = 40 + metrics.stringWidth("Black hole singularity ");
+        int domainRight = domainX + metrics.stringWidth("(arxiv.org)");
+        pen.setColor(Color.BLACK);
+        pen.drawString("Black hole singularity ", 40, 150);
+        pen.setColor(new Color(0x828282));
+        pen.drawString("(arxiv.org)", domainX, 150);
+        pen.dispose();
+        assertEquals(1,
+                within(elements(image, defaultDensity), domainX, 130, domainRight, 160));
     }
 }

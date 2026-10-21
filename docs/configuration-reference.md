@@ -721,7 +721,8 @@ a scan finds nothing, exactly as for accessibility UI hints.
   another hint type is rejected.
   - 1 to 6 look for **bounded regions** — a button, a field, a panel. Each step accepts a
     narrower margin between a region's border and what it encloses, so it finds what the step
-    before it was too strict for.
+    before it was too strict for. A region is parted where its ink changes colour, so a link
+    in a sentence, or grey text beside black, gets a hint of its own.
   - 7 and 8 look at the **ink** itself, parted at ever narrower gaps, so a line of text yields
     a hint per word rather than one per line.
 

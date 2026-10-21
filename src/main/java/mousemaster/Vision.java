@@ -41,7 +41,10 @@ public class Vision {
     private static final int minimumBoundedSide = 2;
     private static final int minimumBoundedAreaFactor = 30;
     private static final int[] cornerOutsets = {0, 2, 5, 10};
-    private static final int maximumCornerColors = 3;
+    /** Antialiasing shortens ink towards the background without turning it. */
+    private static final double minimumInkCosine = 0.97;
+    /** What tells grey ink from black. */
+    private static final double minimumInkLengthRatio = 0.5;
     private static final int widestEdgeMargin = 3;
     private static final int tallestEdgeMargin = 2;
     private static final int widestInkGap = 4;
@@ -200,12 +203,83 @@ public class Vision {
             if (midpoint > 0 && (long) inside.width() * inside.height()
                                 > maximumLightElementPixels)
                 continue;
-            if (isTargetShaped((int) (inside.width() * scale),
-                    (int) (inside.height() * scale))
-                && cornersShareABackground(rgb, width, height, inside))
-                bounded.add(inside);
+            if (!isTargetShaped((int) (inside.width() * scale),
+                    (int) (inside.height() * scale)))
+                continue;
+            int background = cornerBackground(rgb, width, height, inside);
+            if (background < 0)
+                continue;
+            for (Rectangle part : inkParts(rgb, width, inside, background))
+                if (isTargetShaped((int) (part.width() * scale),
+                        (int) (part.height() * scale)))
+                    bounded.add(part);
         }
         return bounded;
+    }
+
+    /** The box parted at each gap between ink of two colours. */
+    private static List<Rectangle> inkParts(byte[] rgb, int width, Rectangle box,
+                                            int background) {
+        int[] inks = new int[box.width()];
+        int[] distances = new int[box.width()];
+        for (int y = box.y(); y < box.y() + box.height(); y++) {
+            for (int column = 0; column < box.width(); column++) {
+                int color = color(rgb, width, box.x() + column, y);
+                int distance = distance(color, background);
+                if (distance > distances[column]) {
+                    inks[column] = color;
+                    distances[column] = distance;
+                }
+            }
+        }
+        List<Rectangle> parts = new ArrayList<>();
+        int left = 0, right = -1, ink = 0;
+        for (int column = 0; column < box.width(); column++) {
+            if (distances[column] <= InkDetector.inkThreshold)
+                continue;
+            int runLeft = column, farthest = column;
+            while (column + 1 < box.width()
+                   && distances[column + 1] > InkDetector.inkThreshold)
+                if (distances[++column] > distances[farthest])
+                    farthest = column;
+            if (right < 0)
+                left = runLeft;
+            else if (!sameInk(background, ink, inks[farthest])) {
+                parts.add(new Rectangle(box.x() + left, box.y(), right - left + 1,
+                        box.height()));
+                left = runLeft;
+            }
+            right = column;
+            ink = inks[farthest];
+        }
+        if (parts.isEmpty())
+            return List.of(box);
+        parts.add(new Rectangle(box.x() + left, box.y(), right - left + 1, box.height()));
+        return parts;
+    }
+
+    private static boolean sameInk(int background, int ink, int otherInk) {
+        double dot = 0, length = 0, otherLength = 0;
+        for (int shift = 0; shift <= 16; shift += 8) {
+            int channel = (ink >> shift & 0xff) - (background >> shift & 0xff);
+            int otherChannel = (otherInk >> shift & 0xff) - (background >> shift & 0xff);
+            dot += channel * otherChannel;
+            length += channel * channel;
+            otherLength += otherChannel * otherChannel;
+        }
+        length = Math.sqrt(length);
+        otherLength = Math.sqrt(otherLength);
+        return dot >= minimumInkCosine * length * otherLength
+               && Math.min(length, otherLength)
+                  >= minimumInkLengthRatio * Math.max(length, otherLength);
+    }
+
+    private static int distance(int color, int otherColor) {
+        int distance = 0;
+        for (int shift = 0; shift <= 16; shift += 8)
+            distance = Math.max(distance,
+                    Math.abs((color >> shift & 0xff) - (otherColor >> shift & 0xff)));
+        return distance;
     }
 
     private static boolean isTargetShaped(int width, int height) {
@@ -214,9 +288,8 @@ public class Vision {
                   >= (long) minimumBoundedSide * minimumBoundedAreaFactor;
     }
 
-    /** A box straddling unrelated content has corners of its own at every outset. */
-    private static boolean cornersShareABackground(byte[] rgb, int width, int height,
-                                                   Rectangle box) {
+    /** A box straddling unrelated content has corners of its own at every outset: -1. */
+    private static int cornerBackground(byte[] rgb, int width, int height, Rectangle box) {
         for (int outset : cornerOutsets) {
             int x0 = box.x() - outset;
             int x1 = box.x() + box.width() + outset;
@@ -224,22 +297,14 @@ public class Vision {
             int y1 = box.y() + box.height();
             if (x0 < 0 || y0 < 0 || x1 >= width || y1 >= height)
                 continue;
-            int topLeft = color(rgb, width, x0, y0);
-            int topRight = color(rgb, width, x1, y0);
-            int bottomLeft = color(rgb, width, x0, y1);
-            int bottomRight = color(rgb, width, x1, y1);
-            int colors = 1;
-            if (topRight != topLeft)
-                colors++;
-            if (bottomLeft != topLeft && bottomLeft != topRight)
-                colors++;
-            if (bottomRight != topLeft && bottomRight != topRight
-                && bottomRight != bottomLeft)
-                colors++;
-            if (colors <= maximumCornerColors)
-                return true;
+            int[] corners = {color(rgb, width, x0, y0), color(rgb, width, x1, y0),
+                             color(rgb, width, x0, y1), color(rgb, width, x1, y1)};
+            for (int corner = 0; corner < corners.length; corner++)
+                for (int other = corner + 1; other < corners.length; other++)
+                    if (corners[corner] == corners[other])
+                        return corners[corner];
         }
-        return false;
+        return -1;
     }
 
     private static int color(byte[] rgb, int width, int x, int y) {
