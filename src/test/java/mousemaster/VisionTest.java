@@ -17,8 +17,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class VisionTest {
 
-    private static final int density = 9;
-    private static final int defaultDensity = 4;
+    private static final int density = Vision.densities;
+    private static final int defaultDensity = 5;
 
     private static final int width = 400, height = 300;
 

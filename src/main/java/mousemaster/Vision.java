@@ -45,13 +45,13 @@ public class Vision {
     private static final double minimumInkCosine = 0.97;
     /** What tells grey ink from black. */
     private static final double minimumInkLengthRatio = 0.5;
-    private static final int widestEdgeMargin = 3;
-    private static final int tallestEdgeMargin = 2;
-    private static final int widestInkGap = 4;
-    private static final int narrowestInkGap = 3;
-    /** One for each margin pair and each depth the ink is cut to. */
-    static final int densities =
-            widestEdgeMargin * tallestEdgeMargin + widestInkGap - narrowestInkGap + 1;
+    private static final int widestEdgeMargin = 6;
+    private static final int narrowestEdgeMargin = 1;
+    private static final int edgeSteps = widestEdgeMargin - narrowestEdgeMargin + 1;
+    private static final int verticalEdgeMargin = 1;
+    private static final int inkGap = 3;
+    /** One for each edge margin, then one for the ink. */
+    static final int densities = edgeSteps + 1;
     private static final String dumpPath = System.getProperty("vision.dump");
 
     private final Overlay overlay;
@@ -109,9 +109,7 @@ public class Vision {
     List<UiElement> findElements(DesktopCapture capture, double scale, int density) {
         int width = capture.scaledWidth();
         int height = capture.scaledHeight();
-        // The edge margins narrow one pair at a time, then the ink parts at ever
-        // narrower gaps.
-        int edgeSteps = widestEdgeMargin * tallestEdgeMargin;
+        // The edge margin narrows, then the ink parts at its gaps.
         int step = density - 1;
         List<Rectangle> boxes;
         if (step < edgeSteps) {
@@ -120,8 +118,7 @@ public class Vision {
                              .parallel()
                              .mapToObj(midpoint -> boundedRegions(capture.scaledRgb(),
                                      width, height, scale,
-                                     widestEdgeMargin - step / tallestEdgeMargin,
-                                     tallestEdgeMargin - step % tallestEdgeMargin,
+                                     widestEdgeMargin - step, verticalEdgeMargin,
                                      midpoint))
                              .toList();
             boxes = new ArrayList<>(byMidpoint.getFirst());
@@ -132,8 +129,7 @@ public class Vision {
                         boxes.add(region);
         }
         else
-            boxes = inkBoxes(capture.scaledRgb(), width, height,
-                    widestInkGap - step + edgeSteps);
+            boxes = inkBoxes(capture.scaledRgb(), width, height, inkGap);
         if (dumpPath != null)
             dump(capture.scaledRgb(),
                     InkDetector.ink(capture.scaledRgb(), width, height), boxes, width,

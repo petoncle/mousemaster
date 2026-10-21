@@ -191,7 +191,7 @@ public class ConfigurationParser {
                            .widthPercent(1.0)
                            .heightPercent(1.0);
         hintMeshTypeBuilder.uiArea(UiHintArea.ACTIVE_SCREEN);
-        hintMeshTypeBuilder.visionDensity(4);
+        hintMeshTypeBuilder.visionDensity(5);
         ModeTimeoutBuilder timeout =
                 new ModeTimeoutBuilder().enabled(false).onlyIfIdle(true);
         IndicatorConfigurationBuilder indicator =
