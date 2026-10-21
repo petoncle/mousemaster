@@ -39,7 +39,7 @@ public class Vision {
     private static final int screenEdgeInset = 2;
 
     private static final int minimumBoundedSide = 2;
-    private static final int minimumBoundedAreaFactor = 30;
+    private static final int minimumBoundedArea = 30;
     private static final int[] cornerOutsets = {0, 2, 5, 10};
     /** Antialiasing shortens ink towards the background without turning it. */
     private static final double minimumInkCosine = 0.97;
@@ -284,8 +284,7 @@ public class Vision {
 
     private static boolean isTargetShaped(int width, int height) {
         return width >= minimumBoundedSide && height >= minimumBoundedSide
-               && (long) width * height
-                  >= (long) minimumBoundedSide * minimumBoundedAreaFactor;
+               && (long) width * height >= minimumBoundedArea;
     }
 
     /** A box straddling unrelated content has corners of its own at every outset: -1. */

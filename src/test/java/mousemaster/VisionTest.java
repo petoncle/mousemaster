@@ -180,6 +180,17 @@ public class VisionTest {
     }
 
     @Test
+    public void rowMenuOfThreeDotsIsHinted() {
+        BufferedImage image = screen(Color.WHITE);
+        Graphics2D pen = pen(image);
+        pen.setColor(new Color(0x333333));
+        for (int dot = 0; dot < 3; dot++)
+            pen.fillOval(190 + dot * 4, 150, 2, 2);
+        pen.dispose();
+        assertEquals(1, within(elements(image, defaultDensity), 185, 140, 210, 160));
+    }
+
+    @Test
     public void greyTextBesideBlackIsHintedApart() {
         BufferedImage image = screen(new Color(0xF6F6EF));
         Graphics2D pen = pen(image);
