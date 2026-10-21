@@ -22,6 +22,8 @@ jobs:
       - uses: graalvm/setup-graalvm@v1
         with:
           java-version: '25'
+          # The release the profiles in windows/pgo were recorded with.
+          version: '25.4'
           distribution: 'graalvm'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
@@ -99,6 +101,8 @@ jobs:
       - uses: graalvm/setup-graalvm@v1
         with:
           java-version: '25'
+          # The release the Windows job builds with.
+          version: '25.4'
           distribution: 'graalvm'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
