@@ -50,7 +50,7 @@ public class Vision {
     private static final int narrowestEdgeMargin = 1;
     private static final int edgeSteps = widestEdgeMargin - narrowestEdgeMargin + 1;
     private static final int verticalEdgeMargin = 1;
-    private static final int firstDensityEdgeMargin = 4;
+    private static final int firstDensityEdgeMargin = 3;
     private static final int inkGap = 3;
     /** Plain text left out, one for each edge margin, then one for the ink. */
     static final int densities = edgeSteps + 2;
