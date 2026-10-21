@@ -1,7 +1,6 @@
 package mousemaster;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class ConnectedComponentFinder {
@@ -15,45 +14,56 @@ public class ConnectedComponentFinder {
 
     private ConnectedComponentFinder(boolean[] mask, int width, int height) {
         int components = 0;
-        for (boolean set : mask)
-            if (set)
-                components++;
+        for (int y = 0; y < height; y++)
+            for (int x = 0, row = y * width; x < width; x++)
+                if (mask[row + x] && (x == 0 || !mask[row + x - 1]))
+                    components++;
         parent = new int[components];
         size = new int[components];
         left = new short[components];
         top = new short[components];
         right = new short[components];
         bottom = new short[components];
-        // The neighbours a pixel joins are all in its own row or the one above.
-        int[] previousRow = new int[width];
-        int[] currentRow = new int[width];
+        // A run of set pixels joins the runs of the row above that touch it.
+        int[] previousStarts = new int[width];
+        int[] previousEnds = new int[width];
+        int[] currentStarts = new int[width];
+        int[] currentEnds = new int[width];
+        int previousCount = 0;
         int next = 0;
-        Arrays.fill(previousRow, -1);
         for (int y = 0; y < height; y++) {
+            int row = y * width;
+            int count = 0;
+            int above = 0;
+            int firstComponent = next;
             for (int x = 0; x < width; x++) {
-                int pixel = y * width + x;
-                if (!mask[pixel]) {
-                    currentRow[x] = -1;
+                if (!mask[row + x])
                     continue;
-                }
+                int start = x;
+                while (x + 1 < width && mask[row + x + 1])
+                    x++;
                 int component = next++;
                 parent[component] = component;
-                size[component] = 1;
-                left[component] = right[component] = (short) x;
+                size[component] = x - start + 1;
+                left[component] = (short) start;
+                right[component] = (short) x;
                 top[component] = bottom[component] = (short) y;
-                currentRow[x] = component;
-                if (x > 0 && currentRow[x - 1] >= 0)
-                    union(component, currentRow[x - 1]);
-                if (previousRow[x] >= 0)
-                    union(component, previousRow[x]);
-                if (x > 0 && previousRow[x - 1] >= 0)
-                    union(component, previousRow[x - 1]);
-                if (x + 1 < width && previousRow[x + 1] >= 0)
-                    union(component, previousRow[x + 1]);
+                while (above < previousCount && previousEnds[above] < start - 1)
+                    above++;
+                for (int touching = above;
+                     touching < previousCount && previousStarts[touching] <= x + 1;
+                     touching++)
+                    union(component, firstComponent - previousCount + touching);
+                currentStarts[count] = start;
+                currentEnds[count++] = x;
             }
-            int[] swapped = previousRow;
-            previousRow = currentRow;
-            currentRow = swapped;
+            int[] swapped = previousStarts;
+            previousStarts = currentStarts;
+            currentStarts = swapped;
+            swapped = previousEnds;
+            previousEnds = currentEnds;
+            currentEnds = swapped;
+            previousCount = count;
         }
     }
 

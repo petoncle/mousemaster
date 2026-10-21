@@ -136,4 +136,14 @@ public class VisionTest {
         assertTrue(elements.size() <= 30,
                 "three lines of text, not sixty glyphs: " + elements.size());
     }
+
+    @Test
+    public void frameOnePixelWideIsScannedAtEveryDensity() {
+        for (int density = 1; density <= Vision.densities; density++) {
+            int scanned = density;
+            assertDoesNotThrow(() -> new Vision(null).findElements(
+                    new DesktopCapture(new Rectangle(0, 0, 1, 5), new byte[15], 1, 5), 1,
+                    scanned), "density " + scanned);
+        }
+    }
 }

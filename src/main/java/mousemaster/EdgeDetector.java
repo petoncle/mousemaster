@@ -32,9 +32,8 @@ class EdgeDetector {
         short[] magnitude = new short[width * height];
         byte[] direction = new byte[width * height];
         sobel(luminance, width, height, magnitude, direction);
-        short[] suppressed = nonMaximumSuppression(magnitude, direction, width, height);
-        boolean[] thresholded = threshold(suppressed, width, height);
-        return Dilation.dilated(thresholded, width, height, dilation, verticalDilation);
+        boolean[] suppressed = nonMaximumSuppression(magnitude, direction, width, height);
+        return Dilation.dilated(suppressed, width, height, dilation, verticalDilation);
     }
 
     /** The unweighted channel sum, in 0..765: brightness, not a perceptual luma. */
@@ -65,23 +64,31 @@ class EdgeDetector {
 
     private static void sobel(short[] luminance, int width, int height, short[] magnitude,
                               byte[] direction) {
+        if (width < 3)
+            return;
         IntStream.range(1, height - 1).parallel().forEach(y -> {
+            int top = (y - 1) * width;
+            int row = y * width;
+            int bottom = (y + 1) * width;
+            // Each column smoothed and differenced once, as the window slides along the row.
+            int leftSum = luminance[top] + 2 * luminance[row] + luminance[bottom];
+            int leftDifference = luminance[bottom] - luminance[top];
+            int sum = luminance[top + 1] + 2 * luminance[row + 1] + luminance[bottom + 1];
+            int difference = luminance[bottom + 1] - luminance[top + 1];
             for (int x = 1; x < width - 1; x++) {
-                int pixel = y * width + x;
-                int topLeft = luminance[pixel - width - 1];
-                int top = luminance[pixel - width];
-                int topRight = luminance[pixel - width + 1];
-                int left = luminance[pixel - 1];
-                int right = luminance[pixel + 1];
-                int bottomLeft = luminance[pixel + width - 1];
-                int bottom = luminance[pixel + width];
-                int bottomRight = luminance[pixel + width + 1];
-                int horizontal = topRight - topLeft + 2 * (right - left) + bottomRight -
-                                 bottomLeft;
-                int vertical = bottomLeft - topLeft + 2 * (bottom - top) + bottomRight -
-                               topRight;
+                int rightSum = luminance[top + x + 1] + 2 * luminance[row + x + 1]
+                               + luminance[bottom + x + 1];
+                int rightDifference = luminance[bottom + x + 1] - luminance[top + x + 1];
+                int horizontal = rightSum - leftSum;
+                int vertical = leftDifference + 2 * difference + rightDifference;
+                int pixel = row + x;
                 magnitude[pixel] = (short) (Math.abs(horizontal) + Math.abs(vertical));
-                direction[pixel] = direction(horizontal, vertical);
+                if (magnitude[pixel] > edgeThreshold)
+                    direction[pixel] = direction(horizontal, vertical);
+                leftSum = sum;
+                sum = rightSum;
+                leftDifference = difference;
+                difference = rightDifference;
             }
         });
     }
@@ -96,41 +103,22 @@ class EdgeDetector {
         return (byte) (horizontal * vertical > 0 ? 1 : 3);
     }
 
-    private static short[] nonMaximumSuppression(short[] magnitude, byte[] direction,
-                                                 int width, int height) {
-        short[] suppressed = new short[magnitude.length];
-        IntStream.range(0, height).parallel().forEach(y -> {
-            for (int x = 0; x < width; x++) {
+    private static boolean[] nonMaximumSuppression(short[] magnitude, byte[] direction,
+                                                   int width, int height) {
+        boolean[] suppressed = new boolean[magnitude.length];
+        IntStream.range(1, height - 1).parallel().forEach(y -> {
+            for (int x = 1; x < width - 1; x++) {
                 int pixel = y * width + x;
                 short value = magnitude[pixel];
-                if (value == 0)
+                if (value <= edgeThreshold)
                     continue;
-                int offsetX = alongGradientX[direction[pixel]];
-                int offsetY = alongGradientY[direction[pixel]];
-                short forward = magnitude[clamped(x + offsetX, width) +
-                                          clamped(y + offsetY, height) * width];
-                short backward = magnitude[clamped(x - offsetX, width) +
-                                           clamped(y - offsetY, height) * width];
-                if (value >= forward && value >= backward)
-                    suppressed[pixel] = value;
+                int along = alongGradientY[direction[pixel]] * width
+                            + alongGradientX[direction[pixel]];
+                suppressed[pixel] = value >= magnitude[pixel + along]
+                                    && value >= magnitude[pixel - along];
             }
         });
         return suppressed;
-    }
-
-    private static int clamped(int coordinate, int size) {
-        return Math.clamp(coordinate, 0, size - 1);
-    }
-
-    private static boolean[] threshold(short[] suppressed, int width, int height) {
-        boolean[] thresholded = new boolean[suppressed.length];
-        IntStream.range(0, height).parallel().forEach(y -> {
-            for (int x = 0; x < width; x++) {
-                int pixel = y * width + x;
-                thresholded[pixel] = suppressed[pixel] > edgeThreshold;
-            }
-        });
-        return thresholded;
     }
 
 }
