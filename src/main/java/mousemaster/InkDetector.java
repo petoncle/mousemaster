@@ -25,8 +25,9 @@ public class InkDetector {
     /** Rows sharing one background, a stroke apart for the same reason. */
     private static final int backgroundRows = strokeWidth;
 
-    public static boolean[] ink(byte[] rgb, int width, int height) {
-        boolean[] ink = new boolean[width * height];
+    public static long[] ink(byte[] rgb, int width, int height) {
+        int words = Dilation.words(width);
+        long[] ink = new long[words * height];
         byte[] backgrounds = new byte[rgb.length];
         IntStream.range(0, (height + backgroundRows - 1) / backgroundRows)
                  .parallel().forEach(band -> {
@@ -39,7 +40,6 @@ public class InkDetector {
                 for (int windowY = top; windowY <= bottom; windowY += backgroundStep)
                     count(backgroundByChannel, rgb, (windowY * width + x) * 3, 1);
             for (int x = 0; x < width; x++) {
-                int pixel = y * width + x;
                 for (int channel = 0; channel < 3; channel++) {
                     int median = backgroundByChannel[channel].median();
                     for (int row = y; row < Math.min(height, y + backgroundRows);
@@ -48,7 +48,7 @@ public class InkDetector {
                         backgrounds[shared * 3 + channel] = (byte) median;
                         if (Math.abs((rgb[shared * 3 + channel] & 0xff) - value(median)) >
                             inkThreshold)
-                            ink[shared] = true;
+                            Dilation.set(ink, words, x, row);
                     }
                 }
                 int leaving = x - backgroundRadius;
@@ -106,15 +106,16 @@ public class InkDetector {
     }
 
     private static void addBackgroundEdges(byte[] backgrounds, int width, int height,
-                                           boolean[] ink) {
+                                           long[] ink) {
         int step = inkThreshold * channelLevels / 256;
+        int words = Dilation.words(width);
         IntStream.range(0, height).parallel().forEach(y -> {
             for (int x = 0; x < width; x++) {
                 int pixel = y * width + x;
-                if (!ink[pixel] &&
+                if (!Dilation.isSet(ink, words, x, y) &&
                     (x + 1 < width && changes(backgrounds, pixel, pixel + 1, step) ||
                      y + 1 < height && changes(backgrounds, pixel, pixel + width, step)))
-                    ink[pixel] = true;
+                    Dilation.set(ink, words, x, y);
             }
         });
     }
@@ -127,23 +128,25 @@ public class InkDetector {
         return false;
     }
 
-    public static boolean[] dilated(boolean[] ink, int width, int height) {
+    public static long[] dilated(long[] ink, int width, int height) {
         return Dilation.dilated(ink, width, height, horizontalDilation, verticalDilation);
     }
 
-    public static boolean[] downsampledInk(boolean[] ink, int width, int height,
-                                           int downsampleFactor, int downsampledWidth,
-                                           int downsampledHeight) {
-        boolean[] downsampled = new boolean[downsampledWidth * downsampledHeight];
+    public static long[] downsampledInk(long[] ink, int width, int height,
+                                        int downsampleFactor, int downsampledWidth,
+                                        int downsampledHeight) {
+        int words = Dilation.words(width);
+        int downsampledWords = Dilation.words(downsampledWidth);
+        long[] downsampled = new long[downsampledWords * downsampledHeight];
         IntStream.range(0, downsampledHeight).parallel().forEach(downsampledY -> {
             int toY = Math.min(height, (downsampledY + 1) * downsampleFactor);
             for (int downsampledX = 0; downsampledX < downsampledWidth; downsampledX++) {
                 int toX = Math.min(width, (downsampledX + 1) * downsampleFactor);
                 for (int y = downsampledY * downsampleFactor; y < toY; y++) {
                     for (int x = downsampledX * downsampleFactor; x < toX; x++) {
-                        if (ink[y * width + x]) {
-                            downsampled[downsampledY * downsampledWidth + downsampledX] =
-                                    true;
+                        if (Dilation.isSet(ink, words, x, y)) {
+                            Dilation.set(downsampled, downsampledWords, downsampledX,
+                                    downsampledY);
                             y = toY;
                             break;
                         }

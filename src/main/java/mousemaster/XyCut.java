@@ -19,12 +19,12 @@ public class XyCut {
     /** A drawn border is a pixel or two wide at this resolution. */
     private static final int borderInset = 2;
 
-    static void cut(boolean[] ink, SummedAreaTable inkTable, int width, Rectangle box,
+    static void cut(long[] ink, SummedAreaTable inkTable, int width, Rectangle box,
                     double maximumElementArea, int minimumGapColumns, List<Rectangle> out) {
         cut(ink, inkTable, width, box, maximumElementArea, minimumGapColumns, 0, out);
     }
 
-    private static void cut(boolean[] ink, SummedAreaTable inkTable, int width,
+    private static void cut(long[] ink, SummedAreaTable inkTable, int width,
                             Rectangle box, double maximumElementArea,
                             int minimumGapColumns, int depth, List<Rectangle> out) {
         List<Rectangle> rows = cutAtProfileValleys(inkTable, box, false, minimumGapColumns);
@@ -52,7 +52,7 @@ public class XyCut {
             && element.height() > 2 * borderInset
             && enclosesMoreThanOneBlock(inkTable, element, minimumGapColumns)) {
             List<Rectangle> inside = new ArrayList<>();
-            boolean[] enclosed = borderCleared(ink, width, element);
+            long[] enclosed = borderCleared(ink, width, element);
             cut(enclosed,
                     new SummedAreaTable(enclosed, element.width(), element.height()),
                     element.width(),
@@ -119,31 +119,33 @@ public class XyCut {
 
     /** As imclearborder, except that only ink reaching two opposite edges is a border:
      *  anything else touching an edge is content and stays. */
-    private static boolean[] borderCleared(boolean[] ink, int width, Rectangle box) {
+    private static long[] borderCleared(long[] ink, int width, Rectangle box) {
         int boxWidth = box.width(), boxHeight = box.height();
-        boolean[] enclosed = new boolean[boxWidth * boxHeight];
+        int words = Dilation.words(width), boxWords = Dilation.words(boxWidth);
+        long[] enclosed = new long[boxWords * boxHeight];
         for (int y = 0; y < boxHeight; y++)
             for (int x = 0; x < boxWidth; x++)
-                enclosed[y * boxWidth + x] = ink[(box.y() + y) * width + box.x() + x];
-        int[] reaching = new int[enclosed.length];
+                if (Dilation.isSet(ink, words, box.x() + x, box.y() + y))
+                    Dilation.set(enclosed, boxWords, x, y);
+        int[] reaching = new int[boxWidth * boxHeight];
         for (int x = 0; x < boxWidth; x++) {
-            clearIfSpansOppositeEdges(enclosed, reaching, boxWidth, boxHeight, x);
-            clearIfSpansOppositeEdges(enclosed, reaching, boxWidth, boxHeight,
-                    (boxHeight - 1) * boxWidth + x);
+            clearIfSpansOppositeEdges(enclosed, reaching, boxWidth, boxHeight, x, 0);
+            clearIfSpansOppositeEdges(enclosed, reaching, boxWidth, boxHeight, x,
+                    boxHeight - 1);
         }
         for (int y = 0; y < boxHeight; y++) {
+            clearIfSpansOppositeEdges(enclosed, reaching, boxWidth, boxHeight, 0, y);
             clearIfSpansOppositeEdges(enclosed, reaching, boxWidth, boxHeight,
-                    y * boxWidth);
-            clearIfSpansOppositeEdges(enclosed, reaching, boxWidth, boxHeight,
-                    y * boxWidth + boxWidth - 1);
+                    boxWidth - 1, y);
         }
         return enclosed;
     }
 
-    private static void clearIfSpansOppositeEdges(boolean[] enclosed, int[] reaching,
-                                                  int boxWidth, int boxHeight, int seed) {
-        int count = flood(enclosed, reaching, 0, seed);
-        int left = seed % boxWidth, top = seed / boxWidth;
+    private static void clearIfSpansOppositeEdges(long[] enclosed, int[] reaching,
+                                                  int boxWidth, int boxHeight, int seedX,
+                                                  int seedY) {
+        int count = flood(enclosed, reaching, boxWidth, 0, seedX, seedY);
+        int left = seedX, top = seedY;
         int right = left, bottom = top;
         for (int next = 0; next < count; next++) {
             int reached = reaching[next];
@@ -156,20 +158,23 @@ public class XyCut {
                  neighborY <= Math.min(boxHeight - 1, y + 1); neighborY++)
                 for (int neighborX = Math.max(0, x - 1);
                      neighborX <= Math.min(boxWidth - 1, x + 1); neighborX++)
-                    count = flood(enclosed, reaching, count,
-                            neighborY * boxWidth + neighborX);
+                    count = flood(enclosed, reaching, boxWidth, count, neighborX,
+                            neighborY);
         }
         if ((left != 0 || right != boxWidth - 1)
             && (top != 0 || bottom != boxHeight - 1))
             for (int next = 0; next < count; next++)
-                enclosed[reaching[next]] = true;
+                Dilation.set(enclosed, Dilation.words(boxWidth), reaching[next] % boxWidth,
+                        reaching[next] / boxWidth);
     }
 
-    private static int flood(boolean[] enclosed, int[] reaching, int count, int pixel) {
-        if (!enclosed[pixel])
+    private static int flood(long[] enclosed, int[] reaching, int boxWidth, int count,
+                             int x, int y) {
+        int words = Dilation.words(boxWidth);
+        if (!Dilation.isSet(enclosed, words, x, y))
             return count;
-        enclosed[pixel] = false;
-        reaching[count] = pixel;
+        Dilation.clear(enclosed, words, x, y);
+        reaching[count] = y * boxWidth + x;
         return count + 1;
     }
 

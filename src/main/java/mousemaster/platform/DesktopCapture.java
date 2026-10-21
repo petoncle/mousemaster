@@ -25,13 +25,27 @@ public record DesktopCapture(Rectangle bounds, byte[] scaledRgb,
                 int fromX = columns[scaledX];
                 int toX = Math.max(fromX + 1, columns[scaledX + 1]);
                 int red = 0, green = 0, blue = 0;
-                for (int y = fromY; y < toY; y++) {
-                    int row = y * rowPitch;
-                    for (int x = fromX; x < toX; x++) {
-                        int sample = row + x * 4;
-                        blue += bgra[sample] & 0xff;
-                        green += bgra[sample + 1] & 0xff;
-                        red += bgra[sample + 2] & 0xff;
+                if (toY - fromY == 3 && toX - fromX == 3) {
+                    // The 3 by 3 block of a scale of 3, its columns unrolled.
+                    int sample = fromY * rowPitch + fromX * 4;
+                    for (int y = 0; y < 3; y++, sample += rowPitch) {
+                        blue += (bgra[sample] & 0xff) + (bgra[sample + 4] & 0xff)
+                                + (bgra[sample + 8] & 0xff);
+                        green += (bgra[sample + 1] & 0xff) + (bgra[sample + 5] & 0xff)
+                                 + (bgra[sample + 9] & 0xff);
+                        red += (bgra[sample + 2] & 0xff) + (bgra[sample + 6] & 0xff)
+                               + (bgra[sample + 10] & 0xff);
+                    }
+                }
+                else {
+                    for (int y = fromY; y < toY; y++) {
+                        int row = y * rowPitch;
+                        for (int x = fromX; x < toX; x++) {
+                            int sample = row + x * 4;
+                            blue += bgra[sample] & 0xff;
+                            green += bgra[sample + 1] & 0xff;
+                            red += bgra[sample + 2] & 0xff;
+                        }
                     }
                 }
                 // A division by multiplication, exact for any sum under 2^32 / samples.

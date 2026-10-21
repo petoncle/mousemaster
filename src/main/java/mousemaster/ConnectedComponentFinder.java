@@ -12,12 +12,16 @@ public class ConnectedComponentFinder {
     private final short[] right;
     private final short[] bottom;
 
-    private ConnectedComponentFinder(boolean[] mask, int width, int height) {
+    private ConnectedComponentFinder(long[] mask, int width, int height) {
+        int words = Dilation.words(width);
         int components = 0;
-        for (int y = 0; y < height; y++)
-            for (int x = 0, row = y * width; x < width; x++)
-                if (mask[row + x] && (x == 0 || !mask[row + x - 1]))
-                    components++;
+        for (int y = 0; y < height; y++) {
+            long carry = 0;
+            for (int word = y * words; word < (y + 1) * words; word++) {
+                components += Long.bitCount(mask[word] & ~(mask[word] << 1 | carry));
+                carry = mask[word] >>> 63;
+            }
+        }
         parent = new int[components];
         size = new int[components];
         left = new short[components];
@@ -32,16 +36,13 @@ public class ConnectedComponentFinder {
         int previousCount = 0;
         int next = 0;
         for (int y = 0; y < height; y++) {
-            int row = y * width;
+            int row = y * words;
             int count = 0;
             int above = 0;
             int firstComponent = next;
-            for (int x = 0; x < width; x++) {
-                if (!mask[row + x])
-                    continue;
-                int start = x;
-                while (x + 1 < width && mask[row + x + 1])
-                    x++;
+            int start = nextPixel(mask, row, words, 0, true);
+            while (start < width) {
+                int x = nextPixel(mask, row, words, start, false) - 1;
                 int component = next++;
                 parent[component] = component;
                 size[component] = x - start + 1;
@@ -56,6 +57,7 @@ public class ConnectedComponentFinder {
                     union(component, firstComponent - previousCount + touching);
                 currentStarts[count] = start;
                 currentEnds[count++] = x;
+                start = nextPixel(mask, row, words, x + 1, true);
             }
             int[] swapped = previousStarts;
             previousStarts = currentStarts;
@@ -67,7 +69,22 @@ public class ConnectedComponentFinder {
         }
     }
 
-    public static List<Rectangle> boundingBoxes(boolean[] mask, int width, int height,
+    /** The first pixel of the row at or after x that is set, or clear, or past the row. */
+    private static int nextPixel(long[] mask, int row, int words, int x, boolean set) {
+        long flip = set ? 0 : -1;
+        int word = x >>> 6;
+        if (word == words)
+            return x;
+        long bits = (mask[row + word] ^ flip) & -1L << x;
+        while (bits == 0) {
+            if (++word == words)
+                return word * 64;
+            bits = mask[row + word] ^ flip;
+        }
+        return word * 64 + Long.numberOfTrailingZeros(bits);
+    }
+
+    public static List<Rectangle> boundingBoxes(long[] mask, int width, int height,
                                                 int minimumPixels) {
         return new ConnectedComponentFinder(mask, width, height).boundingBoxes(minimumPixels);
     }

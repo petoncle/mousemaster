@@ -25,31 +25,26 @@ class EdgeDetector {
 
     /** A quarter of the 3060 a Sobel step reaches from black to white. */
     private static final int edgeThreshold = 765;
+    /** Rows a Sobel task slides its three luminance rows down. */
+    private static final int bandRows = 16;
 
-    static boolean[] edges(byte[] rgb, int width, int height, int dilation,
-                           int verticalDilation, int midpoint) {
-        short[] luminance = luminance(rgb, width, height, stretched[midpoint]);
+    static long[] edges(byte[] rgb, int width, int height, int dilation,
+                        int verticalDilation, int midpoint) {
         short[] magnitude = new short[width * height];
         byte[] direction = new byte[width * height];
-        sobel(luminance, width, height, magnitude, direction);
-        boolean[] suppressed = nonMaximumSuppression(magnitude, direction, width, height);
+        sobel(rgb, width, height, stretched[midpoint], magnitude, direction);
+        long[] suppressed = nonMaximumSuppression(magnitude, direction, width, height);
         return Dilation.dilated(suppressed, width, height, dilation, verticalDilation);
     }
 
     /** The unweighted channel sum, in 0..765: brightness, not a perceptual luma. */
-    private static short[] luminance(byte[] rgb, int width, int height,
-                                     int[] stretched) {
-        short[] luminance = new short[width * height];
-        IntStream.range(0, height).parallel().forEach(y -> {
-            for (int x = 0; x < width; x++) {
-                int pixel = y * width + x;
-                int channel = pixel * 3;
-                luminance[pixel] = (short) (stretched[rgb[channel] & 0xff] +
-                                            stretched[rgb[channel + 1] & 0xff] +
-                                            stretched[rgb[channel + 2] & 0xff]);
-            }
-        });
-        return luminance;
+    private static void luminance(byte[] rgb, int width, int y, int[] stretched,
+                                  short[] luminance) {
+        int channel = y * width * 3;
+        for (int x = 0; x < width; x++, channel += 3)
+            luminance[x] = (short) (stretched[rgb[channel] & 0xff] +
+                                    stretched[rgb[channel + 1] & 0xff] +
+                                    stretched[rgb[channel + 2] & 0xff]);
     }
 
     private static int[][] stretched() {
@@ -62,35 +57,51 @@ class EdgeDetector {
         return levels;
     }
 
-    private static void sobel(short[] luminance, int width, int height, short[] magnitude,
-                              byte[] direction) {
+    private static void sobel(byte[] rgb, int width, int height, int[] stretched,
+                              short[] magnitude, byte[] direction) {
         if (width < 3)
             return;
-        IntStream.range(1, height - 1).parallel().forEach(y -> {
-            int top = (y - 1) * width;
-            int row = y * width;
-            int bottom = (y + 1) * width;
-            // Each column smoothed and differenced once, as the window slides along the row.
-            int leftSum = luminance[top] + 2 * luminance[row] + luminance[bottom];
-            int leftDifference = luminance[bottom] - luminance[top];
-            int sum = luminance[top + 1] + 2 * luminance[row + 1] + luminance[bottom + 1];
-            int difference = luminance[bottom + 1] - luminance[top + 1];
-            for (int x = 1; x < width - 1; x++) {
-                int rightSum = luminance[top + x + 1] + 2 * luminance[row + x + 1]
-                               + luminance[bottom + x + 1];
-                int rightDifference = luminance[bottom + x + 1] - luminance[top + x + 1];
-                int horizontal = rightSum - leftSum;
-                int vertical = leftDifference + 2 * difference + rightDifference;
-                int pixel = row + x;
-                magnitude[pixel] = (short) (Math.abs(horizontal) + Math.abs(vertical));
-                if (magnitude[pixel] > edgeThreshold)
-                    direction[pixel] = direction(horizontal, vertical);
-                leftSum = sum;
-                sum = rightSum;
-                leftDifference = difference;
-                difference = rightDifference;
+        int bands = (height - 2 + bandRows - 1) / bandRows;
+        IntStream.range(0, bands).parallel().forEach(band -> {
+            int from = 1 + band * bandRows;
+            int to = Math.min(height - 1, from + bandRows);
+            short[] top = new short[width];
+            short[] row = new short[width];
+            short[] bottom = new short[width];
+            luminance(rgb, width, from - 1, stretched, top);
+            luminance(rgb, width, from, stretched, row);
+            for (int y = from; y < to; y++) {
+                luminance(rgb, width, y + 1, stretched, bottom);
+                sobel(top, row, bottom, width, magnitude, direction, y * width);
+                short[] above = top;
+                top = row;
+                row = bottom;
+                bottom = above;
             }
         });
+    }
+
+    private static void sobel(short[] top, short[] row, short[] bottom, int width,
+                              short[] magnitude, byte[] direction, int start) {
+        // Each column smoothed and differenced once, as the window slides along the row.
+        int leftSum = top[0] + 2 * row[0] + bottom[0];
+        int leftDifference = bottom[0] - top[0];
+        int sum = top[1] + 2 * row[1] + bottom[1];
+        int difference = bottom[1] - top[1];
+        for (int x = 1; x < width - 1; x++) {
+            int rightSum = top[x + 1] + 2 * row[x + 1] + bottom[x + 1];
+            int rightDifference = bottom[x + 1] - top[x + 1];
+            int horizontal = rightSum - leftSum;
+            int vertical = leftDifference + 2 * difference + rightDifference;
+            int pixel = start + x;
+            magnitude[pixel] = (short) (Math.abs(horizontal) + Math.abs(vertical));
+            if (magnitude[pixel] > edgeThreshold)
+                direction[pixel] = direction(horizontal, vertical);
+            leftSum = sum;
+            sum = rightSum;
+            leftDifference = difference;
+            difference = rightDifference;
+        }
     }
 
     private static byte direction(int horizontal, int vertical) {
@@ -103,9 +114,10 @@ class EdgeDetector {
         return (byte) (horizontal * vertical > 0 ? 1 : 3);
     }
 
-    private static boolean[] nonMaximumSuppression(short[] magnitude, byte[] direction,
-                                                   int width, int height) {
-        boolean[] suppressed = new boolean[magnitude.length];
+    private static long[] nonMaximumSuppression(short[] magnitude, byte[] direction,
+                                                int width, int height) {
+        int words = Dilation.words(width);
+        long[] suppressed = new long[words * height];
         IntStream.range(1, height - 1).parallel().forEach(y -> {
             for (int x = 1; x < width - 1; x++) {
                 int pixel = y * width + x;
@@ -114,8 +126,8 @@ class EdgeDetector {
                     continue;
                 int along = alongGradientY[direction[pixel]] * width
                             + alongGradientX[direction[pixel]];
-                suppressed[pixel] = value >= magnitude[pixel + along]
-                                    && value >= magnitude[pixel - along];
+                if (value >= magnitude[pixel + along] && value >= magnitude[pixel - along])
+                    Dilation.set(suppressed, words, x, y);
             }
         });
         return suppressed;

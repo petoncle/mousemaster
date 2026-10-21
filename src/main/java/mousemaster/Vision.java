@@ -172,8 +172,8 @@ public class Vision {
                                            int minimumGapColumns) {
         int downsampledWidth = (width + downsampleFactor - 1) / downsampleFactor;
         int downsampledHeight = (height + downsampleFactor - 1) / downsampleFactor;
-        boolean[] ink = InkDetector.ink(rgb, width, height);
-        boolean[] mask = InkDetector.downsampledInk(
+        long[] ink = InkDetector.ink(rgb, width, height);
+        long[] mask = InkDetector.downsampledInk(
                 InkDetector.dilated(ink, width, height), width, height, downsampleFactor,
                 downsampledWidth, downsampledHeight);
         SummedAreaTable inkTable = new SummedAreaTable(ink, width, height);
@@ -196,7 +196,7 @@ public class Vision {
     private static List<Rectangle> boundedRegions(byte[] rgb, int width, int height,
                                                   double scale, int edgeDilation,
                                                   int verticalDilation, int midpoint) {
-        boolean[] edges = EdgeDetector.edges(rgb, width, height, edgeDilation,
+        long[] edges = EdgeDetector.edges(rgb, width, height, edgeDilation,
                 verticalDilation, midpoint);
         List<Rectangle> bounded = new ArrayList<>();
         // No floor: the dilation already makes every component wider than one.
@@ -391,12 +391,14 @@ public class Vision {
     }
 
     /** The capture with its ink in red and every emitted box outlined in green. */
-    private static void dump(byte[] rgb, boolean[] ink, List<Rectangle> boxes, int width,
+    private static void dump(byte[] rgb, long[] ink, List<Rectangle> boxes, int width,
                              int height) {
         byte[] image = rgb.clone();
-        for (int pixel = 0; pixel < ink.length; pixel++)
-            if (ink[pixel])
-                paint(image, pixel, 255, 0, 0);
+        int words = Dilation.words(width);
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+                if (Dilation.isSet(ink, words, x, y))
+                    paint(image, y * width + x, 255, 0, 0);
         for (Rectangle box : boxes) {
             for (int x = box.x(); x < box.x() + box.width(); x++) {
                 paint(image, box.y() * width + x, 0, 255, 0);
