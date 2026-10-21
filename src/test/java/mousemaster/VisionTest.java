@@ -180,6 +180,17 @@ public class VisionTest {
     }
 
     @Test
+    public void darkThemeOutlineIsInk() {
+        BufferedImage image = screen(new Color(0x17191A));
+        Graphics2D pen = pen(image);
+        pen.setColor(new Color(0x3E3E3F));
+        pen.setStroke(new BasicStroke(2));
+        pen.drawRoundRect(193, 143, 14, 14, 4, 4);
+        pen.dispose();
+        assertEquals(1, within(elements(image, density), 190, 140, 210, 160));
+    }
+
+    @Test
     public void rowMenuOfThreeDotsIsHinted() {
         BufferedImage image = screen(Color.WHITE);
         Graphics2D pen = pen(image);

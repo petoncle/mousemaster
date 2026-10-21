@@ -15,8 +15,8 @@ public class InkDetector {
     /** Wider than a stroke, so a stroke stays a minority of its own window. */
     private static final int backgroundRadius = 3 * strokeWidth;
     /** Levels of 255 from the background. Empirical; Otsu chose 82 here, which
-     *  drops grey text on white. */
-    static final int inkThreshold = 42;
+     *  drops grey text on white, and a dark theme draws its outlines 39 apart. */
+    static final int inkThreshold = 36;
     private static final int horizontalDilation = strokeWidth;
     private static final int verticalDilation = strokeWidth / 2;
     /** Rows of the window the median is taken over, a stroke apart: any further and a
