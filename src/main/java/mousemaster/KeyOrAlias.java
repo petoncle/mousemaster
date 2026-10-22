@@ -24,6 +24,16 @@ public record KeyOrAlias(Key key, KeyAlias alias) {
         return alias != null ? alias.keys().contains(k) : key.equals(k);
     }
 
+    /**
+     * The event's modified typed key if this matches it, else the event's key if this
+     * matches it, else null.
+     */
+    public Key matchedKey(KeyEvent event) {
+        if (event.modifiedTypedKey() != null && matchesKey(event.modifiedTypedKey()))
+            return event.modifiedTypedKey();
+        return matchesKey(event.key()) ? event.key() : null;
+    }
+
     public Set<Key> possibleKeys() {
         return alias != null ? Set.copyOf(alias.keys()) : Set.of(key);
     }

@@ -65,7 +65,8 @@ class AnimationTest {
         comboWatcher = new ComboWatcher(commandRunner, hintManager, () -> new App("test.exe"), null,
                 () -> now, Set.of(), pressedPreconditionKeys, new KeyRedactor(KeyRedaction.NONE), modeMap,
                 configuration.initiallySetVariables(), configuration.virtualKeys(),
-                configuration.initiallyPressedVirtualKeys());
+                configuration.initiallyPressedVirtualKeys(),
+                configuration.activeKeyboardLayout());
         animationPlayer = new AnimationPlayer(configuration.animationConfigurationByName());
         commandRunner.setAnimationPlayer(animationPlayer);
         indicatorManager = new IndicatorManager(overlay, animationPlayer);

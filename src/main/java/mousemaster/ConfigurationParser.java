@@ -1853,7 +1853,7 @@ public class ConfigurationParser {
             }
             else {
                 Key key = Key.ofName(token);
-                if (!tokenLayout.equals(activeKeyboardLayout)) {
+                if (!tokenLayout.equals(activeKeyboardLayout) && tokenLayout.containsKey(key)) {
                     int scanCode = tokenLayout.scanCode(key);
                     Key activeKey = activeKeyboardLayout.keyFromScanCode(scanCode);
                     if (activeKey == null)

@@ -255,13 +255,14 @@ public class Mousemaster {
                         unpressedComboPreconditionKeys,
                         pressedComboPreconditionKeys, keyRedactor,
                         configuration.modeMap(), configuration.initiallySetVariables(),
-                        configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys());
+                        configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys(),
+                        configuration.activeKeyboardLayout());
         KeyRegurgitator keyRegurgitator =
                 new KeyRegurgitator(platform.keyboard(), keyRedactor);
         keyboardManager = new KeyboardManager(comboWatcher, hintManager, keyRegurgitator,
                 platform.clock());
         macroPlayer = new MacroPlayer(platform.clock(), comboWatcher, keyboardManager,
-                platform.keyboard(), keyRedactor);
+                platform.keyboard(), keyRedactor, configuration.activeKeyboardLayout());
         keyboardManager.setMacroPlayer(macroPlayer);
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
         animationPlayer = new AnimationPlayer(configuration.animationConfigurationByName());

@@ -94,7 +94,8 @@ public class UiHintAreaTest {
                         Set.of(), Set.of(), new KeyRedactor(KeyRedaction.NONE),
                         configuration.modeMap(),
                         configuration.initiallySetVariables(), configuration.virtualKeys(),
-                        configuration.initiallyPressedVirtualKeys());
+                        configuration.initiallyPressedVirtualKeys(),
+                        configuration.activeKeyboardLayout());
         comboWatcher.setModeListeners(List.of(new ModeListener() {
             @Override
             public void modeChanged(Mode newMode) {

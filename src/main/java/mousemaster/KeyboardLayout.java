@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public final class KeyboardLayout {
 
@@ -83,7 +84,8 @@ public final class KeyboardLayout {
 
     // Gson deserializes the "virtualKey" JSON field into the enum by name automatically.
     public record KeyboardLayoutKey(int scanCode, WindowsVirtualKey virtualKey, Key key,
-                                    String text, String name) {
+                                    String text, String shiftText, String altgrText,
+                                    String name) {
     }
 
     /**
@@ -159,6 +161,61 @@ public final class KeyboardLayout {
         for (KeyboardLayoutKey keyboardLayoutKey : keys) {
             if (keyboardLayoutKey.virtualKey == virtualKey)
                 return keyboardLayoutKey.key();
+        }
+        return null;
+    }
+
+    public Key keyFromShiftText(String shiftText) {
+        for (KeyboardLayoutKey keyboardLayoutKey : keys) {
+            if (shiftText.equals(keyboardLayoutKey.shiftText))
+                return keyboardLayoutKey.key();
+        }
+        return null;
+    }
+
+    public Key keyFromAltgrText(String altgrText) {
+        for (KeyboardLayoutKey keyboardLayoutKey : keys) {
+            if (altgrText.equals(keyboardLayoutKey.altgrText))
+                return keyboardLayoutKey.key();
+        }
+        return null;
+    }
+
+    /**
+     * If the layout is us-qwerty and the typed key is ?, then the modified key press will be /
+     * with leftshift or rightshift.
+     */
+    public ModifiedKeyPress modifiedKeyPressFromTypedKey(Key typedKey) {
+        if (typedKey.character() == null || containsKey(typedKey))
+            return null;
+        Key shiftKey = keyFromShiftText(typedKey.character());
+        if (shiftKey != null)
+            return new ModifiedKeyPress(shiftKey, Set.of(Key.leftshift, Key.rightshift), typedKey);
+        Key altgrKey = keyFromAltgrText(typedKey.character());
+        if (altgrKey != null)
+            return new ModifiedKeyPress(altgrKey, Set.of(Key.rightalt), typedKey);
+        return null;
+    }
+
+    /**
+     * If the layout is us-qwerty, the candidate modified key is / and the candidate modifier
+     * keys include a shift, then the modified typed key will be ?.
+     */
+    public Key modifiedTypedKeyFromPress(Key candidateModifiedKey, Set<Key> candidateModifierKeys) {
+        boolean shift = candidateModifierKeys.contains(Key.leftshift) ||
+                        candidateModifierKeys.contains(Key.rightshift);
+        boolean altgr = candidateModifierKeys.contains(Key.rightalt);
+        if (shift == altgr || candidateModifierKeys.contains(Key.leftctrl) ||
+            candidateModifierKeys.contains(Key.rightctrl) ||
+            candidateModifierKeys.contains(Key.leftalt) ||
+            candidateModifierKeys.contains(Key.leftwin) ||
+            candidateModifierKeys.contains(Key.rightwin))
+            return null;
+        for (KeyboardLayoutKey keyboardLayoutKey : keys) {
+            if (keyboardLayoutKey.key.equals(candidateModifiedKey)) {
+                String text = shift ? keyboardLayoutKey.shiftText : keyboardLayoutKey.altgrText;
+                return text == null ? null : Key.ofCharacter(text);
+            }
         }
         return null;
     }

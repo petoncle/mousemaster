@@ -70,7 +70,7 @@ public sealed interface ComboMove permits ComboMove.KeyComboMove, ComboMove.Wait
                                 ComboMoveDuration duration) implements WaitComboMove {
             @Override
             public boolean matchesEvent(KeyEvent event) {
-                return ignoredKeySet.contains(event.key());
+                return ignoredKeySet.matches(event);
             }
 
             @Override

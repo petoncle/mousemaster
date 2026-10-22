@@ -72,7 +72,8 @@ class IndicatorEffectsTest {
         comboWatcher = new ComboWatcher(commandRunner, hintManager, () -> new App("test.exe"), null,
                 () -> now, Set.of(), pressedPreconditionKeys, new KeyRedactor(KeyRedaction.NONE), modeMap,
                 configuration.initiallySetVariables(), configuration.virtualKeys(),
-                configuration.initiallyPressedVirtualKeys());
+                configuration.initiallyPressedVirtualKeys(),
+                configuration.activeKeyboardLayout());
         animationPlayer = new AnimationPlayer(configuration.animationConfigurationByName());
         commandRunner.setAnimationPlayer(animationPlayer);
         indicatorManager = new IndicatorManager(overlay, animationPlayer);
@@ -252,6 +253,57 @@ class IndicatorEffectsTest {
         tick(0.8);
         tick(0.01);
         assertTrue(hidden);
+    }
+
+    @Test
+    void aKeycastShowsTheTypedCharacter() {
+        load("key-alias.move=questionmark j",
+                "keycast-animation.duration-millis=800",
+                "idle-mode.keycast-animation.start=+move",
+                "idle-mode.indicator.enabled=false",
+                "idle-mode.keycast-indicator.enabled=false | _{keycastanimation} -> true",
+                "idle-mode.keycast-indicator.shape=rectangle",
+                "idle-mode.keycast-indicator.text= | +move -> <b>{move}</b>");
+        tick(0);
+        press("leftshift");
+        tap("/");
+        tick(0);
+        assertEquals("<b>?</b>", drawn("keycast-indicator").text());
+    }
+
+    @Test
+    void aKeycastRemapsTheTypedCharacter() {
+        load("key-alias.move=questionmark j",
+                "keycast-animation.duration-millis=800",
+                "idle-mode.keycast-animation.start=+move",
+                "idle-mode.indicator.enabled=false",
+                "idle-mode.keycast-indicator.enabled=false | _{keycastanimation} -> true",
+                "idle-mode.keycast-indicator.shape=rectangle",
+                "idle-mode.keycast-indicator.text= | +move -> move.questionmark=help -> <b>{move}</b>");
+        tick(0);
+        press("leftshift");
+        tap("/");
+        tick(0);
+        assertEquals("<b>help</b>", drawn("keycast-indicator").text());
+    }
+
+    @Test
+    void aKeycastShowsTheKeyItselfWithoutShift() {
+        load("key-alias.move=/ questionmark",
+                "keycast-animation.duration-millis=800",
+                "idle-mode.keycast-animation.start=+move",
+                "idle-mode.indicator.enabled=false",
+                "idle-mode.keycast-indicator.enabled=false | _{keycastanimation} -> true",
+                "idle-mode.keycast-indicator.shape=rectangle",
+                "idle-mode.keycast-indicator.text= | +move -> <b>{move}</b>");
+        tick(0);
+        tap("/");
+        tick(0);
+        assertEquals("<b>/</b>", drawn("keycast-indicator").text());
+        press("leftshift");
+        tap("/");
+        tick(0);
+        assertEquals("<b>?</b>", drawn("keycast-indicator").text());
     }
 
     @Test

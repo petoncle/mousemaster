@@ -18,7 +18,7 @@ public record PressKeyEventProcessingSet(
                     new PressedKeyPrecondition(List.of())),
             new ComboPrecondition.ComboAppPrecondition(Set.of(), Set.of()),
             new ComboPrecondition.ComboVariablePrecondition(List.of())),
-            new ComboSequence(List.of()));
+            new ComboSequence(List.of(), Set.of()));
 
     public boolean mustBeEaten() {
         return processingByCombo.values().stream().anyMatch(

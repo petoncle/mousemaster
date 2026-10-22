@@ -55,7 +55,7 @@ class ComboPreparationTest {
     }
 
     static ComboSequence seq(MoveSet... moveSets) {
-        return new ComboSequence(List.of(moveSets));
+        return new ComboSequence(List.of(moveSets), Set.of());
     }
 
     @Test

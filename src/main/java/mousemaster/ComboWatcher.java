@@ -34,6 +34,14 @@ public class ComboWatcher {
     private final Set<Key> unpressedComboPreconditionKeys;
     private final Map<String, Set<Key>> pressedPreconditionKeysByModeName;
     private final Map<String, Set<Key>> sequenceKeysByModeName;
+    private final KeyboardLayout activeKeyboardLayout;
+    /**
+     * pressedComboPreconditionKeys includes them so that currentlyPressedComboKeys holds them
+     * when the modified key is pressed, and pressedPreconditionKeysByModeName so that holding
+     * one is not an unhandled key press.
+     */
+    private final Set<Key> sequenceModifierKeys;
+    private final Map<Key, Key> modifiedTypedKeyByModifiedKey = new HashMap<>();
     private Set<Key> currentModePressedPreconditionKeys;
     private Set<Key> currentModeSequenceKeys = Set.of();
     private List<ModeListener> modeListeners;
@@ -179,7 +187,8 @@ public class ComboWatcher {
                         Set<Key> unpressedComboPreconditionKeys,
                         Set<Key> pressedComboPreconditionKeys, KeyRedactor keyRedactor,
                         ModeMap modeMap, Set<String> initiallySetVariables,
-                        Set<Key> virtualKeys, Set<Key> initiallyPressedVirtualKeys) {
+                        Set<Key> virtualKeys, Set<Key> initiallyPressedVirtualKeys,
+                        KeyboardLayout activeKeyboardLayout) {
         this.currentlyPressedComboKeys.addAll(initiallyPressedVirtualKeys);
         this.currentlyPressedComboKeys.add(Os.macos ? BuiltInVirtualKey.IS_MACOS :
                 BuiltInVirtualKey.IS_WINDOWS);
@@ -202,9 +211,8 @@ public class ComboWatcher {
         this.clock = clock;
         this.unpressedComboPreconditionKeys =
                 unpressedComboPreconditionKeys;
-        this.pressedComboPreconditionKeys =
-                pressedComboPreconditionKeys;
         this.keyRedactor = keyRedactor;
+        this.activeKeyboardLayout = activeKeyboardLayout;
         this.comboPreparationRetainDurationByModeName = comboPreparationRetainDurationByModeName(modeMap);
         this.comboPreparationMinRetainEventCountByModeName = comboPreparationMinRetainEventCountByModeName(modeMap);
         for (Mode mode : modeMap.modes()) {
@@ -220,6 +228,7 @@ public class ComboWatcher {
         this.comboPreparation = ComboPreparation.empty();
         Map<String, Set<Key>> preconditionKeysByModeName = new HashMap<>();
         Map<String, Set<Key>> sequenceKeysByModeName = new HashMap<>();
+        Set<Key> sequenceModifierKeys = new HashSet<>();
         for (Mode mode : modeMap.modes()) {
             Set<Key> keys = new HashSet<>();
             Set<Key> sequenceKeys = new HashSet<>();
@@ -228,13 +237,19 @@ public class ComboWatcher {
                                  .keyPrecondition()
                                  .pressedKeyPrecondition()
                                  .allKeys());
+                keys.addAll(combo.sequence().modifierKeys());
                 sequenceKeys.addAll(combo.sequence().allKeys());
+                sequenceModifierKeys.addAll(combo.sequence().modifierKeys());
             }
             preconditionKeysByModeName.put(mode.name(), keys);
             sequenceKeysByModeName.put(mode.name(), sequenceKeys);
         }
         this.pressedPreconditionKeysByModeName = preconditionKeysByModeName;
         this.sequenceKeysByModeName = sequenceKeysByModeName;
+        this.sequenceModifierKeys = sequenceModifierKeys;
+        Set<Key> allPressedComboPreconditionKeys = new HashSet<>(pressedComboPreconditionKeys);
+        allPressedComboPreconditionKeys.addAll(sequenceModifierKeys);
+        this.pressedComboPreconditionKeys = allPressedComboPreconditionKeys;
         // Pressed before the first mode change, which applies the mutations that read them.
         updateScreenFilterKeys();
     }
@@ -531,8 +546,12 @@ public class ComboWatcher {
         return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore, hasComboPreparationBreaker, comboPreparationAlreadyBroken, comboPreparationBreakerKey, expiredCombos);
     }
 
+    /**
+     * A sequence does not see its modifier keys, nor the virtual keys it does not name.
+     */
     private boolean isVisibleTo(ComboSequence sequence, Key key) {
-        return !virtualKeys.contains(key) || sequence.allKeys().contains(key);
+        return !sequence.modifierKeys().contains(key) &&
+               (!virtualKeys.contains(key) || sequence.allKeys().contains(key));
     }
 
     private boolean isVisibleToSomeCombo(Key key) {
@@ -555,18 +574,36 @@ public class ComboWatcher {
 
     private ComboPreparation preparationVisibleTo(ComboSequence sequence,
                                                   Set<Key> virtualKeysInPreparation) {
-        if (virtualKeysInPreparation.isEmpty())
-            return comboPreparation;
-        // Hiding the last event would turn an older event into the suffix, matching a combo
-        // that already completed.
-        if (!isVisibleTo(sequence, comboPreparation.events().getLast().key()))
+        if (virtualKeysInPreparation.isEmpty() && sequence.modifierKeys().isEmpty())
             return comboPreparation;
         Set<Key> hidden = new HashSet<>(virtualKeysInPreparation);
         hidden.removeAll(sequence.allKeys());
+        // Hiding the last event would turn an older event into the suffix, matching a combo
+        // that already completed.
+        if (!hidden.isEmpty() && hidden.contains(comboPreparation.events().getLast().key()))
+            hidden.clear();
+        hidden.addAll(sequence.modifierKeys());
         return comboPreparation.without(hidden);
     }
 
     public PressKeyEventProcessingSet keyEvent(KeyEvent event) {
+        Key modifiedTypedKey;
+        if (event.isPress()) {
+            modifiedTypedKey = activeKeyboardLayout.modifiedTypedKeyFromPress(event.key(),
+                    currentlyPressedComboKeys);
+            if (modifiedTypedKey == null)
+                modifiedTypedKeyByModifiedKey.remove(event.key());
+            else
+                modifiedTypedKeyByModifiedKey.put(event.key(), modifiedTypedKey);
+        }
+        else
+            modifiedTypedKey = modifiedTypedKeyByModifiedKey.remove(event.key());
+        return processKeyEvent(event.isPress() ?
+                new KeyEvent.PressKeyEvent(event.time(), event.key(), modifiedTypedKey) :
+                new KeyEvent.ReleaseKeyEvent(event.time(), event.key(), modifiedTypedKey));
+    }
+
+    private PressKeyEventProcessingSet processKeyEvent(KeyEvent event) {
         if (!isVisibleToSomeCombo(event.key())) {
             if (event.isPress())
                 currentlyPressedComboKeys.add(event.key());
@@ -612,9 +649,9 @@ public class ComboWatcher {
                             continue;
                         KeyMoveSet keyMs = (KeyMoveSet) ms;
                         couldMatchNextMove = keyMs.requiredMoves().stream()
-                                .anyMatch(m -> m.keyOrAlias().matchesKey(event.key())) ||
+                                .anyMatch(m -> m.keyOrAlias().matchedKey(event) != null) ||
                                 keyMs.optionalMoves().stream()
-                                .anyMatch(m -> m.keyOrAlias().matchesKey(event.key()));
+                                .anyMatch(m -> m.keyOrAlias().matchedKey(event) != null);
                         break;
                     }
                     if (!couldMatchNextMove) {
@@ -651,7 +688,9 @@ public class ComboWatcher {
                     return false;
                 WaitComboMove waitMove = waiting.lastWaitMove();
                 if (waitMove == null)
-                    return currentModeSequenceKeys.contains(event.key());
+                    return currentModeSequenceKeys.contains(event.key()) ||
+                           event.modifiedTypedKey() != null &&
+                           currentModeSequenceKeys.contains(event.modifiedTypedKey());
                 return !waitMove.matchesEvent(event);
             });
         }
@@ -667,8 +706,17 @@ public class ComboWatcher {
                 return !waitMoveSet.waitMove().matchesEvent(event);
             });
         }
-        KeyEvent previousEvent = comboPreparation.events().isEmpty() ? null :
-                comboPreparation.events().getLast();
+        // A modifier key event types a key of sequences that do not see it, so it does not
+        // break the gap between the events around it.
+        KeyEvent previousEvent = null;
+        if (!sequenceModifierKeys.contains(event.key())) {
+            List<KeyEvent> events = comboPreparation.events();
+            for (int eventIndex = events.size() - 1;
+                 eventIndex >= 0 && previousEvent == null; eventIndex--) {
+                if (!sequenceModifierKeys.contains(events.get(eventIndex).key()))
+                    previousEvent = events.get(eventIndex);
+            }
+        }
         if (previousEvent != null &&
             previousComboMoveDuration != null) {
             // If there are ignored keys (from a trailing wait),
@@ -686,9 +734,11 @@ public class ComboWatcher {
         List<KeyEvent> preparationEvents = comboPreparation.events();
         Duration retainDuration = comboPreparationRetainDurationByModeName.get(baseMode.name());
         int minRetainEventCount = comboPreparationMinRetainEventCountByModeName.getOrDefault(baseMode.name(), 0);
-        // A virtual key event must not push a combo's own events out of the preparation.
+        // A virtual or modifier key event must not push a combo's own events out of the
+        // preparation.
         for (KeyEvent preparationEvent : preparationEvents)
-            if (virtualKeys.contains(preparationEvent.key()))
+            if (virtualKeys.contains(preparationEvent.key()) ||
+                sequenceModifierKeys.contains(preparationEvent.key()))
                 minRetainEventCount++;
         if (retainDuration != null &&
             preparationEvents.size() > minRetainEventCount) {
@@ -716,9 +766,9 @@ public class ComboWatcher {
         if (!processingSet.isPartOfComboSequence()) {
             boolean couldMatchOptional = event.isPress() &&
                                          keyPressCouldMatchOptionalMoveInFirstKeyMoveSet(
-                                                 event.key());
+                                                 event);
             boolean couldBePartOfOptionalTap =
-                    keyCouldBePartOfOptionalTapInAnyCombo(event.key());
+                    keyEventCouldBePartOfOptionalTapInAnyCombo(event);
             boolean ignoredByKeyMoveSet = keyEventIgnoredByFirstKeyMoveSetInAnyCombo(event);
             if (!couldMatchOptional && !couldBePartOfOptionalTap && !ignoredByKeyMoveSet &&
                 !virtualKeys.contains(event.key())) {
@@ -912,6 +962,15 @@ public class ComboWatcher {
             }
             if (!combo.precondition().variablePrecondition().satisfiedBy(activeVariables))
                 continue;
+            // A modifier key event keeps the combo alive, without being part of it.
+            if (event != null && combo.sequence().modifierKeys().contains(event.key())) {
+                if (match.hasMatch()) {
+                    processingByCombo.put(combo,
+                            PressKeyEventProcessing.partOfComboSequence(false, false, false));
+                    matchByCombo.put(combo, match);
+                }
+                continue;
+            }
             boolean mustBeEaten = false;
             boolean partOfComboSequence = false;
             if (match.hasMatch()) {
@@ -1324,10 +1383,12 @@ public class ComboWatcher {
                 if (!allGroupKeys.contains(completedKey))
                     candidatePressedPreconditionKeys.remove(completedKey);
             }
-            // A pressed virtual key is not a key the user is pressing, so it counts only
-            // where the group names it.
+            // A pressed virtual key is not a key the user is pressing, and a pressed modifier
+            // key types a key of the sequence, so they count only where the precondition names
+            // them.
             candidatePressedPreconditionKeys.removeIf(
-                    candidateKey -> virtualKeys.contains(candidateKey) &&
+                    candidateKey -> (virtualKeys.contains(candidateKey) ||
+                                     combo.sequence().modifierKeys().contains(candidateKey)) &&
                                     !allGroupKeys.contains(candidateKey));
             // Reverse-apply matched key moves: remove pressed keys, add released keys.
             for (int i = matchedKeyMoves.size() - 1; i >= 0; i--) {
@@ -1587,6 +1648,7 @@ public class ComboWatcher {
         // Virtual keys are kept: these resets reconcile with the physical keyboard, and a
         // virtual key has nothing there to reconcile with.
         currentlyPressedComboKeys.removeIf(key -> !virtualKeys.contains(key));
+        modifiedTypedKeyByModifiedKey.clear();
     }
 
     public void reset(Key comboPreparationBreakerKey) {
@@ -1594,6 +1656,7 @@ public class ComboWatcher {
         // KeyManager won't notify ComboWatcher of the release of the comboPreparationBreakerKey.
         currentlyPressedCompletedComboKeys.remove(comboPreparationBreakerKey);
         currentlyPressedComboKeys.remove(comboPreparationBreakerKey);
+        modifiedTypedKeyByModifiedKey.remove(comboPreparationBreakerKey);
         refreshPreconditionOnlyMutations();
     }
 
@@ -1661,7 +1724,7 @@ public class ComboWatcher {
      * avoid clearing the preparation when a key is pressed that doesn't satisfy
      * any required move but could be an optional part of an any-order MoveSet.
      */
-    private boolean keyPressCouldMatchOptionalMoveInFirstKeyMoveSet(Key key) {
+    private boolean keyPressCouldMatchOptionalMoveInFirstKeyMoveSet(KeyEvent event) {
         for (Combo combo : baseMode.comboMap().commandsByCombo().keySet()) {
             if (combo.sequence().isEmpty())
                 continue;
@@ -1669,7 +1732,8 @@ public class ComboWatcher {
             if (!(firstMoveSet instanceof KeyMoveSet keyMoveSet))
                 continue;
             for (ComboMove.KeyComboMove optMove : keyMoveSet.optionalMoves()) {
-                if ((optMove.isPress() || optMove.isTap()) && optionalMoveMatchesKey(optMove, key))
+                if ((optMove.isPress() || optMove.isTap()) &&
+                    optionalMoveMatchesEvent(optMove, event))
                     return true;
             }
         }
@@ -1677,10 +1741,10 @@ public class ComboWatcher {
     }
 
     /**
-     * Returns true if the given key could match an optional tap move in the
+     * Returns true if the given event could match an optional tap move in the
      * first KeyMoveSet of any combo (skipping leading WaitMoveSets).
      */
-    private boolean keyCouldBePartOfOptionalTapInAnyCombo(Key key) {
+    private boolean keyEventCouldBePartOfOptionalTapInAnyCombo(KeyEvent event) {
         for (Combo combo : baseMode.comboMap().commandsByCombo().keySet()) {
             if (combo.sequence().isEmpty())
                 continue;
@@ -1689,7 +1753,7 @@ public class ComboWatcher {
                     continue;
                 if (moveSet instanceof KeyMoveSet keyMoveSet) {
                     for (ComboMove.KeyComboMove optMove : keyMoveSet.optionalMoves()) {
-                        if (optMove.isTap() && optionalMoveMatchesKey(optMove, key))
+                        if (optMove.isTap() && optionalMoveMatchesEvent(optMove, event))
                             return true;
                     }
                     break; // Only check the first KeyMoveSet.
@@ -1738,6 +1802,12 @@ public class ComboWatcher {
 
     private static boolean optionalMoveMatchesKey(ComboMove.KeyComboMove optMove, Key key) {
         boolean matches = optMove.keyOrAlias().matchesKey(key);
+        return optMove.negated() ? !matches : matches;
+    }
+
+    private static boolean optionalMoveMatchesEvent(ComboMove.KeyComboMove optMove,
+                                                    KeyEvent event) {
+        boolean matches = optMove.keyOrAlias().matchedKey(event) != null;
         return optMove.negated() ? !matches : matches;
     }
 

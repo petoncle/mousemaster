@@ -871,7 +871,7 @@
 {
   "name":"mousemaster.KeyboardLayout$KeyboardLayoutKey",
   "allDeclaredFields":true,
-  "methods":[{"name":"<init>","parameterTypes":["int","mousemaster.platform.windows.WindowsVirtualKey","mousemaster.Key","java.lang.String","java.lang.String"] }, {"name":"key","parameterTypes":[] }, {"name":"name","parameterTypes":[] }, {"name":"scanCode","parameterTypes":[] }, {"name":"text","parameterTypes":[] }, {"name":"virtualKey","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["int","mousemaster.platform.windows.WindowsVirtualKey","mousemaster.Key","java.lang.String","java.lang.String","java.lang.String","java.lang.String"] }, {"name":"altgrText","parameterTypes":[] }, {"name":"key","parameterTypes":[] }, {"name":"name","parameterTypes":[] }, {"name":"scanCode","parameterTypes":[] }, {"name":"shiftText","parameterTypes":[] }, {"name":"text","parameterTypes":[] }, {"name":"virtualKey","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.Mode",

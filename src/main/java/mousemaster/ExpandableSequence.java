@@ -454,7 +454,15 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                     new KeyMoveSet(List.copyOf(required), List.copyOf(optional),
                             resolvedWaitMove, atLeastOneOptional));
         }
-        return new ComboSequence(List.copyOf(resolvedMoveSets));
+        Set<Key> sequenceKeys = ComboSequence.allKeys(resolvedMoveSets);
+        Set<Key> modifierKeys = new HashSet<>();
+        for (Key key : sequenceKeys) {
+            ModifiedKeyPress modifiedKeyPress = keyResolver.modifiedKeyPressFromTypedKey(key);
+            if (modifiedKeyPress != null)
+                modifierKeys.addAll(modifiedKeyPress.modifierKeys());
+        }
+        modifierKeys.removeAll(sequenceKeys);
+        return new ComboSequence(List.copyOf(resolvedMoveSets), Set.copyOf(modifierKeys));
     }
 
     private static ComboMove.WaitComboMove resolveWaitComboMove(

@@ -50,8 +50,10 @@
 - lessthan (`<`)
 - greaterthan (`>`)
 
-Names are lowercase. Any other key is named after the character it types without a modifier:
-`a`, `é`, `;`.
+The names above are lowercase. Any other key is named after the character it types: `a`, `é`,
+`;`. A character the active layout types with shift or altgr names its key pressed with that
+modifier: on us-qwerty, `+A` is `a` pressed with a shift, and `+questionmark` is `/` pressed with
+a shift.
 
 `break` is ctrl + pause, and exists on Windows only. `menu` is the context menu key.
 

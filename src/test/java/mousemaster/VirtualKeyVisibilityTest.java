@@ -27,7 +27,8 @@ class VirtualKeyVisibilityTest {
         ActiveAppFinder noApp = () -> new App("test.exe");
         comboWatcher = new ComboWatcher(null, null, noApp, null, () -> now, Set.of(), Set.of(),
                 new KeyRedactor(KeyRedaction.NONE), modeMap, configuration.initiallySetVariables(),
-                configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys());
+                configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys(),
+                configuration.activeKeyboardLayout());
         comboWatcher.setModeListeners(List.of(new ModeListener() {
             @Override
             public void modeChanged(Mode newMode) {

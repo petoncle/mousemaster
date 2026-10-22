@@ -39,9 +39,10 @@ public class KeyResolver {
     public Key resolve(String keyName) {
         if (isVirtual(keyName))
             return new Key(keyName, null, null);
-        if (configurationKeyboardLayout.equals(activeKeyboardLayout))
-            return Key.ofName(keyName);
         Key keyInConfigurationLayout = Key.ofName(keyName);
+        if (configurationKeyboardLayout.equals(activeKeyboardLayout) ||
+            !configurationKeyboardLayout.containsKey(keyInConfigurationLayout))
+            return keyInConfigurationLayout;
         int scanCode = configurationKeyboardLayout.scanCode(keyInConfigurationLayout);
         Key keyInActiveLayout = activeKeyboardLayout.keyFromScanCode(scanCode);
         if (keyInActiveLayout == null) {
@@ -51,6 +52,10 @@ public class KeyResolver {
             return keyInConfigurationLayout;
         }
         return keyInActiveLayout;
+    }
+
+    public ModifiedKeyPress modifiedKeyPressFromTypedKey(Key typedKey) {
+        return activeKeyboardLayout.modifiedKeyPressFromTypedKey(typedKey);
     }
 
 }

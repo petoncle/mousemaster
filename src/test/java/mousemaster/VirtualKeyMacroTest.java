@@ -35,11 +35,13 @@ class VirtualKeyMacroTest {
         comboWatcher = new ComboWatcher(null, null, () -> new App("test.exe"), null,
                 Instant::now, Set.of(), pressedPreconditionKeys, new KeyRedactor(KeyRedaction.NONE), modeMap,
                 configuration.initiallySetVariables(), configuration.virtualKeys(),
-                configuration.initiallyPressedVirtualKeys());
+                configuration.initiallyPressedVirtualKeys(),
+                configuration.activeKeyboardLayout());
         comboWatcher.setModeListeners(List.of());
         comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
         macroPlayer = new MacroPlayer(Instant::now, comboWatcher, null, null,
-                new KeyRedactor(KeyRedaction.NONE));
+                new KeyRedactor(KeyRedaction.NONE),
+                configuration.activeKeyboardLayout());
         macroByName = modeMap.get(Mode.IDLE_MODE_NAME)
                              .comboMap()
                              .commandsByCombo()

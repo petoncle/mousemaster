@@ -47,7 +47,8 @@ class ComboWatcherWaitPreconditionTest {
         comboWatcher = new ComboWatcher(commandRunner, null, () -> new App("test.exe"), null,
                 () -> now, Set.of(), pressedPreconditionKeys, new KeyRedactor(KeyRedaction.NONE),
                 modeMap, configuration.initiallySetVariables(), configuration.virtualKeys(),
-                configuration.initiallyPressedVirtualKeys());
+                configuration.initiallyPressedVirtualKeys(),
+                configuration.activeKeyboardLayout());
         comboWatcher.setModeListeners(List.of());
         comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
     }

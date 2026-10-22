@@ -59,7 +59,8 @@ class CompletedComboRerunTest {
         comboWatcher = new ComboWatcher(commandRunner, null, noApp, null, () -> now,
                 unpressedPreconditionKeys, pressedPreconditionKeys,
                 new KeyRedactor(KeyRedaction.NONE), modeMap, configuration.initiallySetVariables(),
-                configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys());
+                configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys(),
+                configuration.activeKeyboardLayout());
         comboWatcher.setModeListeners(List.of());
         comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
         ranCommands.clear();

@@ -230,12 +230,12 @@ public record ComboPreparation(List<KeyEvent> events) {
                 for (KeyEvent event : events) {
                     for (KeyComboMove move : kms.requiredMoves()) {
                         if (move instanceof TapComboMove tap) {
-                            if (tap.keyOrAlias().matchesKey(event.key())) {
+                            if (tap.keyOrAlias().matchedKey(event) != null) {
                                 found = true;
                                 break;
                             }
                         }
-                        else if (pressOrReleaseMoveMatchesEvent(move, event, Map.of(), Map.of())) {
+                        else if (pressOrReleaseMoveMatchedKey(move, event, Map.of(), Map.of()) != null) {
                             found = true;
                             break;
                         }
@@ -539,7 +539,9 @@ public record ComboPreparation(List<KeyEvent> events) {
             !keyMoveSet.canAbsorbEvents()) {
             KeyComboMove move = required.getFirst();
             KeyEvent event = events.get(eventBeginIndex);
-            if (!pressOrReleaseMoveMatchesEvent(move, event, aliasBindings, negatedBindings))
+            Key matchedKey = pressOrReleaseMoveMatchedKey(move, event, aliasBindings,
+                    negatedBindings);
+            if (matchedKey == null)
                 return false;
             if (eventBeginIndex > regionBeginIndex) {
                 KeyEvent previousEvent = events.get(eventBeginIndex - 1);
@@ -547,7 +549,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                 if (!previousMove.duration().satisfied(previousEvent.time(), event.time()))
                     return false;
             }
-            bindAlias(move, event.key(), aliasBindings, negatedBindings);
+            bindAlias(move, matchedKey, aliasBindings, negatedBindings);
             matchedKeyMoves.add(resolvedPressOrReleaseMove(move, event.key()));
             return true;
         }
@@ -796,14 +798,15 @@ public record ComboPreparation(List<KeyEvent> events) {
             KeyComboMove move = allMoves.get(moveIndex);
             if (move instanceof TapComboMove tap) {
                 // Try matching as tap press.
-                if (moveStates[moveIndex] == UNUSED && event.isPress()
-                        && tapMatchesKey(tap, event.key(), aliasBindings)) {
+                Key tapMatchedKey = moveStates[moveIndex] == UNUSED && event.isPress() ?
+                        tapMatchedKey(tap, event, aliasBindings) : null;
+                if (tapMatchedKey != null) {
                     moveStates[moveIndex] = PRESS_MATCHED;
                     matchedKeys[moveIndex] = event.key();
                     eventIsIgnored[eventOffset] = false;
                     Map<String, Key> savedAliasBindings = new HashMap<>(aliasBindings);
                     Map<String, Key> savedNegatedBindings = new HashMap<>(negatedBindings);
-                    bindAlias(tap, event.key(), aliasBindings, negatedBindings);
+                    bindAlias(tap, tapMatchedKey, aliasBindings, negatedBindings);
                     assignedMoves[eventOffset] = resolvedTapPress(tap, event.key());
                     if (assignEventsWithIgnoredKeys(eventBeginIndex, eventOffset + 1,
                             eventCount, allMoves, requiredCount, moveStates, matchedKeys,
@@ -839,13 +842,15 @@ public record ComboPreparation(List<KeyEvent> events) {
             }
             else {
                 if (moveStates[moveIndex] != UNUSED) continue;
-                if (pressOrReleaseMoveMatchesEvent(move, event, aliasBindings, negatedBindings)) {
+                Key matchedKey = pressOrReleaseMoveMatchedKey(move, event, aliasBindings,
+                        negatedBindings);
+                if (matchedKey != null) {
                     moveStates[moveIndex] = FULLY_MATCHED;
                     matchedKeys[moveIndex] = event.key();
                     eventIsIgnored[eventOffset] = false;
                     Map<String, Key> savedAliasBindings = new HashMap<>(aliasBindings);
                     Map<String, Key> savedNegatedBindings = new HashMap<>(negatedBindings);
-                    bindAlias(move, event.key(), aliasBindings, negatedBindings);
+                    bindAlias(move, matchedKey, aliasBindings, negatedBindings);
                     assignedMoves[eventOffset] = resolvedPressOrReleaseMove(move, event.key());
                     if (assignEventsWithIgnoredKeys(eventBeginIndex, eventOffset + 1,
                             eventCount, allMoves, requiredCount, moveStates, matchedKeys,
@@ -974,18 +979,17 @@ public record ComboPreparation(List<KeyEvent> events) {
     }
 
     /**
-     * Checks if a tap move's key/alias matches the given key, considering alias bindings.
+     * Returns the key a tap move matches the event as, considering alias bindings, or null.
      */
-    private static boolean tapMatchesKey(TapComboMove tap, Key key,
-                                          Map<String, Key> aliasBindings) {
+    private static Key tapMatchedKey(TapComboMove tap, KeyEvent event,
+                                     Map<String, Key> aliasBindings) {
         KeyOrAlias keyOrAlias = tap.keyOrAlias();
         if (keyOrAlias.isAlias()) {
             Key bound = aliasBindings.get(keyOrAlias.aliasName());
             if (bound != null)
-                return key.equals(bound);
-            return keyOrAlias.matchesKey(key);
+                return bound.equals(event.modifiedTypedKey()) || bound.equals(event.key()) ? bound : null;
         }
-        return key.equals(keyOrAlias.key());
+        return keyOrAlias.matchedKey(event);
     }
 
     static boolean anyMoveCouldMatchEvent(KeyMoveSet keyMoveSet, KeyEvent event,
@@ -993,51 +997,51 @@ public record ComboPreparation(List<KeyEvent> events) {
                                           Map<String, Key> negatedBindings) {
         for (KeyComboMove m : keyMoveSet.requiredMoves()) {
             if (m instanceof TapComboMove tap) {
-                if (tap.keyOrAlias().matchesKey(event.key()))
+                if (tap.keyOrAlias().matchedKey(event) != null)
                     return true;
             }
-            else if (pressOrReleaseMoveMatchesEvent(m, event, aliasBindings, negatedBindings))
+            else if (pressOrReleaseMoveMatchedKey(m, event, aliasBindings, negatedBindings) != null)
                 return true;
         }
         for (KeyComboMove m : keyMoveSet.optionalMoves()) {
             if (m instanceof TapComboMove tap) {
-                if (tap.keyOrAlias().matchesKey(event.key()))
+                if (tap.keyOrAlias().matchedKey(event) != null)
                     return true;
             }
-            else if (pressOrReleaseMoveMatchesEvent(m, event, aliasBindings, negatedBindings))
+            else if (pressOrReleaseMoveMatchedKey(m, event, aliasBindings, negatedBindings) != null)
                 return true;
         }
         return false;
     }
 
     /**
-     * Checks whether a key move matches an event, considering alias and negated bindings.
+     * Returns the key a key move matches the event as, considering alias and negated
+     * bindings, or null.
      * For negated moves: if already bound, the event key must equal the bound key.
-     * If unbound, the event key must NOT match the move's key/alias.
-     * For alias moves: if the alias is already bound, the event key must equal
-     * the bound key. If unbound, the event key must be in the alias's key set.
-     * For regular key moves: direct key equality.
+     * If unbound, the move's key/alias must NOT match the event.
+     * For alias moves: if the alias is already bound, the event key or typed key must equal
+     * the bound key. If unbound, the alias must match the event.
+     * For regular key moves: the key must match the event.
      */
-    private static boolean pressOrReleaseMoveMatchesEvent(KeyComboMove move, KeyEvent event,
-                                            Map<String, Key> aliasBindings,
-                                            Map<String, Key> negatedBindings) {
+    private static Key pressOrReleaseMoveMatchedKey(KeyComboMove move, KeyEvent event,
+                                                    Map<String, Key> aliasBindings,
+                                                    Map<String, Key> negatedBindings) {
         if (event.isPress() != move.isPress())
-            return false;
+            return null;
         KeyOrAlias keyOrAlias = move.keyOrAlias();
         if (move.negated()) {
             String name = keyOrAlias.isAlias() ? keyOrAlias.aliasName() : keyOrAlias.key().name();
             Key bound = negatedBindings.get(name);
             if (bound != null)
-                return event.key().equals(bound);
-            return !keyOrAlias.matchesKey(event.key());
+                return event.key().equals(bound) ? bound : null;
+            return keyOrAlias.matchedKey(event) == null ? event.key() : null;
         }
         if (keyOrAlias.isAlias()) {
             Key bound = aliasBindings.get(keyOrAlias.aliasName());
             if (bound != null)
-                return event.key().equals(bound);
-            return keyOrAlias.matchesKey(event.key());
+                return bound.equals(event.modifiedTypedKey()) || bound.equals(event.key()) ? bound : null;
         }
-        return event.key().equals(keyOrAlias.key());
+        return keyOrAlias.matchedKey(event);
     }
 
     private static void collectExpandedFromAliasBindings(

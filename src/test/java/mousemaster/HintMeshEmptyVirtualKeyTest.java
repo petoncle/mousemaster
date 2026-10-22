@@ -86,7 +86,8 @@ class HintMeshEmptyVirtualKeyTest {
                 (Clock) Instant::now, unpressedPreconditionKeys, pressedPreconditionKeys,
                 new KeyRedactor(KeyRedaction.NONE), modeMap,
                 configuration.initiallySetVariables(), configuration.virtualKeys(),
-                configuration.initiallyPressedVirtualKeys());
+                configuration.initiallyPressedVirtualKeys(),
+                configuration.activeKeyboardLayout());
         comboWatcher.setModeListeners(List.of());
         switchMode(Mode.IDLE_MODE_NAME);
         // The first update sees the active app change, which runs the combos without a move.

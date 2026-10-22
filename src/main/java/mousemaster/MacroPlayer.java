@@ -20,6 +20,7 @@ public class MacroPlayer {
     private final KeyboardManager keyboardManager;
     private final KeyboardController keyboard;
     private final KeyRedactor keyRedactor;
+    private final KeyboardLayout activeKeyboardLayout;
     private final List<ResolvedMacro> macrosToExecute = new ArrayList<>();
     private MacroInProgress macroInProgress;
     private final List<MacroInProgress> virtualKeyMacrosInProgress = new ArrayList<>();
@@ -56,12 +57,13 @@ public class MacroPlayer {
 
     public MacroPlayer(Clock clock, ComboWatcher comboWatcher,
                        KeyboardManager keyboardManager, KeyboardController keyboard,
-                       KeyRedactor keyRedactor) {
+                       KeyRedactor keyRedactor, KeyboardLayout activeKeyboardLayout) {
         this.clock = clock;
         this.comboWatcher = comboWatcher;
         this.keyboardManager = keyboardManager;
         this.keyboard = keyboard;
         this.keyRedactor = keyRedactor;
+        this.activeKeyboardLayout = activeKeyboardLayout;
     }
 
     private static class MacroInProgress {
@@ -297,10 +299,45 @@ public class MacroPlayer {
         return true;
     }
 
+    /**
+     * The move of a key typed with a modifier key becomes the moves of the modifier key and
+     * of the modified key: +questionmark is +leftshift +/ on us-qwerty.
+     */
+    private List<ResolvedMacroMove> expandTypedKeyMoves(List<ResolvedMacroMove> moves) {
+        List<ResolvedMacroMove> expandedMoves = new ArrayList<>();
+        for (ResolvedMacroMove move : moves) {
+            if (!(move instanceof ResolvedKeyMacroMove keyMove) ||
+                keyMove.destination() != MacroMoveDestination.OS) {
+                expandedMoves.add(move);
+                continue;
+            }
+            ModifiedKeyPress modifiedKeyPress =
+                    activeKeyboardLayout.modifiedKeyPressFromTypedKey(keyMove.key());
+            if (modifiedKeyPress == null) {
+                expandedMoves.add(move);
+                continue;
+            }
+            ResolvedKeyMacroMove modifierKeyMove = new ResolvedKeyMacroMove(
+                    modifiedKeyPress.modifierKeys().contains(Key.leftshift) ? Key.leftshift :
+                            Key.rightalt, keyMove.press(), MacroMoveDestination.OS);
+            ResolvedKeyMacroMove modifiedKeyMove = new ResolvedKeyMacroMove(
+                    modifiedKeyPress.modifiedKey(), keyMove.press(), MacroMoveDestination.OS);
+            if (keyMove.press()) {
+                expandedMoves.add(modifierKeyMove);
+                expandedMoves.add(modifiedKeyMove);
+            }
+            else {
+                expandedMoves.add(modifiedKeyMove);
+                expandedMoves.add(modifierKeyMove);
+            }
+        }
+        return expandedMoves;
+    }
+
     private void executeParallel(ResolvedMacroParallel parallel) {
         // Batch OS moves (key moves and string moves).
         List<ResolvedMacroMove> osMoves = new ArrayList<>();
-        for (ResolvedMacroMove move : parallel.moves()) {
+        for (ResolvedMacroMove move : expandTypedKeyMoves(parallel.moves())) {
             switch (move) {
                 case StringMacroMove stringMove -> {
                     osMoves.add(stringMove);

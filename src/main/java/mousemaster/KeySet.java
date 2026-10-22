@@ -12,6 +12,12 @@ public sealed interface KeySet {
     KeySet union(KeySet other);
 
     /**
+     * The event's modified typed key counts too: on us-qwerty, #{questionmark} matches / with
+     * a shift, and #!{questionmark} does not.
+     */
+    boolean matches(KeyEvent event);
+
+    /**
      * Only the listed keys match (#{keys}).
      * Empty keys means no key matches (plain wait).
      */
@@ -19,6 +25,12 @@ public sealed interface KeySet {
         @Override
         public boolean contains(Key key) {
             return keys.contains(key);
+        }
+
+        @Override
+        public boolean matches(KeyEvent event) {
+            return contains(event.key()) ||
+                   event.modifiedTypedKey() != null && contains(event.modifiedTypedKey());
         }
 
         @Override
@@ -46,6 +58,12 @@ public sealed interface KeySet {
         @Override
         public boolean contains(Key key) {
             return !keys.contains(key);
+        }
+
+        @Override
+        public boolean matches(KeyEvent event) {
+            return contains(event.key()) &&
+                   (event.modifiedTypedKey() == null || contains(event.modifiedTypedKey()));
         }
 
         @Override

@@ -245,6 +245,8 @@ public class KbdlayoutinfoParser {
             NodeList children = pk.getChildNodes();
             boolean noText = children.getLength() == 0;
             String text = null;
+            String shiftText = null;
+            String altgrText = null;
             for (int j = 0; j < children.getLength(); j++) {
                 Node child = children.item(j);
                 if (child.getNodeType() == Node.ELEMENT_NODE && child.getNodeName().equals("Result")) {
@@ -289,6 +291,10 @@ public class KbdlayoutinfoParser {
                                 noText = true;
                             text = resultText;
                         }
+                        else if (with.equals("VK_SHIFT") && !resultText.isBlank())
+                            shiftText = resultText;
+                        else if (with.equals("VK_CONTROL VK_MENU") && !resultText.isBlank())
+                            altgrText = resultText;
                         log(
                                 "    Text=" + resultText + ", Codepoints=" + codepoints);
                     }
@@ -313,6 +319,7 @@ public class KbdlayoutinfoParser {
                 keyboardLayout.keys()
                               .add(new KeyboardLayout.KeyboardLayoutKey(sc, vk, key,
                                       text == null || text.isBlank() ? null : text,
+                                      shiftText, altgrText,
                                       name.isBlank() ? null : name));
         }
         noTextVirtualKeys.addAll(
@@ -368,6 +375,8 @@ public class KbdlayoutinfoParser {
                     sameCharacterUsQwertyKey.virtualKey(),
                     sameCharacterUsQwertyKey.key(),
                     sameCharacterUsQwertyKey.text(),
+                    sameCharacterUsQwertyKey.shiftText(),
+                    sameCharacterUsQwertyKey.altgrText(),
                     sameCharacterUsQwertyKey.name()
             );
             usHalmakKeys.add(usHalmakKey);
@@ -428,8 +437,8 @@ public class KbdlayoutinfoParser {
                                .orElseThrow();
         koreanKeyboardLayout.keys()
                             .add(new KeyboardLayout.KeyboardLayoutKey(57400,
-                                    WindowsVirtualKey.VK_RMENU, Key.rightalt, null,
-                                    "Right Alt"));
+                                    WindowsVirtualKey.VK_RMENU, Key.rightalt, null, null,
+                                    null, "Right Alt"));
     }
 
     private static void separateNumpadEnter(List<KeyboardLayout> keyboardLayouts) {
@@ -437,7 +446,8 @@ public class KbdlayoutinfoParser {
         for (KeyboardLayout keyboardLayout : keyboardLayouts) {
             keyboardLayout.keys().replaceAll(key -> key.scanCode() != 0xE01C ? key :
                     new KeyboardLayout.KeyboardLayoutKey(key.scanCode(), key.virtualKey(),
-                            Key.numpadenter, key.text(), key.name()));
+                            Key.numpadenter, key.text(), key.shiftText(), key.altgrText(),
+                            key.name()));
         }
     }
 

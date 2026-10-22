@@ -49,9 +49,9 @@
     },
     "R\nRecurse\n\n\n\n\nHints",
     {
-      "c": "#f9cc9a"
+      "c": "#cccccc"
     },
-    "T\nSheet\n\n\n\n\nCheat",
+    "T",
     {
       "c": "#b6c6d9"
     },
@@ -154,9 +154,9 @@
     },
     ".\nClick Then Disable",
     {
-      "c": "#cccccc"
+      "c": "#f9cc9a"
     },
-    "?\n/",
+    "?\nSheet\n\n\n\n\nCheat",
     {
       "c": "#d4e9b6",
       "w": 2.75

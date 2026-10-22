@@ -7302,8 +7302,14 @@
             "mousemaster.platform.windows.WindowsVirtualKey",
             "mousemaster.Key",
             "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
             "java.lang.String"
           ]
+        },
+        {
+          "name": "altgrText",
+          "parameterTypes": []
         },
         {
           "name": "key",
@@ -7315,6 +7321,10 @@
         },
         {
           "name": "scanCode",
+          "parameterTypes": []
+        },
+        {
+          "name": "shiftText",
           "parameterTypes": []
         },
         {
