@@ -215,7 +215,7 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
     public static Key ofName(String name) {
         Key key = tryOfName(name);
         if (key == null)
-            throw new IllegalArgumentException("Invalid key character: " + name);
+            throw new IllegalArgumentException("Invalid key name: " + name);
         return key;
     }
 
