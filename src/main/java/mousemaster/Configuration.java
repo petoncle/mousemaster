@@ -8,7 +8,8 @@ public record Configuration(
         Map<String, AnimationConfiguration> animationConfigurationByName,
         ModeMap modeMap, String logLevel, KeyRedaction keyRedaction,
         boolean logLastKeyEventsOnExit, boolean logToFile,
-        boolean hideConsole, KeyboardLayout forcedActiveKeyboardLayout,
+        boolean hideConsole, KeyboardLayout activeKeyboardLayout,
+        KeyboardLayout forcedActiveKeyboardLayout,
         Set<String> initiallySetVariables, Set<Key> virtualKeys,
         Set<Key> initiallyPressedVirtualKeys) {
 

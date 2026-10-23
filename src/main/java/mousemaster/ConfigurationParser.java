@@ -671,7 +671,7 @@ public class ConfigurationParser {
         return new Configuration(positionHistoryConfigurationByName,
                 animationConfigurationByName,
                 new ModeMap(modes), logLevel, keyRedaction, logLastKeyEventsOnExit,
-                logToFile, hideConsole,
+                logToFile, hideConsole, activeKeyboardLayout,
                 forcedActiveAndConfigurationKeyboardLayouts.forcedActiveKeyboardLayout,
                 Set.copyOf(initiallySetVariables),
                 virtualKeys,

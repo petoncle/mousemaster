@@ -199,8 +199,7 @@ public class Mousemaster {
         // gives the language identifier, which is 0409. But it is missing the other part
         // of the layout identifier (00010409).
         forcedActiveKeyboardLayout = configuration.forcedActiveKeyboardLayout();
-        if (forcedActiveKeyboardLayout != null)
-            activeKeyboardLayout = forcedActiveKeyboardLayout;
+        activeKeyboardLayout = configuration.activeKeyboardLayout();
         if (configuration.logLevel() != null)
             MousemasterApplication.setLogLevel(configuration.logLevel());
         MousemasterApplication.setModeColumnWidth(
