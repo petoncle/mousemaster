@@ -44,7 +44,6 @@ public class WindowsKeyboardController implements KeyboardController {
             Key.break_,
             Key.printscreen,
             Key.numpaddivide,
-            Key.enter,
             Key.leftwin,
             Key.rightwin,
             Key.menu
