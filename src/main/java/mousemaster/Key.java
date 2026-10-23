@@ -84,6 +84,10 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
     public static final Key minus = new Key("minus", null, "-");
     public static final Key hash = new Key("hash", null, "#");
     public static final Key backslash = new Key("backslash", null, "\\");
+    public static final Key questionmark = new Key("questionmark", null, "?");
+    public static final Key asterisk = new Key("asterisk", null, "*");
+    public static final Key lessthan = new Key("lessthan", null, "<");
+    public static final Key greaterthan = new Key("greaterthan", null, ">");
 
     public static final Set<Key> keyboardLayoutIndependentKeys = Set.of(
             // @formatter:off
@@ -178,7 +182,11 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
             plus,
             minus,
             hash,
-            backslash
+            backslash,
+            questionmark,
+            asterisk,
+            lessthan,
+            greaterthan
             // @formatter:on
     );
 
