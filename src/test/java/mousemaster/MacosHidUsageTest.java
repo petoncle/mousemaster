@@ -25,4 +25,16 @@ class MacosHidUsageTest {
         assertEquals(List.of(), repeated);
     }
 
+    @Test
+    void theKeypadEnterIsNotEnter() {
+        KeyboardLayout usQwerty = KeyboardLayout.keyboardLayout("00000409", null);
+        assertEquals(Key.enter,
+                MacosHidUsage.keyFromHidEvent(MacosHidUsage.keyboardPage, 0x28, usQwerty));
+        assertEquals(Key.numpadenter,
+                MacosHidUsage.keyFromHidEvent(MacosHidUsage.keyboardPage, 0x58, usQwerty));
+        assertEquals(MacosHidUsage.enter, MacosHidUsage.hidUsageFromKey(Key.enter, usQwerty));
+        assertEquals(MacosHidUsage.numpadenter,
+                MacosHidUsage.hidUsageFromKey(Key.numpadenter, usQwerty));
+    }
+
 }

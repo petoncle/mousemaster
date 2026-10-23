@@ -169,6 +169,7 @@ public class KbdlayoutinfoParser {
         fixKoreanKeyboardLayout(keyboardLayouts);
         addJapaneseJisKeyboardLayout(keyboardLayouts);
         addCustomKeyboardLayouts(keyboardLayouts);
+        separateNumpadEnter(keyboardLayouts);
         checkShortNamedKeyboardLayoutsAreDistinct(keyboardLayouts);
         String filePath = Paths.get("src", "main", "resources", "keyboard-layouts.json").toString();
         Gson gson = new GsonBuilder()
@@ -429,6 +430,15 @@ public class KbdlayoutinfoParser {
                             .add(new KeyboardLayout.KeyboardLayoutKey(57400,
                                     WindowsVirtualKey.VK_RMENU, Key.rightalt, null,
                                     "Right Alt"));
+    }
+
+    private static void separateNumpadEnter(List<KeyboardLayout> keyboardLayouts) {
+        // The numpad enter is VK_RETURN too: only its scan code tells it apart.
+        for (KeyboardLayout keyboardLayout : keyboardLayouts) {
+            keyboardLayout.keys().replaceAll(key -> key.scanCode() != 0xE01C ? key :
+                    new KeyboardLayout.KeyboardLayoutKey(key.scanCode(), key.virtualKey(),
+                            Key.numpadenter, key.text(), key.name()));
+        }
     }
 
     private static void log(String string) {

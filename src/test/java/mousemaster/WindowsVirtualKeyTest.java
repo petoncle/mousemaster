@@ -1,9 +1,10 @@
 package mousemaster;
 
+import mousemaster.platform.windows.WindowsKeyboardController;
 import mousemaster.platform.windows.WindowsVirtualKey;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 class WindowsVirtualKeyTest {
 
@@ -32,6 +33,18 @@ class WindowsVirtualKeyTest {
                 WindowsVirtualKey.windowsVirtualKeyFromKey(Key.numpad1, usQwerty));
         assertEquals(WindowsVirtualKey.VK_DECIMAL,
                 WindowsVirtualKey.windowsVirtualKeyFromKey(Key.numpaddecimal, usQwerty));
+    }
+
+    @Test
+    void theNumpadEnterIsTheExtendedEnter() {
+        assertEquals(Key.enter,
+                WindowsVirtualKey.keyFromWindowsEvent(WindowsVirtualKey.VK_RETURN, 0x1C, 0,
+                        usQwerty));
+        assertEquals(Key.numpadenter,
+                WindowsVirtualKey.keyFromWindowsEvent(WindowsVirtualKey.VK_RETURN, 0x1C, 1,
+                        usQwerty));
+        assertFalse(WindowsKeyboardController.extendedKeys.contains(Key.enter));
+        assertTrue(WindowsKeyboardController.extendedKeys.contains(Key.numpadenter));
     }
 
 }

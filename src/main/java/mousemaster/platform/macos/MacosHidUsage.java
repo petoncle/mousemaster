@@ -97,7 +97,7 @@ public enum MacosHidUsage {
     numpadmultiply(0x55, Key.numpadmultiply),
     numpadsubtract(0x56, Key.numpadsubtract),
     numpadadd(0x57, Key.numpadadd),
-    numpadenter(0x58, Key.enter),
+    numpadenter(0x58, Key.numpadenter),
     numpad1(0x59, Key.numpad1),
     numpad2(0x5A, Key.numpad2),
     numpad3(0x5B, Key.numpad3),
