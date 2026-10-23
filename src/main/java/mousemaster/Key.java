@@ -14,8 +14,8 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
     public static final Key rightshift = new Key("rightshift", "⇧", null);
     public static final Key rightctrl = new Key("rightctrl", "⌃", null);
     public static final Key rightalt = new Key("rightalt", "⎇", null);
-    public static final Key pause = new Key("pause", null, null);
-    public static final Key scrolllock = new Key("scrolllock", null, null);
+    public static final Key pause = new Key("pause", "⎉", null);
+    public static final Key scrolllock = new Key("scrolllock", "⇳", null);
     public static final Key capslock = new Key("capslock", "⇪", null);
     public static final Key esc = new Key("esc", "⎋", null);
     public static final Key space = new Key("space", "␣", null);
@@ -30,11 +30,11 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
     public static final Key printscreen = new Key("printscreen", "⎙", null);
     public static final Key insert = new Key("insert", "⎀", null);
     public static final Key del = new Key("del", "⌦", null);
-    public static final Key break_ = new Key("break", null, null);
+    public static final Key break_ = new Key("break", "⎊", null);
     public static final Key backspace = new Key("backspace", "⌫", null);
     public static final Key leftwin = new Key("leftwin", "⊞", null);
     public static final Key rightwin = new Key("rightwin", "⊞", null);
-    public static final Key menu = new Key("menu", null, null);
+    public static final Key menu = new Key("menu", "☰", null);
     public static final Key numpad0 = new Key("numpad0", "0", null);
     public static final Key numpad1 = new Key("numpad1", "1", null);
     public static final Key numpad2 = new Key("numpad2", "2", null);
@@ -50,7 +50,7 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
     public static final Key numpadsubtract = new Key("numpadsubtract", "-", null);
     public static final Key numpaddecimal = new Key("numpaddecimal", ".", null);
     public static final Key numpaddivide = new Key("numpaddivide", "/", null);
-    public static final Key numlock = new Key("numlock", null, null);
+    public static final Key numlock = new Key("numlock", "⇭", null);
     public static final Key f1 = new Key("f1", null, null);
     public static final Key f2 = new Key("f2", null, null);
     public static final Key f3 = new Key("f3", null, null);
