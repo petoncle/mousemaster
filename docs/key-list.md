@@ -49,5 +49,10 @@
 - lessthan (`<`)
 - greaterthan (`>`)
 
+Names are lowercase. Any other key is named after the character it types without a modifier:
+`a`, `é`, `;`.
+
+`break` is ctrl + pause, and exists on Windows only. `menu` is the context menu key.
+
 On macOS, `leftwin` and `rightwin` are the command keys, and `leftalt` and `rightalt` the option
 keys.
