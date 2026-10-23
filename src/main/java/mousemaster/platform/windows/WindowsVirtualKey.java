@@ -345,6 +345,27 @@ public enum WindowsVirtualKey {
 
     public static final List<WindowsVirtualKey> values;
 
+    /**
+     * KeyboardLayout.keyFromScanCode gives end, home, the arrows, insert and del for the
+     * numpad scan codes.
+     */
+    private static final Map<Key, WindowsVirtualKey> numpadVirtualKeyByKey =
+            Map.ofEntries(
+                // @formatter:off
+                Map.entry(Key.numpad0, VK_NUMPAD0),
+                Map.entry(Key.numpad1, VK_NUMPAD1),
+                Map.entry(Key.numpad2, VK_NUMPAD2),
+                Map.entry(Key.numpad3, VK_NUMPAD3),
+                Map.entry(Key.numpad4, VK_NUMPAD4),
+                Map.entry(Key.numpad5, VK_NUMPAD5),
+                Map.entry(Key.numpad6, VK_NUMPAD6),
+                Map.entry(Key.numpad7, VK_NUMPAD7),
+                Map.entry(Key.numpad8, VK_NUMPAD8),
+                Map.entry(Key.numpad9, VK_NUMPAD9),
+                Map.entry(Key.numpaddecimal, VK_DECIMAL)
+                // @formatter:on
+            );
+
     private static final Logger logger = LoggerFactory.getLogger(WindowsVirtualKey.class);
 
     private static Integer keyboardType;
@@ -484,6 +505,10 @@ public enum WindowsVirtualKey {
         if (windowsVirtualKey == VK_PACKET)
             // A KEYEVENTF_UNICODE event carries the character instead of the scan code.
             return null;
+        for (Map.Entry<Key, WindowsVirtualKey> entry : numpadVirtualKeyByKey.entrySet()) {
+            if (entry.getValue() == windowsVirtualKey)
+                return entry.getKey();
+        }
         if (scanCode == 0)
             return activeKeyboardLayout.keyFromVirtualKey(windowsVirtualKey);
         // The scan code is 8-bit: the E0 prefix is given by the extended flag.
@@ -505,6 +530,9 @@ public enum WindowsVirtualKey {
 
     public static WindowsVirtualKey windowsVirtualKeyFromKey(Key key,
                                                              KeyboardLayout keyboardLayout) {
+        WindowsVirtualKey numpadVirtualKey = numpadVirtualKeyByKey.get(key);
+        if (numpadVirtualKey != null)
+            return numpadVirtualKey;
         WindowsVirtualKey virtualKey = keyboardLayout.virtualKey(key);
         if (virtualKey == null) {
             logger.debug("Unable to map key " + key + " to a Windows virtual key using " +
