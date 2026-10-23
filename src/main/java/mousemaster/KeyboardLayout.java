@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 
 public final class KeyboardLayout {
 
@@ -56,23 +55,29 @@ public final class KeyboardLayout {
                 new KeyboardIdentifierAndType(keyboardIdentifier, null));
     }
 
-    public static class KeyDeserializer implements JsonDeserializer<Key> {
+    public static class KeySerializer implements JsonSerializer<Key> {
 
-        private final Map<Key, Key> cache = new HashMap<>();
+        @Override
+        public JsonElement serialize(Key key, Type typeOfSrc,
+                                     JsonSerializationContext context) {
+            JsonObject keyObject = new JsonObject();
+            if (key.staticName() != null)
+                keyObject.addProperty("staticName", key.staticName());
+            if (key.character() != null)
+                keyObject.addProperty("character", key.character());
+            return keyObject;
+        }
+    }
+
+    public static class KeyDeserializer implements JsonDeserializer<Key> {
 
         @Override
         public Key deserialize(JsonElement json, Type typeOfT,
                                JsonDeserializationContext context) throws JsonParseException {
             JsonObject keyObject = json.getAsJsonObject();
-            String staticName = !keyObject.has("staticName") ? null :
-                    keyObject.get("staticName").getAsString();
-            String staticSingleCharacterName =
-                    !keyObject.has("staticSingleCharacterName") ? null :
-                            keyObject.get("staticSingleCharacterName").getAsString();
-            String character = !keyObject.has("character") ? null :
-                    keyObject.get("character").getAsString();
-            Key temp = new Key(staticName, staticSingleCharacterName, character);
-            return cache.computeIfAbsent(temp, Function.identity());
+            if (keyObject.has("staticName"))
+                return Key.ofName(keyObject.get("staticName").getAsString());
+            return Key.ofCharacter(keyObject.get("character").getAsString());
         }
     }
 

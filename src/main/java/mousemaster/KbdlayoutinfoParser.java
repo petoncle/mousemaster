@@ -171,7 +171,9 @@ public class KbdlayoutinfoParser {
         addCustomKeyboardLayouts(keyboardLayouts);
         checkShortNamedKeyboardLayoutsAreDistinct(keyboardLayouts);
         String filePath = Paths.get("src", "main", "resources", "keyboard-layouts.json").toString();
-        Gson gson = new GsonBuilder().create();
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(Key.class, new KeyboardLayout.KeySerializer())
+                .create();
         try (FileWriter writer = new FileWriter(filePath)) {
             gson.toJson(keyboardLayouts, writer);
             logger.info("Save keyboard layouts: " + filePath);
