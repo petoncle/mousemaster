@@ -10,10 +10,10 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
     public static final Key enter = new Key("enter", "⏎", null);
     public static final Key leftshift = new Key("leftshift", "⇧", null);
     public static final Key leftctrl = new Key("leftctrl", "⌃", null);
-    public static final Key leftalt = new Key("leftalt", "⎇", null);
+    public static final Key leftalt = new Key("leftalt", Os.macos ? "⌥" : "⎇", null);
     public static final Key rightshift = new Key("rightshift", "⇧", null);
     public static final Key rightctrl = new Key("rightctrl", "⌃", null);
-    public static final Key rightalt = new Key("rightalt", "⎇", null);
+    public static final Key rightalt = new Key("rightalt", Os.macos ? "⌥" : "⎇", null);
     public static final Key pause = new Key("pause", "⎉", null);
     public static final Key scrolllock = new Key("scrolllock", "⇳", null);
     public static final Key capslock = new Key("capslock", "⇪", null);
@@ -32,8 +32,8 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
     public static final Key del = new Key("del", "⌦", null);
     public static final Key break_ = new Key("break", "⎊", null);
     public static final Key backspace = new Key("backspace", "⌫", null);
-    public static final Key leftwin = new Key("leftwin", "⊞", null);
-    public static final Key rightwin = new Key("rightwin", "⊞", null);
+    public static final Key leftwin = new Key("leftwin", Os.macos ? "⌘" : "⊞", null);
+    public static final Key rightwin = new Key("rightwin", Os.macos ? "⌘" : "⊞", null);
     public static final Key menu = new Key("menu", "☰", null);
     public static final Key numpad0 = new Key("numpad0", "0", null);
     public static final Key numpad1 = new Key("numpad1", "1", null);
