@@ -220,7 +220,7 @@ public class WindowsOverlay implements Overlay {
         setWindowTopmost(hwnds.getFirst());
         boolean allOtherWindowsAreBelowInOrder = true;
         for (int windowIndex = 0; windowIndex < hwnds.size() - 1; windowIndex++) {
-            if (hwnds.get(windowIndex + 1)
+            if (topmost(hwnds.get(windowIndex + 1)) && hwnds.get(windowIndex + 1)
                      .equals(windowBelow(hwnds.get(windowIndex), hwnds)))
                 continue;
             allOtherWindowsAreBelowInOrder = false;
@@ -249,12 +249,15 @@ public class WindowsOverlay implements Overlay {
 
     /** enforceTopmost runs every 200ms and SetWindowPos flickers the layered windows. */
     private void setWindowNotTopmost(WinDef.HWND hwnd) {
-        long exStyle = User32.INSTANCE.GetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE)
-                                      .longValue();
-        if ((exStyle & User32.WS_EX_TOPMOST) == 0)
+        if (!topmost(hwnd))
             return;
         User32.INSTANCE.SetWindowPos(hwnd, ExtendedUser32.HWND_NOTOPMOST, 0, 0, 0, 0,
                 WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE | WinUser.SWP_NOACTIVATE);
+    }
+
+    private static boolean topmost(WinDef.HWND hwnd) {
+        return (User32.INSTANCE.GetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE).longValue() &
+                User32.WS_EX_TOPMOST) != 0;
     }
 
 
