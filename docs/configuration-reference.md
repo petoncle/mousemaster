@@ -1240,7 +1240,7 @@ grid-mode.shrink-grid.right=+l
 grid-mode.move-to-grid-center=+space
 
 # Exit grid mode
-grid-mode.to.normal-mode=+escape
+grid-mode.to.normal-mode=+esc
 ```
 
 With this configuration:
@@ -1329,7 +1329,7 @@ grid-mode.move-grid.right=_{leftshift} +d
 
 # Center and exit
 grid-mode.move-to-grid-center=+space
-grid-mode.to.normal-mode=+escape
+grid-mode.to.normal-mode=+esc
 ```
 
 Alternatively, you could use arrow keys instead of WASD:
