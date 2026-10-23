@@ -43,8 +43,8 @@ public class WindowsKeyboardController implements KeyboardController {
             Key.numlock,
             Key.break_,
             Key.printscreen,
-            Key.numpaddivide, // No numpadmultiply?
-            Key.enter, // Only enter from numpad?
+            Key.numpaddivide,
+            Key.enter,
             Key.leftwin,
             Key.rightwin,
             Key.menu
