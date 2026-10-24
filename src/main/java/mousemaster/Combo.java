@@ -11,7 +11,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public record Combo(String label, ComboPrecondition precondition, ComboSequence sequence) {
 
@@ -180,15 +179,10 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
                                                  Map<String, KeyAlias> aliases,
                                                  KeyResolver keyResolver) {
         String[] keyStrings = keySetString.split("\\s+");
-        Set<Key> keys = Arrays.stream(keyStrings)
-                              .map(keyString -> expandKeyAlias(keyString, aliases, keyResolver))
-                              .flatMap(Collection::stream)
-                              .collect(Collectors.toSet());
-        if (keys.stream().anyMatch(key -> keyResolver.modifiedKeyPressFromTypedKey(key) != null))
-            throw new IllegalArgumentException(
-                    "A key typed with a modifier key cannot be an unpressed key: ^{" +
-                    keySetString + "}");
-        return keys;
+        return Arrays.stream(keyStrings)
+                     .map(keyString -> expandKeyAlias(keyString, aliases, keyResolver))
+                     .flatMap(Collection::stream)
+                     .collect(Collectors.toSet());
     }
 
     private static Set<Key> expandKeyAlias(String keyString, Map<String, KeyAlias> aliases,
@@ -222,8 +216,8 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
             KeyResolver keyResolver) {
         String[] groupStrings = keySetsString.split("\\s*\\|\\s*");
         List<PressedKeyGroup> groups = Arrays.stream(groupStrings)
-                                      .flatMap(groupString -> parsePressedKeyGroups(
-                                              groupString, aliases, keyResolver).stream())
+                                      .map(groupString -> parsePressedKeyGroup(
+                                              groupString, aliases, keyResolver))
                                       .collect(Collectors.toList());
         return new PressedKeyPrecondition(groups);
     }
@@ -237,11 +231,9 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
     }
 
 
-    private static List<PressedKeyGroup> parsePressedKeyGroups(String keySetString,
-                                                               Map<String, KeyAlias> aliases,
-                                                               KeyResolver keyResolver) {
-        // On us-qwerty, leftctrl questionmark*a is
-        // leftctrl a | leftctrl / leftshift*rightshift
+    private static PressedKeyGroup parsePressedKeyGroup(String keySetString,
+                                                        Map<String, KeyAlias> aliases,
+                                                        KeyResolver keyResolver) {
         boolean containsNone = false;
         List<Set<Key>> keySets = new ArrayList<>();
         String[] split = keySetString.split("\\s+");
@@ -266,35 +258,7 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
             // "none rightctrl" is invalid
             // "none up*down" is invalid
             throw new IllegalArgumentException("Invalid key set: " + keySetString);
-        List<PressedKeyGroup> groups = List.of(new PressedKeyGroup(List.of()));
-        for (Set<Key> keySet : keySets) {
-            Set<Key> untypedKeys = new HashSet<>();
-            List<ModifiedKeyPress> modifiedKeyPresses = new ArrayList<>();
-            for (Key key : keySet) {
-                ModifiedKeyPress modifiedKeyPress = keyResolver.modifiedKeyPressFromTypedKey(key);
-                if (modifiedKeyPress == null)
-                    untypedKeys.add(key);
-                else
-                    modifiedKeyPresses.add(modifiedKeyPress);
-            }
-            List<PressedKeyGroup> previousGroups = groups;
-            groups = new ArrayList<>();
-            for (PressedKeyGroup previousGroup : previousGroups) {
-                if (!untypedKeys.isEmpty())
-                    groups.add(appendKeySets(previousGroup, List.of(untypedKeys)));
-                for (ModifiedKeyPress modifiedKeyPress : modifiedKeyPresses)
-                    groups.add(appendKeySets(previousGroup,
-                            List.of(Set.of(modifiedKeyPress.modifiedKey()),
-                                    modifiedKeyPress.modifierKeys())));
-            }
-        }
-        return groups;
-    }
-
-    private static PressedKeyGroup appendKeySets(PressedKeyGroup group,
-                                                 List<Set<Key>> keySets) {
-        return new PressedKeyGroup(
-                Stream.concat(group.keySets().stream(), keySets.stream()).toList());
+        return new PressedKeyGroup(keySets);
     }
 
     public static List<Combo> multiCombo(String label, String multiComboString,

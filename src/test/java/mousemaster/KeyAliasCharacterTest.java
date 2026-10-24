@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class KeyAliasCharacterTest {
 
@@ -22,13 +24,18 @@ class KeyAliasCharacterTest {
         Configuration configuration = ConfigurationParser.parse(List.of(lines),
                 KeyboardLayout.keyboardLayoutByShortName.get(activeKeyboardLayout));
         ModeMap modeMap = configuration.modeMap();
+        Set<Key> unpressedPreconditionKeys = new HashSet<>();
         Set<Key> pressedPreconditionKeys = new HashSet<>();
         for (Mode mode : modeMap.modes())
-            for (Combo combo : mode.comboMap().commandsByCombo().keySet())
+            for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
+                unpressedPreconditionKeys.addAll(combo.precondition()
+                                                      .keyPrecondition()
+                                                      .unpressedKeySet());
                 pressedPreconditionKeys.addAll(combo.precondition()
                                                     .keyPrecondition()
                                                     .pressedKeyPrecondition()
                                                     .allKeys());
+            }
         CommandRunner commandRunner = new CommandRunner(null, null, null, null) {
             @Override
             public boolean runningAtomicCommand() {
@@ -41,7 +48,8 @@ class KeyAliasCharacterTest {
             }
         };
         comboWatcher = new ComboWatcher(commandRunner, null, () -> new App("test.exe"), null,
-                () -> now, Set.of(), pressedPreconditionKeys, new KeyRedactor(KeyRedaction.NONE),
+                () -> now, unpressedPreconditionKeys, pressedPreconditionKeys,
+                new KeyRedactor(KeyRedaction.NONE),
                 modeMap, configuration.initiallySetVariables(), configuration.virtualKeys(),
                 configuration.initiallyPressedVirtualKeys(),
                 configuration.activeKeyboardLayout());
@@ -55,6 +63,13 @@ class KeyAliasCharacterTest {
 
     private void release(String keyName) {
         comboWatcher.keyEvent(new KeyEvent.ReleaseKeyEvent(now, Key.ofName(keyName)));
+    }
+
+    private void tick(long millis) {
+        for (long elapsed = 0; elapsed < millis; elapsed += 10) {
+            now = now.plusMillis(10);
+            comboWatcher.update(0.01);
+        }
     }
 
     @Test
@@ -199,5 +214,57 @@ class KeyAliasCharacterTest {
         press("a");
         press("b");
         assertEquals(PRESS, ranCommands);
+    }
+
+    @Test
+    void anUnpressedPreconditionExcludesTheCharacter() {
+        load("us-qwerty", "idle-mode.press.middle=^{questionmark} +b");
+        press("leftshift");
+        press("/");
+        press("b");
+        assertEquals(List.of(), ranCommands);
+    }
+
+    @Test
+    void anUnpressedPreconditionDoesNotExcludeTheReleasedCharacter() {
+        load("us-qwerty", "idle-mode.press.middle=^{questionmark} +b");
+        press("leftshift");
+        press("/");
+        release("/");
+        press("b");
+        assertEquals(PRESS, ranCommands);
+    }
+
+    @Test
+    void anUnpressedPreconditionHoldsBackAWait() {
+        load("us-qwerty", "idle-mode.noop.eatquestionmark=+questionmark",
+                "idle-mode.to.normal-mode=^{questionmark} wait-500",
+                "normal-mode.to.idle-mode=+esc");
+        Command switchToNormalMode = new Command.SwitchMode("normal-mode");
+        press("leftshift");
+        press("/");
+        tick(1000);
+        assertFalse(ranCommands.contains(switchToNormalMode));
+        release("/");
+        tick(1000);
+        assertTrue(ranCommands.contains(switchToNormalMode));
+    }
+    @Test
+    void aPreconditionMutationFollowsTheCharacter() {
+        load("us-qwerty",
+                "idle-mode.indicator.render-as-cursor=false | _{questionmark} -> true");
+        press("leftshift");
+        press("/");
+        assertTrue(comboWatcher.getMutatedMode().indicator().renderAsCursor());
+        release("/");
+        assertFalse(comboWatcher.getMutatedMode().indicator().renderAsCursor());
+    }
+
+    @Test
+    void aPreconditionMutationDoesNotFollowTheKeyAlone() {
+        load("us-qwerty",
+                "idle-mode.indicator.render-as-cursor=false | _{questionmark} -> true");
+        press("/");
+        assertFalse(comboWatcher.getMutatedMode().indicator().renderAsCursor());
     }
 }

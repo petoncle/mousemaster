@@ -29,17 +29,20 @@ public class ComboWatcher {
     private final ActiveAppFinder activeAppFinder;
     private final ScreenManager screenManager;
     private final Clock clock;
+    /**
+     * Includes the modifier keys of the typed keys, so that currentlyPressedComboKeys holds them
+     * when the modified key is pressed.
+     */
     private final Set<Key> pressedComboPreconditionKeys;
     private final KeyRedactor keyRedactor;
     private final Set<Key> unpressedComboPreconditionKeys;
+    /**
+     * Includes the modifier keys of the mode's typed keys, so that holding one is not an
+     * unhandled key press.
+     */
     private final Map<String, Set<Key>> pressedPreconditionKeysByModeName;
     private final Map<String, Set<Key>> sequenceKeysByModeName;
     private final KeyboardLayout activeKeyboardLayout;
-    /**
-     * pressedComboPreconditionKeys includes them so that currentlyPressedComboKeys holds them
-     * when the modified key is pressed, and pressedPreconditionKeysByModeName so that holding
-     * one is not an unhandled key press.
-     */
     private final Set<Key> sequenceModifierKeys;
     private final Map<Key, Key> modifiedTypedKeyByModifiedKey = new HashMap<>();
     private Set<Key> currentModePressedPreconditionKeys;
@@ -238,6 +241,7 @@ public class ComboWatcher {
                                  .pressedKeyPrecondition()
                                  .allKeys());
                 keys.addAll(combo.sequence().modifierKeys());
+                keys.addAll(preconditionModifierKeys(combo));
                 sequenceKeys.addAll(combo.sequence().allKeys());
                 sequenceModifierKeys.addAll(combo.sequence().modifierKeys());
             }
@@ -248,7 +252,7 @@ public class ComboWatcher {
         this.sequenceKeysByModeName = sequenceKeysByModeName;
         this.sequenceModifierKeys = sequenceModifierKeys;
         Set<Key> allPressedComboPreconditionKeys = new HashSet<>(pressedComboPreconditionKeys);
-        allPressedComboPreconditionKeys.addAll(sequenceModifierKeys);
+        preconditionKeysByModeName.values().forEach(allPressedComboPreconditionKeys::addAll);
         this.pressedComboPreconditionKeys = allPressedComboPreconditionKeys;
         // Pressed before the first mode change, which applies the mutations that read them.
         updateScreenFilterKeys();
@@ -664,9 +668,13 @@ public class ComboWatcher {
         }
         modeJustTimedOut = false;
         boolean isUnpressedComboPreconditionKey =
-                unpressedComboPreconditionKeys.contains(event.key());
+                unpressedComboPreconditionKeys.contains(event.key()) ||
+                event.modifiedTypedKey() != null &&
+                unpressedComboPreconditionKeys.contains(event.modifiedTypedKey());
         boolean isPressedComboPreconditionKey =
-                pressedComboPreconditionKeys.contains(event.key());
+                pressedComboPreconditionKeys.contains(event.key()) ||
+                event.modifiedTypedKey() != null &&
+                pressedComboPreconditionKeys.contains(event.modifiedTypedKey());
         boolean isComboPreconditionKey =
                 isUnpressedComboPreconditionKey ||
                 isPressedComboPreconditionKey;
@@ -903,7 +911,8 @@ public class ComboWatcher {
                 if (!combo.precondition().keyPrecondition().pressedKeyPrecondition().isEmpty()) {
                     boolean anySatisfied = combo.precondition().keyPrecondition()
                             .pressedKeyPrecondition().groups().stream()
-                            .anyMatch(g -> currentlyPressedKeys.containsAll(g.allKeys()));
+                            .anyMatch(g -> g.allKeys().stream().allMatch(
+                                    key -> isPressedOrModifiedTyped(key, currentlyPressedKeys)));
                     if (!anySatisfied) {
                         if (leadingWaitBeginTimeByCombo.remove(combo) != null)
                             logger.debug("Removing leading wait (pressed precondition unsatisfied): " + combo.label());
@@ -911,7 +920,7 @@ public class ComboWatcher {
                     }
                 }
                 if (combo.precondition().keyPrecondition().unpressedKeySet().stream()
-                        .anyMatch(currentlyPressedKeys::contains)) {
+                        .anyMatch(key -> isPressedOrModifiedTyped(key, currentlyPressedKeys))) {
                     if (leadingWaitBeginTimeByCombo.remove(combo) != null)
                         logger.debug("Removing leading wait (unpressed precondition unsatisfied): " + combo.label());
                     continue;
@@ -1420,10 +1429,49 @@ public class ComboWatcher {
                                     kms.optionalMoves().stream()
                                             .anyMatch(move -> !move.negated() && (move.isPress() || move.isTap()) &&
                                                       optionalMoveMatchesKey(move, candidateKey))));
-            if (group.satisfiedBy(candidatePressedPreconditionKeys))
+            if (group.satisfiedBy(typedCandidatePressedPreconditionKeys(
+                    candidatePressedPreconditionKeys, allGroupKeys)))
                 return candidatePressedPreconditionKeys;
         }
         return null;
+    }
+
+    /**
+     * A candidate pressed precondition key that typed a key of the group is that key, and the
+     * modifier keys that typed it count only where the group names them: on us-qwerty,
+     * leftshift and / pressed after it are questionmark for _{questionmark}.
+     */
+    private Set<Key> typedCandidatePressedPreconditionKeys(
+            Set<Key> candidatePressedPreconditionKeys, Set<Key> allGroupKeys) {
+        Set<Key> keys = new HashSet<>(candidatePressedPreconditionKeys);
+        for (Key candidateKey : candidatePressedPreconditionKeys) {
+            Key modifiedTypedKey = modifiedTypedKeyByModifiedKey.get(candidateKey);
+            if (modifiedTypedKey == null || !allGroupKeys.contains(modifiedTypedKey))
+                continue;
+            keys.remove(candidateKey);
+            keys.add(modifiedTypedKey);
+            ModifiedKeyPress modifiedKeyPress =
+                    activeKeyboardLayout.modifiedKeyPressFromTypedKey(modifiedTypedKey);
+            if (modifiedKeyPress == null)
+                continue;
+            for (Key modifierKey : modifiedKeyPress.modifierKeys())
+                if (!allGroupKeys.contains(modifierKey))
+                    keys.remove(modifierKey);
+        }
+        return keys;
+    }
+
+    /**
+     * Whether the key is pressed, or a pressed key typed it with a modifier: questionmark while
+     * / pressed after a shift is, on us-qwerty.
+     */
+    private boolean isPressedOrModifiedTyped(Key key, Set<Key> pressedKeys) {
+        if (pressedKeys.contains(key))
+            return true;
+        for (Key pressedKey : pressedKeys)
+            if (key.equals(modifiedTypedKeyByModifiedKey.get(pressedKey)))
+                return true;
+        return false;
     }
 
     private boolean comboUnpressedPreconditionSatisfied(Combo combo,
@@ -1432,7 +1480,7 @@ public class ComboWatcher {
         for (Key unpressedPreconditionKey : combo.precondition()
                                                  .keyPrecondition()
                                                  .unpressedKeySet()) {
-            if (currentlyPressedComboKeys.contains(unpressedPreconditionKey) &&
+            if (isPressedOrModifiedTyped(unpressedPreconditionKey, currentlyPressedComboKeys) &&
                 !combo.keysPressedAfterMoves(Set.of(),
                         matchedKeyMoves).contains(unpressedPreconditionKey))
                 return false;
@@ -1661,7 +1709,10 @@ public class ComboWatcher {
     }
 
     public boolean isCurrentModePressedPreconditionKey(Key key) {
-        return currentModePressedPreconditionKeys.contains(key);
+        Key modifiedTypedKey = modifiedTypedKeyByModifiedKey.get(key);
+        return currentModePressedPreconditionKeys.contains(key) ||
+               modifiedTypedKey != null &&
+               currentModePressedPreconditionKeys.contains(modifiedTypedKey);
     }
 
     public void modeChanged(Mode newMode) {
@@ -1849,6 +1900,26 @@ public class ComboWatcher {
         return keys;
     }
 
+    /**
+     * The keys held to type the typed keys of the precondition: leftshift and rightshift for
+     * _{questionmark} on us-qwerty.
+     */
+    private Set<Key> preconditionModifierKeys(Combo combo) {
+        Set<Key> keys = new HashSet<>(combo.precondition()
+                                           .keyPrecondition()
+                                           .pressedKeyPrecondition()
+                                           .allKeys());
+        keys.addAll(combo.precondition().keyPrecondition().unpressedKeySet());
+        Set<Key> modifierKeys = new HashSet<>();
+        for (Key key : keys) {
+            ModifiedKeyPress modifiedKeyPress =
+                    activeKeyboardLayout.modifiedKeyPressFromTypedKey(key);
+            if (modifiedKeyPress != null)
+                modifierKeys.addAll(modifiedKeyPress.modifierKeys());
+        }
+        return modifierKeys;
+    }
+
 
     private boolean refreshPreconditionOnlyMutations() {
         return refreshPreconditionOnlyMutations(activeAppFinder.activeApp());
@@ -1913,7 +1984,8 @@ public class ComboWatcher {
             boolean anySatisfied = pressedPrecondition.groups().stream()
                     .anyMatch(g -> g.keySets().stream()
                             .allMatch(keySet -> keySet.stream()
-                                    .anyMatch(currentlyPressedComboKeys::contains)));
+                                    .anyMatch(key -> isPressedOrModifiedTyped(key,
+                                            currentlyPressedComboKeys))));
             if (!anySatisfied)
                 return false;
         }

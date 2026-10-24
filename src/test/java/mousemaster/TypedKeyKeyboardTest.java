@@ -117,6 +117,21 @@ class TypedKeyKeyboardTest {
     }
 
     @Test
+    void theKeyAloneIsAnUnhandledKeyForAPrecondition() {
+        load("idle-mode.press.middle=_{questionmark} +b");
+        press("/");
+        assertTrue(keyboardManager.pressingUnhandledKeyInCurrentMode());
+    }
+
+    @Test
+    void theCharacterIsNotAnUnhandledKeyForAPrecondition() {
+        load("idle-mode.press.middle=_{questionmark} +b");
+        press("leftshift");
+        press("/");
+        assertFalse(keyboardManager.pressingUnhandledKeyInCurrentMode());
+    }
+
+    @Test
     void anotherKeyRegurgitatesTheKeyBeforeIt() {
         load("idle-mode.press.middle=+a +questionmark");
         press("a");
