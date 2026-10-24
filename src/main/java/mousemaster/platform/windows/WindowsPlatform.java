@@ -144,6 +144,8 @@ public class WindowsPlatform implements Platform {
             mousePosition = p;
         if (mousePosition == null)
             mousePosition = mouse.tryFindMousePosition();
+        else
+            mousePosition = clippedToScreen(mousePosition);
         if (mousePosition != null &&
             (lastMousePosition == null || mousePosition.x != lastMousePosition.x ||
              mousePosition.y != lastMousePosition.y)) {
@@ -911,6 +913,14 @@ public class WindowsPlatform implements Platform {
 
     public void mousePositionSet(WinDef.POINT mousePosition) {
         mousePositionQueue.add(mousePosition);
+    }
+
+    /** The mouse hook reports a move past the screen edge before Windows clips the cursor. */
+    private static WinDef.POINT clippedToScreen(WinDef.POINT mousePosition) {
+        Rectangle screen = WindowsScreen.findActiveScreen(mousePosition).rectangle();
+        return new WinDef.POINT(
+                Math.clamp(mousePosition.x, screen.x(), screen.x() + screen.width() - 1),
+                Math.clamp(mousePosition.y, screen.y(), screen.y() + screen.height() - 1));
     }
 
     @Override
