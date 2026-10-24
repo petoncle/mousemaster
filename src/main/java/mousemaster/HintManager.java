@@ -531,7 +531,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             case HintMeshType.PositionHistoryHintMesh positionHistoryHintMesh -> {
                 Point position = currentPositionHistory.positions().getFirst();
                 yield ScreenFilter.of(
-                        screenManager.screenContaining(position.x(), position.y()));
+                        screenManager.nearestScreenContaining(position.x(), position.y()));
             }
         };
     }
