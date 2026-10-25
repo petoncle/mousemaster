@@ -19,6 +19,10 @@ public final class MacosWindow {
     /** macOS derives a window's shadow from its alpha, so hints would each cast one. */
     private static final Pointer setHasShadow =
             objectiveC.sel_registerName("setHasShadow:");
+    /** macOS zooms a window in from the screen's center when it is shown and fades it out when
+     *  it is hidden, so an indicator would slide in and linger. */
+    private static final Pointer setAnimationBehavior =
+            objectiveC.sel_registerName("setAnimationBehavior:");
     private static final Pointer setSharingType =
             objectiveC.sel_registerName("setSharingType:");
 
@@ -36,6 +40,7 @@ public final class MacosWindow {
     private static final long fullScreenAuxiliary = 1 << 8;
     private static final long sharingNone = 0;
     private static final long sharingReadOnly = 1;
+    private static final long animationBehaviorNone = 2;
 
     private MacosWindow() {
     }
@@ -70,6 +75,7 @@ public final class MacosWindow {
                 canJoinAllSpaces | stationary | fullScreenAuxiliary);
         objectiveC.objc_msgSend(nsWindow, setIgnoresMouseEvents, 1);
         objectiveC.objc_msgSend(nsWindow, setHasShadow, 0);
+        objectiveC.objc_msgSend(nsWindow, setAnimationBehavior, animationBehaviorNone);
     }
 
     public static void setExcludedFromCapture(QWidget widget, boolean excluded) {
