@@ -683,12 +683,13 @@ suspended apps are left out. Scanning several windows takes longer than scanning
 hints appear once the scan is over, mousemaster stays responsive in the meantime.
 
 **`ui-order`** is the order the elements are labeled in, the first ones getting the shortest
-labels (default `top-to-bottom`): `top-to-bottom`, `bottom-to-top`, `left-to-right` or
-`right-to-left`. Elements are labeled in rows from that edge, each read from left to right (in
-columns read from top to bottom for `left-to-right` and `right-to-left`). A row goes on as long
-as the next element's center is at most 6 pixels further (at 100% scaling), so with
-`left-to-right` a taskbar on the left edge, whose icons are a few pixels apart horizontally, is
-one column labeled from top to bottom:
+labels (default `top-to-bottom`): `top-to-bottom`, `bottom-to-top`, `left-to-right`,
+`right-to-left` or `mouse`. With `mouse`, the elements nearest the mouse cursor come first, from
+where it was when the scan started. With an edge, elements are labeled in rows from it, each
+read from left to right (in columns read from top to bottom for `left-to-right` and
+`right-to-left`). A row goes on as long as the next element's center is at most 6 pixels
+further (at 100% scaling), so with `left-to-right` a taskbar on the left edge, whose icons are a
+few pixels apart horizontally, is one column labeled from top to bottom:
 
 ```properties
 ui-hint-mode.hint.ui-order=left-to-right

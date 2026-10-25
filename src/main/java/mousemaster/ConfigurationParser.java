@@ -3372,11 +3372,12 @@ public class ConfigurationParser {
             case "bottom-to-top" -> UiHintOrder.BOTTOM_TO_TOP;
             case "left-to-right" -> UiHintOrder.LEFT_TO_RIGHT;
             case "right-to-left" -> UiHintOrder.RIGHT_TO_LEFT;
+            case "mouse" -> UiHintOrder.MOUSE;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": should be one of " +
                     List.of("top-to-bottom", "bottom-to-top", "left-to-right",
-                            "right-to-left"));
+                            "right-to-left", "mouse"));
         };
     }
 

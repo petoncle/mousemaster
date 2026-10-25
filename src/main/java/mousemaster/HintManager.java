@@ -59,6 +59,7 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private PendingUiHintQuery pendingUiHintQuery;
     private List<UiElement> lastUiElements = List.of();
+    private Point uiElementQueryMousePoint;
 
     /**
      * It would be better to have an instance of Zoom instead of ZoomConfiguration
@@ -119,7 +120,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                     if (configuration.type() instanceof HintMeshType.PositionHistoryHintMesh)
                         continue;
                     HintMesh hintMesh = buildHintMesh(configuration, mode.zoom(), zoom,
-                            ScreenFilter.of(screen), preWarmedUiElements(screen), screen);
+                            ScreenFilter.of(screen), preWarmedUiElements(screen),
+                            screenRectangle.center(), screen);
                     if (!hintMesh.visible() ||
                         hintMesh.hints().size() < minPreWarmedHintCount)
                         continue;
@@ -373,6 +375,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMeshConfiguration.type() instanceof HintMeshType.UiVisionHintMesh) {
             // Do not recompute the elements when the new mode looks for the same ones.
             if (!sameUiElementQuery) {
+                uiElementQueryMousePoint = new Point(mouseX, mouseY);
                 pendingUiHintQuery = new PendingUiHintQuery(
                         startUiElementQuery(hintMeshConfiguration.type()),
                         hintMeshConfiguration, newZoom, newScreenFilter);
@@ -393,12 +396,13 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
             else {
                 newHintMesh = buildHintMesh(hintMeshConfiguration, newMode.zoom(), newZoom,
-                        newScreenFilter, lastUiElements, screenManager.activeScreen());
+                        newScreenFilter, lastUiElements, uiElementQueryMousePoint,
+                        screenManager.activeScreen());
             }
         }
         else {
             newHintMesh = buildHintMesh(hintMeshConfiguration, newMode.zoom(), newZoom,
-                    newScreenFilter, null, screenManager.activeScreen());
+                    newScreenFilter, null, null, screenManager.activeScreen());
         }
         boolean hintMeshUnchanged =
                 newHintMesh.equals(hintMesh) && newZoom.equals(currentZoom);
@@ -515,7 +519,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         ZoomConfiguration zoom = currentMode.zoom();
         HintMesh newHintMesh = buildHintMesh(hintMeshConfiguration,
                 zoom, pending.zoom(), screenFilter,
-                uiElements, screenManager.activeScreen());
+                uiElements, uiElementQueryMousePoint, screenManager.activeScreen());
         activateHintMesh(currentMode, newHintMesh, hintMeshConfiguration, screenFilter,
                 currentZoom, false);
         overlay.runPendingHintMeshWork();
@@ -665,7 +669,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             HintMeshConfiguration hintMeshConfiguration,
             ZoomConfiguration zoomConfiguration, Zoom zoom,
             ScreenFilter screenFilter,
-            List<UiElement> uiElements, Screen activeScreen) {
+            List<UiElement> uiElements, Point mousePoint, Screen activeScreen) {
         HintMeshBuilder hintMesh = new HintMeshBuilder();
         hintMesh.visible(hintMeshConfiguration.visible())
                 .styleByFilter(hintMeshConfiguration.styleByFilter());
@@ -801,7 +805,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             Set<Integer> prefixLengths = new HashSet<>();
             buildUiHints(hintMeshConfiguration, screenFilter,
                     sortedUiElements(uiElements, uiAccessibilityHintMesh.order(),
-                            activeScreen.scale()), prefixLengths, hints);
+                            activeScreen.scale(), mousePoint),
+                    prefixLengths, hints);
             Rectangle uiArea = uiHintArea(uiAccessibilityHintMesh.area());
             hintMesh.hints(hints)
                     .prefixLength(prefixLengths.size() == 1 ?
@@ -815,7 +820,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             Set<Integer> prefixLengths = new HashSet<>();
             buildUiHints(hintMeshConfiguration, screenFilter,
                     sortedUiElements(uiElements, uiVisionHintMesh.order(),
-                            activeScreen.scale()), prefixLengths, hints);
+                            activeScreen.scale(), mousePoint),
+                    prefixLengths, hints);
             Rectangle uiArea = uiHintArea(uiVisionHintMesh.area());
             hintMesh.hints(hints)
                     .prefixLength(prefixLengths.size() == 1 ?
@@ -929,17 +935,29 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     static List<UiElement> sortedUiElements(List<UiElement> uiElements, UiHintOrder order,
-                                            double scale) {
-        ToDoubleFunction<UiElement> coordinate = switch (order) {
-            case TOP_TO_BOTTOM -> UiElement::centerY;
-            case BOTTOM_TO_TOP -> uiElement -> -uiElement.centerY();
-            case LEFT_TO_RIGHT -> UiElement::centerX;
-            case RIGHT_TO_LEFT -> uiElement -> -uiElement.centerX();
+                                            double scale, Point mouse) {
+        return switch (order) {
+            case TOP_TO_BOTTOM -> bandSortedUiElements(uiElements, UiElement::centerY,
+                    UiElement::centerX, scale);
+            case BOTTOM_TO_TOP -> bandSortedUiElements(uiElements,
+                    uiElement -> -uiElement.centerY(), UiElement::centerX, scale);
+            case LEFT_TO_RIGHT -> bandSortedUiElements(uiElements, UiElement::centerX,
+                    UiElement::centerY, scale);
+            case RIGHT_TO_LEFT -> bandSortedUiElements(uiElements,
+                    uiElement -> -uiElement.centerX(), UiElement::centerY, scale);
+            case MOUSE -> uiElements.stream()
+                                    .sorted(Comparator.comparingDouble(
+                                            uiElement -> Math.hypot(
+                                                    uiElement.centerX() - mouse.x(),
+                                                    uiElement.centerY() - mouse.y())))
+                                    .toList();
         };
-        Comparator<UiElement> bandComparator =
-                order == UiHintOrder.TOP_TO_BOTTOM || order == UiHintOrder.BOTTOM_TO_TOP ?
-                        Comparator.comparingDouble(UiElement::centerX) :
-                        Comparator.comparingDouble(UiElement::centerY);
+    }
+
+    private static List<UiElement> bandSortedUiElements(List<UiElement> uiElements,
+                                                        ToDoubleFunction<UiElement> coordinate,
+                                                        ToDoubleFunction<UiElement> bandCoordinate,
+                                                        double scale) {
         List<UiElement> sortedElements = new ArrayList<>(uiElements);
         sortedElements.sort(Comparator.comparingDouble(coordinate));
         int bandBeginIndex = 0;
@@ -948,7 +966,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                 coordinate.applyAsDouble(sortedElements.get(i)) -
                 coordinate.applyAsDouble(sortedElements.get(i - 1)) >
                 maxBandGapUnzoomed * scale) {
-                sortedElements.subList(bandBeginIndex, i).sort(bandComparator);
+                sortedElements.subList(bandBeginIndex, i)
+                              .sort(Comparator.comparingDouble(bandCoordinate));
                 bandBeginIndex = i;
             }
         }
