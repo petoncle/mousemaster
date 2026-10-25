@@ -1,11 +1,15 @@
 package mousemaster.qt;
 
+import io.qt.core.QPointF;
 import io.qt.core.QRect;
 import io.qt.core.QRectF;
 import mousemaster.Os;
+import io.qt.gui.QColor;
 import io.qt.gui.QFont;
 import io.qt.gui.QFontDatabase;
 import io.qt.gui.QFontMetrics;
+import io.qt.gui.QImage;
+import io.qt.gui.QPainter;
 import io.qt.gui.QPainterPath;
 import io.qt.widgets.QApplication;
 import mousemaster.FontStyle;
@@ -92,6 +96,40 @@ public final class QtHintFont {
             return bottom - top;
         }
 
+    }
+
+    private static final Map<QFontMetrics, Double> capHeightByMetrics = new IdentityHashMap<>();
+
+    /**
+     * How far above the baseline a capital inks once rasterized, which is not
+     * {@link QFontMetrics#capHeight}: that one is rounded to a whole unit, and smoothing or hinting
+     * moves the rasterized cap line off the outline's by a fraction of a pixel.
+     */
+    public static double capHeight(QFontMetrics metrics, double devicePixelRatio) {
+        return capHeightByMetrics.computeIfAbsent(metrics, m -> {
+            int baseline = (int) Math.ceil(m.ascent() * devicePixelRatio);
+            QImage image = new QImage((int) Math.ceil(m.maxWidth() * devicePixelRatio), baseline,
+                    QImage.Format.Format_ARGB32_Premultiplied);
+            image.setDevicePixelRatio(devicePixelRatio);
+            image.fill(0);
+            QPainter painter = new QPainter(image);
+            painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, true);
+            painter.setFont(fontByMetrics.get(m));
+            painter.setPen(new QColor(255, 255, 255));
+            painter.drawText(new QPointF(0, baseline / devicePixelRatio), "H");
+            painter.end();
+            double capHeight = 0;
+            for (int y = 0; y < baseline && capHeight == 0; y++) {
+                int alpha = 0;
+                for (int x = 0; x < image.width(); x++)
+                    alpha = Math.max(alpha, image.pixel(x, y) >>> 24);
+                if (alpha != 0)
+                    capHeight = (baseline - y - 1 + alpha / 255d) / devicePixelRatio;
+            }
+            painter.dispose();
+            image.dispose();
+            return capHeight;
+        });
     }
 
     private static final Map<QFontMetrics, Map<String, QPainterPath>> textPathsByMetrics =

@@ -2736,16 +2736,17 @@ public final class HintMeshRenderer {
 
     }
 
-    private static double baselineY(FontVerticalAlignment verticalAlignment, int boxHeight,
-                                    QFontMetrics metrics, double inkTop, double inkHeight,
-                                    double qtScaleFactor) {
+    static double baselineY(FontVerticalAlignment verticalAlignment, int boxHeight,
+                            QFontMetrics metrics, double inkTop, double inkHeight,
+                            double qtScaleFactor) {
         return switch (verticalAlignment) {
             // The ink starts on a whole pixel, a leftover one going above the text, not below.
             // A pixel, not a point: where Qt paints in points, half of one is still a pixel, and
             // rounding to the point would push the text off center by one.
             case MIDDLE -> topGap(boxHeight - inkHeight, qtScaleFactor) - inkTop;
-            case CAP_HEIGHT -> topGap(boxHeight - metrics.capHeight(), qtScaleFactor) +
-                               metrics.capHeight();
+            // A glyph lands on the pixel nearest its baseline, so the baseline is what is rounded.
+            case CAP_HEIGHT -> Math.round((boxHeight + QtHintFont.capHeight(metrics,
+                    qtScaleFactor)) / 2 * qtScaleFactor) / qtScaleFactor;
             case BASELINE -> (boxHeight + metrics.ascent() - metrics.descent()) / 2d;
         };
     }
