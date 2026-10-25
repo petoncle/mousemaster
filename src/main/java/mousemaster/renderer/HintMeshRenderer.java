@@ -2919,7 +2919,8 @@ public final class HintMeshRenderer {
                 double textY = baselineY(verticalAlignment, boxHeight, keyMetrics, inkTop,
                         inkBottom - inkTop, qtScaleFactor);
                 if (!isHintPartOfTiledGrid) {
-                    QtHintFont.Ink keyInk = QtHintFont.ink(keyMetrics, keyText);
+                    QtHintFont.Ink keyInk =
+                            QtHintFont.rasterizedInk(keyMetrics, keyText, qtScaleFactor);
                     tightLeft = Math.min(tightLeft, textX + keyInk.left());
                     tightRight = Math.max(tightRight, textX + keyInk.right());
                 }
@@ -2928,8 +2929,10 @@ public final class HintMeshRenderer {
             }
             // No columns to align to: center the label's tight bounds instead of per-key slots.
             if (!isHintPartOfTiledGrid && tightRight > tightLeft) {
+                double glyphPositionsPerUnit = qtScaleFactor *
+                        QtHintFont.glyphPositionsPerPixel(labelMetrics, qtScaleFactor);
                 double shiftX = Math.round(((boxWidth - (tightRight - tightLeft)) / 2 - tightLeft)
-                                           * qtScaleFactor) / qtScaleFactor;
+                                           * glyphPositionsPerUnit) / glyphPositionsPerUnit;
                 if (shiftX != 0) {
                     keyTexts.replaceAll(k -> new HintKeyText(k.text(), k.x() + shiftX, k.y(),
                             k.width(), k.isSelected(), k.isFocused(), k.isPrefix()));

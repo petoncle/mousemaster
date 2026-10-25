@@ -132,6 +132,73 @@ public final class QtHintFont {
         });
     }
 
+    private static final Map<QFontMetrics, Map<String, Ink>> rasterizedInkByTextByMetrics =
+            new IdentityHashMap<>();
+
+    /**
+     * The {@link #ink} of the text drawn at a whole pixel, once rasterized: GDI hints the glyphs
+     * off their outline, and CoreText smooths them half a pixel past it on the left.
+     */
+    public static Ink rasterizedInk(QFontMetrics metrics, String text, double devicePixelRatio) {
+        return rasterizedInkByTextByMetrics.computeIfAbsent(metrics, m -> new HashMap<>())
+                                           .computeIfAbsent(text,
+                                                   t -> rasterizedInk(metrics, t,
+                                                           devicePixelRatio, 0));
+    }
+
+    private static final Map<QFontMetrics, Integer> glyphPositionsPerPixelByMetrics =
+            new IdentityHashMap<>();
+
+    /**
+     * Where in a pixel a glyph can start: GDI starts it on the pixel, CoreText on either half of
+     * it, up to a size past which it drops the fraction too.
+     */
+    public static int glyphPositionsPerPixel(QFontMetrics metrics, double devicePixelRatio) {
+        return glyphPositionsPerPixelByMetrics.computeIfAbsent(metrics, m -> {
+            double halfPixel = 0.5 / devicePixelRatio;
+            return rasterizedInk(m, "H", devicePixelRatio, halfPixel).left() >
+                   rasterizedInk(m, "H", devicePixelRatio, 0).left() + halfPixel / 2 ? 2 : 1;
+        });
+    }
+
+    /** Drawn x past a whole pixel, and measured from that pixel. */
+    private static Ink rasterizedInk(QFontMetrics metrics, String text, double devicePixelRatio,
+                                     double x) {
+        Ink outline = ink(metrics, text);
+        // Whole units, so the origin is on a pixel, with room for the smoothing.
+        int originX = 2 - (int) Math.floor(outline.left());
+        int originY = 2 - (int) Math.floor(outline.top());
+        QImage image = new QImage(
+                (int) Math.ceil((originX + outline.right() + 3) * devicePixelRatio),
+                (int) Math.ceil((originY + outline.bottom() + 2) * devicePixelRatio),
+                QImage.Format.Format_ARGB32_Premultiplied);
+        image.setDevicePixelRatio(devicePixelRatio);
+        image.fill(0);
+        QPainter painter = new QPainter(image);
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, true);
+        painter.setFont(fontByMetrics.get(metrics));
+        painter.setPen(new QColor(255, 255, 255));
+        painter.drawText(new QPointF(originX + x, originY), text);
+        painter.end();
+        double left = Double.MAX_VALUE, top = Double.MAX_VALUE;
+        double right = -Double.MAX_VALUE, bottom = -Double.MAX_VALUE;
+        for (int y = 0; y < image.height(); y++) {
+            for (int column = 0; column < image.width(); column++) {
+                double alpha = (image.pixel(column, y) >>> 24) / 255d;
+                if (alpha == 0)
+                    continue;
+                left = Math.min(left, column + 1 - alpha);
+                top = Math.min(top, y + 1 - alpha);
+                right = Math.max(right, column + alpha);
+                bottom = Math.max(bottom, y + alpha);
+            }
+        }
+        painter.dispose();
+        image.dispose();
+        return new Ink(left / devicePixelRatio - originX, top / devicePixelRatio - originY,
+                right / devicePixelRatio - originX, bottom / devicePixelRatio - originY);
+    }
+
     private static final Map<QFontMetrics, Map<String, QPainterPath>> textPathsByMetrics =
             new IdentityHashMap<>();
 
@@ -144,6 +211,7 @@ public final class QtHintFont {
         textPathsByMetrics.clear();
         tightBoundsByTextByMetrics.clear();
         inkByTextByMetrics.clear();
+        rasterizedInkByTextByMetrics.clear();
     }
 
     /** Adds the text's glyph outline to {@code path}, baseline origin at (x, y). Outlines are kept
