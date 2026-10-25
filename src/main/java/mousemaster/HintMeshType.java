@@ -22,12 +22,12 @@ public sealed interface HintMeshType {
     }
 
     /** The area selects the windows the UI elements are looked for in. */
-    record UiAccessibilityHintMesh(UiHintArea area) implements HintMeshType {
+    record UiAccessibilityHintMesh(UiHintArea area, UiHintOrder order) implements HintMeshType {
 
     }
 
     /** The area the elements are looked for in, as for {@link UiAccessibilityHintMesh}. */
-    record UiVisionHintMesh(UiHintArea area, int density) implements HintMeshType {
+    record UiVisionHintMesh(UiHintArea area, UiHintOrder order, int density) implements HintMeshType {
 
     }
 
@@ -43,6 +43,7 @@ public sealed interface HintMeshType {
         private HintGridArea.HintGridAreaBuilder
                 gridArea = new HintGridArea.HintGridAreaBuilder();
         private UiHintArea uiArea;
+        private UiHintOrder uiOrder;
         private Integer visionDensity;
         private String positionHistoryName;
         private final ScreenFilterMapBuilder<HintGridLayoutBuilder, HintGridLayout>
@@ -68,11 +69,13 @@ public sealed interface HintMeshType {
                 case UiAccessibilityHintMesh uiAccessibilityHintMesh -> {
                     this.type = HintMeshTypeType.UI_ACCESSIBILITY;
                     this.uiArea = uiAccessibilityHintMesh.area;
+                    this.uiOrder = uiAccessibilityHintMesh.order;
                     this.gridLayoutByFilter = new ScreenFilterMapBuilder<>();
                 }
                 case UiVisionHintMesh uiVisionHintMesh -> {
                     this.type = HintMeshTypeType.UI_VISION;
                     this.uiArea = uiVisionHintMesh.area;
+                    this.uiOrder = uiVisionHintMesh.order;
                     this.visionDensity = uiVisionHintMesh.density;
                     this.gridLayoutByFilter = new ScreenFilterMapBuilder<>();
                 }
@@ -105,6 +108,15 @@ public sealed interface HintMeshType {
             return this;
         }
 
+        public UiHintOrder uiOrder() {
+            return uiOrder;
+        }
+
+        public HintMeshTypeBuilder uiOrder(UiHintOrder uiOrder) {
+            this.uiOrder = uiOrder;
+            return this;
+        }
+
         public String positionHistoryName() {
             return positionHistoryName;
         }
@@ -132,8 +144,8 @@ public sealed interface HintMeshType {
             return switch (type) {
                 case GRID -> new GridHintMesh(gridArea.build(), gridLayoutByFilter.build(HintGridLayoutBuilder::build));
                 case POSITION_HISTORY -> new PositionHistoryHintMesh(positionHistoryName);
-                case UI_ACCESSIBILITY -> new UiAccessibilityHintMesh(uiArea);
-                case UI_VISION -> new UiVisionHintMesh(uiArea, visionDensity);
+                case UI_ACCESSIBILITY -> new UiAccessibilityHintMesh(uiArea, uiOrder);
+                case UI_VISION -> new UiVisionHintMesh(uiArea, uiOrder, visionDensity);
             };
         }
     }

@@ -682,8 +682,21 @@ click it performs would reach the element. Windows of another virtual desktop an
 suspended apps are left out. Scanning several windows takes longer than scanning one: the
 hints appear once the scan is over, mousemaster stays responsive in the meantime.
 
-`ui-area` and the `grid-area*` properties are exclusive: `ui-area` only applies to
-`hint.type=ui-accessibility` and `hint.type=ui-vision`, and setting `grid-area` on either is rejected.
+**`ui-order`** is the order the elements are labeled in, the first ones getting the shortest
+labels (default `top-to-bottom`): `top-to-bottom`, `bottom-to-top`, `left-to-right` or
+`right-to-left`. Elements are labeled in rows from that edge, each read from left to right (in
+columns read from top to bottom for `left-to-right` and `right-to-left`). A row goes on as long
+as the next element's center is at most 6 pixels further (at 100% scaling), so with
+`left-to-right` a taskbar on the left edge, whose icons are a few pixels apart horizontally, is
+one column labeled from top to bottom:
+
+```properties
+ui-hint-mode.hint.ui-order=left-to-right
+```
+
+`ui-area`, `ui-order` and the `grid-area*` properties are exclusive: `ui-area` and `ui-order`
+only apply to `hint.type=ui-accessibility` and `hint.type=ui-vision`, and setting `grid-area` on
+either is rejected.
 
 A scan that finds no element leaves the mode showing nothing. The built-in virtual key
 `ishintmeshempty` is pressed then, so a combo can leave the mode:
@@ -711,10 +724,10 @@ ui-hint-mode.hint.ui-area=active-screen
 ui-hint-mode.hint.vision-density=6
 ```
 
-Vision UI hints read the same **`ui-area`** as accessibility UI hints, and share every
-selection, click and appearance property with them. Detection runs off the keyboard hook, so
-mousemaster stays responsive while a scan is in progress, and `ishintmeshempty` is pressed when
-a scan finds nothing, exactly as for accessibility UI hints.
+Vision UI hints read the same **`ui-area`** and **`ui-order`** as accessibility UI hints, and
+share every selection, click and appearance property with them. Detection runs off the keyboard
+hook, so mousemaster stays responsive while a scan is in progress, and `ishintmeshempty` is
+pressed when a scan finds nothing, exactly as for accessibility UI hints.
 
 - **`vision-density`**: How hard the detection looks, 1 to 8 (default 6). A higher value gives
   more hints, on smaller things. It only applies to `hint.type=ui-vision`, and setting it on

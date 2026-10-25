@@ -95,8 +95,6 @@ public class Vision {
             List<UiElement> elements = new ArrayList<>();
             for (Supplier<List<UiElement>> detection : detections)
                 elements.addAll(detection.get());
-            elements.sort(Comparator.comparingDouble(UiElement::centerY)
-                                    .thenComparingDouble(UiElement::centerX));
             logger.debug("Vision found " + elements.size() + " elements on " +
                          detections.size() + " screen(s) in " +
                          (System.nanoTime() - begin) / 1_000_000 + "ms");

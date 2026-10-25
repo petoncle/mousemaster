@@ -191,6 +191,7 @@ public class ConfigurationParser {
                            .widthPercent(1.0)
                            .heightPercent(1.0);
         hintMeshTypeBuilder.uiArea(UiHintArea.ACTIVE_SCREEN);
+        hintMeshTypeBuilder.uiOrder(UiHintOrder.TOP_TO_BOTTOM);
         hintMeshTypeBuilder.visionDensity(6);
         ModeTimeoutBuilder timeout =
                 new ModeTimeoutBuilder().enabled(false).onlyIfIdle(true);
@@ -2227,6 +2228,8 @@ public class ConfigurationParser {
             new ModePropertyPath(List.of("hintMesh", "type", "area", "size", "source"));
     private static final ModePropertyPath HINT_UI_AREA_PATH =
             new ModePropertyPath(List.of("hintMesh", "type", "area"));
+    private static final ModePropertyPath HINT_UI_ORDER_PATH =
+            new ModePropertyPath(List.of("hintMesh", "type", "order"));
     private static final ModePropertyPath HINT_VISION_DENSITY_PATH =
             new ModePropertyPath(List.of("hintMesh", "type", "density"));
 
@@ -2266,6 +2269,11 @@ public class ConfigurationParser {
                 throw new IllegalArgumentException(
                         "Invalid definition of hint for " + mode.modeName +
                         ": hint.ui-area only applies to hint.type=ui-accessibility or " +
+                        "hint.type=ui-vision");
+            if (!uiType && mode.hintMesh.setPropertyPaths.contains(HINT_UI_ORDER_PATH))
+                throw new IllegalArgumentException(
+                        "Invalid definition of hint for " + mode.modeName +
+                        ": hint.ui-order only applies to hint.type=ui-accessibility or " +
                         "hint.type=ui-vision");
             if (hintMeshType.type() != HintMeshType.HintMeshTypeType.UI_VISION
                 && mode.hintMesh.setPropertyPaths.contains(HINT_VISION_DENSITY_PATH))
@@ -2772,7 +2780,7 @@ public class ConfigurationParser {
                     case UI_ACCESSIBILITY -> (Object) (Function<Object, Object>) currentType ->
                             currentType instanceof HintMeshType.UiAccessibilityHintMesh uiAccessibilityHintMesh ?
                                     uiAccessibilityHintMesh : new HintMeshType.UiAccessibilityHintMesh(
-                                    UiHintArea.ACTIVE_SCREEN);
+                                    UiHintArea.ACTIVE_SCREEN, UiHintOrder.TOP_TO_BOTTOM);
                     case UI_VISION -> (Object) (Function<Object, Object>) currentType -> {
                         if (currentType instanceof HintMeshType.UiVisionHintMesh)
                             return currentType;
@@ -2790,6 +2798,7 @@ public class ConfigurationParser {
             // The area elements are looked for in. Only the ui types read it and it is
             // rejected on the others.
             case "ui-area" -> ModePropertyHandler.of(prefix.append("type", "area"), v -> parseUiHintArea("hint.ui-area", v), v -> hintMeshBuilder.type().uiArea(v));
+            case "ui-order" -> ModePropertyHandler.of(prefix.append("type", "order"), v -> parseUiHintOrder("hint.ui-order", v), v -> hintMeshBuilder.type().uiOrder(v));
             case "vision-density" -> ModePropertyHandler.of(prefix.append("type", "density"), v -> parseUnsignedInteger(v, 1, Vision.densities), v -> hintMeshBuilder.type().visionDensity(v));
             // Grid area = size + center. Mutations set the record component directly
             // (the mutator keeps the sibling component), so no Function is needed.
@@ -3357,6 +3366,20 @@ public class ConfigurationParser {
         };
     }
 
+    private static UiHintOrder parseUiHintOrder(String propertyKey, String propertyValue) {
+        return switch (propertyValue) {
+            case "top-to-bottom" -> UiHintOrder.TOP_TO_BOTTOM;
+            case "bottom-to-top" -> UiHintOrder.BOTTOM_TO_TOP;
+            case "left-to-right" -> UiHintOrder.LEFT_TO_RIGHT;
+            case "right-to-left" -> UiHintOrder.RIGHT_TO_LEFT;
+            default -> throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": should be one of " +
+                    List.of("top-to-bottom", "bottom-to-top", "left-to-right",
+                            "right-to-left"));
+        };
+    }
+
     private static HintCellSizing.HintCellSizingType parseHintCellSizingType(
             String propertyKey, String propertyValue) {
         return switch (propertyValue) {
@@ -3747,6 +3770,8 @@ public class ConfigurationParser {
                     builder.type().gridArea().center(parent.type().gridArea().center());
                 if (builder.type().uiArea() == null)
                     builder.type().uiArea(parent.type().uiArea());
+                if (builder.type().uiOrder() == null)
+                    builder.type().uiOrder(parent.type().uiOrder());
                 if (builder.type().visionDensity() == null)
                     builder.type().visionDensity(parent.type().visionDensity());
                 if (builder.type().positionHistoryName() == null)
