@@ -131,6 +131,9 @@ final class MacosDesktopCapture {
             // Left alone the frames come planar, which only a layer can take.
             objectiveC.objc_msgSend(configuration,
                     objectiveC.sel_registerName("setPixelFormat:"), bgraPixelFormat);
+            // Left alone the pointer is in the frames, and vision detects it as an element.
+            objectiveC.objc_msgSend(configuration,
+                    objectiveC.sel_registerName("setShowsCursor:"), 0);
             stream = objectiveC.objc_msgSend(
                     objectiveC.objc_msgSend(objectiveC.objc_getClass("SCStream"), alloc),
                     objectiveC.sel_registerName("initWithFilter:configuration:delegate:"),
