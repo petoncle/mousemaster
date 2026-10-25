@@ -107,12 +107,13 @@ final class MacosDesktopCapture {
         if (content == null)
             throw new IllegalStateException("no shareable content");
         try {
-            Pointer display = displayContaining(content, bounds);
+            QPoint center = new QPoint((int) bounds.center().x(), (int) bounds.center().y());
+            Pointer display = displayContaining(content, center);
             if (display == null)
                 throw new IllegalStateException("no display contains " + bounds);
             displayBounds = pixels(
                     ObjectiveC.ReturningRect.INSTANCE.objc_msgSend(display, frame),
-                    MacosScreens.scaleAt(new QPoint(bounds.x(), bounds.y())));
+                    MacosScreens.scaleAt(center));
             Pointer filter = objectiveC.objc_msgSend(
                     objectiveC.objc_msgSend(objectiveC.objc_getClass("SCContentFilter"),
                             alloc),
@@ -225,18 +226,18 @@ final class MacosDesktopCapture {
                 objectiveC.sel_registerName("array"));
     }
 
-    private static Pointer displayContaining(Pointer content, Rectangle bounds) {
+    private static Pointer displayContaining(Pointer content, QPoint pixelPoint) {
         Pointer all = objectiveC.objc_msgSend(content,
                 objectiveC.sel_registerName("displays"));
         long displayCount = Pointer.nativeValue(objectiveC.objc_msgSend(all, count));
         Pointer first = null;
-        double scale = MacosScreens.scaleAt(new QPoint(bounds.x(), bounds.y()));
+        QPoint logicalPoint = MacosScreens.logicalPoint(pixelPoint);
         for (long index = 0; index < displayCount; index++) {
             Pointer display = objectiveC.objc_msgSend(all, objectAtIndex, index);
             if (first == null)
                 first = display;
-            if (pixels(ObjectiveC.ReturningRect.INSTANCE.objc_msgSend(display, frame),
-                    scale).contains(bounds.x(), bounds.y()))
+            if (pixels(ObjectiveC.ReturningRect.INSTANCE.objc_msgSend(display, frame), 1)
+                    .contains(logicalPoint.x(), logicalPoint.y()))
                 return display;
         }
         return first;
