@@ -301,6 +301,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMeshStates.remove(
                     new HintMeshKey(hintMeshConfiguration.type(),
                             selectionKeys, newMode.zoom()));
+            // A completed selection is not one to carry into a mode showing the same hints.
+            hintMesh = null;
         }
         else if (hintMeshConfiguration.type() instanceof HintMeshType.GridHintMesh gridHintMesh &&
                          gridHintMesh.area().size().source() == HintGridAreaSizeSource.ACTIVE_SCREEN &&
