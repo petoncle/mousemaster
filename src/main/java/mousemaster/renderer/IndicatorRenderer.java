@@ -38,6 +38,7 @@ public final class IndicatorRenderer {
     private Rectangle gradientArea;
     private Point gradientPoint;
     private final List<Point> currentTopLefts = new ArrayList<>();
+    private double pointsPerPixel;
     private final Map<String, LayerAnchor> anchorByLayerName = new HashMap<>();
     private final Map<TextKey, QPainterPath> outlineByText = new HashMap<>();
     private final Map<TextKey, QTextDocument> documentByText = new HashMap<>();
@@ -142,11 +143,12 @@ public final class IndicatorRenderer {
                gradientColor.step() == GradientStep.PIXEL ? gradientColor : null;
     }
 
-    /** The screen a sweep runs over, relative to the widget the brush spans. */
+    /** The screen a sweep runs over, relative to the widget the brush spans, in its points. */
     private Rectangle sweepArea(Point topLeft) {
-        return new Rectangle(snapped(gradientArea.x() - topLeft.x()),
-                snapped(gradientArea.y() - topLeft.y()),
-                gradientArea.width(), gradientArea.height());
+        return new Rectangle(points(snapped(gradientArea.x() - topLeft.x()), pointsPerPixel),
+                points(snapped(gradientArea.y() - topLeft.y()), pointsPerPixel),
+                points(gradientArea.width(), pointsPerPixel),
+                points(gradientArea.height(), pointsPerPixel));
     }
 
     private static QBrush brush(QColor color, GradientColor sweep, Rectangle sweepArea) {
@@ -406,6 +408,7 @@ public final class IndicatorRenderer {
                 points(layersHeight, pointsPerPixel));
         currentTopLefts.clear();
         currentTopLefts.addAll(topLefts);
+        this.pointsPerPixel = pointsPerPixel;
         for (int i = 0; i < layers.size(); i++) {
             IndicatorLayerConfiguration layer = layers.get(i);
             Point topLeft = topLefts.get(i);
