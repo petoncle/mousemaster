@@ -14,9 +14,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.concurrent.CompletableFuture;
@@ -138,7 +140,7 @@ public class Vision {
                     InkDetector.ink(capture.scaledRgb(), width, height), boxes, width,
                     height);
         // Greedy suppression keeps whichever element comes first, so order by area.
-        boxes.sort(Comparator.comparingLong(box -> -(long) box.width() * box.height()));
+        boxes.sort(Comparator.comparingLong(box -> -area(box)));
         Rectangle bounds = capture.bounds();
         double screenScaleX = (double) bounds.width() / width;
         double screenScaleY = (double) bounds.height() / height;
@@ -159,10 +161,29 @@ public class Vision {
         return elements;
     }
 
+    /** A pane, a box around other boxes, hides nothing. */
     private static void addUncontained(List<Rectangle> boxes, List<Rectangle> others) {
+        List<Rectangle> sortedBoxes = boxes.stream().sorted(Comparator.comparingLong(Vision::area))
+                                           .toList();
+        Map<Rectangle, Boolean> isPaneByBox = new HashMap<>();
         for (Rectangle other : others)
-            if (boxes.stream().noneMatch(box -> box.contains(other)))
+            if (boxes.stream().noneMatch(box -> box.contains(other)
+                    && !isPaneByBox.computeIfAbsent(box, pane -> isPane(pane, sortedBoxes))))
                 boxes.add(other);
+    }
+
+    private static boolean isPane(Rectangle box, List<Rectangle> sortedBoxes) {
+        for (Rectangle sortedBox : sortedBoxes) {
+            if (area(sortedBox) > area(box))
+                return false;
+            if (sortedBox != box && box.contains(sortedBox))
+                return true;
+        }
+        return false;
+    }
+
+    private static long area(Rectangle box) {
+        return (long) box.width() * box.height();
     }
 
     /** What the ink splits into once cut apart: one hint each. */
@@ -205,8 +226,7 @@ public class Vision {
                     region.y() + verticalDilation,
                     region.width() - 2 * edgeDilation,
                     region.height() - 2 * verticalDilation);
-            if (midpoint > 0 && (long) inside.width() * inside.height()
-                                > maximumLightElementPixels)
+            if (midpoint > 0 && area(inside) > maximumLightElementPixels)
                 continue;
             if (!isTargetShaped((int) (inside.width() * scale),
                     (int) (inside.height() * scale)))
