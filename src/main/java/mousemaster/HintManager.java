@@ -76,7 +76,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private record HintMeshState(HintMesh hintMesh,
-                                 Point previousModeSelectedHintPoint) {
+                                 Point previousModeSelectedHintPoint,
+                                 Rectangle previousModeSelectedHintCell) {
 
     }
 
@@ -316,9 +317,12 @@ public class HintManager implements ModeListener, MousePositionListener {
                 HintMeshState hintMeshState = hintMeshStates.get(
                         new HintMeshKey(hintMeshConfiguration.type(),
                                 selectionKeys, newMode.zoom()));
-                if (hintMeshState != null)
+                if (hintMeshState != null) {
                     lastSelectedHintPoint =
                             hintMeshState.previousModeSelectedHintPoint;
+                    lastSelectedHintCell =
+                            hintMeshState.previousModeSelectedHintCell;
+                }
             }
         }
         // Selecting drills one step deeper, going back drops the steps above, staying on a
@@ -346,7 +350,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         else if (!sameMode) {
             cellGridLevelStack.clear();
             // No level left for a zoom anchored on the selection to take its depth from.
-            lastSelectedHintCell = null;
+            if (newMode.zoom().center() != ZoomCenter.LAST_SELECTED_HINT)
+                lastSelectedHintCell = null;
         }
         if (!hintMeshConfiguration.enabled()) {
             currentMode = newMode;
@@ -426,7 +431,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 hintMeshConfiguration.keysByFilter().get(newScreenFilter).selectionKeys();
         hintMeshStates.put(new HintMeshKey(hintMeshConfiguration.type(), newSelectionKeys,
                         newMode.zoom()),
-                new HintMeshState(newHintMesh, lastSelectedHintPoint));
+                new HintMeshState(newHintMesh, lastSelectedHintPoint, lastSelectedHintCell));
         hintMesh = newHintMesh;
         if (!hintMeshUnchanged) {
             if (hintMesh.hints().isEmpty())
@@ -1439,11 +1444,12 @@ public class HintManager implements ModeListener, MousePositionListener {
                     new HintMeshKey(hintMeshConfiguration.type(),
                             hintMeshKeys.selectionKeys(),
                             currentMode.zoom());
-            hintMeshStates.put(
+            hintMeshStates.compute(
                     hintMeshKey,
-                    new HintMeshState(
+                    (k, hintMeshState) -> new HintMeshState(
                             hintMesh,
-                            hintMeshStates.get(hintMeshKey).previousModeSelectedHintPoint
+                            hintMeshState.previousModeSelectedHintPoint,
+                            hintMeshState.previousModeSelectedHintCell
                     )
             );
             overlay.setHintMesh(hintMesh, currentZoom);
@@ -1515,11 +1521,12 @@ public class HintManager implements ModeListener, MousePositionListener {
             HintMeshKey hintMeshKey =
                     new HintMeshKey(hintMeshConfiguration.type(),
                             hintMeshKeys.selectionKeys(), currentMode.zoom());
-            hintMeshStates.put(
+            hintMeshStates.compute(
                     hintMeshKey,
-                    new HintMeshState(
+                    (k, hintMeshState) -> new HintMeshState(
                             hintMesh,
-                            hintMeshStates.get(hintMeshKey).previousModeSelectedHintPoint
+                            hintMeshState.previousModeSelectedHintPoint,
+                            hintMeshState.previousModeSelectedHintCell
                     ));
             overlay.setHintMesh(hintMesh, currentZoom);
             if (hintMeshConfiguration.mouseMovement() == HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
