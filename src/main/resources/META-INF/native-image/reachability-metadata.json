@@ -7041,7 +7041,7 @@
         {
           "name": "<init>",
           "parameterTypes": [
-            "mousemaster.UiHintArea",
+            "mousemaster.HintGridArea",
             "mousemaster.UiHintOrder"
           ]
         },
@@ -7061,7 +7061,7 @@
         {
           "name": "<init>",
           "parameterTypes": [
-            "mousemaster.UiHintArea",
+            "mousemaster.HintGridArea",
             "mousemaster.UiHintOrder",
             "int",
             "double"

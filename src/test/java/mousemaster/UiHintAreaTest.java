@@ -1,13 +1,22 @@
 package mousemaster;
 
+import mousemaster.platform.MouseController;
+import mousemaster.platform.Overlay;
+import mousemaster.platform.UiAutomation;
+import mousemaster.platform.UiAutomation.UiElement;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.lang.reflect.Proxy;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -27,7 +36,7 @@ public class UiHintAreaTest {
             ui-hint-mode.hint.type=ui
             """;
 
-    private static UiHintArea uiHintArea(Configuration configuration) {
+    private static HintGridArea uiHintArea(Configuration configuration) {
         HintMeshType type = configuration.modeMap()
                                          .get("ui-hint-mode")
                                          .hintMesh()
@@ -38,47 +47,100 @@ public class UiHintAreaTest {
     /** Same default as a grid hint mesh: the area does not depend on the hint type. */
     @Test
     void uiHintAreaDefaultsToActiveScreen() throws IOException {
-        assertEquals(UiHintArea.ACTIVE_SCREEN, uiHintArea(parse(uiMode)));
+        assertEquals(HintGridAreaSizeSource.ACTIVE_SCREEN,
+                uiHintArea(parse(uiMode)).size().source());
     }
 
     @Test
     void uiHintAreaCanBeAWindowOrEveryScreen() throws IOException {
-        assertEquals(UiHintArea.ACTIVE_WINDOW, uiHintArea(
-                parse(uiMode + "ui-hint-mode.hint.ui-area=active-window\n")));
-        assertEquals(UiHintArea.ALL_SCREENS, uiHintArea(
-                parse(uiMode + "ui-hint-mode.hint.ui-area=all-screens\n")));
+        assertEquals(HintGridAreaSizeSource.ACTIVE_WINDOW, uiHintArea(
+                parse(uiMode + "ui-hint-mode.hint.area=active-window\n")).size().source());
+        assertEquals(HintGridAreaSizeSource.ALL_SCREENS, uiHintArea(
+                parse(uiMode + "ui-hint-mode.hint.area=all-screens\n")).size().source());
     }
 
     @Test
-    void uiHintAreaCannotBeTheLastSelectedHintCell() {
-        IllegalArgumentException exception =
-                assertThrows(IllegalArgumentException.class, () -> parse(
-                        uiMode + "ui-hint-mode.hint.ui-area=last-selected-hint-cell\n"));
-        assertTrue(exception.getMessage().contains("hint.ui-area"),
-                exception.getMessage());
+    void uiHintAreaCanBeScaledAndCentered() throws IOException {
+        assertEquals(new HintGridArea(
+                        new HintGridAreaSize(HintGridAreaSizeSource.ACTIVE_SCREEN, 0.3, 0.4),
+                        HintGridAreaCenter.MOUSE),
+                uiHintArea(parse(uiMode + """
+                        ui-hint-mode.hint.area-width-percent=0.3
+                        ui-hint-mode.hint.area-height-percent=0.4
+                        ui-hint-mode.hint.area-center=mouse
+                        """)));
     }
 
     @Test
-    void gridAreaDoesNotApplyToUiHints() {
-        IllegalArgumentException exception =
-                assertThrows(IllegalArgumentException.class, () -> parse(
-                        uiMode + "ui-hint-mode.hint.grid-area=active-window\n"));
-        assertTrue(exception.getMessage().contains("hint.ui-area"),
-                exception.getMessage());
+    void theElementsAreLookedForInTheScaledAreaAroundItsCenter() throws IOException {
+        Mode mode = parse(uiMode + """
+                ui-hint-mode.hint.area-width-percent=0.5
+                ui-hint-mode.hint.area-height-percent=0.5
+                ui-hint-mode.hint.area-center=mouse
+                """).modeMap().get("ui-hint-mode");
+        List<Rectangle> areas = new ArrayList<>();
+        HintManager hintManager = hintManager(areas);
+        hintManager.mouseMoved(300, 200);
+        hintManager.modeChanged(mode);
+        assertEquals(List.of(new Rectangle(-180, -70, 960, 540)), areas);
     }
 
     @Test
-    void uiAreaDoesNotApplyToGridHints() {
-        IllegalArgumentException exception =
-                assertThrows(IllegalArgumentException.class, () -> parse("""
-                        idle-mode.to.hint-mode=+h
-                        hint-mode.to.idle-mode=+esc
-                        hint-mode.hint.selection-keys=a b c d
-                        hint-mode.hint.type=grid
-                        hint-mode.hint.ui-area=active-window
-                        """));
-        assertTrue(exception.getMessage().contains("hint.ui-area"),
-                exception.getMessage());
+    void theElementsAreLookedForInTheLastSelectedHintCell() throws IOException {
+        ModeMap modeMap = parse("""
+                idle-mode.to.hint-mode=+h
+                hint-mode.to.ui-hint-mode=+a
+                hint-mode.hint.selection-keys=a b c d
+                hint-mode.hint.mouse-movement=no-movement
+                hint-mode.hint.grid-cell-sizing=fit
+                hint-mode.hint.grid-max-row-count=2
+                hint-mode.hint.grid-max-column-count=2
+                ui-hint-mode.to.idle-mode=+esc
+                ui-hint-mode.hint.selection-keys=a b c d
+                ui-hint-mode.hint.type=ui
+                ui-hint-mode.hint.area=last-selected-hint-cell
+                """).modeMap();
+        List<Rectangle> areas = new ArrayList<>();
+        HintManager hintManager = hintManager(areas);
+        hintManager.modeChanged(modeMap.get("hint-mode"));
+        for (Key key : hintManager.hintMesh().hints().getLast().keySequence())
+            hintManager.selectHintKey(key);
+        hintManager.modeChanged(modeMap.get("ui-hint-mode"));
+        assertEquals(List.of(new Rectangle(960, 540, 960, 540)), areas);
+    }
+
+    private static HintManager hintManager(List<Rectangle> areas) {
+        ScreenManager screenManager = new ScreenManager(
+                () -> Set.of(new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1)));
+        return new HintManager(Map.of(), screenManager,
+                new MouseManager(screenManager, proxy(MouseController.class)),
+                proxy(Overlay.class), new UiAutomation() {
+                    @Override
+                    public Future<List<UiElement>> startFindActiveWindowUiElements() {
+                        return CompletableFuture.completedFuture(List.of());
+                    }
+
+                    @Override
+                    public Future<List<UiElement>> startFindUiElementsInArea(Rectangle area) {
+                        areas.add(area);
+                        return CompletableFuture.completedFuture(List.of());
+                    }
+                }, () -> new App("test.exe"), new KeyRedactor(KeyRedaction.NONE), null);
+    }
+
+    @Test
+    void theDeprecatedGridAreaAndUiAreaStillSetTheArea() throws IOException {
+        assertEquals(HintGridAreaSizeSource.ACTIVE_WINDOW, uiHintArea(
+                parse(uiMode + "ui-hint-mode.hint.ui-area=active-window\n")).size().source());
+        HintMeshType type = parse("""
+                idle-mode.to.hint-mode=+h
+                hint-mode.to.idle-mode=+esc
+                hint-mode.hint.selection-keys=a b c d
+                hint-mode.hint.type=grid
+                hint-mode.hint.grid-area-center=mouse
+                """).modeMap().get("hint-mode").hintMesh().type();
+        assertEquals(HintGridAreaCenter.MOUSE,
+                ((HintMeshType.GridHintMesh) type).area().center());
     }
 
     /** The area is a component of the ui hint mesh, so it is mutated in place. */
@@ -87,7 +149,7 @@ public class UiHintAreaTest {
         Configuration configuration = ConfigurationParser.parse(List.of(
                         "idle-mode.hint.type=ui",
                         "idle-mode.hint.selection-keys=a b c d",
-                        "idle-mode.hint.ui-area=active-window | _{isidling} -> all-screens"),
+                        "idle-mode.hint.area=active-window | _{isidling} -> all-screens"),
                 KeyboardLayout.keyboardLayout("00000409", null));
         ComboWatcher comboWatcher =
                 new ComboWatcher(null, null, () -> new App("test.exe"), null, Instant::now,
@@ -107,40 +169,16 @@ public class UiHintAreaTest {
         }));
         comboWatcher.modeChanged(configuration.modeMap().get(Mode.IDLE_MODE_NAME));
         comboWatcher.update(0.01);
-        assertEquals(UiHintArea.ACTIVE_WINDOW, mutatedUiHintArea(comboWatcher));
+        assertEquals(HintGridAreaSizeSource.ACTIVE_WINDOW, mutatedUiHintAreaSource(comboWatcher));
         comboWatcher.setVirtualKeyPressed(BuiltInVirtualKey.IS_IDLING, true);
         comboWatcher.update(0.01);
-        assertEquals(UiHintArea.ALL_SCREENS, mutatedUiHintArea(comboWatcher));
+        assertEquals(HintGridAreaSizeSource.ALL_SCREENS, mutatedUiHintAreaSource(comboWatcher));
     }
 
-    private static UiHintArea mutatedUiHintArea(ComboWatcher comboWatcher) {
+    private static HintGridAreaSizeSource mutatedUiHintAreaSource(ComboWatcher comboWatcher) {
         return ((HintMeshType.UiAccessibilityHintMesh) comboWatcher.getMutatedMode()
                                                       .hintMesh()
-                                                      .type()).area();
-    }
-
-    /**
-     * A mode can still carry the other type's area mutation, by inheriting it from a mode of
-     * that type. The path lands on a component of another type, and does nothing.
-     */
-    @Test
-    void anAreaMutationOfTheOtherTypeDoesNothing() throws IOException {
-        Mode uiMode = parse(UiHintAreaTest.uiMode).modeMap().get("ui-hint-mode");
-        Mode mutatedUiMode = uiMode.mutate(
-                new ModePropertyPath(List.of("hintMesh", "type", "area", "size", "source")),
-                HintGridAreaSizeSource.ALL_SCREENS);
-        assertEquals(UiHintArea.ACTIVE_SCREEN,
-                ((HintMeshType.UiAccessibilityHintMesh) mutatedUiMode.hintMesh().type()).area());
-        Mode gridMode = parse("""
-                idle-mode.to.hint-mode=+h
-                hint-mode.to.idle-mode=+esc
-                hint-mode.hint.selection-keys=a b c d
-                hint-mode.hint.type=grid
-                """).modeMap().get("hint-mode");
-        Mode mutatedGridMode = gridMode.mutate(
-                new ModePropertyPath(List.of("hintMesh", "type", "area")),
-                UiHintArea.ALL_SCREENS);
-        assertEquals(gridMode.hintMesh().type(), mutatedGridMode.hintMesh().type());
+                                                      .type()).area().size().source();
     }
 
     @Test
@@ -155,6 +193,12 @@ public class UiHintAreaTest {
                 configuration.modeMap().get("hint-mode").hintMesh().type();
         assertEquals(HintGridAreaSizeSource.ACTIVE_SCREEN,
                 ((HintMeshType.GridHintMesh) type).area().size().source());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T proxy(Class<T> type) {
+        return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[] {type},
+                (proxy, method, args) -> null);
     }
 
 }

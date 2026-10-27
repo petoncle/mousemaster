@@ -22,12 +22,12 @@ public sealed interface HintMeshType {
     }
 
     /** The area selects the windows the UI elements are looked for in. */
-    record UiAccessibilityHintMesh(UiHintArea area, UiHintOrder order) implements HintMeshType {
+    record UiAccessibilityHintMesh(HintGridArea area, UiHintOrder order) implements HintMeshType {
 
     }
 
     /** The area the elements are looked for in, as for {@link UiAccessibilityHintMesh}. */
-    record UiVisionHintMesh(UiHintArea area, UiHintOrder order, int density, double minSize) implements HintMeshType {
+    record UiVisionHintMesh(HintGridArea area, UiHintOrder order, int density, double minSize) implements HintMeshType {
 
     }
 
@@ -41,8 +41,7 @@ public sealed interface HintMeshType {
 
         private HintMeshTypeType type;
         private HintGridArea.HintGridAreaBuilder
-                gridArea = new HintGridArea.HintGridAreaBuilder();
-        private UiHintArea uiArea;
+                area = new HintGridArea.HintGridAreaBuilder();
         private UiHintOrder uiOrder;
         private Integer visionDensity;
         private Double visionMinSize;
@@ -58,7 +57,7 @@ public sealed interface HintMeshType {
             switch (hintMeshType) {
                 case GridHintMesh gridHintMesh -> {
                     this.type = HintMeshTypeType.GRID;
-                    this.gridArea = gridHintMesh.area.builder();
+                    this.area = gridHintMesh.area.builder();
                     this.gridLayoutByFilter =
                             gridHintMesh.gridLayoutByFilter.builder(HintGridLayout::builder);
                 }
@@ -69,13 +68,13 @@ public sealed interface HintMeshType {
                 }
                 case UiAccessibilityHintMesh uiAccessibilityHintMesh -> {
                     this.type = HintMeshTypeType.UI_ACCESSIBILITY;
-                    this.uiArea = uiAccessibilityHintMesh.area;
+                    this.area = uiAccessibilityHintMesh.area.builder();
                     this.uiOrder = uiAccessibilityHintMesh.order;
                     this.gridLayoutByFilter = new ScreenFilterMapBuilder<>();
                 }
                 case UiVisionHintMesh uiVisionHintMesh -> {
                     this.type = HintMeshTypeType.UI_VISION;
-                    this.uiArea = uiVisionHintMesh.area;
+                    this.area = uiVisionHintMesh.area.builder();
                     this.uiOrder = uiVisionHintMesh.order;
                     this.visionDensity = uiVisionHintMesh.density;
                     this.visionMinSize = uiVisionHintMesh.minSize;
@@ -88,8 +87,8 @@ public sealed interface HintMeshType {
             return type;
         }
 
-        public HintGridArea.HintGridAreaBuilder gridArea() {
-            return gridArea;
+        public HintGridArea.HintGridAreaBuilder area() {
+            return area;
         }
 
         public Integer visionDensity() {
@@ -107,15 +106,6 @@ public sealed interface HintMeshType {
 
         public HintMeshTypeBuilder visionMinSize(Double visionMinSize) {
             this.visionMinSize = visionMinSize;
-            return this;
-        }
-
-        public UiHintArea uiArea() {
-            return uiArea;
-        }
-
-        public HintMeshTypeBuilder uiArea(UiHintArea uiArea) {
-            this.uiArea = uiArea;
             return this;
         }
 
@@ -153,10 +143,10 @@ public sealed interface HintMeshType {
 
         public HintMeshType build() {
             return switch (type) {
-                case GRID -> new GridHintMesh(gridArea.build(), gridLayoutByFilter.build(HintGridLayoutBuilder::build));
+                case GRID -> new GridHintMesh(area.build(), gridLayoutByFilter.build(HintGridLayoutBuilder::build));
                 case POSITION_HISTORY -> new PositionHistoryHintMesh(positionHistoryName);
-                case UI_ACCESSIBILITY -> new UiAccessibilityHintMesh(uiArea, uiOrder);
-                case UI_VISION -> new UiVisionHintMesh(uiArea, uiOrder, visionDensity, visionMinSize);
+                case UI_ACCESSIBILITY -> new UiAccessibilityHintMesh(area.build(), uiOrder);
+                case UI_VISION -> new UiVisionHintMesh(area.build(), uiOrder, visionDensity, visionMinSize);
             };
         }
     }

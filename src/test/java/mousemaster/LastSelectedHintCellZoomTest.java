@@ -32,7 +32,7 @@ class LastSelectedHintCellZoomTest {
             zoom-hint-mode.to.deeper-zoom-hint-mode=+a
             zoom-hint-mode.to.click-mode=+leftalt
             zoom-hint-mode.hint=screen-hint-mode.hint
-            zoom-hint-mode.hint.grid-area-center=last-selected-hint
+            zoom-hint-mode.hint.area-center=last-selected-hint
             zoom-hint-mode.zoom.center=last-selected-hint
             zoom-hint-mode.zoom.area-size-source=last-selected-hint-cell
             click-mode.hint=zoom-hint-mode.hint

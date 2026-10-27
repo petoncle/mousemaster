@@ -654,7 +654,7 @@ elements' locations.
 
 ```properties
 ui-hint-mode.hint.type=ui-accessibility
-ui-hint-mode.hint.ui-area=active-screen
+ui-hint-mode.hint.area=active-screen
 ui-hint-mode.hint.selection-keys=selectionkey
 ui-hint-mode.hint.select=+selectionkey
 ui-hint-mode.hint.undo=backspace
@@ -669,18 +669,30 @@ ui-hint-mode.hint.cell-vertical-padding=0
 ui-hint-mode.hint.box-border-radius=3
 ```
 
-**`ui-area`** selects the windows the elements are looked for in (default
-`active-screen`, the same default as the grid area):
+**`area`** (see [Hint layout and positioning](#hint-layout-and-positioning)) selects the
+windows the elements are looked for in:
 - `active-screen`: Every visible window on the screen with the mouse cursor
 - `all-screens`: Every visible window on every connected screen
 - `active-window`: The active window, and its popups (menus, dropdowns, dialogs). A popup
   is hinted even where it extends past the window.
+- `last-selected-hint-cell`: The cell of the last selected hint
 
-With `active-screen` and `all-screens`, elements are cropped to that region, and elements
+With the other regions, elements are cropped to the region, and elements
 covered by a window drawn over theirs are left out, so a hint is only shown where the
 click it performs would reach the element. Windows of another virtual desktop and
 suspended apps are left out. Scanning several windows takes longer than scanning one: the
 hints appear once the scan is over, mousemaster stays responsive in the meantime.
+
+**`area-width-percent`**, **`area-height-percent`** and **`area-center`** shrink and move that
+region as they do a grid's, so that only the elements around a point get a hint. With
+`all-screens`, each screen is scaled around its own center. An `active-window` region that is
+scaled or moved is scanned like any other region, without the window's popups:
+
+```properties
+ui-hint-mode.hint.area-width-percent=0.33
+ui-hint-mode.hint.area-height-percent=0.33
+ui-hint-mode.hint.area-center=mouse
+```
 
 **`ui-order`** is the order the elements are labeled in, the first ones getting the shortest
 labels (default `top-to-bottom`): `top-to-bottom`, `bottom-to-top`, `left-to-right`,
@@ -695,9 +707,8 @@ few pixels apart horizontally, is one column labeled from top to bottom:
 ui-hint-mode.hint.ui-order=left-to-right
 ```
 
-`ui-area`, `ui-order` and the `grid-area*` properties are exclusive: `ui-area` and `ui-order`
-only apply to `hint.type=ui-accessibility` and `hint.type=ui-vision`, and setting `grid-area` on
-either is rejected.
+`ui-order` only applies to `hint.type=ui-accessibility` and `hint.type=ui-vision`, and setting it
+on another hint type is rejected.
 
 A scan that finds no element leaves the mode showing nothing. The built-in virtual key
 `ishintmeshempty` is pressed then, so a combo can leave the mode:
@@ -721,11 +732,11 @@ knowing what an element is.
 
 ```properties
 ui-hint-mode.hint.type=ui-vision
-ui-hint-mode.hint.ui-area=active-screen
+ui-hint-mode.hint.area=active-screen
 ui-hint-mode.hint.vision-density=6
 ```
 
-Vision UI hints read the same **`ui-area`** and **`ui-order`** as accessibility UI hints, and
+Vision UI hints read the same **`area`** and **`ui-order`** as accessibility UI hints, and
 share every selection, click and appearance property with them. Detection runs off the keyboard
 hook, so mousemaster stays responsive while a scan is in progress, and `ishintmeshempty` is
 pressed when a scan finds nothing, exactly as for accessibility UI hints.
@@ -766,8 +777,8 @@ The following properties control where hints appear and how they're arranged:
 
 ```properties
 # Hint area configuration
-hint-mode.hint.grid-area=active-screen
-hint-mode.hint.grid-area-center=screen-center
+hint-mode.hint.area=active-screen
+hint-mode.hint.area-center=screen-center
 
 # Grid layout configuration
 hint-mode.hint.grid-cell-width=74
@@ -777,25 +788,24 @@ hint-mode.hint.layout-row-count=6
 hint-mode.hint.layout-column-count=5
 ```
 
-The grid area is two independent settings: **`grid-area`** sets the area's *size*,
-**`grid-area-center`** sets the point the area is *centered* on.
+The hint area is two independent settings: **`area`** sets its *size*, **`area-center`** sets
+the point it is *centered* on. For UI hints it is the region the elements are looked for in.
 
-- **`grid-area`**:
+- **`area`**:
   - `active-screen`: The screen with the mouse cursor
   - `active-window`: The currently active window
-  - `all-screens`: Every connected screen (one grid per screen — `grid-area-center` does not apply)
+  - `all-screens`: Every connected screen (one grid per screen — `area-center` does not apply)
   - `last-selected-hint-cell`: The cell of the last selected hint (for a recursive grid)
 
-  `grid-area` only applies to `hint.type=grid`. What `hint.type=ui-accessibility` and
-  `hint.type=ui-vision` scan is selected by `ui-area` (see
-  [Accessibility UI hints](#accessibility-ui-hints) and [Vision UI hints](#vision-ui-hints)).
+  `active-screen` is the default. What each region scans for UI hints is described in
+  [Accessibility UI hints](#accessibility-ui-hints).
 
-- **`grid-area-width-percent`** / **`grid-area-height-percent`**: Scale the area to a
-  fraction of that region, keeping it centered on `grid-area-center` (default `1.0`).
-  E.g. `grid-area=active-screen` + `grid-area-width-percent=0.5` covers the middle 50%
+- **`area-width-percent`** / **`area-height-percent`**: Scale the area to a
+  fraction of that region, keeping it centered on `area-center` (default `1.0`).
+  E.g. `area=active-screen` + `area-width-percent=0.5` covers the middle 50%
   of the screen's width. Works with both `grid-cell-sizing=fit` and `=fixed`.
 
-- **`grid-area-center`** (point the area is centered on):
+- **`area-center`** (point the area is centered on):
   - `screen-center`: Center of the screen
   - `mouse`: Current mouse position
   - `last-selected-hint`: Position of the last selected hint
@@ -804,7 +814,7 @@ The grid area is two independent settings: **`grid-area`** sets the area's *size
   When omitted, the center defaults per size: `active-screen`/`all-screens` →
   `screen-center`, `active-window` → `active-window-center`, `last-selected-hint-cell` →
   `last-selected-hint` (grid stays over the cell). The size and center compose
-  freely — e.g. an `active-window`-sized grid with `grid-area-center=mouse` is a
+  freely — e.g. an `active-window`-sized grid with `area-center=mouse` is a
   window-sized grid centered on the cursor.
 
 - **Grid dimensions**: Control the size of each hint cell:
@@ -817,7 +827,7 @@ The grid area is two independent settings: **`grid-area`** sets the area's *size
 
 - **`grid-cell-sizing`**: How cell size is determined:
   - `fixed` (default): the cell count is the area divided by `grid-cell-width` x `grid-cell-height`, capped by `grid-max-row-count`/`grid-max-column-count`. The cells are then stretched to fill the area, so the pixel sizes pick the count rather than the size drawn.
-  - `fit`: cells are sized to fill the area with exactly `grid-max-row-count` x `grid-max-column-count` cells (the pixel sizes are ignored). Useful for a fixed grid shape (e.g. 3x3) that adapts to any screen, and for a recursive grid via `grid-area=last-selected-hint-cell`.
+  - `fit`: cells are sized to fill the area with exactly `grid-max-row-count` x `grid-max-column-count` cells (the pixel sizes are ignored). Useful for a fixed grid shape (e.g. 3x3) that adapts to any screen, and for a recursive grid via `area=last-selected-hint-cell`.
 
 - **Subgrid layout**: `layout-row-count` x `layout-column-count` is the subgrid, the block of cells
   that shares a hint prefix. The grid is tiled with subgrids; a hint's subgrid prefix says which
@@ -1035,7 +1045,7 @@ hint-mode.hint.background-opacity=0
       `edge-to-center` at every edge.
     - What one sweep covers, narrowest first: `across-hint` (each box), `across-subgrid` (each
       [subgrid](#hint-layout-and-positioning), so the gradient repeats), `across-all-hints` (the
-      hints on that screen), `across-area` (default, the region `grid-area` or `ui-area` names, so
+      hints on that screen), `across-area` (default, the region `area` names, so
       the sweep spans it even where no hint sits), `across-screen`, `across-all-screens` (one sweep
       over the whole arrangement).
     - What shares one color: `per-hint` (default), `per-subgrid` (one color per subgrid),
@@ -1138,7 +1148,7 @@ This example shows how to create a two-level hint system, where the first level 
 key-alias.selectionkey=a b c d e f g h i j k l m n o p q r s t u v w x y z
 # First level hint mode
 hint1-mode.hint.type=grid
-hint1-mode.hint.grid-area=active-screen
+hint1-mode.hint.area=active-screen
 hint1-mode.hint.selection-keys=selectionkey
 hint1-mode.to.hint2-mode=+selectionkey
 # Don't move mouse after first selection
@@ -1146,9 +1156,9 @@ hint1-mode.hint.mouse-movement=no-movement
 
 # Second level hint mode
 hint2-mode.hint.type=grid
-hint2-mode.hint.grid-area=active-screen
+hint2-mode.hint.area=active-screen
 # Center on last selected hint
-hint2-mode.hint.grid-area-center=last-selected-hint
+hint2-mode.hint.area-center=last-selected-hint
 # 3x8 grid
 hint2-mode.hint.grid-max-row-count=3
 hint2-mode.hint.grid-max-column-count=8

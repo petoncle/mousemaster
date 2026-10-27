@@ -32,7 +32,7 @@ class HintMeshEmptyVirtualKeyTest {
             ui-hint-mode.to.normal-mode=_{ishintmeshempty}
             all-screens-ui-hint-mode.hint.selection-keys=a b c d
             all-screens-ui-hint-mode.hint.type=ui
-            all-screens-ui-hint-mode.hint.ui-area=all-screens
+            all-screens-ui-hint-mode.hint.area=all-screens
             all-screens-ui-hint-mode.to.idle-mode=+esc
             normal-mode.to.idle-mode=+esc
             """;

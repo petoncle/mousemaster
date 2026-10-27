@@ -840,12 +840,12 @@
 {
   "name":"mousemaster.HintMeshType$UiAccessibilityHintMesh",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["mousemaster.UiHintArea","mousemaster.UiHintOrder"] }, {"name":"area","parameterTypes":[] }, {"name":"order","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintGridArea","mousemaster.UiHintOrder"] }, {"name":"area","parameterTypes":[] }, {"name":"order","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.HintMeshType$UiVisionHintMesh",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["mousemaster.UiHintArea","mousemaster.UiHintOrder","int","double"] }, {"name":"area","parameterTypes":[] }, {"name":"density","parameterTypes":[] }, {"name":"minSize","parameterTypes":[] }, {"name":"order","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintGridArea","mousemaster.UiHintOrder","int","double"] }, {"name":"area","parameterTypes":[] }, {"name":"density","parameterTypes":[] }, {"name":"minSize","parameterTypes":[] }, {"name":"order","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.IndicatorConfiguration",

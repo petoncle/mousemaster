@@ -346,14 +346,14 @@ than one bulk reset — a bulk reset would also clear `showrecursivehintkeys`.
 ### Geometry
 
 ```properties
-_recursive-hint-mode.hint.grid-area=last-selected-hint-cell
-_recursive-hint-mode.hint.grid-area-center=last-selected-hint | _{mouseanchored} -> mouse
+_recursive-hint-mode.hint.area=last-selected-hint-cell
+_recursive-hint-mode.hint.area-center=last-selected-hint | _{mouseanchored} -> mouse
 _recursive-hint-mode.hint.grid-max-row-count=3
 _recursive-hint-mode.hint.grid-cell-sizing=fit
-recursive-hint1-mode.hint.grid-area=active-screen
+recursive-hint1-mode.hint.area=active-screen
 ```
 
-`grid-area=last-selected-hint-cell` is what makes it recursive: each level's area *is* the cell picked
+`area=last-selected-hint-cell` is what makes it recursive: each level's area *is* the cell picked
 above. `fit` computes cell sizes to fill that area exactly, so the pixel dimensions are ignored. Level 1
 overrides the area to the whole screen.
 
@@ -544,7 +544,7 @@ third, one ninth or one twenty-seventh of the screen, **centered on the cursor**
   macro opens the grid by pressing a key that does not exist.
 - It then types `k`, the center cell, once, twice or three times; each drills a level.
 - `hint.visible` is false while `autodrilling` is held, so the intermediate grids are never drawn.
-- `mouseanchored` rewrites `grid-area-center` from `last-selected-hint` to `mouse`, so each level
+- `mouseanchored` rewrites `area-center` from `last-selected-hint` to `mouse`, so each level
   recenters on the cursor. It survives into the destination and is released by the first *real* hint key
   press, so the grid stays on the cursor until you aim.
 - `break-combo-preparation` drops the `7`/`8`/`9` press. Without it that press is still the newest event

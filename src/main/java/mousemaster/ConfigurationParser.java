@@ -186,11 +186,10 @@ public class ConfigurationParser {
                            .layoutColumnCount(1)
                            .layoutRowOriented(true);
         HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =
-                hintMesh.type().gridArea();
+                hintMesh.type().area();
         hintGridAreaBuilder.source(HintGridAreaSizeSource.ACTIVE_SCREEN)
                            .widthPercent(1.0)
                            .heightPercent(1.0);
-        hintMeshTypeBuilder.uiArea(UiHintArea.ACTIVE_SCREEN);
         hintMeshTypeBuilder.uiOrder(UiHintOrder.TOP_TO_BOTTOM);
         hintMeshTypeBuilder.visionDensity(6);
         hintMeshTypeBuilder.visionMinSize(0d);
@@ -2225,10 +2224,6 @@ public class ConfigurationParser {
                     "Property " + propertyKey + " is defined twice");
     }
 
-    private static final ModePropertyPath HINT_GRID_AREA_SOURCE_PATH =
-            new ModePropertyPath(List.of("hintMesh", "type", "area", "size", "source"));
-    private static final ModePropertyPath HINT_UI_AREA_PATH =
-            new ModePropertyPath(List.of("hintMesh", "type", "area"));
     private static final ModePropertyPath HINT_UI_ORDER_PATH =
             new ModePropertyPath(List.of("hintMesh", "type", "order"));
     private static final ModePropertyPath HINT_VISION_DENSITY_PATH =
@@ -2262,17 +2257,6 @@ public class ConfigurationParser {
             boolean uiType =
                     hintMeshType.type() == HintMeshType.HintMeshTypeType.UI_ACCESSIBILITY ||
                     hintMeshType.type() == HintMeshType.HintMeshTypeType.UI_VISION;
-            if (uiType &&
-                mode.hintMesh.setPropertyPaths.contains(HINT_GRID_AREA_SOURCE_PATH))
-                throw new IllegalArgumentException(
-                        "Invalid definition of hint for " + mode.modeName +
-                        ": hint.grid-area does not apply to hint.type=ui-accessibility or " +
-                        "hint.type=ui-vision, use hint.ui-area");
-            if (!uiType && mode.hintMesh.setPropertyPaths.contains(HINT_UI_AREA_PATH))
-                throw new IllegalArgumentException(
-                        "Invalid definition of hint for " + mode.modeName +
-                        ": hint.ui-area only applies to hint.type=ui-accessibility or " +
-                        "hint.type=ui-vision");
             if (!uiType && mode.hintMesh.setPropertyPaths.contains(HINT_UI_ORDER_PATH))
                 throw new IllegalArgumentException(
                         "Invalid definition of hint for " + mode.modeName +
@@ -2788,7 +2772,10 @@ public class ConfigurationParser {
                     case UI_ACCESSIBILITY -> (Object) (Function<Object, Object>) currentType ->
                             currentType instanceof HintMeshType.UiAccessibilityHintMesh uiAccessibilityHintMesh ?
                                     uiAccessibilityHintMesh : new HintMeshType.UiAccessibilityHintMesh(
-                                    UiHintArea.ACTIVE_SCREEN, UiHintOrder.TOP_TO_BOTTOM);
+                                    new HintGridArea(new HintGridAreaSize(
+                                            HintGridAreaSizeSource.ACTIVE_SCREEN, 1, 1),
+                                            HintGridAreaCenter.SCREEN_CENTER),
+                                    UiHintOrder.TOP_TO_BOTTOM);
                     case UI_VISION -> (Object) (Function<Object, Object>) currentType -> {
                         if (currentType instanceof HintMeshType.UiVisionHintMesh)
                             return currentType;
@@ -2803,20 +2790,16 @@ public class ConfigurationParser {
                 if (type.type() == HintMeshType.HintMeshTypeType.POSITION_HISTORY)
                     type.positionHistoryName(v);
             });
-            // The area elements are looked for in. Only the ui types read it and it is
-            // rejected on the others.
-            case "ui-area" -> ModePropertyHandler.of(prefix.append("type", "area"), v -> parseUiHintArea("hint.ui-area", v), v -> hintMeshBuilder.type().uiArea(v));
             case "ui-order" -> ModePropertyHandler.of(prefix.append("type", "order"), v -> parseUiHintOrder("hint.ui-order", v), v -> hintMeshBuilder.type().uiOrder(v));
             case "vision-density" -> ModePropertyHandler.of(prefix.append("type", "density"), v -> parseUnsignedInteger(v, 1, Vision.densities), v -> hintMeshBuilder.type().visionDensity(v));
             case "vision-min-size" -> ModePropertyHandler.of(prefix.append("type", "minSize"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.type().visionMinSize(v));
-            // Grid area = size + center. Mutations set the record component directly
+            // Area = size + center. Mutations set the record component directly
             // (the mutator keeps the sibling component), so no Function is needed.
-            case "grid-area" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "source"), v -> parseHintGridAreaSizeSource("hint.grid-area", v), v -> hintMeshBuilder.type().gridArea().source(v));
-            case "grid-area-width-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().gridArea().widthPercent(v));
-            case "grid-area-height-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().gridArea().heightPercent(v));
-            case "grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseHintGridAreaCenter("hint.grid-area-center", v), v -> hintMeshBuilder.type().gridArea().center(v));
-            // Deprecated alias for grid-area-center.
-            case "active-screen-grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseHintGridAreaCenter("hint.active-screen-grid-area-center", v), v -> hintMeshBuilder.type().gridArea().center(v));
+            // grid-area*, ui-area and active-screen-grid-area-center are deprecated aliases.
+            case "area", "grid-area", "ui-area" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "source"), v -> parseHintGridAreaSizeSource("hint.area", v), v -> hintMeshBuilder.type().area().source(v));
+            case "area-width-percent", "grid-area-width-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().area().widthPercent(v));
+            case "area-height-percent", "grid-area-height-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().area().heightPercent(v));
+            case "area-center", "grid-area-center", "active-screen-grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseHintGridAreaCenter("hint.area-center", v), v -> hintMeshBuilder.type().area().center(v));
             // Grid layout properties (screen-filtered)
             case "grid-max-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxRowCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(screenFilter).maxRowCount(v));
             case "grid-max-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxColumnCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(screenFilter).maxColumnCount(v));
@@ -3363,18 +3346,6 @@ public class ConfigurationParser {
         };
     }
 
-    private static UiHintArea parseUiHintArea(String propertyKey, String propertyValue) {
-        return switch (propertyValue) {
-            case "active-screen" -> UiHintArea.ACTIVE_SCREEN;
-            case "active-window" -> UiHintArea.ACTIVE_WINDOW;
-            case "all-screens" -> UiHintArea.ALL_SCREENS;
-            default -> throw new IllegalArgumentException(
-                    "Invalid property value in " + propertyKey + "=" + propertyValue +
-                    ": should be one of " +
-                    List.of("active-screen", "active-window", "all-screens"));
-        };
-    }
-
     private static UiHintOrder parseUiHintOrder(String propertyKey, String propertyValue) {
         return switch (propertyValue) {
             case "top-to-bottom" -> UiHintOrder.TOP_TO_BOTTOM;
@@ -3770,16 +3741,14 @@ public class ConfigurationParser {
                     builder.mouseMovement(parent.mouseMovement());
                 if (builder.type().type() == null)
                     builder.type().type(parent.type().type());
-                if (builder.type().gridArea().source() == null)
-                    builder.type().gridArea().source(parent.type().gridArea().source());
-                if (builder.type().gridArea().widthPercent() == null)
-                    builder.type().gridArea().widthPercent(parent.type().gridArea().widthPercent());
-                if (builder.type().gridArea().heightPercent() == null)
-                    builder.type().gridArea().heightPercent(parent.type().gridArea().heightPercent());
-                if (builder.type().gridArea().center() == null)
-                    builder.type().gridArea().center(parent.type().gridArea().center());
-                if (builder.type().uiArea() == null)
-                    builder.type().uiArea(parent.type().uiArea());
+                if (builder.type().area().source() == null)
+                    builder.type().area().source(parent.type().area().source());
+                if (builder.type().area().widthPercent() == null)
+                    builder.type().area().widthPercent(parent.type().area().widthPercent());
+                if (builder.type().area().heightPercent() == null)
+                    builder.type().area().heightPercent(parent.type().area().heightPercent());
+                if (builder.type().area().center() == null)
+                    builder.type().area().center(parent.type().area().center());
                 if (builder.type().uiOrder() == null)
                     builder.type().uiOrder(parent.type().uiOrder());
                 if (builder.type().visionDensity() == null)
