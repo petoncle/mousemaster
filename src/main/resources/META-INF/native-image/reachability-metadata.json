@@ -7063,7 +7063,8 @@
           "parameterTypes": [
             "mousemaster.UiHintArea",
             "mousemaster.UiHintOrder",
-            "int"
+            "int",
+            "double"
           ]
         },
         {
@@ -7072,6 +7073,10 @@
         },
         {
           "name": "density",
+          "parameterTypes": []
+        },
+        {
+          "name": "minSize",
           "parameterTypes": []
         },
         {

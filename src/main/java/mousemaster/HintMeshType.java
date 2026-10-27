@@ -27,7 +27,7 @@ public sealed interface HintMeshType {
     }
 
     /** The area the elements are looked for in, as for {@link UiAccessibilityHintMesh}. */
-    record UiVisionHintMesh(UiHintArea area, UiHintOrder order, int density) implements HintMeshType {
+    record UiVisionHintMesh(UiHintArea area, UiHintOrder order, int density, double minSize) implements HintMeshType {
 
     }
 
@@ -45,6 +45,7 @@ public sealed interface HintMeshType {
         private UiHintArea uiArea;
         private UiHintOrder uiOrder;
         private Integer visionDensity;
+        private Double visionMinSize;
         private String positionHistoryName;
         private final ScreenFilterMapBuilder<HintGridLayoutBuilder, HintGridLayout>
                 gridLayoutByFilter;
@@ -77,6 +78,7 @@ public sealed interface HintMeshType {
                     this.uiArea = uiVisionHintMesh.area;
                     this.uiOrder = uiVisionHintMesh.order;
                     this.visionDensity = uiVisionHintMesh.density;
+                    this.visionMinSize = uiVisionHintMesh.minSize;
                     this.gridLayoutByFilter = new ScreenFilterMapBuilder<>();
                 }
             }
@@ -96,6 +98,15 @@ public sealed interface HintMeshType {
 
         public HintMeshTypeBuilder visionDensity(Integer visionDensity) {
             this.visionDensity = visionDensity;
+            return this;
+        }
+
+        public Double visionMinSize() {
+            return visionMinSize;
+        }
+
+        public HintMeshTypeBuilder visionMinSize(Double visionMinSize) {
+            this.visionMinSize = visionMinSize;
             return this;
         }
 
@@ -145,7 +156,7 @@ public sealed interface HintMeshType {
                 case GRID -> new GridHintMesh(gridArea.build(), gridLayoutByFilter.build(HintGridLayoutBuilder::build));
                 case POSITION_HISTORY -> new PositionHistoryHintMesh(positionHistoryName);
                 case UI_ACCESSIBILITY -> new UiAccessibilityHintMesh(uiArea, uiOrder);
-                case UI_VISION -> new UiVisionHintMesh(uiArea, uiOrder, visionDensity);
+                case UI_VISION -> new UiVisionHintMesh(uiArea, uiOrder, visionDensity, visionMinSize);
             };
         }
     }

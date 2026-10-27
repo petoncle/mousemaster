@@ -55,6 +55,11 @@ public class VisionTest {
     }
 
     private static List<UiElement> elements(BufferedImage image, int scale, int density) {
+        return elements(image, scale, density, 0);
+    }
+
+    private static List<UiElement> elements(BufferedImage image, int scale, int density,
+                                            double minSize) {
         byte[] rgb = new byte[width * height * 3];
         for (int y = 0, i = 0; y < height; y++)
             for (int x = 0; x < width; x++) {
@@ -65,7 +70,7 @@ public class VisionTest {
             }
         return new Vision(null).findElements(
                 new DesktopCapture(new Rectangle(0, 0, width * scale, height * scale), rgb,
-                        width, height), scale, density);
+                        width, height), scale, density, minSize);
     }
 
     private static long within(List<UiElement> elements, int x, int y, int right,
@@ -158,7 +163,7 @@ public class VisionTest {
             int scanned = density;
             assertDoesNotThrow(() -> new Vision(null).findElements(
                     new DesktopCapture(new Rectangle(0, 0, 1, 5), new byte[15], 1, 5), 1,
-                    scanned), "density " + scanned);
+                    scanned, 0), "density " + scanned);
         }
     }
 
@@ -294,5 +299,25 @@ public class VisionTest {
         pen.dispose();
         assertEquals(1,
                 within(elements(image, defaultDensity), domainX, 130, domainRight, 160));
+    }
+
+    @Test
+    public void barThinnerThanTheMinSizeIsNotHinted() {
+        BufferedImage drawn = new BufferedImage(3 * width, 3 * height,
+                BufferedImage.TYPE_INT_RGB);
+        Graphics2D pen = pen(drawn);
+        pen.setColor(new Color(0x202020));
+        pen.fillRect(0, 0, 3 * width, 3 * height);
+        pen.setColor(new Color(0xCCCCCC));
+        pen.fillRect(12, 300, 6, 75);
+        pen.setColor(new Color(0x0078D4));
+        pen.fillRoundRect(33, 300, 72, 72, 12, 12);
+        pen.dispose();
+        BufferedImage image = captured(drawn);
+        assertEquals(1, within(elements(image, 3, defaultDensity), 0, 290, 30, 385),
+                "the bar without a min size");
+        List<UiElement> elements = elements(image, 3, defaultDensity, 6);
+        assertEquals(0, within(elements, 0, 290, 30, 385), "the bar");
+        assertEquals(1, within(elements, 33, 300, 105, 372), "the icon");
     }
 }

@@ -746,6 +746,17 @@ pressed when a scan finds nothing, exactly as for accessibility UI hints.
   of the labels at density 6 land on body text. Lower the density when the labels crowd what
   you are reading, raise it when something clickable goes unhinted.
 
+- **`vision-min-size`**: An element narrower or shorter than this, in pixels at 100% scaling,
+  gets no hint (default 0). It leaves out the bars, separators and underlines detected beside
+  what they belong to, such as the bar a taskbar draws by the icon of an open app. It also
+  leaves out what is detected only by a thin part of it: at 6, a checkbox found by one edge of
+  its outline or a three-dot button loses its hint. It only applies to `hint.type=ui-vision`,
+  and setting it on another hint type is rejected.
+
+  ```properties
+  ui-hint-mode.hint.vision-min-size=6
+  ```
+
 On macOS the capture asks for the Screen Recording permission the first time a scan runs;
 hints appear once it is granted.
 

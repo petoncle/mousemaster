@@ -69,7 +69,7 @@ public class VisionCorpusTest {
             }
         return new Vision(null).findElements(new DesktopCapture(
                 new Rectangle(0, 0, source.getWidth(), source.getHeight()), rgb, width,
-                height), scale, density);
+                height), scale, density, 0);
     }
 
     @Test

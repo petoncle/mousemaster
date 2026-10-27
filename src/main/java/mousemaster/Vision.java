@@ -71,7 +71,8 @@ public class Vision {
     }
 
     public Future<List<UiElement>> startFindElements(Set<Screen> screens,
-                                                     Rectangle area, int density) {
+                                                     Rectangle area, int density,
+                                                     double minSize) {
         List<Supplier<List<UiElement>>> detections = new ArrayList<>();
         for (Screen screen : screens) {
             Rectangle part = area.intersection(screen.rectangle());
@@ -88,7 +89,7 @@ public class Vision {
                 logger.warn("Desktop capture failed, no vision hints on that screen", e);
                 continue;
             }
-            detections.add(() -> findElements(capture, screen.scale(), density));
+            detections.add(() -> findElements(capture, screen.scale(), density, minSize));
         }
         if (detections.isEmpty())
             return CompletableFuture.completedFuture(List.of());
@@ -105,10 +106,11 @@ public class Vision {
     }
 
     public void preWarm(Screen screen, int density) {
-        startFindElements(Set.of(screen), screen.rectangle(), density);
+        startFindElements(Set.of(screen), screen.rectangle(), density, 0);
     }
 
-    List<UiElement> findElements(DesktopCapture capture, double scale, int density) {
+    List<UiElement> findElements(DesktopCapture capture, double scale, int density,
+                                 double minSize) {
         int width = capture.scaledWidth();
         int height = capture.scaledHeight();
         // Plain text left out, then the edge margin narrows, then the ink no region holds.
@@ -146,6 +148,9 @@ public class Vision {
         double screenScaleY = (double) bounds.height() / height;
         List<UiElement> elements = new ArrayList<>(boxes.size());
         for (Rectangle box : boxes) {
+            if (Math.min(box.width() * screenScaleX, box.height() * screenScaleY)
+                < minSize * scale)
+                continue;
             double centerX = Math.clamp(
                     bounds.x() + (box.x() + box.width() / 2d) * screenScaleX,
                     bounds.x() + screenEdgeInset,

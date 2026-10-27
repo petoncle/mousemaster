@@ -193,6 +193,7 @@ public class ConfigurationParser {
         hintMeshTypeBuilder.uiArea(UiHintArea.ACTIVE_SCREEN);
         hintMeshTypeBuilder.uiOrder(UiHintOrder.TOP_TO_BOTTOM);
         hintMeshTypeBuilder.visionDensity(6);
+        hintMeshTypeBuilder.visionMinSize(0d);
         ModeTimeoutBuilder timeout =
                 new ModeTimeoutBuilder().enabled(false).onlyIfIdle(true);
         IndicatorConfigurationBuilder indicator =
@@ -2232,6 +2233,8 @@ public class ConfigurationParser {
             new ModePropertyPath(List.of("hintMesh", "type", "order"));
     private static final ModePropertyPath HINT_VISION_DENSITY_PATH =
             new ModePropertyPath(List.of("hintMesh", "type", "density"));
+    private static final ModePropertyPath HINT_VISION_MIN_SIZE_PATH =
+            new ModePropertyPath(List.of("hintMesh", "type", "minSize"));
 
     private static void checkMissingProperties(ModeBuilder mode) {
         if (mode.timeout.builder.enabled() != null && mode.timeout.builder.enabled() &&
@@ -2280,6 +2283,11 @@ public class ConfigurationParser {
                 throw new IllegalArgumentException(
                         "Invalid definition of hint for " + mode.modeName +
                         ": hint.vision-density only applies to hint.type=ui-vision");
+            if (hintMeshType.type() != HintMeshType.HintMeshTypeType.UI_VISION
+                && mode.hintMesh.setPropertyPaths.contains(HINT_VISION_MIN_SIZE_PATH))
+                throw new IllegalArgumentException(
+                        "Invalid definition of hint for " + mode.modeName +
+                        ": hint.vision-min-size only applies to hint.type=ui-vision");
             switch (hintMeshType.type()) {
                 case GRID -> {
                     HintGridLayoutBuilder defaultLayout =
@@ -2800,6 +2808,7 @@ public class ConfigurationParser {
             case "ui-area" -> ModePropertyHandler.of(prefix.append("type", "area"), v -> parseUiHintArea("hint.ui-area", v), v -> hintMeshBuilder.type().uiArea(v));
             case "ui-order" -> ModePropertyHandler.of(prefix.append("type", "order"), v -> parseUiHintOrder("hint.ui-order", v), v -> hintMeshBuilder.type().uiOrder(v));
             case "vision-density" -> ModePropertyHandler.of(prefix.append("type", "density"), v -> parseUnsignedInteger(v, 1, Vision.densities), v -> hintMeshBuilder.type().visionDensity(v));
+            case "vision-min-size" -> ModePropertyHandler.of(prefix.append("type", "minSize"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.type().visionMinSize(v));
             // Grid area = size + center. Mutations set the record component directly
             // (the mutator keeps the sibling component), so no Function is needed.
             case "grid-area" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "source"), v -> parseHintGridAreaSizeSource("hint.grid-area", v), v -> hintMeshBuilder.type().gridArea().source(v));
@@ -3775,6 +3784,8 @@ public class ConfigurationParser {
                     builder.type().uiOrder(parent.type().uiOrder());
                 if (builder.type().visionDensity() == null)
                     builder.type().visionDensity(parent.type().visionDensity());
+                if (builder.type().visionMinSize() == null)
+                    builder.type().visionMinSize(parent.type().visionMinSize());
                 if (builder.type().positionHistoryName() == null)
                     builder.type().positionHistoryName(parent.type().positionHistoryName());
                 for (var parentEntry : parent.type()
