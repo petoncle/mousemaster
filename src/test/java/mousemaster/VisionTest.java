@@ -320,4 +320,28 @@ public class VisionTest {
         assertEquals(0, within(elements, 0, 290, 30, 385), "the bar");
         assertEquals(1, within(elements, 33, 300, 105, 372), "the icon");
     }
+
+    @Test
+    public void iconsBesideAWindowBorderAreHintedApart() {
+        BufferedImage image = screen(new Color(0x242225));
+        Graphics2D pen = pen(image);
+        pen.setColor(new Color(0x1A1A1A));
+        pen.fillRect(0, 0, 48, height);
+        pen.setColor(new Color(0x757575));
+        pen.fillRect(48, 0, 1, height);
+        int[] colors = {0xDC3C32, 0x2F7BDB, 0x3BB35C, 0xF0B32F, 0x9550C8};
+        for (int icon = 0; icon < colors.length; icon++) {
+            pen.setColor(new Color(colors[icon]));
+            pen.fillRect(8, 20 + 50 * icon, 32, 32);
+        }
+        pen.dispose();
+        for (int density = 1; density <= Vision.densities; density++) {
+            List<UiElement> elements = elements(image, density);
+            for (int icon = 0; icon < colors.length; icon++)
+                assertEquals(1, within(elements, 8, 20 + 50 * icon, 40, 52 + 50 * icon),
+                        "density " + density + ", icon " + icon);
+            assertEquals(0, within(elements, 44, 0, 52, height),
+                    "density " + density + ", the border");
+        }
+    }
 }

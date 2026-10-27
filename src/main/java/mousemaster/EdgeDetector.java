@@ -1,5 +1,6 @@
 package mousemaster;
 
+import java.util.Arrays;
 import java.util.stream.IntStream;
 
 /**
@@ -27,6 +28,10 @@ class EdgeDetector {
     private static final int edgeThreshold = 765;
     /** Rows a Sobel task slides its three luminance rows down. */
     private static final int bandRows = 16;
+    /** Detection pixels down a column, past which an edge is a pane's border, not a
+     *  control's outline. */
+    private static final int paneBorderRows = 300;
+    private static final int paneBorderSamples = 8;
 
     static long[] edges(byte[] rgb, int width, int height, int dilation,
                         int verticalDilation, int midpoint) {
@@ -34,7 +39,51 @@ class EdgeDetector {
         byte[] direction = new byte[width * height];
         sobel(rgb, width, height, stretched[midpoint], magnitude, direction);
         long[] suppressed = nonMaximumSuppression(magnitude, direction, width, height);
+        clearPaneBorders(suppressed, width, height);
         return Dilation.dilated(suppressed, width, height, dilation, verticalDilation);
+    }
+
+    /** Dilated, a pane's border would join whatever is beside it into one region. Its ridge
+     *  wanders between two columns, so it is looked for a pixel wider. */
+    private static void clearPaneBorders(long[] suppressed, int width, int height) {
+        int words = Dilation.words(width);
+        int length = Math.min(paneBorderRows, height / 2);
+        long[] edges = suppressed.clone();
+        // Only a column set at every sample spaced down a border's length can hold one.
+        int spacing = Math.max(1, length / paneBorderSamples);
+        long[] columns = new long[words];
+        for (int y = 0; y + (paneBorderSamples - 1) * spacing < height; y += spacing)
+            for (int word = 0; word < words; word++) {
+                long bits = -1;
+                for (int sample = 0; sample < paneBorderSamples; sample++) {
+                    int row = (y + sample * spacing) * words;
+                    bits &= Dilation.horizontally(edges, row, words, row + word, 1);
+                }
+                columns[word] |= bits;
+            }
+        int[] runs = new int[64];
+        for (int word = 0; word < words; word++) {
+            if (columns[word] == 0)
+                continue;
+            Arrays.fill(runs, 0);
+            for (int y = 0; y <= height; y++) {
+                long bits = y < height
+                        ? Dilation.horizontally(edges, y * words, words, y * words + word, 1)
+                        : 0;
+                for (long remaining = columns[word]; remaining != 0;
+                     remaining &= remaining - 1) {
+                    int bit = Long.numberOfTrailingZeros(remaining);
+                    if ((bits >>> bit & 1) != 0) {
+                        runs[bit]++;
+                        continue;
+                    }
+                    if (runs[bit] >= length)
+                        for (int cleared = y - runs[bit]; cleared < y; cleared++)
+                            suppressed[cleared * words + word] &= ~(1L << bit);
+                    runs[bit] = 0;
+                }
+            }
+        }
     }
 
     /** The unweighted channel sum, in 0..765: brightness, not a perceptual luma. */

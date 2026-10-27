@@ -37,18 +37,22 @@ class Dilation {
         long[] dilated = new long[mask.length];
         IntStream.range(0, height).parallel().forEach(y -> {
             int row = y * words;
-            for (int word = row; word < row + words; word++) {
-                long bits = mask[word];
-                long left = word > row ? mask[word - 1] : 0;
-                long right = word + 1 < row + words ? mask[word + 1] : 0;
-                for (int shift = 1; shift <= reach; shift++)
-                    bits |= mask[word] << shift | left >>> (64 - shift)
-                            | mask[word] >>> shift | right << (64 - shift);
-                dilated[word] = bits;
-            }
+            for (int word = row; word < row + words; word++)
+                dilated[word] = horizontally(mask, row, words, word, reach);
             dilated[row + words - 1] &= last;
         });
         return dilated;
+    }
+
+    /** One word of the mask, dilated along its row, the last word's spare bits left set. */
+    static long horizontally(long[] mask, int row, int words, int word, int reach) {
+        long bits = mask[word];
+        long left = word > row ? mask[word - 1] : 0;
+        long right = word + 1 < row + words ? mask[word + 1] : 0;
+        for (int shift = 1; shift <= reach; shift++)
+            bits |= mask[word] << shift | left >>> (64 - shift)
+                    | mask[word] >>> shift | right << (64 - shift);
+        return bits;
     }
 
     private static long[] vertically(long[] mask, int width, int height, int reach) {
