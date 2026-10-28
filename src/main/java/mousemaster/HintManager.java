@@ -47,6 +47,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     private Rectangle pendingSelectedCell;
     /** The area shrink-grid and move-grid gave the grid, in place of the configured one. */
     private Rectangle areaOverride;
+    /** The area of the overlay the current mode was entered from, unzoomed. */
+    private Rectangle lastOverlayArea;
 
     private record CellGridLevel(String modeName, Rectangle cell, Rectangle area) {
     }
@@ -407,6 +409,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         boolean hintWasJustSelected = hintJustSelected;
         boolean sameMode =
                 currentMode != null && newMode.name().equals(currentMode.name());
+        if (!sameMode)
+            lastOverlayArea = overlayArea();
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
         if (currentMode == null ||
             !hintMeshConfiguration.type().equals(currentMode.hintMesh().type()))
@@ -714,7 +718,7 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private ScreenFilter screenFilter(HintGridArea area) {
         return switch (area.size().source()) {
-            case ACTIVE_SCREEN, LAST_SELECTED_HINT_CELL ->
+            case ACTIVE_SCREEN, LAST_SELECTED_HINT_CELL, LAST_OVERLAY_AREA ->
                     ScreenFilter.of(screenManager.activeScreen());
             case ALL_SCREENS ->
                     ScreenFilter.of(sortedScreens().getFirst());
@@ -773,10 +777,11 @@ public class HintManager implements ModeListener, MousePositionListener {
             return cellGridArea(lastSelectedHintCell == null ?
                             screenManager.activeScreen().rectangle() : lastSelectedHintCell,
                     area.size(), area.center());
-        Rectangle sourceRectangle =
-                area.size().source() == HintGridAreaSizeSource.ACTIVE_WINDOW ?
-                        overlay.activeWindowRectangle() :
-                        screenManager.activeScreen().rectangle();
+        Rectangle sourceRectangle = switch (area.size().source()) {
+            case ACTIVE_WINDOW -> overlay.activeWindowRectangle();
+            case LAST_OVERLAY_AREA -> lastOverlayArea();
+            default -> screenManager.activeScreen().rectangle();
+        };
         return scaledArea(sourceRectangle, area.size(),
                 areaCenter(area.center(), lastSelectedHintPoint),
                 screenManager.activeScreen().scale());
@@ -822,6 +827,14 @@ public class HintManager implements ModeListener, MousePositionListener {
                 (int) Math.round(zoom.zoomedY(rectangle.y() + rectangle.height())) - top);
     }
 
+    private static Rectangle unzoomedRectangle(Rectangle rectangle, Zoom zoom) {
+        int left = (int) Math.round(zoom.unzoomedX(rectangle.x()));
+        int top = (int) Math.round(zoom.unzoomedY(rectangle.y()));
+        return new Rectangle(left, top,
+                (int) Math.round(zoom.unzoomedX(rectangle.x() + rectangle.width())) - left,
+                (int) Math.round(zoom.unzoomedY(rectangle.y() + rectangle.height())) - top);
+    }
+
     private static Point zoomedPoint(Point point, Zoom zoom) {
         return new Point((int) Math.round(zoom.zoomedX(point.x())),
                 (int) Math.round(zoom.zoomedY(point.y())));
@@ -844,7 +857,27 @@ public class HintManager implements ModeListener, MousePositionListener {
                     screenManager.activeScreen().rectangle().center() : lastSelectedHint;
             case ACTIVE_WINDOW_CENTER ->
                     overlay.activeWindowRectangle().center();
+            case LAST_OVERLAY_AREA_CENTER -> lastOverlayArea().center();
         };
+    }
+
+    /** The area of the overlay, narrowed to the cells its selected keys leave in a grid. */
+    private Rectangle overlayArea() {
+        if (hintMesh == null || hintMesh.area() == null)
+            return null;
+        List<Rectangle> selectedCells = hintMesh.hints()
+                                                .stream()
+                                                .filter(hint -> hint.cellWidth() > 0 &&
+                                                                hint.startsWith(hintMesh.selectedKeySequence()))
+                                                .map(hint -> unzoomedHintCell(hint, currentZoom))
+                                                .toList();
+        return hintMesh.selectedKeySequence().isEmpty() || selectedCells.isEmpty() ?
+                unzoomedRectangle(hintMesh.area(), currentZoom) : Rectangle.union(selectedCells);
+    }
+
+    private Rectangle lastOverlayArea() {
+        return lastOverlayArea == null ? screenManager.activeScreen().rectangle() :
+                lastOverlayArea;
     }
 
     private static Rectangle scaledArea(Rectangle sourceRectangle, HintGridAreaSize size,
@@ -921,6 +954,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                         case ACTIVE_SCREEN -> activeScreen.rectangle();
                         case ACTIVE_WINDOW -> zoomedRectangle(
                                 overlay.activeWindowRectangle(), zoom);
+                        case LAST_OVERLAY_AREA -> zoomedRectangle(lastOverlayArea(), zoom);
                         default -> throw new IllegalStateException();
                     };
                     gridCenter = switch (area.center()) {
@@ -933,6 +967,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                         case ACTIVE_WINDOW_CENTER -> zoomedRectangle(
                                 overlay.activeWindowRectangle(), zoom)
                                 .center();
+                        case LAST_OVERLAY_AREA_CENTER ->
+                                zoomedRectangle(lastOverlayArea(), zoom).center();
                     };
                     areaRectangle = scaledArea(sourceRectangle, area.size(), gridCenter,
                             activeScreen.scale());

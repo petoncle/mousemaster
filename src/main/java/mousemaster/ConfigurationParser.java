@@ -3394,11 +3394,12 @@ public class ConfigurationParser {
             case "active-window" -> HintGridAreaSizeSource.ACTIVE_WINDOW;
             case "all-screens" -> HintGridAreaSizeSource.ALL_SCREENS;
             case "last-selected-hint-cell" -> HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL;
+            case "last-overlay-area" -> HintGridAreaSizeSource.LAST_OVERLAY_AREA;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": should be one of " +
                     List.of("active-screen", "active-window", "all-screens",
-                            "last-selected-hint-cell"));
+                            "last-selected-hint-cell", "last-overlay-area"));
         };
     }
 
@@ -3435,10 +3436,12 @@ public class ConfigurationParser {
             case "mouse" -> HintGridAreaCenter.MOUSE;
             case "last-selected-hint" -> HintGridAreaCenter.LAST_SELECTED_HINT;
             case "active-window-center" -> HintGridAreaCenter.ACTIVE_WINDOW_CENTER;
+            case "last-overlay-area-center" -> HintGridAreaCenter.LAST_OVERLAY_AREA_CENTER;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": expected one of " + List.of("screen-center", "mouse",
-                            "last-selected-hint", "active-window-center"));
+                            "last-selected-hint", "active-window-center",
+                            "last-overlay-area-center"));
         };
     }
 

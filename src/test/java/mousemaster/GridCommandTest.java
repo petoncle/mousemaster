@@ -215,6 +215,51 @@ class GridCommandTest {
     }
 
     @Test
+    void aGridOnTheLastOverlayAreaFillsTheShrunkGrid() throws IOException {
+        start("""
+                grid-mode.to.hint-mode=+h
+                grid-mode.hint.grid-max-row-count=2
+                grid-mode.hint.grid-max-column-count=2
+                hint-mode.to.idle-mode=+esc
+                hint-mode.hint.area=last-overlay-area
+                hint-mode.hint.selection-keys=a b c d
+                hint-mode.hint.grid-cell-sizing=fit
+                hint-mode.hint.grid-max-row-count=4
+                hint-mode.hint.grid-max-column-count=4
+                """);
+        switchMode("grid-mode");
+        hintManager.shrinkGridUp();
+        switchMode("hint-mode");
+        assertEquals(new Rectangle(0, 0, 1920, 540), hintManager.hintMesh().area());
+    }
+
+    @Test
+    void theLastOverlayAreaIsTheCellsTheSelectedKeysLeave() throws IOException {
+        start("""
+                grid-mode.to.hint-mode=+h
+                grid-mode.hint.selection-keys=a b
+                grid-mode.hint.grid-max-row-count=2
+                grid-mode.hint.grid-max-column-count=2
+                hint-mode.to.idle-mode=+esc
+                hint-mode.hint.area=last-overlay-area
+                hint-mode.hint.grid-cell-sizing=fit
+                hint-mode.hint.grid-max-row-count=1
+                hint-mode.hint.grid-max-column-count=1
+                """);
+        switchMode("grid-mode");
+        hintManager.selectHintKey(Key.ofName("a"));
+        List<Hint> leftHints = hintManager.hintMesh()
+                                          .hints()
+                                          .stream()
+                                          .filter(hint -> hint.keySequence().getFirst()
+                                                              .equals(Key.ofName("a")))
+                                          .toList();
+        switchMode("hint-mode");
+        assertEquals(2, leftHints.size());
+        assertEquals(new Rectangle(0, 0, 960, 1080), hintManager.hintMesh().area());
+    }
+
+    @Test
     void aModeWithoutAHintGridIgnoresTheGridCommands() throws IOException {
         start("");
         switchMode("idle-mode");

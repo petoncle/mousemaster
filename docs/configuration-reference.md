@@ -685,6 +685,7 @@ windows the elements are looked for in:
 - `active-window`: The active window, and its popups (menus, dropdowns, dialogs). A popup
   is hinted even where it extends past the window.
 - `last-selected-hint-cell`: The cell of the last selected hint, the element of a UI hint
+- `last-overlay-area`: The area of the overlay before this mode, e.g. a grid shrunk by `shrink-grid`
 
 With the other regions, elements are cropped to the region, and elements
 covered by a window drawn over theirs are left out, so a hint is only shown where the
@@ -827,6 +828,14 @@ the point it is *centered* on. For UI hints it is the region the elements are lo
   - `all-screens`: Every connected screen (one grid per screen — `area-center` does not apply)
   - `last-selected-hint-cell`: The cell of the last selected hint (for a recursive grid), the
     element of a UI hint
+  - `last-overlay-area`: The area of the overlay of the mode before, as it was when this mode
+    started: the area the grid commands left, or, when keys of a grid are selected, the cells
+    they leave. E.g. shrink a grid, then show a grid with labels in what is left of it:
+    ```properties
+    screen-grid-mode.to.hint-mode=+h
+    hint-mode.overlay.area=last-overlay-area
+    hint-mode.overlay.selection-keys=hintkey
+    ```
 
   `active-screen` is the default. What each region scans for UI hints is described in
   [Accessibility UI hints](#accessibility-ui-hints).
@@ -845,12 +854,14 @@ the point it is *centered* on. For UI hints it is the region the elements are lo
   - `mouse`: Current mouse position
   - `last-selected-hint`: Position of the last selected hint
   - `active-window-center`: Center of the active window
+  - `last-overlay-area-center`: Center of the area `last-overlay-area` names
 
   When omitted, the center defaults per size: `active-screen`/`all-screens` →
   `screen-center`, `active-window` → `active-window-center`, `last-selected-hint-cell` →
-  `last-selected-hint` (grid stays over the cell). The size and center compose
-  freely — e.g. an `active-window`-sized grid with `area-center=mouse` is a
-  window-sized grid centered on the cursor.
+  `last-selected-hint` (grid stays over the cell), `last-overlay-area` →
+  `last-overlay-area-center`. The size and center compose freely — e.g. an
+  `active-window`-sized grid with `area-center=mouse` is a window-sized grid centered on the
+  cursor.
 
 - **Grid dimensions**: Control the size of each hint cell:
   - `grid-cell-width`: Width of each hint cell in pixels

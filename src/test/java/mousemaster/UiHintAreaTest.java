@@ -110,6 +110,27 @@ public class UiHintAreaTest {
     }
 
     @Test
+    void theElementsAreLookedForInTheLastOverlayArea() throws IOException {
+        ModeMap modeMap = parse("""
+                idle-mode.to.grid-mode=+g
+                grid-mode.to.ui-hint-mode=+u
+                grid-mode.hint.grid-cell-sizing=fit
+                grid-mode.hint.grid-max-row-count=2
+                grid-mode.hint.grid-max-column-count=2
+                ui-hint-mode.to.idle-mode=+esc
+                ui-hint-mode.hint.selection-keys=a b c d
+                ui-hint-mode.hint.type=ui
+                ui-hint-mode.hint.area=last-overlay-area
+                """).modeMap();
+        List<Rectangle> areas = new ArrayList<>();
+        HintManager hintManager = hintManager(areas);
+        hintManager.modeChanged(modeMap.get("grid-mode"));
+        hintManager.shrinkGridLeft();
+        hintManager.modeChanged(modeMap.get("ui-hint-mode"));
+        assertEquals(List.of(new Rectangle(0, 0, 960, 1080)), areas);
+    }
+
+    @Test
     void theInsetsCutMarginsFromTheArea() throws IOException {
         ModeMap modeMap = parse(uiMode + """
                 ui-hint-mode.hint.area-top-inset=15
