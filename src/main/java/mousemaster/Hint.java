@@ -3,7 +3,7 @@ package mousemaster;
 import java.util.List;
 
 public record Hint(double centerX, double centerY, double cellWidth, double cellHeight,
-                   List<Key> keySequence) {
+                   List<Key> keySequence, Rectangle elementRectangle) {
 
     public boolean startsWith(List<Key> selectedHintKeySequence) {
         if (selectedHintKeySequence.isEmpty())

@@ -36,7 +36,7 @@ class HintSelectionCarryOverTest {
                         """))), KeyboardLayout.keyboardLayoutByShortName.get("uk-qwerty"))
                                                  .modeMap();
         Future<List<UiElement>> found = CompletableFuture.completedFuture(
-                List.of(new UiElement(10, 10), new UiElement(500, 300), new UiElement(900, 700)));
+                List.of(new UiElement(new Rectangle(10, 10, 0, 0)), new UiElement(new Rectangle(500, 300, 0, 0)), new UiElement(new Rectangle(900, 700, 0, 0))));
         ScreenManager screenManager = new ScreenManager(
                 () -> Set.of(new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1)));
         List<HintMesh> shownHintMeshes = new ArrayList<>();

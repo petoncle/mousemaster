@@ -460,16 +460,16 @@ public class WindowsUiAutomation implements UiAutomation {
                 int height = rect.bottom - rect.top;
                 if (width <= 0 || height <= 0)
                     continue;
-                double centerX = rect.left + width / 2.0;
-                double centerY = rect.top + height / 2.0;
-                if (!elementBounds.contains(centerX, centerY))
+                UiElement uiElement =
+                        new UiElement(new Rectangle(rect.left, rect.top, width, height));
+                if (!elementBounds.contains(uiElement.centerX(), uiElement.centerY()))
                     continue;
-                if (!clickReaches(hwnd, centerX, centerY))
+                if (!clickReaches(hwnd, uiElement.centerX(), uiElement.centerY()))
                     continue;
                 if (UiAutomation.isTooCloseToExistingUiElements(uiElements,
-                        centerX, centerY, scale))
+                        uiElement.centerX(), uiElement.centerY(), scale))
                     continue;
-                uiElements.add(new UiElement(centerX, centerY));
+                uiElements.add(uiElement);
             }
             finally {
                 element.Release();

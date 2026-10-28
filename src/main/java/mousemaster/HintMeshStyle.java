@@ -22,6 +22,15 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             Color prefixBoxBorderColor,
                             double prefixBoxBorderOpacity,
                             boolean prefixBoxFramed,
+                            GradientColor uiElementBoxColor,
+                            double uiElementBoxOpacity,
+                            double uiElementBoxBorderThickness,
+                            double uiElementBoxBorderLength,
+                            Color uiElementBoxBorderColor,
+                            double uiElementBoxBorderOpacity,
+                            double uiElementBoxBorderRadius,
+                            double uiElementBoxHorizontalPadding,
+                            double uiElementBoxVerticalPadding,
                             double boxWidthPercent,
                             double boxHeightPercent,
                             double cellHorizontalPadding,
@@ -59,6 +68,15 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Color prefixBoxBorderColor;
         private Double prefixBoxBorderOpacity;
         private Boolean prefixBoxFramed;
+        private GradientColor uiElementBoxColor;
+        private Double uiElementBoxOpacity;
+        private Double uiElementBoxBorderThickness;
+        private Double uiElementBoxBorderLength;
+        private Color uiElementBoxBorderColor;
+        private Double uiElementBoxBorderOpacity;
+        private Double uiElementBoxBorderRadius;
+        private Double uiElementBoxHorizontalPadding;
+        private Double uiElementBoxVerticalPadding;
         private Double boxWidthPercent;
         private Double boxHeightPercent;
         private Double cellHorizontalPadding;
@@ -100,6 +118,15 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.prefixBoxBorderColor = style.prefixBoxBorderColor;
             this.prefixBoxBorderOpacity = style.prefixBoxBorderOpacity;
             this.prefixBoxFramed = style.prefixBoxFramed;
+            this.uiElementBoxColor = style.uiElementBoxColor;
+            this.uiElementBoxOpacity = style.uiElementBoxOpacity;
+            this.uiElementBoxBorderThickness = style.uiElementBoxBorderThickness;
+            this.uiElementBoxBorderLength = style.uiElementBoxBorderLength;
+            this.uiElementBoxBorderColor = style.uiElementBoxBorderColor;
+            this.uiElementBoxBorderOpacity = style.uiElementBoxBorderOpacity;
+            this.uiElementBoxBorderRadius = style.uiElementBoxBorderRadius;
+            this.uiElementBoxHorizontalPadding = style.uiElementBoxHorizontalPadding;
+            this.uiElementBoxVerticalPadding = style.uiElementBoxVerticalPadding;
             this.boxWidthPercent = style.boxWidthPercent;
             this.boxHeightPercent = style.boxHeightPercent;
             this.cellHorizontalPadding = style.cellHorizontalPadding;
@@ -190,6 +217,51 @@ public record HintMeshStyle(HintFontStyle fontStyle,
 
         public HintMeshStyleBuilder prefixBoxFramed(Boolean prefixBoxFramed) {
             this.prefixBoxFramed = prefixBoxFramed;
+            return this;
+        }
+
+        public HintMeshStyleBuilder uiElementBoxColor(GradientColor uiElementBoxColor) {
+            this.uiElementBoxColor = uiElementBoxColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder uiElementBoxOpacity(Double uiElementBoxOpacity) {
+            this.uiElementBoxOpacity = uiElementBoxOpacity;
+            return this;
+        }
+
+        public HintMeshStyleBuilder uiElementBoxBorderThickness(Double uiElementBoxBorderThickness) {
+            this.uiElementBoxBorderThickness = uiElementBoxBorderThickness;
+            return this;
+        }
+
+        public HintMeshStyleBuilder uiElementBoxBorderLength(Double uiElementBoxBorderLength) {
+            this.uiElementBoxBorderLength = uiElementBoxBorderLength;
+            return this;
+        }
+
+        public HintMeshStyleBuilder uiElementBoxBorderColor(Color uiElementBoxBorderColor) {
+            this.uiElementBoxBorderColor = uiElementBoxBorderColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder uiElementBoxBorderOpacity(Double uiElementBoxBorderOpacity) {
+            this.uiElementBoxBorderOpacity = uiElementBoxBorderOpacity;
+            return this;
+        }
+
+        public HintMeshStyleBuilder uiElementBoxBorderRadius(Double uiElementBoxBorderRadius) {
+            this.uiElementBoxBorderRadius = uiElementBoxBorderRadius;
+            return this;
+        }
+
+        public HintMeshStyleBuilder uiElementBoxHorizontalPadding(Double uiElementBoxHorizontalPadding) {
+            this.uiElementBoxHorizontalPadding = uiElementBoxHorizontalPadding;
+            return this;
+        }
+
+        public HintMeshStyleBuilder uiElementBoxVerticalPadding(Double uiElementBoxVerticalPadding) {
+            this.uiElementBoxVerticalPadding = uiElementBoxVerticalPadding;
             return this;
         }
 
@@ -338,6 +410,42 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return prefixBoxFramed;
         }
 
+        public GradientColor uiElementBoxColor() {
+            return uiElementBoxColor;
+        }
+
+        public Double uiElementBoxOpacity() {
+            return uiElementBoxOpacity;
+        }
+
+        public Double uiElementBoxBorderThickness() {
+            return uiElementBoxBorderThickness;
+        }
+
+        public Double uiElementBoxBorderLength() {
+            return uiElementBoxBorderLength;
+        }
+
+        public Color uiElementBoxBorderColor() {
+            return uiElementBoxBorderColor;
+        }
+
+        public Double uiElementBoxBorderOpacity() {
+            return uiElementBoxBorderOpacity;
+        }
+
+        public Double uiElementBoxBorderRadius() {
+            return uiElementBoxBorderRadius;
+        }
+
+        public Double uiElementBoxHorizontalPadding() {
+            return uiElementBoxHorizontalPadding;
+        }
+
+        public Double uiElementBoxVerticalPadding() {
+            return uiElementBoxVerticalPadding;
+        }
+
         public Double boxWidthPercent() {
             return boxWidthPercent;
         }
@@ -413,6 +521,15 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     prefixBoxBorderColor == null ? defaultStyle.prefixBoxBorderColor : prefixBoxBorderColor,
                     prefixBoxBorderOpacity == null ? defaultStyle.prefixBoxBorderOpacity : prefixBoxBorderOpacity,
                     prefixBoxFramed == null ? defaultStyle.prefixBoxFramed : prefixBoxFramed,
+                    uiElementBoxColor == null ? defaultStyle.uiElementBoxColor : uiElementBoxColor,
+                    uiElementBoxOpacity == null ? defaultStyle.uiElementBoxOpacity : uiElementBoxOpacity,
+                    uiElementBoxBorderThickness == null ? defaultStyle.uiElementBoxBorderThickness : uiElementBoxBorderThickness,
+                    uiElementBoxBorderLength == null ? defaultStyle.uiElementBoxBorderLength : uiElementBoxBorderLength,
+                    uiElementBoxBorderColor == null ? defaultStyle.uiElementBoxBorderColor : uiElementBoxBorderColor,
+                    uiElementBoxBorderOpacity == null ? defaultStyle.uiElementBoxBorderOpacity : uiElementBoxBorderOpacity,
+                    uiElementBoxBorderRadius == null ? defaultStyle.uiElementBoxBorderRadius : uiElementBoxBorderRadius,
+                    uiElementBoxHorizontalPadding == null ? defaultStyle.uiElementBoxHorizontalPadding : uiElementBoxHorizontalPadding,
+                    uiElementBoxVerticalPadding == null ? defaultStyle.uiElementBoxVerticalPadding : uiElementBoxVerticalPadding,
                     boxWidthPercent == null ? defaultStyle.boxWidthPercent : boxWidthPercent,
                     boxHeightPercent == null ? defaultStyle.boxHeightPercent : boxHeightPercent,
                     cellHorizontalPadding == null ? defaultStyle.cellHorizontalPadding : cellHorizontalPadding,

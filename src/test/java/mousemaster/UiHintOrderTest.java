@@ -73,10 +73,10 @@ public class UiHintOrderTest {
 
     @Test
     void aColumnOfIconsAFewPixelsApartIsSortedFromTopToBottom() {
-        UiElement top = new UiElement(26, 100);
-        UiElement middle = new UiElement(21, 200);
-        UiElement bottom = new UiElement(24, 300);
-        UiElement right = new UiElement(500, 50);
+        UiElement top = new UiElement(new Rectangle(26, 100, 0, 0));
+        UiElement middle = new UiElement(new Rectangle(21, 200, 0, 0));
+        UiElement bottom = new UiElement(new Rectangle(24, 300, 0, 0));
+        UiElement right = new UiElement(new Rectangle(500, 50, 0, 0));
         assertEquals(List.of(top, middle, bottom, right),
                 HintManager.sortedUiElements(List.of(right, bottom, top, middle),
                         UiHintOrder.LEFT_TO_RIGHT, 1, new Point(0, 0)));
@@ -84,9 +84,9 @@ public class UiHintOrderTest {
 
     @Test
     void anElementFurtherThanTheGapIsInAnotherColumn() {
-        UiElement left = new UiElement(10, 150);
-        UiElement top = new UiElement(21, 100);
-        UiElement bottom = new UiElement(24, 300);
+        UiElement left = new UiElement(new Rectangle(10, 150, 0, 0));
+        UiElement top = new UiElement(new Rectangle(21, 100, 0, 0));
+        UiElement bottom = new UiElement(new Rectangle(24, 300, 0, 0));
         assertEquals(List.of(left, top, bottom),
                 HintManager.sortedUiElements(List.of(bottom, top, left),
                         UiHintOrder.LEFT_TO_RIGHT, 1, new Point(0, 0)));
@@ -94,9 +94,9 @@ public class UiHintOrderTest {
 
     @Test
     void theGapIsScaledWithTheScreen() {
-        UiElement left = new UiElement(40, 150);
-        UiElement top = new UiElement(60, 100);
-        UiElement bottom = new UiElement(60, 300);
+        UiElement left = new UiElement(new Rectangle(40, 150, 0, 0));
+        UiElement top = new UiElement(new Rectangle(60, 100, 0, 0));
+        UiElement bottom = new UiElement(new Rectangle(60, 300, 0, 0));
         assertEquals(List.of(top, left, bottom),
                 HintManager.sortedUiElements(List.of(bottom, top, left),
                         UiHintOrder.LEFT_TO_RIGHT, 4, new Point(0, 0)));
@@ -104,10 +104,10 @@ public class UiHintOrderTest {
 
     @Test
     void aRowOfTabsOfDifferentHeightsIsSortedFromLeftToRight() {
-        UiElement first = new UiElement(100, 19);
-        UiElement second = new UiElement(200, 23);
-        UiElement third = new UiElement(300, 22);
-        UiElement below = new UiElement(150, 60);
+        UiElement first = new UiElement(new Rectangle(100, 19, 0, 0));
+        UiElement second = new UiElement(new Rectangle(200, 23, 0, 0));
+        UiElement third = new UiElement(new Rectangle(300, 22, 0, 0));
+        UiElement below = new UiElement(new Rectangle(150, 60, 0, 0));
         assertEquals(List.of(first, second, third, below),
                 HintManager.sortedUiElements(List.of(below, third, first, second),
                         UiHintOrder.TOP_TO_BOTTOM, 1, new Point(0, 0)));
@@ -118,9 +118,9 @@ public class UiHintOrderTest {
 
     @Test
     void theElementsNearestTheMouseComeFirst() {
-        UiElement near = new UiElement(510, 505);
-        UiElement middle = new UiElement(600, 500);
-        UiElement far = new UiElement(10, 10);
+        UiElement near = new UiElement(new Rectangle(510, 505, 0, 0));
+        UiElement middle = new UiElement(new Rectangle(600, 500, 0, 0));
+        UiElement far = new UiElement(new Rectangle(10, 10, 0, 0));
         assertEquals(List.of(near, middle, far),
                 HintManager.sortedUiElements(List.of(far, middle, near),
                         UiHintOrder.MOUSE, 1, new Point(500, 500)));
@@ -136,7 +136,7 @@ public class UiHintOrderTest {
                 ui-hint-mode.hint.ui-order=mouse
                 """).modeMap().get("ui-hint-mode");
         Future<List<UiElement>> found = CompletableFuture.completedFuture(
-                List.of(new UiElement(10, 10), new UiElement(510, 505)));
+                List.of(new UiElement(new Rectangle(10, 10, 0, 0)), new UiElement(new Rectangle(510, 505, 0, 0))));
         ScreenManager screenManager = new ScreenManager(
                 () -> Set.of(new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1)));
         HintManager hintManager = new HintManager(Map.of(), screenManager,

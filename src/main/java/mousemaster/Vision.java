@@ -38,8 +38,6 @@ public class Vision {
     private static final int maximumLightElementPixels = 500;
     /** Bigger than this is a pane, not something to click. */
     private static final double maximumElementAreaRatio = 0.25;
-    /** No hint on the very edge of the screen, where a click can miss. */
-    private static final int screenEdgeInset = 2;
 
     private static final int minimumBoundedSide = 2;
     private static final int minimumBoundedArea = 30;
@@ -151,17 +149,15 @@ public class Vision {
             if (Math.min(box.width() * screenScaleX, box.height() * screenScaleY)
                 < minSize * scale)
                 continue;
-            double centerX = Math.clamp(
-                    bounds.x() + (box.x() + box.width() / 2d) * screenScaleX,
-                    bounds.x() + screenEdgeInset,
-                    bounds.x() + bounds.width() - 1 - screenEdgeInset);
-            double centerY = Math.clamp(
-                    bounds.y() + (box.y() + box.height() / 2d) * screenScaleY,
-                    bounds.y() + screenEdgeInset,
-                    bounds.y() + bounds.height() - 1 - screenEdgeInset);
-            if (!UiAutomation.isTooCloseToExistingUiElements(elements, centerX, centerY,
-                    scale))
-                elements.add(new UiElement(centerX, centerY));
+            int left = bounds.x() + (int) Math.round(box.x() * screenScaleX);
+            int top = bounds.y() + (int) Math.round(box.y() * screenScaleY);
+            int right = bounds.x() + (int) Math.round((box.x() + box.width()) * screenScaleX);
+            int bottom = bounds.y() + (int) Math.round((box.y() + box.height()) * screenScaleY);
+            UiElement element =
+                    new UiElement(new Rectangle(left, top, right - left, bottom - top));
+            if (!UiAutomation.isTooCloseToExistingUiElements(elements, element.centerX(),
+                    element.centerY(), scale))
+                elements.add(element);
         }
         return elements;
     }

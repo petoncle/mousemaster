@@ -211,9 +211,10 @@ public class HintManager implements ModeListener, MousePositionListener {
         int rows = (preWarmedUiElementCount + columns - 1) / columns;
         List<UiElement> uiElements = new ArrayList<>(preWarmedUiElementCount);
         for (int i = 0; i < preWarmedUiElementCount; i++)
-            uiElements.add(new UiElement(
-                    rectangle.x() + rectangle.width() * (i % columns + 0.5) / columns,
-                    rectangle.y() + rectangle.height() * (i / columns + 0.5) / rows));
+            uiElements.add(new UiElement(new Rectangle(
+                    rectangle.x() + rectangle.width() * (i % columns) / columns,
+                    rectangle.y() + rectangle.height() * (i / columns) / rows,
+                    rectangle.width() / columns, rectangle.height() / rows)));
         return uiElements;
     }
 
@@ -876,7 +877,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                         -1, -1,
                         -1, -1, false, prefixLengths);
                 hints.add(new Hint(zoom.zoomedX(point.x()), zoom.zoomedY(point.y()),
-                        -1, -1, keySequence));
+                        -1, -1, keySequence, null));
             }
             hintMesh.hints(hints)
                     .prefixLength(prefixLengths.size() == 1 ?
@@ -947,7 +948,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     0, -1, i,
                     -1, -1, -1, -1, -1, -1, false, prefixLengths);
             hints.add(new Hint(element.centerX(), element.centerY(),
-                    -1, -1, keySequence));
+                    -1, -1, keySequence, element.rectangle()));
         }
         if (!hints.isEmpty()) {
             double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE;
@@ -1043,7 +1044,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 double hintCenterX = hintMeshX + columnWidthOffset + cellWidth / 2d;
                 double hintCenterY = hintMeshY + rowHeightOffset + cellHeight / 2d;
                 hints.add(new Hint(hintCenterX, hintCenterY, cellWidth, cellHeight,
-                        keySequence));
+                        keySequence, null));
                 hintIndex++;
                 columnWidthOffset += cellWidth;
             }
@@ -1306,7 +1307,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     decorationHints.add(new Hint(
                             grid.hintMeshX() + (column + 0.5) * grid.cellWidth(),
                             grid.hintMeshY() + (row + 0.5) * grid.cellHeight(),
-                            grid.cellWidth(), grid.cellHeight(), List.of()));
+                            grid.cellWidth(), grid.cellHeight(), List.of(), null));
         }
         else {
             int layoutRowCount = Math.min(grid.rowCount(), decorationLayout.layoutRowCount());

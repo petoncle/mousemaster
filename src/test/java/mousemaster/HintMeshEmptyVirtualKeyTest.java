@@ -163,7 +163,7 @@ class HintMeshEmptyVirtualKeyTest {
 
     @Test
     void aMeshWithAHintDoesNot() {
-        load(found(new UiElement(10, 10)));
+        load(found(new UiElement(new Rectangle(10, 10, 0, 0))));
         tick();
         assertFalse(hintManager.hintMeshEmpty());
         assertEquals(List.of(), ranCommands);

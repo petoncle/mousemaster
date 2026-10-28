@@ -139,6 +139,15 @@ public class ConfigurationParser {
                 .prefixBoxBorderColor(Color.parse("#FFD93D"))
                 .prefixBoxBorderOpacity(0.8d)
                 .prefixBoxFramed(true)
+                .uiElementBoxColor(GradientColor.parse("#000000"))
+                .uiElementBoxOpacity(0d)
+                .uiElementBoxBorderThickness(1d)
+                .uiElementBoxBorderLength(10_000d)
+                .uiElementBoxBorderColor(Color.parse("#FFFFFF"))
+                .uiElementBoxBorderOpacity(0d)
+                .uiElementBoxBorderRadius(0d)
+                .uiElementBoxHorizontalPadding(0d)
+                .uiElementBoxVerticalPadding(0d)
                 .boxWidthPercent(1d)
                 .boxHeightPercent(1d)
                 .cellHorizontalPadding(0d)
@@ -2230,6 +2239,13 @@ public class ConfigurationParser {
             new ModePropertyPath(List.of("hintMesh", "type", "density"));
     private static final ModePropertyPath HINT_VISION_MIN_SIZE_PATH =
             new ModePropertyPath(List.of("hintMesh", "type", "minSize"));
+    private static final List<ModePropertyPath> HINT_UI_ELEMENT_BOX_PATHS =
+            Stream.of("uiElementBoxColor", "uiElementBoxOpacity", "uiElementBoxBorderThickness",
+                          "uiElementBoxBorderLength", "uiElementBoxBorderColor",
+                          "uiElementBoxBorderOpacity", "uiElementBoxBorderRadius",
+                          "uiElementBoxHorizontalPadding", "uiElementBoxVerticalPadding")
+                  .map(field -> new ModePropertyPath(List.of("hintMesh", "styleByFilter", field)))
+                  .toList();
 
     private static void checkMissingProperties(ModeBuilder mode) {
         if (mode.timeout.builder.enabled() != null && mode.timeout.builder.enabled() &&
@@ -2261,6 +2277,12 @@ public class ConfigurationParser {
                 throw new IllegalArgumentException(
                         "Invalid definition of hint for " + mode.modeName +
                         ": hint.ui-order only applies to hint.type=ui-accessibility or " +
+                        "hint.type=ui-vision");
+            if (!uiType && HINT_UI_ELEMENT_BOX_PATHS.stream()
+                                                    .anyMatch(mode.hintMesh.setPropertyPaths::contains))
+                throw new IllegalArgumentException(
+                        "Invalid definition of hint for " + mode.modeName +
+                        ": hint.ui-element-box-* only applies to hint.type=ui-accessibility or " +
                         "hint.type=ui-vision");
             if (hintMeshType.type() != HintMeshType.HintMeshTypeType.UI_VISION
                 && mode.hintMesh.setPropertyPaths.contains(HINT_VISION_DENSITY_PATH))
@@ -2929,6 +2951,16 @@ public class ConfigurationParser {
             case "prefix-box-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxBorderColor"), v -> Color.parse(v, colorAliases), v -> { if (hintMeshBuilder.style(screenFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(screenFilter).prefixBoxEnabled(true); hintMeshBuilder.style(screenFilter).prefixBoxBorderColor(v); });
             case "prefix-box-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> { if (hintMeshBuilder.style(screenFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(screenFilter).prefixBoxEnabled(true); hintMeshBuilder.style(screenFilter).prefixBoxBorderOpacity(v); });
             case "prefix-box-framed" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxFramed"), v -> Boolean.parseBoolean(v), v -> { if (hintMeshBuilder.style(screenFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(screenFilter).prefixBoxEnabled(true); hintMeshBuilder.style(screenFilter).prefixBoxFramed(v); });
+            // Style: element box
+            case "ui-element-box-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxColor"), v -> GradientColor.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).uiElementBoxColor(v));
+            case "ui-element-box-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).uiElementBoxOpacity(v));
+            case "ui-element-box-border-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxBorderThickness"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(screenFilter).uiElementBoxBorderThickness(v));
+            case "ui-element-box-border-length" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxBorderLength"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(screenFilter).uiElementBoxBorderLength(v));
+            case "ui-element-box-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxBorderColor"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).uiElementBoxBorderColor(v));
+            case "ui-element-box-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).uiElementBoxBorderOpacity(v));
+            case "ui-element-box-border-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxBorderRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).uiElementBoxBorderRadius(v));
+            case "ui-element-box-horizontal-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxHorizontalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).uiElementBoxHorizontalPadding(v));
+            case "ui-element-box-vertical-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxVerticalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).uiElementBoxVerticalPadding(v));
             // Style: box dimensions
             case "box-width-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxWidthPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).boxWidthPercent(v));
             case "box-height-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxHeightPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).boxHeightPercent(v));
@@ -3900,6 +3932,42 @@ public class ConfigurationParser {
                             HintMeshStyleBuilder::prefixBoxFramed,
                             childStyleByFilter, filter))
                         childStyle.prefixBoxFramed(parentStyle.prefixBoxFramed());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::uiElementBoxColor,
+                            childStyleByFilter, filter))
+                        childStyle.uiElementBoxColor(parentStyle.uiElementBoxColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::uiElementBoxOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.uiElementBoxOpacity(parentStyle.uiElementBoxOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::uiElementBoxBorderThickness,
+                            childStyleByFilter, filter))
+                        childStyle.uiElementBoxBorderThickness(parentStyle.uiElementBoxBorderThickness());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::uiElementBoxBorderLength,
+                            childStyleByFilter, filter))
+                        childStyle.uiElementBoxBorderLength(parentStyle.uiElementBoxBorderLength());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::uiElementBoxBorderColor,
+                            childStyleByFilter, filter))
+                        childStyle.uiElementBoxBorderColor(parentStyle.uiElementBoxBorderColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::uiElementBoxBorderOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.uiElementBoxBorderOpacity(parentStyle.uiElementBoxBorderOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::uiElementBoxBorderRadius,
+                            childStyleByFilter, filter))
+                        childStyle.uiElementBoxBorderRadius(parentStyle.uiElementBoxBorderRadius());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::uiElementBoxHorizontalPadding,
+                            childStyleByFilter, filter))
+                        childStyle.uiElementBoxHorizontalPadding(parentStyle.uiElementBoxHorizontalPadding());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::uiElementBoxVerticalPadding,
+                            childStyleByFilter, filter))
+                        childStyle.uiElementBoxVerticalPadding(parentStyle.uiElementBoxVerticalPadding());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::boxWidthPercent, childStyleByFilter,
                             filter))

@@ -1451,6 +1451,19 @@ public final class HintMeshRenderer {
                 scaledLength(style.prefixBoxBorderThickness(), screenScale);
         int prefixBoxBorderLength = scaledLength(style.prefixBoxBorderLength(), screenScale);
         Shadow boxShadow = scaledShadow(style.boxShadow(), screenScale);
+        boolean elementBoxVisible =
+                style.uiElementBoxOpacity() != 0 || style.uiElementBoxBorderOpacity() != 0;
+        QBrush elementBoxBrush = fillBrush(style.uiElementBoxColor(), style.uiElementBoxOpacity());
+        QColor elementBoxBorderColor = QtColorUtil.qColor(style.uiElementBoxBorderColor().hexColor(lastSelectedHintBoxHexColor), style.uiElementBoxBorderOpacity());
+        int elementBoxBorderThickness =
+                scaledLength(style.uiElementBoxBorderThickness(), screenScale);
+        int elementBoxBorderLength = scaledLength(style.uiElementBoxBorderLength(), screenScale);
+        int elementBoxBorderRadius = scaledLength(style.uiElementBoxBorderRadius(), screenScale);
+        int elementBoxHorizontalPadding =
+                scaledLength(style.uiElementBoxHorizontalPadding(), screenScale);
+        int elementBoxVerticalPadding =
+                scaledLength(style.uiElementBoxVerticalPadding(), screenScale);
+        List<HintBox> elementBoxes = new ArrayList<>();
         // One entry per tiled depth: subdecoration at index 0, subsubdecoration at index 1.
         List<DecorationStyle> subDecorationStyles = new ArrayList<>();
         if (hintMesh.subDecoration() != null) {
@@ -1578,6 +1591,28 @@ public final class HintMeshRenderer {
             minHintTop = Math.min(minHintTop, y);
             maxHintRight = Math.max(maxHintRight, x + boxWidth);
             maxHintBottom = Math.max(maxHintBottom, y + boxHeight);
+            if (elementBoxVisible && hint.elementRectangle() != null) {
+                int elementBoxLeft = (int) Math.round(
+                        (hint.elementRectangle().x() - elementBoxHorizontalPadding) / qtScaleFactor);
+                int elementBoxTop = (int) Math.round(
+                        (hint.elementRectangle().y() - elementBoxVerticalPadding) / qtScaleFactor);
+                int elementBoxRight = (int) Math.round((hint.elementRectangle().x()
+                        + hint.elementRectangle().width() + elementBoxHorizontalPadding) / qtScaleFactor);
+                int elementBoxBottom = (int) Math.round((hint.elementRectangle().y()
+                        + hint.elementRectangle().height() + elementBoxVerticalPadding) / qtScaleFactor);
+                HintBox elementBox = new HintBox(null, elementBoxBorderLength,
+                        elementBoxBorderThickness, elementBoxBrush, elementBoxBorderColor,
+                        false, true, true, true, true, true, qtScaleFactor,
+                        elementBoxBorderRadius);
+                elementBox.setGeometry(elementBoxLeft - hintMeshWindow.window.x(),
+                        elementBoxTop - hintMeshWindow.window.y(),
+                        elementBoxRight - elementBoxLeft, elementBoxBottom - elementBoxTop);
+                elementBoxes.add(elementBox);
+                minHintLeft = Math.min(minHintLeft, elementBoxLeft);
+                minHintTop = Math.min(minHintTop, elementBoxTop);
+                maxHintRight = Math.max(maxHintRight, elementBoxRight);
+                maxHintBottom = Math.max(maxHintBottom, elementBoxBottom);
+            }
             hintBox.setGeometry(x - hintMeshWindow.window.x(),
                     y - hintMeshWindow.window.y(),
                     boxWidth,
@@ -1724,6 +1759,8 @@ public final class HintMeshRenderer {
                 hintBoxGeometries.put(hintBox.hint.keySequence(), hintBox.geometry());
             }
         }
+        for (HintBox elementBox : elementBoxes)
+            elementBox.move(elementBox.x() - offsetX, elementBox.y() - offsetY);
         List<HintBox> prefixBoxes = new ArrayList<>();
         List<HintLabel> prefixLabels = new ArrayList<>();
         for (HintGroup hintGroup : hintGroupByPrefix.values()) {
@@ -1746,6 +1783,9 @@ public final class HintMeshRenderer {
         int containerWidth = maxHintRight - minHintLeft;
         int containerHeight = maxHintBottom - minHintTop;
         container.setGeometry(offsetX, offsetY, containerWidth, containerHeight);
+        // Layer 0: Element boxes.
+        HintPaintLayer elementBoxLayer = new HintPaintLayer(container, elementBoxes, List.of());
+        elementBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
         // Layer 1: Box shadow (painted underneath boxes; empty unless shadow is active).
         HintPaintLayer boxShadowLayer = new HintPaintLayer(container, List.of(), List.of());
         boxShadowLayer.setGeometry(0, 0, containerWidth, containerHeight);
@@ -2062,7 +2102,8 @@ public final class HintMeshRenderer {
                 continue;
             trimmedHints.add(new Hint(hint.centerX() - minHintCenterX,
                     hint.centerY() - minHintCenterY,
-                    hint.cellWidth(), hint.cellHeight(), hint.keySequence()));
+                    hint.cellWidth(), hint.cellHeight(), hint.keySequence(),
+                    hint.elementRectangle()));
         }
         return trimmedHints;
     }

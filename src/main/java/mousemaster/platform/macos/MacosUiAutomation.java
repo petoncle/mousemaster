@@ -46,7 +46,7 @@ public class MacosUiAutomation implements UiAutomation {
                     if (cropped.width() <= 0 || cropped.height() <= 0 ||
                         covered(covering, cropped))
                         continue;
-                    UiElement element = center(cropped);
+                    UiElement element = new UiElement(cropped);
                     if (tooClose(elements, element))
                         continue;
                     elements.add(element);
@@ -72,7 +72,7 @@ public class MacosUiAutomation implements UiAutomation {
             Rectangle cropped = area == null ? frame : frame.intersection(area);
             if (cropped.width() <= 0 || cropped.height() <= 0)
                 continue;
-            UiElement element = center(cropped);
+            UiElement element = new UiElement(cropped);
             if (tooClose(elements, element))
                 continue;
             elements.add(element);
@@ -85,11 +85,6 @@ public class MacosUiAutomation implements UiAutomation {
                 element.centerY(), MacosScreens.scaleAt(
                         new QPoint((int) element.centerX(),
                                 (int) element.centerY())));
-    }
-
-    private static UiElement center(Rectangle frame) {
-        return new UiElement(frame.x() + frame.width() / 2d,
-                frame.y() + frame.height() / 2d);
     }
 
 }

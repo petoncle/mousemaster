@@ -6859,6 +6859,15 @@
             "mousemaster.Color",
             "double",
             "boolean",
+            "mousemaster.GradientColor",
+            "double",
+            "double",
+            "double",
+            "mousemaster.Color",
+            "double",
+            "double",
+            "double",
+            "double",
             "double",
             "double",
             "double",
@@ -6997,7 +7006,44 @@
         {
           "name": "transitionAnimationEnabled",
           "parameterTypes": []
+        },
+        {
+          "name": "uiElementBoxBorderColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "uiElementBoxBorderLength",
+          "parameterTypes": []
+        },
+        {
+          "name": "uiElementBoxBorderOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "uiElementBoxBorderRadius",
+          "parameterTypes": []
+        },
+        {
+          "name": "uiElementBoxBorderThickness",
+          "parameterTypes": []
+        },
+        {
+          "name": "uiElementBoxColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "uiElementBoxHorizontalPadding",
+          "parameterTypes": []
+        },
+        {
+          "name": "uiElementBoxOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "uiElementBoxVerticalPadding",
+          "parameterTypes": []
         }
+
       ]
     },
     {

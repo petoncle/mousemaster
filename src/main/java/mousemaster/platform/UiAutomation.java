@@ -16,7 +16,16 @@ public interface UiAutomation {
      */
     Future<List<UiElement>> startFindUiElementsInArea(Rectangle area);
 
-    record UiElement(double centerX, double centerY) {
+    record UiElement(Rectangle rectangle) {
+
+        public double centerX() {
+            return rectangle.x() + rectangle.width() / 2d;
+        }
+
+        public double centerY() {
+            return rectangle.y() + rectangle.height() / 2d;
+        }
+
     }
 
     // Bounding rectangles are in zoomed (physical) pixels, so the threshold is
