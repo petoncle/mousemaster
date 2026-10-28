@@ -55,6 +55,8 @@ public sealed interface Command {
 
     record MoveToLastSelectedHint() implements Command {}
 
+    record MoveToSelection() implements Command {}
+
     record SavePosition(String positionHistoryName) implements Command {}
     record UnsavePosition(String positionHistoryName) implements Command {}
     record ClearPositionHistory(String positionHistoryName) implements Command {}

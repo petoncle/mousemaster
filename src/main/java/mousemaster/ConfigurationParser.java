@@ -155,6 +155,7 @@ public class ConfigurationParser {
                 new Property<>("move-grid", Map.of()),
                 new Property<>("move-to-grid-center", Map.of()),
                 new Property<>("move-to-last-selected-hint", Map.of()),
+                new Property<>("move-to-selection", Map.of()),
                 new Property<>("save-position", Map.of()),
                 new Property<>("unsave-position", Map.of()),
                 new Property<>("clear", Map.of()),
@@ -1639,6 +1640,11 @@ public class ConfigurationParser {
             case "move-to-last-selected-hint" -> {
                 mode.comboMap.moveToLastSelectedHint.parseReferenceOr(propertyKey, propertyValue,
                         commandsByCombo -> setCommand(mode.comboMap.moveToLastSelectedHint.builder,  propertyValue, new MoveToLastSelectedHint(), propertyKey, finalDefaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                        childPropertiesByParentProperty, nonRootPropertyKeys);
+            }
+            case "move-to-selection" -> {
+                mode.comboMap.moveToSelection.parseReferenceOr(propertyKey, propertyValue,
+                        commandsByCombo -> setCommand(mode.comboMap.moveToSelection.builder,  propertyValue, new MoveToSelection(), propertyKey, finalDefaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
             case "break-combo-preparation" -> mode.comboMap.breakComboPreparation.parseReferenceOr(propertyKey, propertyValue,
@@ -4240,6 +4246,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> moveGrid;
         Property<Map<Combo, List<Command>>> moveToGridCenter;
         Property<Map<Combo, List<Command>>> moveToLastSelectedHint;
+        Property<Map<Combo, List<Command>>> moveToSelection;
         Property<Map<Combo, List<Command>>> savePosition;
         Property<Map<Combo, List<Command>>> unsavePosition;
         Property<Map<Combo, List<Command>>> clearPositionHistory;
@@ -4276,6 +4283,7 @@ public class ConfigurationParser {
             moveGrid = new ComboMapProperty("move-grid", modeName, propertyByKey);
             moveToGridCenter = new ComboMapProperty("move-to-grid-center", modeName, propertyByKey);
             moveToLastSelectedHint = new ComboMapProperty("move-to-last-selected-hint", modeName, propertyByKey);
+            moveToSelection = new ComboMapProperty("move-to-selection", modeName, propertyByKey);
             savePosition = new ComboMapProperty("save-position", modeName, propertyByKey);
             unsavePosition = new ComboMapProperty("unsave-position", modeName, propertyByKey);
             clearPositionHistory = new ComboMapProperty("clear", modeName, propertyByKey);
@@ -4359,16 +4367,17 @@ public class ConfigurationParser {
             add(commandsByCombo, to.builder);
             add(commandsByCombo, startMove.builder);
             add(commandsByCombo, stopMove.builder);
-            add(commandsByCombo, press.builder);
-            add(commandsByCombo, release.builder);
-            add(commandsByCombo, toggle.builder);
-            add(commandsByCombo, startWheel.builder);
-            add(commandsByCombo, stopWheel.builder);
             add(commandsByCombo, snap.builder);
             add(commandsByCombo, shrinkGrid.builder);
             add(commandsByCombo, moveGrid.builder);
             add(commandsByCombo, moveToGridCenter.builder);
             add(commandsByCombo, moveToLastSelectedHint.builder);
+            add(commandsByCombo, moveToSelection.builder);
+            add(commandsByCombo, press.builder);
+            add(commandsByCombo, release.builder);
+            add(commandsByCombo, toggle.builder);
+            add(commandsByCombo, startWheel.builder);
+            add(commandsByCombo, stopWheel.builder);
             add(commandsByCombo, savePosition.builder);
             add(commandsByCombo, unsavePosition.builder);
             add(commandsByCombo, clearPositionHistory.builder);

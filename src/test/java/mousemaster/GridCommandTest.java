@@ -215,6 +215,23 @@ class GridCommandTest {
     }
 
     @Test
+    void withNoMovementSnappingMovesTheSelectionAndNotTheMouse() throws IOException {
+        start("""
+                grid-mode.hint.grid-max-row-count=2
+                grid-mode.hint.grid-max-column-count=2
+                grid-mode.hint.mouse-movement=no-movement
+                """);
+        hintManager.mouseMoved(100, 100);
+        switchMode("grid-mode");
+        hintManager.snapRight();
+        hintManager.snapRight();
+        assertEquals(List.of(), mousePositions);
+        assertEquals(new Point(1919, 100), hintManager.selectionPoint());
+        hintManager.moveToSelection();
+        assertEquals(List.of(1919, 100), mousePositions);
+    }
+
+    @Test
     void aGridOnTheLastOverlayAreaFillsTheShrunkGrid() throws IOException {
         start("""
                 grid-mode.to.hint-mode=+h

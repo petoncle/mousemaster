@@ -981,7 +981,9 @@ hint-mode.overlay.label-override=plus
 - **`select`**: Combo that triggers hint selection. For example, if you want to be able to hold leftshift while pressing a hint selection key, then use `hint-mode.overlay.select=_{none | leftshift} +selectionkey`
 - **`deselect`** (formerly `undo`): Combo that deselects the last selection key
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
-- **`mouse-movement`**: Controls how the mouse moves when interacting with hints
+- **`mouse-movement`**: Controls how the mouse moves when interacting with hints. The overlay
+  selects a position: the center of a selected hint, the edge a `snap` goes to, the center of
+  the grid. This is the selection, and the mouse follows it unless `no-movement` is set.
   - `no-movement`: Mouse stays in its current position
   - `mouse-follows-selected-hint`: Mouse moves to the selected hint (default behavior)
   - `mouse-follows-overlay-center` (formerly `mouse-follows-hint-grid-center`): Mouse moves to the center of the overlay
@@ -989,6 +991,7 @@ hint-mode.overlay.label-override=plus
 - **`move-to-last-selected-hint`**: Like `to.<mode-name>`, a command of the mode, not a hint
   property. It moves the mouse to the last selected hint, for example after `no-movement` left
   the mouse where it was: `normal-mode.move-to-last-selected-hint=+m`
+- **`move-to-selection`**: The same, to the selection: `grid-mode.move-to-selection=+space`
 - **`eat-unused-selection-keys`**: If `false`, selection keys not used in the current hint display can be used in combos
 - **`label-override`**: Draws a fixed marker in every hint cell instead of each hint's own keys — visual only, you still press the real keys to select. The value is a key sequence rendered as the label: `plus` shows `+`, `plus plus` shows `++`. Useful for positional grids (e.g. a 3×3 recursive grid) where the per-cell letters are just clutter. Default: unset (each hint shows its own key sequence).
 
@@ -1289,7 +1292,8 @@ grid-mode.move-to-grid-center=+space
 A mode with the same `overlay.type`, area and layout keeps the grid where the commands left it. With
 `area-center=mouse`, a command first centers the grid on the mouse. With
 `mouse-movement=mouse-follows-overlay-center`, the mouse goes to the center of the grid after
-each change.
+each change. With `mouse-movement=no-movement`, `snap` and `move-to-grid-center` move the
+selection, starting from it, and the mouse stays where it is.
 
 Earlier versions had a separate `grid`. Its properties still work, as overlay properties:
 `grid.row-count` and `grid.column-count` are `grid-max-row-count` and `grid-max-column-count`,
