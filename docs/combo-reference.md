@@ -618,6 +618,14 @@ normal-mode.to.idle-mode=+exit | -clickthendisable | +leftalt +enablebasekey
 
 This defines three separate combos. The first one that matches triggers the action.
 
+`none` defines no combo. A mode that extends another mode does not take that mode's combos for the command:
+
+```properties
+_base-mode.press.middle=+m
+normal-mode=_base-mode
+normal-mode.press.middle=none
+```
+
 ---
 
 ## Macro output syntax
@@ -920,6 +928,7 @@ Breakdown:
 | `combo -> ~name` | Release a virtual key |
 | `val \| _{name} -> val2` | Conditional property value |
 | `combo1 \| combo2` | Alternative combos |
+| `none` | No combo |
 | `combo -> output` | Macro output |
 | `-> +key` | Output: press key to OS |
 | `-> -key` | Output: release key to OS |

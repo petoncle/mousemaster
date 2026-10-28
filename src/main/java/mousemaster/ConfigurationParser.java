@@ -647,8 +647,9 @@ public class ConfigurationParser {
         for (ModeBuilder mode : modeByName.values()) {
             checkMissingProperties(mode);
             if (mode.hintMesh.builder.enabled() && hintSelectionKeys(mode).isEmpty() &&
-                (mode.hintMesh.builder.selectCombos() != null ||
-                 mode.hintMesh.builder.unselectCombos() != null))
+                Stream.of(mode.hintMesh.builder.selectCombos(),
+                          mode.hintMesh.builder.unselectCombos())
+                      .anyMatch(combos -> combos != null && !combos.isEmpty()))
                 throw new IllegalArgumentException(
                         "Invalid definition of hint for " + mode.modeName +
                         ": hint.select and hint.undo need hint.selection-keys");
@@ -3571,6 +3572,8 @@ public class ConfigurationParser {
         List<Combo> combos =
                 parseCombos(multiComboString, label, defaultComboMoveDuration,
                         keyAliases, appAliases, keyResolver, allVariableNames);
+        if (combos.isEmpty())
+            commandsByCombo.computeIfAbsent(null, combo -> new ArrayList<>()).add(command);
         for (Combo combo : combos)
             commandsByCombo.computeIfAbsent(combo, combo1 -> new ArrayList<>())
                            .add(command);
@@ -3583,6 +3586,8 @@ public class ConfigurationParser {
                                            Map<String, AppAlias> appAliases,
                                            KeyResolver keyResolver,
                                            Set<String> allVariableNames) {
+        if (multiComboString.equals("none"))
+            return List.of();
         return Combo.multiCombo(label, multiComboString, defaultComboMoveDuration,
                 keyAliases, appAliases, keyResolver, allVariableNames);
     }
@@ -4455,6 +4460,8 @@ public class ConfigurationParser {
                                   Map<Combo, List<Command>> otherCommandsByCombo) {
               for (Map.Entry<Combo, List<Command>> entry : otherCommandsByCombo.entrySet()) {
                   Combo combo = entry.getKey();
+                  if (combo == null)
+                      continue;
                   List<Command> commands = entry.getValue();
                   commandsByCombo.computeIfAbsent(combo, combo1 -> new ArrayList<>())
                                  .addAll(commands);

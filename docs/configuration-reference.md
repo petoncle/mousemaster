@@ -66,6 +66,7 @@ Combos are sequences of key presses and releases that trigger commands in mousem
 | `_{keys}`          | Precondition: listed keys must be pressed     |
 | `^{keys}`          | Precondition: listed keys must not be pressed |
 | `combo1 \| combo2` | Multiple alternative combos                   |
+| `none`             | No combo                                      |
 
 ### Examples
 
@@ -137,6 +138,11 @@ slow-mode=_indicator-mode _clipboard-mode
 The mode's own properties come first, then each parent in turn: the first one to define a
 property keeps it. A property that names its own source (`slow-mode.indicator=other-mode.indicator`)
 takes it from there instead of from any parent.
+
+A command set to `none` has no combo, and the mode does not take the parent's combos for it:
+```properties
+slow-mode.press.middle=none
+```
 
 ### Common mode types
 
