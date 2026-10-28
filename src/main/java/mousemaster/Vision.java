@@ -145,21 +145,29 @@ public class Vision {
         double screenScaleX = (double) bounds.width() / width;
         double screenScaleY = (double) bounds.height() / height;
         List<UiElement> elements = new ArrayList<>(boxes.size());
+        List<UiElement> trimmedElements = new ArrayList<>(boxes.size());
         for (Rectangle box : boxes) {
             if (Math.min(box.width() * screenScaleX, box.height() * screenScaleY)
                 < minSize * scale)
                 continue;
-            int left = bounds.x() + (int) Math.round(box.x() * screenScaleX);
-            int top = bounds.y() + (int) Math.round(box.y() * screenScaleY);
-            int right = bounds.x() + (int) Math.round((box.x() + box.width()) * screenScaleX);
-            int bottom = bounds.y() + (int) Math.round((box.y() + box.height()) * screenScaleY);
-            UiElement element =
-                    new UiElement(new Rectangle(left, top, right - left, bottom - top));
+            UiElement element = element(box, bounds, screenScaleX, screenScaleY);
             if (!UiAutomation.isTooCloseToExistingUiElements(elements, element.centerX(),
-                    element.centerY(), scale))
+                    element.centerY(), scale)) {
                 elements.add(element);
+                trimmedElements.add(element(trimmed(capture.scaledRgb(), width, height, box),
+                        bounds, screenScaleX, screenScaleY));
+            }
         }
-        return elements;
+        return trimmedElements;
+    }
+
+    private static UiElement element(Rectangle box, Rectangle bounds, double screenScaleX,
+                                     double screenScaleY) {
+        int left = bounds.x() + (int) Math.round(box.x() * screenScaleX);
+        int top = bounds.y() + (int) Math.round(box.y() * screenScaleY);
+        int right = bounds.x() + (int) Math.round((box.x() + box.width()) * screenScaleX);
+        int bottom = bounds.y() + (int) Math.round((box.y() + box.height()) * screenScaleY);
+        return new UiElement(new Rectangle(left, top, right - left, bottom - top));
     }
 
     /** A pane, a box around other boxes, hides nothing. */
@@ -303,6 +311,35 @@ public class Vision {
     /** A quarter of the ink threshold, which the faintest outlines reach once scaled down. */
     private static boolean isInk(int distance) {
         return distance > InkDetector.inkThreshold / 4;
+    }
+
+    /** The box trimmed to its ink against its corner background. */
+    private static Rectangle trimmed(byte[] rgb, int width, int height, Rectangle box) {
+        int background = cornerBackground(rgb, width, height, box);
+        if (background < 0)
+            return box;
+        int left = box.x(), top = box.y();
+        int right = left + box.width() - 1, bottom = top + box.height() - 1;
+        while (top <= bottom && !hasInk(rgb, width, left, top, right, top, background))
+            top++;
+        if (top > bottom)
+            return box;
+        while (!hasInk(rgb, width, left, bottom, right, bottom, background))
+            bottom--;
+        while (!hasInk(rgb, width, left, top, left, bottom, background))
+            left++;
+        while (!hasInk(rgb, width, right, top, right, bottom, background))
+            right--;
+        return new Rectangle(left, top, right - left + 1, bottom - top + 1);
+    }
+
+    private static boolean hasInk(byte[] rgb, int width, int left, int top, int right,
+                                  int bottom, int background) {
+        for (int y = top; y <= bottom; y++)
+            for (int x = left; x <= right; x++)
+                if (isInk(distance(color(rgb, width, x, y), background)))
+                    return true;
+        return false;
     }
 
     /** The box parted at each gap between ink of two colours. */

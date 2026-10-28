@@ -97,6 +97,18 @@ public class VisionTest {
     }
 
     @Test
+    public void elementIsItsInkWithoutTheEdgeAroundIt() {
+        BufferedImage image = screen(Color.WHITE);
+        Graphics2D pen = pen(image);
+        pen.setColor(new Color(0x3C3C3C));
+        pen.fillRect(100, 100, 40, 40);
+        pen.dispose();
+        for (int density : new int[] {defaultDensity, VisionTest.density})
+            assertEquals(List.of(new Rectangle(100, 100, 40, 40)),
+                    elements(image, density).stream().map(UiElement::rectangle).toList());
+    }
+
+    @Test
     public void colourThatKeepsTheBrightnessIsContent() {
         BufferedImage image = screen(new Color(0x767676));
         Graphics2D pen = pen(image);
