@@ -134,7 +134,7 @@ The other configurations are documented too: [neru](docs/neru.md),
 ## Features
 
 1. **Combos and key remapping**: Define combos (key sequences, chords, timed holds, taps, tap-dances, and more) to trigger commands, switch modes, or remap keys. See the [combo reference](docs/combo-reference.md).
-2. **Modes**: Each mode has its own combos and its own hint, grid, indicator and zoom settings, and can inherit properties from other modes.
+2. **Modes**: Each mode has its own combos and its own hint, indicator and zoom settings, and can inherit properties from other modes.
 3. **Conditional property values**: Any mode property can take a different value depending on the current state: which keys are held, which app is active, what the mouse is doing, which screen the cursor is on, and more.
 4. **Continuous mouse movement**: Move the cursor, click, scroll, and drag, all from the keyboard.
 5. **Hint navigation**: Cover the screen with a grid of labeled hints, type a label to jump the cursor there.

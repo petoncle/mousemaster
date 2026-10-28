@@ -63,7 +63,7 @@ class IndicatorEffectsTest {
                 new MouseManager(screenManager, proxy(MouseController.class)), overlay,
                 proxy(UiAutomation.class), () -> new App("test.exe"),
                 new KeyRedactor(KeyRedaction.NONE), null);
-        CommandRunner commandRunner = new CommandRunner(null, null, null, null) {
+        CommandRunner commandRunner = new CommandRunner(null, null, null) {
             @Override
             public boolean runningAtomicCommand() {
                 return false;

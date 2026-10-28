@@ -37,8 +37,6 @@ public class WindowsOverlay implements Overlay {
     private boolean currentIncludeOriginalCursor;
     private boolean currentCursorAnimating;
     private boolean mousePositionMissing;
-    private GridRenderer gridRenderer;
-    private WinDef.HWND gridHwnd;
     /** Owns no QWidget, so it can be created eagerly (no QtJambi native-load ordering). */
     private final HintMeshRenderer hintMeshRenderer;
     private WinDef.HWND zoomHwnd;
@@ -92,8 +90,6 @@ public class WindowsOverlay implements Overlay {
     @Override
     public void update(double delta) {
         hintMeshRenderer.runPendingWork();
-        if (gridRenderer != null)
-            gridRenderer.advanceAnimationsToFirstFrame();
         updateZoomWindow();
         releaseZoomWhenIdle(delta);
     }
@@ -148,28 +144,13 @@ public class WindowsOverlay implements Overlay {
     }
 
     @Override
-    public Rectangle activeWindowRectangle(double windowWidthPercent,
-                                                  double windowHeightPercent,
-                                                  int scaledTopInset,
-                                                  int scaledBottomInset,
-                                                  int scaledLeftInset,
-                                                  int scaledRightInset) {
+    public Rectangle activeWindowRectangle() {
         WinDef.HWND foregroundWindow = User32.INSTANCE.GetForegroundWindow();
         // https://stackoverflow.com/a/65605845
         WinDef.RECT excludeShadow = windowRectExcludingShadow(foregroundWindow);
-        int windowWidth = excludeShadow.right - excludeShadow.left;
-        int windowHeight = excludeShadow.bottom - excludeShadow.top;
-        int noInsetGridWidth = Math.max(1, (int) (windowWidth * windowWidthPercent));
-        int gridWidth =
-                Math.max(1, noInsetGridWidth - scaledLeftInset - scaledRightInset);
-        int noInsetGridHeight = Math.max(1, (int) (windowHeight * windowHeightPercent));
-        int gridHeight =
-                Math.max(1, noInsetGridHeight - scaledTopInset - scaledBottomInset);
-        return new Rectangle(Math.min(excludeShadow.right,
-                excludeShadow.left + scaledLeftInset +
-                (windowWidth - noInsetGridWidth) / 2), Math.min(excludeShadow.bottom,
-                excludeShadow.top + scaledTopInset +
-                (windowHeight - noInsetGridHeight) / 2), gridWidth, gridHeight);
+        return new Rectangle(excludeShadow.left, excludeShadow.top,
+                excludeShadow.right - excludeShadow.left,
+                excludeShadow.bottom - excludeShadow.top);
     }
 
     static WinDef.RECT windowRectExcludingShadow(WinDef.HWND hwnd) {
@@ -195,8 +176,6 @@ public class WindowsOverlay implements Overlay {
         // First in the hwnds list means drawn on top.
         if (anchoredIndicatorWindow != null && anchoredIndicatorWindow.showing())
             hwnds.add(anchoredIndicatorWindow.hwnd());
-        if (gridHwnd != null)
-            (gridRenderer.showing() ? hwnds : notTopmostHwnds).add(gridHwnd);
         for (TransparentWindow window : hintMeshRenderer.windows())
             (hintMeshRenderer.showing() ? hwnds : notTopmostHwnds).add(hwnd(window));
         if (followingIndicatorWindow != null && followingIndicatorWindow.showing())
@@ -339,13 +318,6 @@ public class WindowsOverlay implements Overlay {
         applyCaptureExclusion(hwnd, currentZoom != null);
         // enforceTopmost skips windows that are not showing.
         setWindowTopmost(hwnd);
-    }
-
-    private Rectangle virtualDesktopBounds() {
-        return Rectangle.union(WindowsScreen.findScreens()
-                                            .stream()
-                                            .map(Screen::rectangle)
-                                            .toList());
     }
 
     /** The window factory the renderer uses: a styled, transparent, click-through window. */
@@ -552,8 +524,6 @@ public class WindowsOverlay implements Overlay {
     }
 
     private void updateCaptureExclusions() {
-        if (gridHwnd != null)
-            applyCaptureExclusion(gridHwnd, currentZoom != null);
         for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
             applyCaptureExclusion(indicatorWindow.hwnd(),
                     currentZoom != null || indicatorExcludedFromCapture);
@@ -576,26 +546,6 @@ public class WindowsOverlay implements Overlay {
         }
         for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
             indicatorWindow.hide();
-    }
-
-    @Override
-    public void setGrid(Grid grid) {
-        Objects.requireNonNull(grid);
-        boolean firstCreation = gridHwnd == null;
-        if (firstCreation) {
-            gridRenderer = new GridRenderer();
-            gridHwnd = new WinDef.HWND(new Pointer(gridRenderer.widget().winId()));
-            applyOverlayExStyles(gridHwnd);
-        }
-        boolean wasShowing = gridRenderer.showing();
-        // Screen pixels: the configured thickness does not change with the zoom. A line the
-        // screen's scale leaves below a pixel is still drawn as one, and the repainted region
-        // grows by the thickness, so a thickness of 0 would leave the line behind.
-        gridRenderer.setGrid(grid, virtualDesktopBounds(),
-                Math.max(1, (int) Math.round(grid.lineThickness())),
-                hintMeshRenderer.lastSelectedHintBoxHexColor());
-        if (!wasShowing)
-            setTopmost();
     }
 
     /**
@@ -635,12 +585,6 @@ public class WindowsOverlay implements Overlay {
                 WindowsScreen.findScreens());
         if (!wasShowing)
             setTopmost();
-    }
-
-    @Override
-    public void hideGrid() {
-        if (gridRenderer != null)
-            gridRenderer.hide();
     }
 
     @Override

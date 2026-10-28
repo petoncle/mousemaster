@@ -1,7 +1,6 @@
 package mousemaster.platform.macos;
 
 import io.qt.core.QPoint;
-import mousemaster.Grid;
 import mousemaster.Hint;
 import mousemaster.HintMesh;
 import mousemaster.HintMeshConfiguration;
@@ -14,7 +13,6 @@ import mousemaster.platform.Overlay;
 import mousemaster.platform.DesktopCapture;
 import mousemaster.qt.QtHintFont;
 import mousemaster.qt.TransparentWindow;
-import mousemaster.renderer.GridRenderer;
 import mousemaster.renderer.HintMeshRenderer;
 import mousemaster.renderer.IndicatorRenderer;
 import org.slf4j.Logger;
@@ -38,7 +36,6 @@ public class MacosOverlay implements Overlay {
     private IndicatorRenderer followingIndicatorRenderer;
     private IndicatorRenderer anchoredIndicatorRenderer;
     private boolean indicatorExcludedFromCapture;
-    private GridRenderer gridRenderer;
     private MacosZoomRenderer zoomRenderer;
     private Zoom currentZoom;
     private long nextZoomFrameNanos;
@@ -57,8 +54,6 @@ public class MacosOverlay implements Overlay {
     @Override
     public void update(double delta) {
         hintMeshRenderer.runPendingWork();
-        if (gridRenderer != null)
-            gridRenderer.advanceAnimationsToFirstFrame();
         updateZoomWindow();
     }
 
@@ -134,29 +129,11 @@ public class MacosOverlay implements Overlay {
     }
 
     @Override
-    public Rectangle activeWindowRectangle(double windowWidthPercent,
-                                           double windowHeightPercent,
-                                           int scaledTopInset, int scaledBottomInset,
-                                           int scaledLeftInset, int scaledRightInset) {
+    public Rectangle activeWindowRectangle() {
         Rectangle window = MacosAccessibility.focusedWindowFrame();
         if (window == null)
             return MacosScreens.findActiveScreen(mouse.findMousePosition()).rectangle();
-        int noInsetGridWidth =
-                Math.max(1, (int) (window.width() * windowWidthPercent));
-        int gridWidth =
-                Math.max(1, noInsetGridWidth - scaledLeftInset - scaledRightInset);
-        int noInsetGridHeight =
-                Math.max(1, (int) (window.height() * windowHeightPercent));
-        int gridHeight =
-                Math.max(1, noInsetGridHeight - scaledTopInset - scaledBottomInset);
-        return new Rectangle(
-                Math.min(window.x() + window.width(),
-                        window.x() + scaledLeftInset +
-                        (window.width() - noInsetGridWidth) / 2),
-                Math.min(window.y() + window.height(),
-                        window.y() + scaledTopInset +
-                        (window.height() - noInsetGridHeight) / 2),
-                gridWidth, gridHeight);
+        return window;
     }
 
     @Override
@@ -220,39 +197,6 @@ public class MacosOverlay implements Overlay {
         Point visualCenter = MacosCursor.visualCenter();
         return new Point(visualCenter.x() * activeScreen.scale(),
                 visualCenter.y() * activeScreen.scale());
-    }
-
-    @Override
-    public void setGrid(Grid grid) {
-        if (gridRenderer == null) {
-            gridRenderer = new GridRenderer();
-            MacosWindow.applyOverlayProperties(gridRenderer.widget());
-        }
-        // A translucent window is composited on the screen it is assigned to, so one covering
-        // the whole desktop draws nothing on the others: it covers the grid's screen instead.
-        QPoint gridTopLeft = new QPoint(grid.x(), grid.y());
-        gridRenderer.setGrid(logicalGrid(grid, gridTopLeft),
-                MacosScreens.logicalScreenBounds(gridTopLeft),
-                Math.max(1, (int) Math.round(grid.lineThickness())),
-                hintMeshRenderer.lastSelectedHintBoxHexColor());
-    }
-
-    /** The far corner is on the screen's exclusive edge, so the size scales by where the grid starts. */
-    private static Grid logicalGrid(Grid grid, QPoint topLeft) {
-        QPoint logicalTopLeft = MacosScreens.logicalPoint(topLeft);
-        double scale = MacosScreens.scaleAt(topLeft);
-        return grid.builder()
-                   .x(logicalTopLeft.x())
-                   .y(logicalTopLeft.y())
-                   .width((int) Math.round(grid.width() / scale))
-                   .height((int) Math.round(grid.height() / scale))
-                   .build();
-    }
-
-    @Override
-    public void hideGrid() {
-        if (gridRenderer != null)
-            gridRenderer.hide();
     }
 
     @Override

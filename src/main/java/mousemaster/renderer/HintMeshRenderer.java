@@ -798,9 +798,10 @@ public final class HintMeshRenderer {
                         // The mesh is on screen a frame sooner than waiting for the next pump.
                         if (!isHintGrid && messagePump != null)
                             messagePump.run();
-                        if (isHintGrid) {
+                        if (isHintGrid && !hintMesh.hints().getFirst().keySequence().isEmpty()) {
                             // Defer the pixmap cache grab to the next frame so the hint mesh is shown
-                            // immediately; the grab is expensive (~90ms at 4K when cold).
+                            // immediately; the grab is expensive (~90ms at 4K when cold). A mesh
+                            // without keys has no labels to cache.
                             cacheQtHintWindowIntoPixmapRunnables.put(window, () ->
                                 cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh, boxes, enclosingInk));
                         }
@@ -3086,7 +3087,7 @@ public final class HintMeshRenderer {
             }
             this.tightHintBoxLeft = smallestHintBoxLeft;
             this.tightHintBoxWidth = smallestHintBoxWidth;
-            this.tightHintBoxHeight = labelMetrics.height();
+            this.tightHintBoxHeight = keySequence.isEmpty() ? 0 : labelMetrics.height();
         }
 
         /** Reuses a cached label's layout; only the screen position, set by the caller, differs. */

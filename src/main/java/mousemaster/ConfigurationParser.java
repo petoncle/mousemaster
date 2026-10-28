@@ -2,8 +2,6 @@ package mousemaster;
 
 import mousemaster.ComboMove.KeyComboMove;
 import mousemaster.ComboMove.PressComboMove;
-import mousemaster.GridArea.GridAreaType;
-import mousemaster.GridConfiguration.GridConfigurationBuilder;
 import mousemaster.HideCursor.HideCursorBuilder;
 import mousemaster.HintGridLayout.HintGridLayoutBuilder;
 import mousemaster.HintMeshConfiguration.HintMeshConfigurationBuilder;
@@ -39,6 +37,10 @@ public class ConfigurationParser {
 
     private static final Pattern appAliasPattern = Pattern.compile("\"([^\"]*)\"|(\\S+)");
     private static final Pattern propertyLinePattern = Pattern.compile("(.+?)=(.+)");
+    // a-mode.hint.grid-cell-width
+    // a-mode.hint.grid-cell-width.1920x1080-100%
+    private static final Pattern modeKeyPattern =
+            Pattern.compile("([^.]+-mode)(\\.([^.]+)(\\.([^.]+))?(\\.([^.]+))?)?");
     private static final Map<String, Property<?>> defaultPropertyByName = defaultPropertyByName();
 
     private static Map<String, Property<?>> defaultPropertyByName() {
@@ -59,29 +61,122 @@ public class ConfigurationParser {
                  .acceleration(500)
                  .accelerationEasing(new Easing.Polynomial(1))
                  .deceleration(0);
-        GridConfigurationBuilder grid =
-                new GridConfigurationBuilder();
-        grid.synchronization(Synchronization.MOUSE_AND_GRID_CENTER_UNSYNCHRONIZED)
-            .rowCount(2)
-            .columnCount(2)
-            .lineVisible(false)
-            .lineColor(Color.parse("#FF0000"))
-            .lineThickness(1)
-            .lineOpacity(1)
-            .backgroundColor(Color.parse("#FF0000"))
-            .backgroundOpacity(0.1)
-            .transitionAnimationEnabled(true)
-            .transitionAnimationDuration(Duration.ofMillis(100))
-            .fadeAnimationEnabled(true)
-            .fadeAnimationDuration(Duration.ofMillis(100));
-        GridArea.GridAreaBuilder gridAreaBuilder = grid.area();
-        gridAreaBuilder.type(GridAreaType.ACTIVE_SCREEN)
-                       .widthPercent(1)
-                       .heightPercent(1)
-                       .topInset(0)
-                       .bottomInset(0)
-                       .leftInset(0)
-                       .rightInset(0);
+        HintMeshConfigurationBuilder hintMesh = defaultHintMesh();
+        // The deprecated grid's defaults.
+        HintMeshConfigurationBuilder gridHintMesh = defaultHintMesh();
+        gridHintMesh.visible(false)
+                    .mouseMovement(HintMouseMovement.NO_MOVEMENT);
+        gridHintMesh.type().gridLayout(AnyScreenFilter.ANY_SCREEN_FILTER)
+                    .cellSizingType(HintCellSizing.HintCellSizingType.FIT)
+                    .maxRowCount(2)
+                    .maxColumnCount(2);
+        gridHintMesh.style(AnyScreenFilter.ANY_SCREEN_FILTER)
+                    .boxColor(GradientColor.parse("#FF0000"))
+                    .boxOpacity(0.1d)
+                    .boxBorderColor(Color.parse("#FF0000"))
+                    .boxBorderOpacity(1d);
+        ModeTimeoutBuilder timeout =
+                new ModeTimeoutBuilder().enabled(false).onlyIfIdle(true);
+        IndicatorConfigurationBuilder indicator =
+                new IndicatorConfigurationBuilder().renderAsCursor(false).excludeFromCapture(false);
+        indicator.shadow()
+                 .blurRadius(10d)
+                 .color(Color.parse("#000000"))
+                 .opacity(0d)
+                 .horizontalOffset(0d)
+                 .verticalOffset(0d)
+                 .stackCount(1);
+        IndicatorLayerConfigurationBuilder layer = indicator.layer("indicator");
+        layer.enabled(false).z(0);
+        layer.shape(IndicatorShape.CIRCLE)
+             .size(26)
+             .aspectRatio(1)
+             .borderRadius(0)
+             .points(List.of())
+             .x(0)
+             .y(0)
+             .distance(0)
+             .angle(0)
+             .rotation(0)
+             .fillColor(Color.parse("#FF0000"))
+             .fillOpacity(0.2)
+             .position(IndicatorPosition.MOUSE)
+             .followMouse(true);
+        layer.stroke()
+             .thickness(1)
+             .color(Color.parse("#FF0000"))
+             .opacity(1.0)
+             .startAngle(0)
+             .lengthPercent(1)
+             .anchor(StrokeAnchor.START)
+             .dashLength(0)
+             .dashGap(0)
+             .dashOffset(0)
+             .cap(StrokeCap.FLAT);
+        layer.text("")
+             .fontName("Arial")
+             .fontSize(8)
+             .fontWeight(FontWeight.NORMAL)
+             .textStyleSheet("");
+        HideCursorBuilder hideCursor =
+                new HideCursorBuilder().enabled(false).idleDuration(Duration.ZERO);
+        ZoomConfigurationBuilder zoom = new ZoomConfigurationBuilder();
+        zoom.percent(1.0)
+            .areaSizeSource(ZoomAreaSizeSource.PERCENT)
+            .areaWidthPercent(1.0)
+            .areaHeightPercent(1.0)
+            .center(ZoomCenter.SCREEN_CENTER)
+            .animationEnabled(false)
+            .animationEasing(new Easing.Smootherstep())
+            .animationDurationMillis(200);
+        // @formatter:off
+        return Stream.of( //
+                new Property<>("stop-commands-from-previous-mode", stopCommandsFromPreviousMode),
+                new Property<>("push-mode-to-history-stack", pushModeToHistoryStack),
+                new Property<>("mode-after-unhandled-key-press", modeAfterPressingUnhandledKeysOnly),
+                new Property<>("mouse", mouse),
+                new Property<>("wheel", wheel), 
+                new Property<>("grid", gridHintMesh),
+                new Property<>("hint", hintMesh), 
+                new Property<>("timeout", timeout), 
+                new Property<>("indicator", indicator), 
+                new Property<>("hide-cursor", hideCursor),
+                new Property<>("zoom", zoom),
+                new Property<>("to", Map.of()),
+                new Property<>("start-move", Map.of()),
+                new Property<>("stop-move", Map.of()),
+                new Property<>("press", Map.of()),
+                new Property<>("release", Map.of()),
+                new Property<>("toggle", Map.of()),
+                new Property<>("start-wheel", Map.of()),
+                new Property<>("stop-wheel", Map.of()),
+                new Property<>("snap", Map.of()),
+                new Property<>("shrink-grid", Map.of()),
+                new Property<>("move-grid", Map.of()),
+                new Property<>("move-to-grid-center", Map.of()),
+                new Property<>("move-to-last-selected-hint", Map.of()),
+                new Property<>("save-position", Map.of()),
+                new Property<>("unsave-position", Map.of()),
+                new Property<>("clear", Map.of()),
+                new Property<>("cycle-next", Map.of()),
+                new Property<>("cycle-previous", Map.of()),
+                new Property<>("start", Map.of()),
+                new Property<>("stop", Map.of()),
+                new Property<>("break-combo-preparation", Map.of()),
+                new Property<>("break-macro", Map.of()),
+                new Property<>("exit", Map.of()),
+                new Property<>("restart", Map.of()),
+                new Property<>("macro", Map.of()),
+                new Property<>("mutate-mode", Map.of()),
+                new Property<>("set-variable", Map.of()),
+                new Property<>("unset-variable", Map.of()),
+                new Property<>("reset-variables", Map.of()),
+                new Property<>("noop", Map.of())
+        ).collect(Collectors.toMap(property -> property.propertyKey.propertyName, Function.identity()));
+        // @formatter:on
+    }
+
+    private static HintMeshConfigurationBuilder defaultHintMesh() {
         HintMeshConfigurationBuilder hintMesh =
                 new HintMeshConfigurationBuilder();
         hintMesh.enabled(false)
@@ -202,105 +297,7 @@ public class ConfigurationParser {
         hintMeshTypeBuilder.uiOrder(UiHintOrder.TOP_TO_BOTTOM);
         hintMeshTypeBuilder.visionDensity(6);
         hintMeshTypeBuilder.visionMinSize(0d);
-        ModeTimeoutBuilder timeout =
-                new ModeTimeoutBuilder().enabled(false).onlyIfIdle(true);
-        IndicatorConfigurationBuilder indicator =
-                new IndicatorConfigurationBuilder().renderAsCursor(false).excludeFromCapture(false);
-        indicator.shadow()
-                 .blurRadius(10d)
-                 .color(Color.parse("#000000"))
-                 .opacity(0d)
-                 .horizontalOffset(0d)
-                 .verticalOffset(0d)
-                 .stackCount(1);
-        IndicatorLayerConfigurationBuilder layer = indicator.layer("indicator");
-        layer.enabled(false).z(0);
-        layer.shape(IndicatorShape.CIRCLE)
-             .size(26)
-             .aspectRatio(1)
-             .borderRadius(0)
-             .points(List.of())
-             .x(0)
-             .y(0)
-             .distance(0)
-             .angle(0)
-             .rotation(0)
-             .fillColor(Color.parse("#FF0000"))
-             .fillOpacity(0.2)
-             .position(IndicatorPosition.MOUSE)
-             .followMouse(true);
-        layer.stroke()
-             .thickness(1)
-             .color(Color.parse("#FF0000"))
-             .opacity(1.0)
-             .startAngle(0)
-             .lengthPercent(1)
-             .anchor(StrokeAnchor.START)
-             .dashLength(0)
-             .dashGap(0)
-             .dashOffset(0)
-             .cap(StrokeCap.FLAT);
-        layer.text("")
-             .fontName("Arial")
-             .fontSize(8)
-             .fontWeight(FontWeight.NORMAL)
-             .textStyleSheet("");
-        HideCursorBuilder hideCursor =
-                new HideCursorBuilder().enabled(false).idleDuration(Duration.ZERO);
-        ZoomConfigurationBuilder zoom = new ZoomConfigurationBuilder();
-        zoom.percent(1.0)
-            .areaSizeSource(ZoomAreaSizeSource.PERCENT)
-            .areaWidthPercent(1.0)
-            .areaHeightPercent(1.0)
-            .center(ZoomCenter.SCREEN_CENTER)
-            .animationEnabled(false)
-            .animationEasing(new Easing.Smootherstep())
-            .animationDurationMillis(200);
-        // @formatter:off
-        return Stream.of( //
-                new Property<>("stop-commands-from-previous-mode", stopCommandsFromPreviousMode),
-                new Property<>("push-mode-to-history-stack", pushModeToHistoryStack),
-                new Property<>("mode-after-unhandled-key-press", modeAfterPressingUnhandledKeysOnly),
-                new Property<>("mouse", mouse),
-                new Property<>("wheel", wheel), 
-                new Property<>("grid", grid), 
-                new Property<>("hint", hintMesh), 
-                new Property<>("timeout", timeout), 
-                new Property<>("indicator", indicator), 
-                new Property<>("hide-cursor", hideCursor),
-                new Property<>("zoom", zoom),
-                new Property<>("to", Map.of()),
-                new Property<>("start-move", Map.of()),
-                new Property<>("stop-move", Map.of()),
-                new Property<>("press", Map.of()),
-                new Property<>("release", Map.of()),
-                new Property<>("toggle", Map.of()),
-                new Property<>("start-wheel", Map.of()),
-                new Property<>("stop-wheel", Map.of()),
-                new Property<>("snap", Map.of()),
-                new Property<>("shrink-grid", Map.of()),
-                new Property<>("move-grid", Map.of()),
-                new Property<>("move-grid-to-center", Map.of()),
-                new Property<>("move-to-last-selected-hint", Map.of()),
-                new Property<>("save-position", Map.of()),
-                new Property<>("unsave-position", Map.of()),
-                new Property<>("clear", Map.of()),
-                new Property<>("cycle-next", Map.of()),
-                new Property<>("cycle-previous", Map.of()),
-                new Property<>("start", Map.of()),
-                new Property<>("stop", Map.of()),
-                new Property<>("break-combo-preparation", Map.of()),
-                new Property<>("break-macro", Map.of()),
-                new Property<>("exit", Map.of()),
-                new Property<>("restart", Map.of()),
-                new Property<>("macro", Map.of()),
-                new Property<>("mutate-mode", Map.of()),
-                new Property<>("set-variable", Map.of()),
-                new Property<>("unset-variable", Map.of()),
-                new Property<>("reset-variables", Map.of()),
-                new Property<>("noop", Map.of())
-        ).collect(Collectors.toMap(property -> property.propertyKey.propertyName, Function.identity()));
-        // @formatter:on
+        return hintMesh;
     }
 
     private record Aliases(Map<String, LayoutKeyAlias> layoutKeyAliasByName,
@@ -327,6 +324,7 @@ public class ConfigurationParser {
     public static Configuration parse(List<String> properties,
                                       KeyboardLayout platformActiveKeyboardLayout) {
         properties = desugarIndicatorStates(properties);
+        properties = desugarGrid(properties);
         ForcedActiveAndConfigurationKeyboardLayouts
                 forcedActiveAndConfigurationKeyboardLayouts = parseForcedAndConfigurationLayouts(properties);
         KeyboardLayout activeKeyboardLayout =
@@ -464,10 +462,6 @@ public class ConfigurationParser {
                 // Read by parseDeclaredVirtualKeyNames, before the keys are resolved.
                 continue;
             }
-            // a-mode.hint.grid-cell-width
-            // a-mode.hint.grid-cell-width.1920x1080-100%
-            Pattern modeKeyPattern =
-                    Pattern.compile("([^.]+-mode)(\\.([^.]+)(\\.([^.]+))?(\\.([^.]+))?)?");
             Matcher keyMatcher = modeKeyPattern.matcher(propertyKey);
             if (!keyMatcher.matches())
                 continue;
@@ -582,6 +576,14 @@ public class ConfigurationParser {
                 throw new IllegalArgumentException(
                         "Found property dependency cycle involving property key " +
                         propertyKey);
+        // A mode that uses the deprecated grid, and has no hint, shows the grid as its hint.
+        for (ModeBuilder mode : modeByName.values()) {
+            if (mode.hintMesh.builder.enabled() ||
+                !mode.grid.builder.enabled() && !usesGridCommands(mode))
+                continue;
+            mode.grid.builder.enabled(true);
+            mode.hintMesh = mode.grid;
+        }
         IndicatorLayerConfigurationBuilder defaultLayer =
                 ((IndicatorConfigurationBuilder) defaultPropertyByName.get("indicator").builder)
                         .layer("indicator");
@@ -600,7 +602,7 @@ public class ConfigurationParser {
                     mode.pushModeToHistoryStack,
                     mode.modeAfterUnhandledKeyPress,
                     mode.mouse, mode.wheel,
-                    mode.grid, mode.hintMesh, mode.timeout, mode.indicator,
+                    mode.hintMesh, mode.timeout, mode.indicator,
                     mode.hideCursor, mode.zoom)) {
                 for (Map.Entry<Combo, List<Command>> entry :
                         property.mutateModeCommands.entrySet()) {
@@ -838,6 +840,69 @@ public class ConfigurationParser {
                 branches.add("_{" + stateKey.getValue() + "} -> " + value);
         }
         return String.join(" | ", branches);
+    }
+
+    private static final Map<String, String> HINT_KEY_BY_GRID_KEY = Map.ofEntries(
+            Map.entry("area", "area"),
+            Map.entry("area-width-percent", "area-width-percent"),
+            Map.entry("area-height-percent", "area-height-percent"),
+            Map.entry("area-top-inset", "area-top-inset"),
+            Map.entry("area-bottom-inset", "area-bottom-inset"),
+            Map.entry("area-left-inset", "area-left-inset"),
+            Map.entry("area-right-inset", "area-right-inset"),
+            Map.entry("row-count", "grid-max-row-count"),
+            Map.entry("column-count", "grid-max-column-count"),
+            Map.entry("line-visible", "visible"),
+            Map.entry("line-color", "box-border-color"),
+            Map.entry("line-thickness", "box-border-thickness"),
+            Map.entry("line-opacity", "box-border-opacity"),
+            Map.entry("background-color", "box-color"),
+            Map.entry("background-opacity", "box-opacity"),
+            Map.entry("transition-animation-enabled", "transition-animation-enabled"),
+            Map.entry("transition-animation-duration-millis",
+                    "transition-animation-duration-millis"),
+            Map.entry("fade-animation-enabled", "fade-animation-enabled"),
+            Map.entry("fade-animation-duration-millis", "fade-animation-duration-millis"));
+
+    private static final Map<String, String> HINT_PROPERTY_BY_SYNCHRONIZATION = Map.of(
+            "mouse-follows-grid-center", "mouse-movement=mouse-follows-hint-grid-center",
+            "mouse-and-grid-center-unsynchronized", "mouse-movement=no-movement",
+            "grid-center-follows-mouse", "area-center=mouse");
+
+    private static boolean usesGridCommands(ModeBuilder mode) {
+        return !mode.comboMap.snap.builder.isEmpty() ||
+               !mode.comboMap.shrinkGrid.builder.isEmpty() ||
+               !mode.comboMap.moveGrid.builder.isEmpty() ||
+               !mode.comboMap.moveToGridCenter.builder.isEmpty();
+    }
+
+    /**
+     * Rewrites the deprecated grid properties with the names of the hint properties:
+     * a-mode.grid.row-count=1 becomes a-mode.grid.grid-max-row-count=1.
+     */
+    private static List<String> desugarGrid(List<String> properties) {
+        List<String> desugared = new ArrayList<>(properties.size());
+        for (String property : properties) {
+            Matcher lineMatcher = propertyLinePattern.matcher(property);
+            Matcher keyMatcher = modeKeyPattern.matcher(
+                    lineMatcher.matches() ? lineMatcher.group(1).strip() : "");
+            if (!keyMatcher.matches() || !"grid".equals(keyMatcher.group(3)) ||
+                keyMatcher.group(5) == null || keyMatcher.group(7) != null) {
+                desugared.add(property);
+                continue;
+            }
+            String gridKey = keyMatcher.group(1) + ".grid";
+            String key = keyMatcher.group(5);
+            String value = lineMatcher.group(2).strip();
+            if (key.equals("synchronization") &&
+                HINT_PROPERTY_BY_SYNCHRONIZATION.containsKey(value))
+                desugared.add(gridKey + "." + HINT_PROPERTY_BY_SYNCHRONIZATION.get(value));
+            else if (HINT_KEY_BY_GRID_KEY.containsKey(key))
+                desugared.add(gridKey + "." + HINT_KEY_BY_GRID_KEY.get(key) + "=" + value);
+            else
+                desugared.add(property);
+        }
+        return desugared;
     }
 
     /** A name prefixed with + is pressed from the start; - or no prefix is not pressed. */
@@ -1144,42 +1209,19 @@ public class ConfigurationParser {
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
-            case "grid" -> {
+            case "hint", "grid" -> {
+                Property<HintMeshConfigurationBuilder> hintMesh =
+                        group2.equals("hint") ? mode.hintMesh : mode.grid;
                 if (keyMatcher.group(group3) == null)
-                    mode.grid.parsePropertyReference(propertyKey, propertyValue,
-                            childPropertiesByParentProperty,
-                            nonRootPropertyKeys);
-                else if (keyMatcher.group(group4) == null)
-                    throw new IllegalArgumentException(
-                            "Invalid grid property key");
-                else {
-                    ModePropertyHandler handler = gridHandler(
-                            new ModePropertyPath(List.of("grid")),
-                            mode.grid.builder, keyMatcher.group(group4), colorAliases);
-                    if (handler == null)
-                        throw new IllegalArgumentException(
-                                "Invalid grid property key");
-                    if (!tryParseComboProperty(propertyValue, modeName,
-                            handler.propertyPath(), handler.valueParser(),
-                            handler.modeBuilderSetter(),
-                            mode.grid.mutateModeCommands,
-                            mode.grid.setPropertyPaths,
-                            defaultComboMoveDuration, keyAliases, appAliases,
-                            keyResolver, allVariableNames, null))
-                        handler.modeBuilderSetter().accept(propertyValue);
-                }
-            }
-            case "hint" -> {
-                if (keyMatcher.group(group3) == null)
-                    mode.hintMesh.parsePropertyReference(propertyKey, propertyValue,
+                    hintMesh.parsePropertyReference(propertyKey, propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
                 else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid hint property key");
                 else {
-                    if (mode.hintMesh.builder.enabled() == null)
-                        mode.hintMesh.builder.enabled(true);
+                    if (hintMesh.builder.enabled() == null)
+                        hintMesh.builder.enabled(true);
                     ScreenFilter screenFilter = keyMatcher.group(group5) == null ?
                             AnyScreenFilter.ANY_SCREEN_FILTER :
                             parseScreenFilter(keyMatcher.group(group5));
@@ -1187,7 +1229,7 @@ public class ConfigurationParser {
                     Function<ScreenFilter, ModePropertyHandler> handlerByFilter =
                             filter -> hintHandler(
                                     new ModePropertyPath(List.of("hintMesh")),
-                                    mode.hintMesh.builder, filter, hintKey,
+                                    hintMesh.builder, filter, hintKey,
                                     keyAliases, keyResolver,
                                     positionHistoryNames, colorAliases);
                     ModePropertyHandler handler = handlerByFilter.apply(screenFilter);
@@ -1195,8 +1237,8 @@ public class ConfigurationParser {
                         if (!tryParseComboProperty(propertyValue, modeName,
                                 handler.propertyPath(), handler.valueParser(),
                                 handler.modeBuilderSetter(),
-                                mode.hintMesh.mutateModeCommands,
-                                mode.hintMesh.setPropertyPaths,
+                                hintMesh.mutateModeCommands,
+                                hintMesh.setPropertyPaths,
                                 defaultComboMoveDuration, keyAliases, appAliases,
                                 keyResolver, allVariableNames,
                                 new ScreenFilterProperty(screenFilter,
@@ -1213,8 +1255,8 @@ public class ConfigurationParser {
                                     ".hint.mouse-movement=" +
                                     (moveMouse ? "mouse-follows-selected-hint" :
                                             "no-movement") + " instead");
-                            if (mode.hintMesh.builder.mouseMovement() == null) {
-                                mode.hintMesh.builder.mouseMovement(
+                            if (hintMesh.builder.mouseMovement() == null) {
+                                hintMesh.builder.mouseMovement(
                                         moveMouse ?
                                                 HintMouseMovement.MOUSE_FOLLOWS_SELECTED_HINT :
                                                 HintMouseMovement.NO_MOVEMENT);
@@ -1224,7 +1266,7 @@ public class ConfigurationParser {
                             String modeAfterSelection = propertyValue;
                             modeReferences.add(
                                     checkModeReference(modeAfterSelection));
-                            mode.hintMesh.builder.modeAfterSelection(modeAfterSelection);
+                            hintMesh.builder.modeAfterSelection(modeAfterSelection);
                             logger.warn(
                                     "hint.mode-after-selection has been deprecated: use " +
                                     modeName + ".to." + modeAfterSelection +
@@ -1240,13 +1282,13 @@ public class ConfigurationParser {
                                     "hint.save-position-after-selection has been deprecated and removed: use position-history.save-position instead");
                         }
                         case "select" -> {
-                            mode.hintMesh.builder.selectCombos(
+                            hintMesh.builder.selectCombos(
                                     parseCombos(propertyValue, propertyKey,
                                             defaultComboMoveDuration,
                                             keyAliases, appAliases, keyResolver, allVariableNames));
                         }
                         case "deselect", "undo" -> {
-                            mode.hintMesh.builder.deselectCombos(
+                            hintMesh.builder.deselectCombos(
                                     parseCombos(propertyValue, propertyKey,
                                             defaultComboMoveDuration,
                                             keyAliases, appAliases, keyResolver, allVariableNames));
@@ -2282,12 +2324,6 @@ public class ConfigurationParser {
             throw new IllegalArgumentException(
                     "Definition of hide-cursor for " + mode.modeName +
                     " is incomplete: expected " + List.of("enabled", "duration"));
-        GridArea.GridAreaBuilder gridArea = mode.grid.builder.area();
-        if (gridArea.widthPercent() == null || gridArea.heightPercent() == null)
-            throw new IllegalArgumentException(
-                    "Definition of grid for " + mode.modeName +
-                    " is incomplete: expected " +
-                    List.of("row-count", "column-count"));
         HintMeshType.HintMeshTypeBuilder hintMeshType =
                 mode.hintMesh.builder.type();
         if (hintMeshType.type() != null) {
@@ -2545,51 +2581,6 @@ public class ConfigurationParser {
             case "acceleration" -> ModePropertyHandler.of(prefix.append("velocity", "acceleration"), v -> Double.parseDouble(v), v -> wheel.velocity().acceleration(v));
             case "acceleration-easing" -> ModePropertyHandler.of(prefix.append("velocity", "accelerationEasing"), v -> parseEasing(v), v -> wheel.velocity().accelerationEasing(v));
             case "deceleration" -> ModePropertyHandler.of(prefix.append("velocity", "deceleration"), v -> Double.parseDouble(v), v -> wheel.velocity().deceleration(v));
-            default -> null;
-        };
-    }
-
-    private static ModePropertyHandler gridHandler(
-            ModePropertyPath prefix,
-            GridConfiguration.GridConfigurationBuilder grid, String key,
-            Map<String, GradientColor> colorAliases) {
-        return switch (key) {
-            // @formatter:off
-            case "area" -> new ModePropertyHandler(prefix.append("area"),
-                    v -> {
-                        GridArea.GridAreaType type = parseGridAreaType("grid.area", v);
-                        return (Function<GridArea, GridArea>) currentArea -> switch (type) {
-                            case ACTIVE_SCREEN -> new GridArea.ActiveScreenGridArea(
-                                    currentArea.widthPercent(), currentArea.heightPercent(),
-                                    currentArea.topInset(), currentArea.bottomInset(),
-                                    currentArea.leftInset(), currentArea.rightInset());
-                            case ACTIVE_WINDOW -> new GridArea.ActiveWindowGridArea(
-                                    currentArea.widthPercent(), currentArea.heightPercent(),
-                                    currentArea.topInset(), currentArea.bottomInset(),
-                                    currentArea.leftInset(), currentArea.rightInset());
-                        };
-                    },
-                    v -> grid.area().type(parseGridAreaType("grid.area", v)));
-            case "area-width-percent" -> ModePropertyHandler.of(prefix.append("area", "widthPercent"), v -> parseNonZeroPercent(v, 2), v -> grid.area().widthPercent(v));
-            case "area-height-percent" -> ModePropertyHandler.of(prefix.append("area", "heightPercent"), v -> parseNonZeroPercent(v, 2), v -> grid.area().heightPercent(v));
-            case "area-top-inset" -> ModePropertyHandler.of(prefix.append("area", "topInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> grid.area().topInset(v));
-            case "area-bottom-inset" -> ModePropertyHandler.of(prefix.append("area", "bottomInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> grid.area().bottomInset(v));
-            case "area-left-inset" -> ModePropertyHandler.of(prefix.append("area", "leftInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> grid.area().leftInset(v));
-            case "area-right-inset" -> ModePropertyHandler.of(prefix.append("area", "rightInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> grid.area().rightInset(v));
-            case "synchronization" -> ModePropertyHandler.of(prefix.append("synchronization"), v -> parseSynchronization("grid.synchronization", v), v -> grid.synchronization(v));
-            case "row-count" -> ModePropertyHandler.of(prefix.append("rowCount"), v -> parseUnsignedInteger(v, 1, 50), v -> grid.rowCount(v));
-            case "column-count" -> ModePropertyHandler.of(prefix.append("columnCount"), v -> parseUnsignedInteger(v, 1, 50), v -> grid.columnCount(v));
-            case "line-visible" -> ModePropertyHandler.of(prefix.append("lineVisible"), v -> Boolean.parseBoolean(v), v -> grid.lineVisible(v));
-            case "line-color" -> ModePropertyHandler.of(prefix.append("lineColor"), v -> Color.parse(v, colorAliases), v -> grid.lineColor(v));
-            case "line-thickness" -> ModePropertyHandler.of(prefix.append("lineThickness"), v -> parseDouble(v, false, 0, 1000), v -> grid.lineThickness(v));
-            case "line-opacity" -> ModePropertyHandler.of(prefix.append("lineOpacity"), v -> parseDouble(v, true, 0, 1), v -> grid.lineOpacity(v));
-            case "background-color" -> ModePropertyHandler.of(prefix.append("backgroundColor"), v -> Color.parse(v, colorAliases), v -> grid.backgroundColor(v));
-            case "background-opacity" -> ModePropertyHandler.of(prefix.append("backgroundOpacity"), v -> parseDouble(v, true, 0, 1), v -> grid.backgroundOpacity(v));
-            case "transition-animation-enabled" -> ModePropertyHandler.of(prefix.append("transitionAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> grid.transitionAnimationEnabled(v));
-            case "transition-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("transitionAnimationDuration"), v -> parseDuration(v), v -> grid.transitionAnimationDuration(v));
-            case "fade-animation-enabled" -> ModePropertyHandler.of(prefix.append("fadeAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> grid.fadeAnimationEnabled(v));
-            case "fade-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("fadeAnimationDuration"), v -> parseDuration(v), v -> grid.fadeAnimationDuration(v));
-            // @formatter:on
             default -> null;
         };
     }
@@ -3445,31 +3436,6 @@ public class ConfigurationParser {
         };
     }
 
-    private static GridAreaType parseGridAreaType(String propertyKey,
-                                                  String propertyValue) {
-        return switch (propertyValue) {
-            case "active-screen" -> GridAreaType.ACTIVE_SCREEN;
-            case "active-window" -> GridAreaType.ACTIVE_WINDOW;
-            default -> throw new IllegalArgumentException(
-                    "Invalid property value in " + propertyKey + "=" + propertyValue +
-                    ": type should be one of " +
-                    List.of("active-screen", "active-window"));
-        };
-    }
-
-    private static Synchronization parseSynchronization(String propertyKey, String propertyValue) {
-        return switch (propertyValue) {
-            case "mouse-and-grid-center-unsynchronized" ->
-                    Synchronization.MOUSE_AND_GRID_CENTER_UNSYNCHRONIZED;
-            case "mouse-follows-grid-center" -> Synchronization.MOUSE_FOLLOWS_GRID_CENTER;
-            case "grid-center-follows-mouse" -> Synchronization.GRID_CENTER_FOLLOWS_MOUSE;
-            default -> throw new IllegalArgumentException(
-                    "Invalid property value in " + propertyKey + "=" + propertyValue +
-                    ": expected one of " + List.of("mouse-and-grid-center-unsynchronized",
-                            "mouse-follows-grid-center", "grid-center-follows-mouse"));
-        };
-    }
-
     private static PositionHistoryIsolation parsePositionHistoryIsolation(String propertyKey,
                                                                          String propertyValue) {
         return switch (propertyValue) {
@@ -3608,8 +3574,8 @@ public class ConfigurationParser {
         ComboMapConfigurationBuilder comboMap;
         Property<MouseBuilder> mouse;
         Property<WheelBuilder> wheel;
-        Property<GridConfigurationBuilder> grid;
         Property<HintMeshConfigurationBuilder> hintMesh;
+        Property<HintMeshConfigurationBuilder> grid;
         Property<ModeTimeoutBuilder> timeout;
         Property<IndicatorConfigurationBuilder> indicator;
         Property<HideCursorBuilder> hideCursor;
@@ -3664,54 +3630,8 @@ public class ConfigurationParser {
                     extendVelocity(builder.velocity(), parent.velocity());
                 }
             };
-            grid = new Property<>("grid", modeName, propertyByKey,
-                    new GridConfigurationBuilder()) {
-                @Override
-                void extend(Object parent_) {
-                    GridConfigurationBuilder parent = (GridConfigurationBuilder) parent_;
-                    if (builder.area().type() == null)
-                        builder.area().type(parent.area().type());
-                    if (builder.area().widthPercent() == null)
-                        builder.area().widthPercent(parent.area().widthPercent());
-                    if (builder.area().heightPercent() == null)
-                        builder.area().heightPercent(parent.area().heightPercent());
-                    if (builder.area().topInset() == null)
-                        builder.area().topInset(parent.area().topInset());
-                    if (builder.area().bottomInset() == null)
-                        builder.area().bottomInset(parent.area().bottomInset());
-                    if (builder.area().leftInset() == null)
-                        builder.area().leftInset(parent.area().leftInset());
-                    if (builder.area().rightInset() == null)
-                        builder.area().rightInset(parent.area().rightInset());
-                    if (builder.synchronization() == null)
-                        builder.synchronization(parent.synchronization());
-                    if (builder.rowCount() == null)
-                        builder.rowCount(parent.rowCount());
-                    if (builder.columnCount() == null)
-                        builder.columnCount(parent.columnCount());
-                    if (builder.lineVisible() == null)
-                        builder.lineVisible(parent.lineVisible());
-                    if (builder.lineColor() == null)
-                        builder.lineColor(parent.lineColor());
-                    if (builder.lineThickness() == null)
-                        builder.lineThickness(parent.lineThickness());
-                    if (builder.lineOpacity() == null)
-                        builder.lineOpacity(parent.lineOpacity());
-                    if (builder.backgroundColor() == null)
-                        builder.backgroundColor(parent.backgroundColor());
-                    if (builder.backgroundOpacity() == null)
-                        builder.backgroundOpacity(parent.backgroundOpacity());
-                    if (builder.transitionAnimationEnabled() == null)
-                        builder.transitionAnimationEnabled(parent.transitionAnimationEnabled());
-                    if (builder.transitionAnimationDuration() == null)
-                        builder.transitionAnimationDuration(parent.transitionAnimationDuration());
-                    if (builder.fadeAnimationEnabled() == null)
-                        builder.fadeAnimationEnabled(parent.fadeAnimationEnabled());
-                    if (builder.fadeAnimationDuration() == null)
-                        builder.fadeAnimationDuration(parent.fadeAnimationDuration());
-                }
-            };
-            hintMesh = new HintMeshProperty(modeName, propertyByKey);
+            hintMesh = new HintMeshProperty("hint", modeName, propertyByKey);
+            grid = new HintMeshProperty("grid", modeName, propertyByKey);
             timeout = new Property<>("timeout", modeName, propertyByKey,
                     new ModeTimeoutBuilder()) {
                 @Override
@@ -3777,7 +3697,7 @@ public class ConfigurationParser {
                     pushModeToHistoryStack.builder.get(),
                     modeAfterUnhandledKeyPress.builder.get(),
                     comboMap.build(),
-                    mouse.builder.build(), wheel.builder.build(), grid.builder.build(),
+                    mouse.builder.build(), wheel.builder.build(),
                     hintMesh.builder.build(), timeout.builder.build(),
                     indicator.builder.build(), hideCursor.builder.build(),
                     zoom.builder.build(), Map.of());
@@ -3786,9 +3706,9 @@ public class ConfigurationParser {
         private static class HintMeshProperty
                 extends Property<HintMeshConfigurationBuilder> {
 
-            public HintMeshProperty(String modeName,
+            public HintMeshProperty(String name, String modeName,
                                     Map<PropertyKey, Property<?>> propertyByKey) {
-                super("hint", modeName, propertyByKey,
+                super(name, modeName, propertyByKey,
                         new HintMeshConfigurationBuilder());
             }
 
@@ -4341,7 +4261,7 @@ public class ConfigurationParser {
             snap = new ComboMapProperty("snap", modeName, propertyByKey);
             shrinkGrid = new ComboMapProperty("shrink-grid", modeName, propertyByKey);
             moveGrid = new ComboMapProperty("move-grid", modeName, propertyByKey);
-            moveToGridCenter = new ComboMapProperty("move-grid-to-center", modeName, propertyByKey);
+            moveToGridCenter = new ComboMapProperty("move-to-grid-center", modeName, propertyByKey);
             moveToLastSelectedHint = new ComboMapProperty("move-to-last-selected-hint", modeName, propertyByKey);
             savePosition = new ComboMapProperty("save-position", modeName, propertyByKey);
             unsavePosition = new ComboMapProperty("unsave-position", modeName, propertyByKey);

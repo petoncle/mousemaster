@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -125,6 +126,19 @@ class HintLabelAlignmentTest {
             }
         }
         assertTrue(offCenter.isEmpty(), String.join("\n", offCenter));
+    }
+
+    /** The box of a grid without selection keys is its cell, however small. */
+    @Test
+    void aLabelWithoutKeysHasNoHeight() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        FontStyle fontStyle = fontStyle(10, FontWeight.NORMAL);
+        QtHintFontStyle style = QtHintFont.qtHintFontStyle(
+                new HintFontStyle(fontStyle, 0, fontStyle, fontStyle), null, 1, "#FFFFFF");
+        HintMeshRenderer.HintLabel hintLabel = HintMeshRenderer.HintLabel.of(List.of(),
+                new HashMap<>(), 7, 7, 0, -1, style, 0, -1, FontVerticalAlignment.CAP_HEIGHT,
+                false, 1);
+        assertEquals(0, hintLabel.tightHintBoxHeight);
     }
 
     /** In pixels, from the box's left to the ink and from the ink to the box's right. */

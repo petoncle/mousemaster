@@ -226,14 +226,13 @@ public class Mousemaster {
         ScreenManager screenManager = new ScreenManager(platform::screens);
         mouseManager = new MouseManager(screenManager, platform.mouse());
         MouseState mouseState = new MouseState(mouseManager);
-        GridManager gridManager = new GridManager(screenManager, mouseManager, platform.overlay());
         KeyRedactor keyRedactor = new KeyRedactor(configuration.keyRedaction());
         hintManager =
                 new HintManager(configuration.positionHistoryConfigurationByName(),
                         screenManager, mouseManager, platform.overlay(),
                         platform.uiAutomation(), platform.activeAppFinder(),
                         keyRedactor, platform.vision());
-        commandRunner = new CommandRunner(mouseManager, gridManager, hintManager, platform);
+        commandRunner = new CommandRunner(mouseManager, hintManager, platform);
         Set<Key> unpressedComboPreconditionKeys = new HashSet<>();
         Set<Key> pressedComboPreconditionKeys = new HashSet<>();
         for (Mode mode : configuration.modeMap().modes()) {
@@ -273,8 +272,8 @@ public class Mousemaster {
         // ZoomManager must be notified after HintManager because it calls
         // lastSelectedHintPoint() which is updated by HintManager#modeChanged.
         comboWatcher.setModeListeners(
-                List.of(platform, mouseManager, indicatorManager, gridManager,
-                        hintManager, zoomManager));
+                List.of(platform, mouseManager, indicatorManager, hintManager,
+                        zoomManager));
         modeController =
                 new ModeController(configuration.modeMap(), mouseManager, mouseState,
                         keyboardState,
@@ -291,7 +290,7 @@ public class Mousemaster {
                 zoomManager,
                 indicatorManager,
                 hintManager,
-                List.of(mouseManager, gridManager, hintManager, screenManager,
+                List.of(mouseManager, hintManager, screenManager,
                         zoomManager), activeKeyboardLayout);
         if (preWarmHints)
             hintManager.preWarmHintMeshes(configuration.modeMap());

@@ -14,6 +14,7 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.ToDoubleFunction;
+import java.util.stream.IntStream;
 
 public class HintManager implements ModeListener, MousePositionListener {
 
@@ -44,6 +45,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     // time so going back restores the view that step rendered.
     private final Deque<CellGridLevel> cellGridLevelStack = new ArrayDeque<>();
     private Rectangle pendingSelectedCell;
+    /** The area shrink-grid and move-grid gave the grid, in place of the configured one. */
+    private Rectangle areaOverride;
 
     private record CellGridLevel(String modeName, Rectangle cell, Rectangle area) {
     }
@@ -252,10 +255,149 @@ public class HintManager implements ModeListener, MousePositionListener {
                 (int) lastSelectedHintPoint.y());
     }
 
+    public void shrinkGridUp() {
+        shrinkGrid(false, false);
+    }
+
+    public void shrinkGridDown() {
+        shrinkGrid(false, true);
+    }
+
+    public void shrinkGridLeft() {
+        shrinkGrid(true, false);
+    }
+
+    public void shrinkGridRight() {
+        shrinkGrid(true, true);
+    }
+
+    private void shrinkGrid(boolean horizontal, boolean forward) {
+        List<Rectangle> cells = gridCells();
+        if (cells == null ||
+            currentMode.hintMesh().mouseMovement() ==
+            HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER &&
+            mouseManager.jumping(horizontal, forward))
+            return;
+        Rectangle grid = Rectangle.union(cells);
+        areaOverride = new Rectangle(
+                horizontal && forward ? grid.x() + grid.width() / 2 : grid.x(),
+                !horizontal && forward ? grid.y() + grid.height() / 2 : grid.y(),
+                horizontal ? grid.width() / 2 + grid.width() % 2 : grid.width(),
+                horizontal ? grid.height() : grid.height() / 2 + grid.height() % 2);
+        modeChanged(currentMode);
+    }
+
+    public void moveGridUp() {
+        moveGrid(false, false);
+    }
+
+    public void moveGridDown() {
+        moveGrid(false, true);
+    }
+
+    public void moveGridLeft() {
+        moveGrid(true, false);
+    }
+
+    public void moveGridRight() {
+        moveGrid(true, true);
+    }
+
+    private void moveGrid(boolean horizontal, boolean forward) {
+        List<Rectangle> cells = gridCells();
+        if (cells == null ||
+            currentMode.hintMesh().mouseMovement() ==
+            HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER &&
+            mouseManager.jumping(horizontal, forward))
+            return;
+        Rectangle grid = Rectangle.union(cells);
+        int direction = forward ? 1 : -1;
+        double centerX = grid.center().x() + (horizontal ? direction * grid.width() : 0);
+        double centerY = grid.center().y() + (horizontal ? 0 : direction * grid.height());
+        Point center = screenManager.nearestScreenContaining(centerX, centerY)
+                                    .rectangle()
+                                    .nearestPoint(centerX, centerY);
+        areaOverride = new Rectangle((int) center.x() - grid.width() / 2,
+                (int) center.y() - grid.height() / 2, grid.width(), grid.height());
+        modeChanged(currentMode);
+    }
+
+    public void moveToGridCenter() {
+        List<Rectangle> cells = gridCells();
+        if (cells == null)
+            return;
+        moveMouse(Rectangle.union(cells).center());
+    }
+
+    public void snapUp() {
+        snap(false, false);
+    }
+
+    public void snapDown() {
+        snap(false, true);
+    }
+
+    public void snapLeft() {
+        snap(true, false);
+    }
+
+    public void snapRight() {
+        snap(true, true);
+    }
+
+    /** Backward, a mouse 1 pixel past a cell edge snaps to the edge before it. */
+    private void snap(boolean horizontal, boolean forward) {
+        List<Rectangle> cells = gridCells();
+        if (cells == null || mouseManager.jumping(horizontal, forward))
+            return;
+        int mouse = horizontal ? mouseX : mouseY;
+        Rectangle grid = Rectangle.union(cells);
+        int lastPixel = horizontal ? grid.x() + grid.width() - 1 : grid.y() + grid.height() - 1;
+        IntStream cellEdges = cells.stream().flatMapToInt(cell -> horizontal ?
+                IntStream.of(cell.x(), Math.min(cell.x() + cell.width(), lastPixel)) :
+                IntStream.of(cell.y(), Math.min(cell.y() + cell.height(), lastPixel)));
+        OptionalInt cellEdge = forward ? cellEdges.filter(edge -> edge > mouse).min() :
+                cellEdges.filter(edge -> edge < mouse - 1).max();
+        if (cellEdge.isEmpty())
+            return;
+        double x = horizontal ? cellEdge.getAsInt() : mouseX;
+        double y = horizontal ? mouseY : cellEdge.getAsInt();
+        moveMouse(screenManager.nearestScreenContaining(x, y).rectangle().nearestPoint(x, y));
+        if (((HintMeshType.GridHintMesh) currentMode.hintMesh().type()).area().center() ==
+            HintGridAreaCenter.MOUSE)
+            modeChanged(currentMode);
+    }
+
+    /**
+     * The cells of the overlay grid, in desktop coordinates. A grid centered on the mouse is
+     * where the mouse is now, not where it was when the grid was built.
+     */
+    private List<Rectangle> gridCells() {
+        if (hintMesh == null ||
+            !(currentMode.hintMesh().type() instanceof HintMeshType.GridHintMesh gridHintMesh))
+            return null;
+        List<Rectangle> cells = hintMesh.hints()
+                                        .stream()
+                                        .map(hint -> unzoomedHintCell(hint, currentZoom))
+                                        .toList();
+        if (gridHintMesh.area().center() != HintGridAreaCenter.MOUSE)
+            return cells;
+        Point center = Rectangle.union(cells).center();
+        int deltaX = mouseX - (int) center.x();
+        int deltaY = mouseY - (int) center.y();
+        return cells.stream()
+                    .map(cell -> new Rectangle(cell.x() + deltaX, cell.y() + deltaY,
+                            cell.width(), cell.height()))
+                    .toList();
+    }
+
     @Override
     public void mouseMoved(int x, int y) {
-        if (mouseManager.jumping())
+        if (mouseManager.jumping()) {
+            mouseX = mouseManager.jumpEndX();
+            mouseY = mouseManager.jumpEndY();
             return;
+        }
         mouseX = x;
         mouseY = y;
     }
@@ -266,6 +408,9 @@ public class HintManager implements ModeListener, MousePositionListener {
         boolean sameMode =
                 currentMode != null && newMode.name().equals(currentMode.name());
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
+        if (currentMode == null ||
+            !hintMeshConfiguration.type().equals(currentMode.hintMesh().type()))
+            areaOverride = null;
         boolean sameUiElementQuery = hintMeshConfiguration.enabled() &&
                                      currentMode != null &&
                                      sameUiElementQuery(hintMeshConfiguration.type(),
@@ -445,7 +590,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
         if (hintMeshConfiguration.mouseMovement() ==
             HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
-            moveMouse(hintMeshCenter(hintMesh.hints(), hintMesh.selectedKeySequence()));
+            moveMouse(unzoomedPoint(
+                    hintMeshCenter(hintMesh.hints(), hintMesh.selectedKeySequence())));
         }
     }
 
@@ -569,7 +715,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private ScreenFilter activeWindowScreenFilter() {
-        Point areaCenter = overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0).center();
+        Point areaCenter = overlay.activeWindowRectangle().center();
         return ScreenFilter.of(screenManager.nearestScreenContaining(
                 areaCenter.x(), areaCenter.y()));
     }
@@ -603,7 +749,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         HintGridArea area = ((HintMeshType.UiAccessibilityHintMesh) type).area();
         uiElementQueryArea = uiHintArea(area);
         return area.size().source() == HintGridAreaSizeSource.ACTIVE_WINDOW &&
-               uiElementQueryArea.equals(overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0)) ?
+               uiElementQueryArea.equals(overlay.activeWindowRectangle()) ?
                 uiAutomation.startFindActiveWindowUiElements() :
                 uiAutomation.startFindUiElementsInArea(uiElementQueryArea);
     }
@@ -621,7 +767,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     area.size(), area.center());
         Rectangle sourceRectangle =
                 area.size().source() == HintGridAreaSizeSource.ACTIVE_WINDOW ?
-                        overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0) :
+                        overlay.activeWindowRectangle() :
                         screenManager.activeScreen().rectangle();
         return scaledArea(sourceRectangle, area.size(),
                 areaCenter(area.center(), lastSelectedHintPoint),
@@ -689,7 +835,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             case LAST_SELECTED_HINT -> lastSelectedHint == null ?
                     screenManager.activeScreen().rectangle().center() : lastSelectedHint;
             case ACTIVE_WINDOW_CENTER ->
-                    overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0).center();
+                    overlay.activeWindowRectangle().center();
         };
     }
 
@@ -721,7 +867,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (type instanceof HintMeshType.GridHintMesh gridHintMesh) {
             List<FixedSizeHintGrid> fixedSizeHintGrids = new ArrayList<>();
             HintGridArea area = gridHintMesh.area();
-            if (area.size().source() == HintGridAreaSizeSource.ALL_SCREENS) {
+            if (areaOverride == null &&
+                area.size().source() == HintGridAreaSizeSource.ALL_SCREENS) {
                 // The one multi-grid source: a screen-centered grid per screen (scaled
                 // by the size percents). The center does not apply.
                 List<Screen> sortedScreens = sortedScreens();
@@ -747,7 +894,15 @@ public class HintManager implements ModeListener, MousePositionListener {
                 Point gridCenter;
                 // Areas resolve to screen space: a screen source is already there, a
                 // desktop region is mapped through the zoom.
-                if (area.size().source() == HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL) {
+                if (areaOverride != null) {
+                    Rectangle centeredAreaOverride = area.center() == HintGridAreaCenter.MOUSE ?
+                            new Rectangle(mouseX - areaOverride.width() / 2,
+                                    mouseY - areaOverride.height() / 2, areaOverride.width(),
+                                    areaOverride.height()) : areaOverride;
+                    areaRectangle = zoomedRectangle(centeredAreaOverride, zoom);
+                    gridCenter = areaRectangle.center();
+                }
+                else if (area.size().source() == HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL) {
                     areaRectangle = cellGridLevelStack.isEmpty() ?
                             activeScreen.rectangle() :
                             zoomedRectangle(cellGridLevelStack.peek().area(), zoom);
@@ -757,7 +912,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     Rectangle sourceRectangle = switch (area.size().source()) {
                         case ACTIVE_SCREEN -> activeScreen.rectangle();
                         case ACTIVE_WINDOW -> zoomedRectangle(
-                                overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0), zoom);
+                                overlay.activeWindowRectangle(), zoom);
                         default -> throw new IllegalStateException();
                     };
                     gridCenter = switch (area.center()) {
@@ -768,7 +923,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                 activeScreen.rectangle().center() :
                                 zoomedPoint(lastSelectedHintPoint, zoom);
                         case ACTIVE_WINDOW_CENTER -> zoomedRectangle(
-                                overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0), zoom)
+                                overlay.activeWindowRectangle(), zoom)
                                 .center();
                     };
                     areaRectangle = scaledArea(sourceRectangle, area.size(), gridCenter,
@@ -1477,8 +1632,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             );
             overlay.setHintMesh(hintMesh, currentZoom);
             if (hintMeshConfiguration.mouseMovement() == HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
-                moveMouse(hintMeshCenter(hintMesh.hints(),
-                        hintMesh.selectedKeySequence()));
+                moveMouse(unzoomedPoint(hintMeshCenter(hintMesh.hints(),
+                        hintMesh.selectedKeySequence())));
             }
             lastHintCommandSupercedesOtherCommands = true;
         }
@@ -1517,16 +1672,10 @@ public class HintManager implements ModeListener, MousePositionListener {
             return;
         }
         if (exactMatchHint != null) {
-            if (isInZoom(exactMatchHint.centerX(), exactMatchHint.centerY())) {
-                lastSelectedHintPoint =
-                        new Point(Math.round(currentZoom.unzoomedX(exactMatchHint.centerX())),
-                                Math.round(currentZoom.unzoomedY(exactMatchHint.centerY())));
-            }
-            else {
-                lastSelectedHintPoint =
-                        new Point(Math.round(exactMatchHint.centerX()),
-                                Math.round(exactMatchHint.centerY()));
-            }
+            Point exactMatchHintCenter = unzoomedPoint(
+                    new Point(exactMatchHint.centerX(), exactMatchHint.centerY()));
+            lastSelectedHintPoint = new Point(Math.round(exactMatchHintCenter.x()),
+                    Math.round(exactMatchHintCenter.y()));
             logger.trace("Saving lastSelectedHintPoint " + lastSelectedHintPoint);
             // Unzoomed, like lastSelectedHintPoint: a cell in screen units could not
             // compound, so zooming into it twice would magnify by the same factor.
@@ -1534,8 +1683,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                     exactMatchHint.cellWidth() > 0 || exactMatchHint.elementRectangle() != null ?
                             unzoomedHintCell(exactMatchHint, currentZoom) : null;
             lastSelectedHintCell = pendingSelectedCell;
+            areaOverride = null;
              if (hintMeshConfiguration.mouseMovement() != HintMouseMovement.NO_MOVEMENT) {
-                 moveMouse(new Point(exactMatchHint.centerX(), exactMatchHint.centerY()));
+                 moveMouse(exactMatchHintCenter);
              }
             finalizeHintSelection(exactMatchHint, newSelectedKeySequence);
         }
@@ -1554,7 +1704,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                     ));
             overlay.setHintMesh(hintMesh, currentZoom);
             if (hintMeshConfiguration.mouseMovement() == HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
-                moveMouse(hintMeshCenter(hintMesh.hints(), newSelectedKeySequence));
+                moveMouse(unzoomedPoint(
+                        hintMeshCenter(hintMesh.hints(), newSelectedKeySequence)));
             }
             lastHintCommandSupercedesOtherCommands = true;
         }
@@ -1579,15 +1730,15 @@ public class HintManager implements ModeListener, MousePositionListener {
                screenManager.screenContaining(x, y) == null;
     }
 
+    private Point unzoomedPoint(Point point) {
+        if (!isInZoom(point.x(), point.y()))
+            return point;
+        return new Point(currentZoom.unzoomedX(point.x()), currentZoom.unzoomedY(point.y()));
+    }
+
     private void moveMouse(Point point) {
-        if (isInZoom(point.x(), point.y())) {
-            mouseX = (int) Math.round(currentZoom.unzoomedX(point.x()));
-            mouseY = (int) Math.round(currentZoom.unzoomedY(point.y()));
-        }
-        else {
-            mouseX = (int) Math.round(point.x());
-            mouseY = (int) Math.round(point.y());
-        }
+        mouseX = (int) Math.round(point.x());
+        mouseY = (int) Math.round(point.y());
         logger.debug("Moving mouse to (" + mouseX + ", " + mouseY + ")");
         mouseManager.moveTo(mouseX, mouseY);
     }

@@ -17,8 +17,6 @@
 - [Mouse button click commands](#mouse-button-click-commands)
 - [Wheel commands](#wheel-scrolling-commands)
 - [Hint properties](#hint-properties)
-- [Grid properties](#grid-properties)
-- [Grid commands](#grid-commands)
 - [App aliases](#app-aliases)
 - [Position history](#position-history)
 - [Macros](#macros)
@@ -886,7 +884,7 @@ hint1-mode.hint.layout-column-count=5 | _{3840x2160-100%} -> 10
 
 A screen filter is a screen resolution (`3840x2160`), a screen scale (`150%`), or both (`3840x2160-150%`). Each screen resolves its own value when the hints are drawn, so a mesh covering several screens gets a value per screen. The most specific matching filter wins: resolution and scale first, then resolution, then scale. A screen matching none of them takes the default value.
 
-A length — a padding, a border thickness, radius or length, a shadow blur or offset, a grid line thickness — is in the pixels of a 100% screen, and the screen's scale grows it, exactly as it grows a font size. A hint therefore keeps its proportions on a 200% or 300% screen with no per-screen value at all. To pin a length to a pixel count on one scale, override it there and divide: `hint1-mode.hint.box-border-thickness=1 | _{150%} -> 0.67` draws a single pixel at 150%.
+A length — a padding, a border thickness, radius or length, a shadow blur or offset — is in the pixels of a 100% screen, and the screen's scale grows it, exactly as it grows a font size. A hint therefore keeps its proportions on a 200% or 300% screen with no per-screen value at all. To pin a length to a pixel count on one scale, override it there and divide: `hint1-mode.hint.box-border-thickness=1 | _{150%} -> 0.67` draws a single pixel at 150%.
 
 ```properties
 # Every screen scaled at 300%, whatever its resolution.
@@ -911,8 +909,8 @@ a mode switch — a screen filter is a [virtual key](combo-reference.md#built-in
 that mousemaster presses while the active screen matches it, so it reads like any other key:
 
 ```properties
-# A grid line is one pixel wide on a 300% screen.
-grid-mode.grid.line-thickness=1 | _{300%} -> 0.66667
+# A slower jump on a 300% screen.
+normal-mode.mouse.smooth-jump-velocity=30000 | _{300%} -> 20000
 
 # ^{} negates it, and it can share a block with a real key.
 normal-mode.indicator.size=12 | ^{300%} -> 8 | _{300% leftshift} -> 24
@@ -972,6 +970,9 @@ hint-mode.hint.label-override=plus
   - `mouse-follows-selected-hint`: Mouse moves to the selected hint (default behavior)
   - `mouse-follows-hint-grid-center`: Mouse moves to the center of the hint grid
   - Use `no-movement` when the next mode will be another hint grid
+- **`move-to-last-selected-hint`**: Like `to.<mode-name>`, a command of the mode, not a hint
+  property. It moves the mouse to the last selected hint, for example after `no-movement` left
+  the mouse where it was: `normal-mode.move-to-last-selected-hint=+m`
 - **`eat-unused-selection-keys`**: If `false`, selection keys not used in the current hint display can be used in combos
 - **`label-override`**: Draws a fixed marker in every hint cell instead of each hint's own keys — visual only, you still press the real keys to select. The value is a key sequence rendered as the label: `plus` shows `+`, `plus plus` shows `++`. Useful for positional grids (e.g. a 3×3 recursive grid) where the per-cell letters are just clutter. Default: unset (each hint shows its own key sequence).
 
@@ -1214,214 +1215,65 @@ hint2-mode.to.normal-mode=+selectionkey
 hint2-mode.hint.mouse-movement=mouse-follows-selected-hint
 ```
 
-## Grid properties
+### Grid commands
 
-The grid system in mousemaster divides the screen or window into a configurable grid. It is
-different from the hint grid system which shows hints (a group of letters) to select.
-
-### Basic grid configuration
+The grid commands act on the hint grid of the mode. A hint grid without `selection-keys` has no
+labels and selects nothing: it is a grid to shrink, move and snap to.
 
 ```properties
-# Grid area and dimensions
-grid-mode.grid.area=active-screen
-grid-mode.grid.area-width-percent=1.0
-grid-mode.grid.area-height-percent=1.0
-
-# Grid divisions
-grid-mode.grid.row-count=2
-grid-mode.grid.column-count=2
-
-# Grid appearance
-grid-mode.grid.line-visible=true
-grid-mode.grid.line-color=#FF0000
-grid-mode.grid.line-thickness=1
-grid-mode.grid.line-opacity=1.0
-grid-mode.grid.background-color=#FF0000
-grid-mode.grid.background-opacity=0.1
-
-# Grid transition and fade animations
-grid-mode.grid.transition-animation-enabled=true
-grid-mode.grid.transition-animation-duration-millis=100
-grid-mode.grid.fade-animation-enabled=true
-grid-mode.grid.fade-animation-duration-millis=100
-```
-
-- **`area`**: Determines where the grid is displayed:
-  - `active-screen`: Covers the screen with the mouse cursor
-  - `active-window`: Covers only the currently active window
-
-- Grid size: control the grid's coverage with:
-  - `area-width-percent`: Width as a percentage of the area (1.0 = 100%)
-  - `area-height-percent`: Height as a percentage of the area
-
-- Grid divisions: set the number of cells with:
-  - `row-count`: Number of horizontal divisions
-  - `column-count`: Number of vertical divisions
-
-- Grid appearance: control the grid's visual style with:
-  - `line-visible`: Whether to show grid lines
-  - `line-color`: Color of grid lines (hex format)
-  - `line-thickness`: Thickness of grid lines in pixels
-  - `line-opacity`: Opacity of grid lines (0.0 = transparent, 1.0 = opaque). Default 1.0.
-  - `background-color`: Fill color of the grid area, behind the lines (default #FF0000).
-  - `background-opacity`: Opacity of the background fill (default 0.1).
-
-- Grid transition animation: eases the grid to its new position and size when it changes (e.g. after `shrink-grid` or `move-grid`):
-  - `transition-animation-enabled`: Whether to animate grid transitions. Default enabled.
-  - `transition-animation-duration-millis`: Animation duration in milliseconds. Default 100.
-
-- Grid fade animation: fades the grid in and out when it appears and disappears:
-  - `fade-animation-enabled`: Whether to fade the grid in/out. Default enabled.
-  - `fade-animation-duration-millis`: Fade duration in milliseconds. Default 100.
-
-### Grid positioning and insets
-
-```properties
-# Grid insets (margins)
-grid-mode.grid.area-top-inset=15
-grid-mode.grid.area-bottom-inset=0
-grid-mode.grid.area-left-inset=0
-grid-mode.grid.area-right-inset=0
-
-# Grid synchronization with mouse
-grid-mode.grid.synchronization=mouse-follows-grid-center
-```
-
-- Insets: control margins from the edges of the area:
-  - Useful for avoiding UI elements like window title bars
-  - Example: `area-top-inset=15` creates a 15-pixel margin at the top
-
-- Synchronization: control how the grid and mouse interact:
-  - `mouse-follows-grid-center`: Mouse moves to the center of the grid
-  - `grid-center-follows-mouse`: Grid centers on the mouse position
-  - `mouse-and-grid-center-unsynchronized`: Grid and mouse move independently
-
-### Grid usage example
-
-This example shows a complete grid mode configuration:
-
-```properties
-# Define grid mode
-grid-mode.grid.area=active-screen
-grid-mode.grid.row-count=2
-grid-mode.grid.column-count=2
-grid-mode.grid.line-visible=true
-grid-mode.grid.line-color=#00FF00
-grid-mode.grid.synchronization=mouse-follows-grid-center
-
-# Grid commands
-grid-mode.shrink-grid.up=+i
-grid-mode.shrink-grid.down=+k
-grid-mode.shrink-grid.left=+j
-grid-mode.shrink-grid.right=+l
-grid-mode.move-to-grid-center=+space
-
-# Exit grid mode
+normal-mode.to.grid-mode=+g
 grid-mode.to.normal-mode=+esc
-```
+grid-mode.hint.grid-cell-sizing=fit
+grid-mode.hint.grid-max-row-count=2
+grid-mode.hint.grid-max-column-count=2
+grid-mode.hint.mouse-movement=mouse-follows-hint-grid-center
+grid-mode.hint.box-color=#FF0000
+grid-mode.hint.box-opacity=0.1
+grid-mode.hint.box-border-color=#FF0000
+grid-mode.hint.box-border-opacity=1
 
-With this configuration:
-1. The screen is divided into a 2×2 grid with green lines
-2. Pressing I/J/K/L shrinks the grid in that direction
-3. Pressing Space moves the mouse to the grid center
-4. Pressing Escape returns to normal mode
+# Halve the grid, keeping the half in the direction
+grid-mode.shrink-grid.up=+uparrow
+grid-mode.shrink-grid.down=+downarrow
+grid-mode.shrink-grid.left=+leftarrow
+grid-mode.shrink-grid.right=+rightarrow
 
-## Grid commands
-
-Grid commands allow you to interact with the grid system, manipulating both the grid itself and the mouse position relative to the grid.
-
-### Types of grid commands
-
-```properties
-# Move the entire grid
+# Move the grid by its own size
 grid-mode.move-grid.up=_{leftshift} +uparrow
 grid-mode.move-grid.down=_{leftshift} +downarrow
 grid-mode.move-grid.left=_{leftshift} +leftarrow
 grid-mode.move-grid.right=_{leftshift} +rightarrow
 
-# Snap mouse to grid cell edges
+# Move the mouse to the next cell edge
 grid-mode.snap.up=_{leftctrl} +uparrow
 grid-mode.snap.down=_{leftctrl} +downarrow
 grid-mode.snap.left=_{leftctrl} +leftarrow
 grid-mode.snap.right=_{leftctrl} +rightarrow
 
-# Shrink the grid (refine selection)
-grid-mode.shrink-grid.up=+uparrow
-grid-mode.shrink-grid.down=+downarrow
-grid-mode.shrink-grid.left=+leftarrow
-grid-mode.shrink-grid.right=+rightarrow
-
-# Center the mouse
+# Move the mouse to the grid center
 grid-mode.move-to-grid-center=+space
 ```
 
-- Move grid commands: shift the entire grid in a direction
-  - Useful for repositioning the grid without changing its size
-  - Example: `move-grid.up` moves the entire grid upward
+- **`shrink-grid.<direction>`**: Halves the grid, keeping the half on that side, whatever its
+  number of cells.
+- **`move-grid.<direction>`**: Moves the grid by its own width or height. The center of the grid
+  stays on a screen.
+- **`snap.<direction>`**: Moves the mouse to the next cell edge in the direction. At the right or
+  bottom edge of the grid, the mouse stops on the last pixel of the grid.
+- **`move-to-grid-center`**: Moves the mouse to the center of the grid.
 
-- Snap commands: move the mouse to the edge of the closest grid cell
-  - Useful for precise positioning along grid lines
-  - Example: `snap.left` moves the mouse to the left edge of its current cell
+A mode with the same `hint.type`, area and layout keeps the grid where the commands left it. With
+`area-center=mouse`, a command first centers the grid on the mouse. With
+`mouse-movement=mouse-follows-hint-grid-center`, the mouse goes to the center of the grid after
+each change.
 
-- Shrink grid commands: divide the grid size by 2 in the specified direction
-  - Allows for increasingly precise targeting
-  - Example: `shrink-grid.up` cuts the grid height in half, keeping only the top portion
-
-- Center command: moves the mouse to the center of the grid
-  - Useful for quick centering after grid manipulation
-  - Example: `move-to-grid-center` places the mouse at the grid's center point
-
-### Recursive grid navigation workflow
-
-A typical recursive grid navigation workflow:
-
-1. Enter grid mode (divides screen into a 2×2 grid)
-2. Use shrink commands to narrow down to the target area
-3. Use snap commands for edge-precise positioning or center command for center positioning
-4. Exit grid mode when the mouse is at the desired position
-
-### Example grid command configuration
-
-```properties
-# Enter grid mode from normal mode
-normal-mode.to.grid-mode=+g
-
-# Option 1: Recursive grid navigation with WASD keys
-grid-mode.shrink-grid.up=+w
-grid-mode.shrink-grid.down=+s
-grid-mode.shrink-grid.left=+a
-grid-mode.shrink-grid.right=+d
-
-# Snap to edges with leftctrl + direction
-grid-mode.snap.up=_{leftctrl} +w
-grid-mode.snap.down=_{leftctrl} +s
-grid-mode.snap.left=_{leftctrl} +a
-grid-mode.snap.right=_{leftctrl} +d
-
-# Move grid with leftshift + direction
-grid-mode.move-grid.up=_{leftshift} +w
-grid-mode.move-grid.down=_{leftshift} +s
-grid-mode.move-grid.left=_{leftshift} +a
-grid-mode.move-grid.right=_{leftshift} +d
-
-# Center and exit
-grid-mode.move-to-grid-center=+space
-grid-mode.to.normal-mode=+esc
-```
-
-Alternatively, you could use arrow keys instead of WASD:
-
-```properties
-# Option 2: Recursive grid navigation with arrow keys
-grid-mode.shrink-grid.up=+uparrow
-grid-mode.shrink-grid.down=+downarrow
-grid-mode.shrink-grid.left=+leftarrow
-grid-mode.shrink-grid.right=+rightarrow
-
-# Snap and move commands would be configured similarly
-grid-mode.snap.up=_{leftctrl} +uparrow
-# etc.
-```
+Earlier versions had a separate `grid`. Its properties still work, as hint properties:
+`grid.row-count` and `grid.column-count` are `grid-max-row-count` and `grid-max-column-count`,
+`grid.line-visible` is `visible`, `grid.line-color`, `grid.line-thickness` and `grid.line-opacity`
+are `box-border-color`, `box-border-thickness` and `box-border-opacity`, `grid.background-color` and
+`grid.background-opacity` are `box-color` and `box-opacity`, and `grid.synchronization` is
+`mouse-movement` (`grid-center-follows-mouse` is `area-center=mouse`). A mode that uses them, or a
+grid command, without a hint property gets the old grid: an invisible `fit` 2x2 grid with red boxes.
 
 ## App aliases
 

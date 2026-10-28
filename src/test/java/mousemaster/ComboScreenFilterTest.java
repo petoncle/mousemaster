@@ -182,48 +182,48 @@ class ComboScreenFilterTest {
         assertEquals(3, mutatedBoxBorderRadius(1920, 1080, 1));
     }
 
-    private double mutatedGridLineThickness() {
-        return comboWatcher.getMutatedMode().grid().lineThickness();
+    private double mutatedSmoothJumpVelocity() {
+        return comboWatcher.getMutatedMode().mouse().smoothJumpVelocity();
     }
 
     /** Outside a hint property, the filter is a condition on the active screen. */
     @Test
     void aFilterOnAnotherPropertyFollowsTheActiveScreen() {
-        load("idle-mode.grid.line-thickness=1 | _{300%} -> 0.66667");
-        assertEquals(1, mutatedGridLineThickness());
+        load("idle-mode.mouse.smooth-jump-velocity=1 | _{300%} -> 0.66667");
+        assertEquals(1, mutatedSmoothJumpVelocity());
 
         setActiveScreen(3840, 2160, 3);
-        assertEquals(0.66667, mutatedGridLineThickness());
+        assertEquals(0.66667, mutatedSmoothJumpVelocity());
 
         setActiveScreen(1920, 1080, 1);
-        assertEquals(1, mutatedGridLineThickness());
+        assertEquals(1, mutatedSmoothJumpVelocity());
     }
 
     @Test
     void aScreenAliasIsAnAlternativeOfScreens() {
         load("screen-alias.big=3840x2160-300% 2560x1440-100%",
-                "idle-mode.grid.line-thickness=1 | _{big} -> 2");
+                "idle-mode.mouse.smooth-jump-velocity=1 | _{big} -> 2");
         setActiveScreen(2560, 1440, 1);
-        assertEquals(2, mutatedGridLineThickness());
+        assertEquals(2, mutatedSmoothJumpVelocity());
 
         setActiveScreen(3840, 2160, 3);
-        assertEquals(2, mutatedGridLineThickness());
+        assertEquals(2, mutatedSmoothJumpVelocity());
 
         setActiveScreen(1920, 1080, 1);
-        assertEquals(1, mutatedGridLineThickness());
+        assertEquals(1, mutatedSmoothJumpVelocity());
     }
 
     /** A screen is a key, so it can be negated and mixed with a key. */
     @Test
     void aFilterIsAKeyOutsideAHintProperty() {
-        load("idle-mode.grid.line-thickness=1 | ^{300%} -> 2 | _{300% isidling} -> 3");
-        assertEquals(2, mutatedGridLineThickness());
+        load("idle-mode.mouse.smooth-jump-velocity=1 | ^{300%} -> 2 | _{300% isidling} -> 3");
+        assertEquals(2, mutatedSmoothJumpVelocity());
 
         setActiveScreen(3840, 2160, 3);
-        assertEquals(1, mutatedGridLineThickness());
+        assertEquals(1, mutatedSmoothJumpVelocity());
 
         setIdling(true);
-        assertEquals(3, mutatedGridLineThickness());
+        assertEquals(3, mutatedSmoothJumpVelocity());
     }
 
     /** A screen filter key a combo names is pressed while building the watcher, before any

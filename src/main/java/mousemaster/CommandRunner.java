@@ -6,16 +6,14 @@ public class CommandRunner {
 
     private ModeController modeController;
     private final MouseManager mouseManager;
-    private final GridManager gridManager;
     private final HintManager hintManager;
     private final Platform platform;
     private MacroPlayer macroPlayer;
     private AnimationPlayer animationPlayer;
 
-    public CommandRunner(MouseManager mouseManager, GridManager gridManager,
-                         HintManager hintManager, Platform platform) {
+    public CommandRunner(MouseManager mouseManager, HintManager hintManager,
+                         Platform platform) {
         this.mouseManager = mouseManager;
-        this.gridManager = gridManager;
         this.hintManager = hintManager;
         this.platform = platform;
     }
@@ -73,22 +71,22 @@ public class CommandRunner {
             case StopWheelLeft stopWheelLeft -> mouseManager.stopWheelLeft();
             case StopWheelRight stopWheelRight -> mouseManager.stopWheelRight();
 
-            case SnapUp snapUp -> gridManager.snapUp();
-            case SnapDown snapDown -> gridManager.snapDown();
-            case SnapLeft snapLeft -> gridManager.snapLeft();
-            case SnapRight snapRight -> gridManager.snapRight();
+            case SnapUp snapUp -> hintManager.snapUp();
+            case SnapDown snapDown -> hintManager.snapDown();
+            case SnapLeft snapLeft -> hintManager.snapLeft();
+            case SnapRight snapRight -> hintManager.snapRight();
 
-            case ShrinkGridUp shrinkGridUp -> gridManager.shrinkGridUp();
-            case ShrinkGridDown shrinkGridDown -> gridManager.shrinkGridDown();
-            case ShrinkGridLeft shrinkGridLeft -> gridManager.shrinkGridLeft();
-            case ShrinkGridRight shrinkGridRight -> gridManager.shrinkGridRight();
+            case ShrinkGridUp shrinkGridUp -> hintManager.shrinkGridUp();
+            case ShrinkGridDown shrinkGridDown -> hintManager.shrinkGridDown();
+            case ShrinkGridLeft shrinkGridLeft -> hintManager.shrinkGridLeft();
+            case ShrinkGridRight shrinkGridRight -> hintManager.shrinkGridRight();
 
-            case MoveGridUp moveGridUp -> gridManager.moveGridUp();
-            case MoveGridDown moveGridDown -> gridManager.moveGridDown();
-            case MoveGridLeft moveGridLeft -> gridManager.moveGridLeft();
-            case MoveGridRight moveGridRight -> gridManager.moveGridRight();
+            case MoveGridUp moveGridUp -> hintManager.moveGridUp();
+            case MoveGridDown moveGridDown -> hintManager.moveGridDown();
+            case MoveGridLeft moveGridLeft -> hintManager.moveGridLeft();
+            case MoveGridRight moveGridRight -> hintManager.moveGridRight();
 
-            case MoveToGridCenter moveToGridCenter -> gridManager.moveToGridCenter();
+            case MoveToGridCenter moveToGridCenter -> hintManager.moveToGridCenter();
 
             case MoveToLastSelectedHint moveToLastSelectedHint -> hintManager.moveToLastSelectedHint();
 

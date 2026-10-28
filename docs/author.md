@@ -167,7 +167,7 @@ movement.
 
 With a direction key already held → **fast mouse mode** (2000 px/s initial, 3000 max); release
 `rightalt` and normal speed resumes mid-glide. Otherwise → `temp-screen-snap-mode`, which outlines the
-active screen in red (a 1×1 grid, unsynchronized so the pointer stays put) and waits:
+active screen in red (a 1×1 hint grid that leaves the pointer where it is) and waits:
 
 | Next event | Result |
 |---|---|
@@ -597,7 +597,7 @@ screen-grid-mode.shrink-grid.up=^{leftshift leftctrl} +up
 screen-grid-mode.move-grid.up=_{leftshift} +up
 screen-grid-mode.snap.up=_{leftctrl} +up
 screen-grid-mode.move-to-grid-center=+leftshift -leftshift
-screen-grid-mode.grid.line-thickness=1 | _{300%} -> 0.66667
+screen-grid-mode.hint.box-border-thickness=1 | _{300%} -> 0.66667
 screen-grid-mode.start-move.up=_{up} -rightalt
 ```
 
@@ -605,7 +605,7 @@ The region is quartered with the pointer at its center; a bare direction key shr
 halving the distance each press. `leftshift`+direction pans the grid, `leftctrl`+direction snaps the
 pointer to that edge, a `leftshift` tap recenters it.
 
-`line-thickness=1 | _{300%} -> 0.66667` is the idiom for pinning a length to a pixel count: lengths are
+`box-border-thickness=1 | _{300%} -> 0.66667` is the idiom for pinning a length to a pixel count: lengths are
 100 %-screen pixels multiplied by the screen's scale, so 0.66667 × 3 is a crisp 2 px where a plain `1`
 would be a blurry 3.
 
@@ -613,11 +613,10 @@ Releasing `rightalt` returns to normal mode, and `start-move` means a still-held
 moving in the same instant, with no gap.
 
 Snap mode is the same region as a 1×1 grid: only the outer boundary exists, so a direction key throws
-the pointer to that edge or corner. Screen snap keeps the pointer where it is
-(`mouse-and-grid-center-unsynchronized`); window snap recenters it (`mouse-follows-grid-center`), which
-makes `rightalt`+`;` the shortest way to say "put the pointer in this window".
+the pointer to that edge or corner. Screen snap keeps the pointer where it is; window snap recenters
+it (`mouse-follows-hint-grid-center`), which makes `rightalt`+`;` the shortest way to say "put the pointer in this window".
 
-`window-snap-mode.grid.area-top-inset=15` keeps snapping up on the **title bar** rather than the
+`window-snap-mode.hint.area-top-inset=15` keeps snapping up on the **title bar** rather than the
 invisible resize border above it. With a held `space` that is the whole window-drag workflow:
 `rightalt`+`;` puts the pointer in the window, `i` on the title bar, release both keys, hold `space` to
 grab, `i j k l` to move, tap `space` to drop.
@@ -640,8 +639,12 @@ it, so `rightalt`+`space` works whether you were quick or slow.
 ### Recentering on an app switch
 
 ```properties
-center-mouse-mode.grid.area=active-window
-center-mouse-mode.grid.synchronization=mouse-follows-grid-center
+center-mouse-mode.hint.area=active-window
+center-mouse-mode.hint.visible=false
+center-mouse-mode.hint.grid-cell-sizing=fit
+center-mouse-mode.hint.grid-max-row-count=1
+center-mouse-mode.hint.grid-max-column-count=1
+center-mouse-mode.hint.mouse-movement=mouse-follows-hint-grid-center
 center-mouse-mode.to.previous-mode-from-history-stack=_{isidling} wait-0
 idle-mode.to.center-mouse-mode=^{nonexistingapp.exe}
 ```
@@ -652,7 +655,7 @@ switched to.
 `^{nonexistingapp.exe}` is easy to misread. It is an app precondition on a combo with *no key moves*,
 and mousemaster runs those only when the active application changes; since no process bears that name
 the precondition is always true, so it means "on any app change", not "never". The mode does its work on
-entry — no `line-visible` is set, so the grid is computed but never drawn — and `wait-0` leaves again on
+entry — `hint.visible=false`, so the grid is computed but never drawn — and `wait-0` leaves again on
 the next frame.
 
 ## Arrow-key mode

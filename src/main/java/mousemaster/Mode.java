@@ -6,7 +6,7 @@ public record Mode(String name, boolean stopCommandsFromPreviousMode,
                    boolean pushModeToHistoryStack,
                    String modeAfterUnhandledKeyPress,
                    ComboMap comboMap, Mouse mouse,
-                   Wheel wheel, GridConfiguration grid, HintMeshConfiguration hintMesh,
+                   Wheel wheel, HintMeshConfiguration hintMesh,
                    ModeTimeout timeout, IndicatorConfiguration indicator,
                    HideCursor hideCursor, ZoomConfiguration zoom,
                    Map<ModePropertyPath, Timeline> timelineByPropertyPath) {

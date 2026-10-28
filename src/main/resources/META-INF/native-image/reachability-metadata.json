@@ -1284,10 +1284,6 @@
           ]
         },
         {
-          "name": "hideGrid",
-          "parameterTypes": []
-        },
-        {
           "name": "redrawSourceOverShadow",
           "parameterTypes": [
             "io.qt.gui.QPainter"
@@ -1442,17 +1438,6 @@
           "name": "setZoom",
           "parameterTypes": [
             "mousemaster.Zoom"
-          ]
-        },
-        {
-          "name": "showGrid",
-          "parameterTypes": [
-            "mousemaster.Grid",
-            "int",
-            "io.qt.gui.QColor",
-            "io.qt.gui.QColor",
-            "boolean",
-            "java.time.Duration"
           ]
         }
       ]
@@ -1536,10 +1521,6 @@
           ]
         },
         {
-          "name": "hideGrid",
-          "parameterTypes": []
-        },
-        {
           "name": "redrawSourceOverShadow",
           "parameterTypes": [
             "io.qt.gui.QPainter"
@@ -1694,17 +1675,6 @@
           "name": "setZoom",
           "parameterTypes": [
             "mousemaster.Zoom"
-          ]
-        },
-        {
-          "name": "showGrid",
-          "parameterTypes": [
-            "mousemaster.Grid",
-            "int",
-            "io.qt.gui.QColor",
-            "io.qt.gui.QColor",
-            "boolean",
-            "java.time.Duration"
           ]
         }
       ]
@@ -2112,10 +2082,6 @@
           ]
         },
         {
-          "name": "hideGrid",
-          "parameterTypes": []
-        },
-        {
           "name": "redrawSourceOverShadow",
           "parameterTypes": [
             "io.qt.gui.QPainter"
@@ -2270,17 +2236,6 @@
           "name": "setZoom",
           "parameterTypes": [
             "mousemaster.Zoom"
-          ]
-        },
-        {
-          "name": "showGrid",
-          "parameterTypes": [
-            "mousemaster.Grid",
-            "int",
-            "io.qt.gui.QColor",
-            "io.qt.gui.QColor",
-            "boolean",
-            "java.time.Duration"
           ]
         },
         {
@@ -3438,10 +3393,6 @@
           ]
         },
         {
-          "name": "hideGrid",
-          "parameterTypes": []
-        },
-        {
           "name": "redrawSourceOverShadow",
           "parameterTypes": [
             "io.qt.gui.QPainter"
@@ -3596,17 +3547,6 @@
           "name": "setZoom",
           "parameterTypes": [
             "mousemaster.Zoom"
-          ]
-        },
-        {
-          "name": "showGrid",
-          "parameterTypes": [
-            "mousemaster.Grid",
-            "int",
-            "io.qt.gui.QColor",
-            "io.qt.gui.QColor",
-            "boolean",
-            "java.time.Duration"
           ]
         }
       ]
@@ -4222,10 +4162,6 @@
           ]
         },
         {
-          "name": "hideGrid",
-          "parameterTypes": []
-        },
-        {
           "name": "initPainter",
           "parameterTypes": [
             "io.qt.gui.QPainter"
@@ -4463,17 +4399,6 @@
           "name": "showEvent",
           "parameterTypes": [
             "io.qt.gui.QShowEvent"
-          ]
-        },
-        {
-          "name": "showGrid",
-          "parameterTypes": [
-            "mousemaster.Grid",
-            "int",
-            "io.qt.gui.QColor",
-            "io.qt.gui.QColor",
-            "boolean",
-            "java.time.Duration"
           ]
         },
         {
@@ -4932,10 +4857,6 @@
           "parameterTypes": []
         },
         {
-          "name": "hideGrid",
-          "parameterTypes": []
-        },
-        {
           "name": "redrawSourceOverShadow",
           "parameterTypes": [
             "io.qt.gui.QPainter"
@@ -5090,17 +5011,6 @@
           "name": "setZoom",
           "parameterTypes": [
             "mousemaster.Zoom"
-          ]
-        },
-        {
-          "name": "showGrid",
-          "parameterTypes": [
-            "mousemaster.Grid",
-            "int",
-            "io.qt.gui.QColor",
-            "io.qt.gui.QColor",
-            "boolean",
-            "java.time.Duration"
           ]
         },
         {
@@ -6327,192 +6237,6 @@
       ]
     },
     {
-      "type": "mousemaster.Grid",
-      "jniAccessible": true,
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": []
-        },
-        {
-          "name": "clone",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "mousemaster.GridArea$ActiveScreenGridArea",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "double",
-            "double",
-            "int",
-            "int",
-            "int",
-            "int"
-          ]
-        },
-        {
-          "name": "bottomInset",
-          "parameterTypes": []
-        },
-        {
-          "name": "heightPercent",
-          "parameterTypes": []
-        },
-        {
-          "name": "leftInset",
-          "parameterTypes": []
-        },
-        {
-          "name": "rightInset",
-          "parameterTypes": []
-        },
-        {
-          "name": "topInset",
-          "parameterTypes": []
-        },
-        {
-          "name": "widthPercent",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "mousemaster.GridArea$ActiveWindowGridArea",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "double",
-            "double",
-            "int",
-            "int",
-            "int",
-            "int"
-          ]
-        },
-        {
-          "name": "bottomInset",
-          "parameterTypes": []
-        },
-        {
-          "name": "heightPercent",
-          "parameterTypes": []
-        },
-        {
-          "name": "leftInset",
-          "parameterTypes": []
-        },
-        {
-          "name": "rightInset",
-          "parameterTypes": []
-        },
-        {
-          "name": "topInset",
-          "parameterTypes": []
-        },
-        {
-          "name": "widthPercent",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "mousemaster.GridConfiguration",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "mousemaster.GridArea",
-            "mousemaster.Synchronization",
-            "int",
-            "int",
-            "boolean",
-            "java.lang.String",
-            "double"
-          ]
-        },
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "mousemaster.GridArea",
-            "mousemaster.Synchronization",
-            "int",
-            "int",
-            "boolean",
-            "mousemaster.Color",
-            "double",
-            "double",
-            "mousemaster.Color",
-            "double",
-            "boolean",
-            "java.time.Duration",
-            "boolean",
-            "java.time.Duration"
-          ]
-        },
-        {
-          "name": "area",
-          "parameterTypes": []
-        },
-        {
-          "name": "backgroundColor",
-          "parameterTypes": []
-        },
-        {
-          "name": "backgroundOpacity",
-          "parameterTypes": []
-        },
-        {
-          "name": "columnCount",
-          "parameterTypes": []
-        },
-        {
-          "name": "fadeAnimationDuration",
-          "parameterTypes": []
-        },
-        {
-          "name": "fadeAnimationEnabled",
-          "parameterTypes": []
-        },
-        {
-          "name": "lineColor",
-          "parameterTypes": []
-        },
-        {
-          "name": "lineOpacity",
-          "parameterTypes": []
-        },
-        {
-          "name": "lineThickness",
-          "parameterTypes": []
-        },
-        {
-          "name": "lineVisible",
-          "parameterTypes": []
-        },
-        {
-          "name": "rowCount",
-          "parameterTypes": []
-        },
-        {
-          "name": "synchronization",
-          "parameterTypes": []
-        },
-        {
-          "name": "transitionAnimationDuration",
-          "parameterTypes": []
-        },
-        {
-          "name": "transitionAnimationEnabled",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
       "type": "mousemaster.HideCursor",
       "methods": [
         {
@@ -7431,7 +7155,6 @@
             "mousemaster.ComboMap",
             "mousemaster.Mouse",
             "mousemaster.Wheel",
-            "mousemaster.GridConfiguration",
             "mousemaster.HintMeshConfiguration",
             "mousemaster.ModeTimeout",
             "mousemaster.IndicatorConfiguration",
@@ -7450,7 +7173,6 @@
             "mousemaster.ComboMap",
             "mousemaster.Mouse",
             "mousemaster.Wheel",
-            "mousemaster.GridConfiguration",
             "mousemaster.HintMeshConfiguration",
             "mousemaster.ModeTimeout",
             "mousemaster.IndicatorConfiguration",
@@ -7465,10 +7187,6 @@
         },
         {
           "name": "cursorScale",
-          "parameterTypes": []
-        },
-        {
-          "name": "grid",
           "parameterTypes": []
         },
         {
@@ -8271,95 +7989,6 @@
     },
     {
       "type": "mousemaster.qt.TransparentWindow$WhenMappings"
-    },
-    {
-      "type": "mousemaster.renderer.GridRenderer$GridWidget",
-      "allDeclaredFields": true,
-      "jniAccessible": true,
-      "methods": [
-        {
-          "name": "advanceToFirstFrame",
-          "parameterTypes": []
-        },
-        {
-          "name": "animateDrawRect",
-          "parameterTypes": [
-            "int",
-            "int",
-            "int",
-            "int",
-            "int",
-            "int",
-            "int",
-            "int",
-            "java.time.Duration"
-          ]
-        },
-        {
-          "name": "coverVirtualDesktop",
-          "parameterTypes": [
-            "mousemaster.Rectangle"
-          ]
-        },
-        {
-          "name": "drawGrid",
-          "parameterTypes": [
-            "io.qt.gui.QPainter"
-          ]
-        },
-        {
-          "name": "hideGrid",
-          "parameterTypes": []
-        },
-        {
-          "name": "lambda$animateDrawRect$65642449$1",
-          "parameterTypes": [
-            "java.lang.Object"
-          ]
-        },
-        {
-          "name": "paintEvent",
-          "parameterTypes": [
-            "io.qt.gui.QPaintEvent"
-          ]
-        },
-        {
-          "name": "repaintGrid",
-          "parameterTypes": [
-            "io.qt.core.QRect"
-          ]
-        },
-        {
-          "name": "setDrawRect",
-          "parameterTypes": [
-            "int",
-            "int",
-            "int",
-            "int"
-          ]
-        },
-        {
-          "name": "showGrid",
-          "parameterTypes": [
-            "mousemaster.Grid",
-            "int",
-            "io.qt.gui.QColor",
-            "io.qt.gui.QColor",
-            "boolean",
-            "java.time.Duration"
-          ]
-        },
-        {
-          "name": "stopAnimation",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "mousemaster.renderer.GridRenderer$GridWidget$1"
-    },
-    {
-      "type": "mousemaster.renderer.GridRenderer$GridWidget$WhenMappings"
     },
     {
       "type": "mousemaster.renderer.HintMeshRenderer",
@@ -9175,22 +8804,6 @@
           ]
         }
       }
-    },
-    {
-      "type": {
-        "lambda": {
-          "declaringClass": "mousemaster.renderer.GridRenderer$GridWidget",
-          "interfaces": [
-            "io.qt.core.QMetaObject$Slot1"
-          ]
-        }
-      },
-      "methods": [
-        {
-          "name": "writeReplace",
-          "parameterTypes": []
-        }
-      ]
     }
   ]
 }

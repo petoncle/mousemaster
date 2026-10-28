@@ -19,12 +19,6 @@ public class MacosScreens {
         return screens;
     }
 
-    /** Where Qt lays out the screen the given pixel point is on. */
-    public static Rectangle logicalScreenBounds(QPoint pixelPoint) {
-        QRect geometry = qScreenAt(pixelPoint).geometry();
-        return new Rectangle(geometry.x(), geometry.y(), geometry.width(), geometry.height());
-    }
-
     public static double scaleAt(QPoint pixelPoint) {
         return qScreenAt(pixelPoint).devicePixelRatio();
     }

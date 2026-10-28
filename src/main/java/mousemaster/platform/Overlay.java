@@ -1,6 +1,5 @@
 package mousemaster.platform;
 
-import mousemaster.Grid;
 import mousemaster.Hint;
 import mousemaster.HintMesh;
 import mousemaster.HintMeshConfiguration;
@@ -25,9 +24,7 @@ public interface Overlay {
 
     void preWarmHintMesh(HintMesh hintMesh, Zoom zoom);
 
-    Rectangle activeWindowRectangle(double widthPct, double heightPct,
-                                    int topInset, int bottomInset,
-                                    int leftInset, int rightInset);
+    Rectangle activeWindowRectangle();
 
     void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
                       boolean animating, boolean includeOriginalCursor);
@@ -39,10 +36,6 @@ public interface Overlay {
     void runPendingHintMeshWork();
 
     void hideIndicator();
-
-    void setGrid(Grid grid);
-
-    void hideGrid();
 
     void setHintMesh(HintMesh hintMesh, Zoom zoom);
 

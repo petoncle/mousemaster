@@ -36,7 +36,7 @@ class KeyAliasCharacterTest {
                                                     .pressedKeyPrecondition()
                                                     .allKeys());
             }
-        CommandRunner commandRunner = new CommandRunner(null, null, null, null) {
+        CommandRunner commandRunner = new CommandRunner(null, null, null) {
             @Override
             public boolean runningAtomicCommand() {
                 return false;

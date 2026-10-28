@@ -24,6 +24,10 @@ public record Rectangle(int x, int y, int width, int height) {
         return new Point(centerX, centerY);
     }
 
+    public Point nearestPoint(double pointX, double pointY) {
+        return new Point(Math.clamp(pointX, x, x + width), Math.clamp(pointY, y, y + height));
+    }
+
     public boolean contains(double pointX, double pointY) {
         return rectangleContains(x, y, width, height, pointX, pointY);
     }
