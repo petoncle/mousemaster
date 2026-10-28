@@ -1552,10 +1552,10 @@ public final class HintMeshRenderer {
                             style.fontStyle().defaultFontStyle().verticalAlignment(),
                             isHintPartOfTiledGrid, qtScaleFactor);
             hintLabels.add(hintLabel);
-            boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
-            boolean gridTopEdge = isHintPartOfGrid && hint.centerY() == minHintCenterY || style.boxHeightPercent() != 1;
-            boolean gridRightEdge = isHintPartOfGrid && hint.centerX() == maxHintCenterX || style.boxWidthPercent() != 1;
-            boolean gridBottomEdge = isHintPartOfGrid && hint.centerY() == maxHintCenterY || style.boxHeightPercent() != 1;
+            boolean gridLeftEdge = !isHintPartOfGrid || hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
+            boolean gridTopEdge = !isHintPartOfGrid || hint.centerY() == minHintCenterY || style.boxHeightPercent() != 1;
+            boolean gridRightEdge = !isHintPartOfGrid || hint.centerX() == maxHintCenterX || style.boxWidthPercent() != 1;
+            boolean gridBottomEdge = !isHintPartOfGrid || hint.centerY() == maxHintCenterY || style.boxHeightPercent() != 1;
             HintGroup hintGroup = hintGroupByPrefix.get(prefix);
             HintBox hintBox =
                     new HintBox(hint, boxBorderLength,
@@ -1650,16 +1650,16 @@ public final class HintMeshRenderer {
             if (!style.prefixBoxEnabled())
                 continue;
             boolean gridLeftEdge =
-                    isHintPartOfGrid && hintGroup.minHintCenterX == minHintCenterX ||
+                    !isHintPartOfGrid || hintGroup.minHintCenterX == minHintCenterX ||
                     style.boxWidthPercent() != 1;
             boolean gridTopEdge =
-                    isHintPartOfGrid && hintGroup.minHintCenterY == minHintCenterY ||
+                    !isHintPartOfGrid || hintGroup.minHintCenterY == minHintCenterY ||
                     style.boxHeightPercent() != 1;
             boolean gridRightEdge =
-                    isHintPartOfGrid && hintGroup.maxHintCenterX == maxHintCenterX ||
+                    !isHintPartOfGrid || hintGroup.maxHintCenterX == maxHintCenterX ||
                     style.boxWidthPercent() != 1;
             boolean gridBottomEdge =
-                    isHintPartOfGrid && hintGroup.maxHintCenterY == maxHintCenterY ||
+                    !isHintPartOfGrid || hintGroup.maxHintCenterY == maxHintCenterY ||
                     style.boxHeightPercent() != 1;
             HintBox prefixHintBox =
                     new HintBox(null, prefixBoxBorderLength,
