@@ -529,8 +529,16 @@ public class HintManager implements ModeListener, MousePositionListener {
         HintMesh newHintMesh;
         if (hintMeshConfiguration.type() instanceof HintMeshType.UiAccessibilityHintMesh ||
             hintMeshConfiguration.type() instanceof HintMeshType.UiVisionHintMesh) {
-            // Do not recompute the elements when the new mode looks for the same ones.
-            if (!sameUiElementQuery) {
+            // Do not recompute the elements when the new mode looks for the same ones, or comes
+            // back to the hints it showed with them.
+            HintMeshState hintMeshState = sameUiElementQuery ? null : hintMeshStates.get(
+                    new HintMeshKey(hintMeshConfiguration.type(), selectionKeys, newMode.zoom()));
+            boolean backToShownHints = hintMeshState != null &&
+                    buildHintMesh(hintMeshConfiguration, newMode.zoom(), newZoom,
+                            newScreenFilter, lastUiElements, uiElementQueryArea,
+                            uiElementQueryMousePoint, screenManager.activeScreen())
+                            .hints().equals(hintMeshState.hintMesh.hints());
+            if (!sameUiElementQuery && !backToShownHints) {
                 uiElementQueryMousePoint = new Point(mouseX, mouseY);
                 pendingUiHintQuery = new PendingUiHintQuery(
                         startUiElementQuery(hintMeshConfiguration.type()),
