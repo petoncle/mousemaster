@@ -5,6 +5,7 @@ import mousemaster.Hint;
 import mousemaster.HintMesh;
 import mousemaster.HintMeshConfiguration;
 import mousemaster.IndicatorConfiguration;
+import mousemaster.IndicatorPosition;
 import mousemaster.Point;
 import mousemaster.Rectangle;
 import mousemaster.Screen;
@@ -21,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class MacosOverlay implements Overlay {
@@ -138,6 +140,7 @@ public class MacosOverlay implements Overlay {
 
     @Override
     public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
+                             Map<IndicatorPosition, Point> pointByPosition,
                              boolean animating,
                              boolean includeOriginalCursor) {
         if (followingIndicatorRenderer == null)
@@ -150,21 +153,23 @@ public class MacosOverlay implements Overlay {
         }
         QPoint mousePosition = mouse.findMousePosition();
         setIndicator(followingIndicatorRenderer,
-                IndicatorRenderer.followingMouse(indicator, true), Set.of(), mousePosition);
+                IndicatorRenderer.followingMouse(indicator, true), Set.of(), Map.of(),
+                mousePosition);
         setIndicator(anchoredIndicatorRenderer,
                 IndicatorRenderer.followingMouse(indicator, false), layerNamesToAnchor,
-                mousePosition);
+                pointByPosition, mousePosition);
     }
 
     private void setIndicator(IndicatorRenderer indicatorRenderer,
                               IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
+                              Map<IndicatorPosition, Point> pointByPosition,
                               QPoint mousePosition) {
         if (!indicator.enabled()) {
             indicatorRenderer.hide();
             return;
         }
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
-        indicatorRenderer.setIndicator(indicator, layerNamesToAnchor,
+        indicatorRenderer.setIndicator(indicator, layerNamesToAnchor, pointByPosition,
                 cursorRectangle(mousePosition, activeScreen),
                 cursorVisualCenter(activeScreen), activeScreen, null,
                 hintMeshRenderer.lastSelectedHintBoxHexColor());

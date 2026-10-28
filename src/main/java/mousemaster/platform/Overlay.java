@@ -4,10 +4,13 @@ import mousemaster.Hint;
 import mousemaster.HintMesh;
 import mousemaster.HintMeshConfiguration;
 import mousemaster.IndicatorConfiguration;
+import mousemaster.IndicatorPosition;
+import mousemaster.Point;
 import mousemaster.Rectangle;
 
 import mousemaster.Zoom;
 
+import java.util.Map;
 import java.util.Set;
 
 public interface Overlay {
@@ -27,7 +30,8 @@ public interface Overlay {
     Rectangle activeWindowRectangle();
 
     void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
-                      boolean animating, boolean includeOriginalCursor);
+                      Map<IndicatorPosition, Point> pointByPosition, boolean animating,
+                      boolean includeOriginalCursor);
 
     /** Captures the desktop inside bounds, excluding mousemaster's own windows. */
     DesktopCapture captureDesktop(Rectangle bounds, int scaledWidth, int scaledHeight);

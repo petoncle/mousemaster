@@ -100,7 +100,7 @@ public class ConfigurationParser {
              .rotation(0)
              .fillColor(Color.parse("#FF0000"))
              .fillOpacity(0.2)
-             .position(IndicatorPosition.MOUSE)
+             .positions(List.of(IndicatorPosition.MOUSE))
              .followMouse(true);
         layer.stroke()
              .thickness(1)
@@ -590,8 +590,16 @@ public class ConfigurationParser {
                 ((IndicatorConfigurationBuilder) defaultPropertyByName.get("indicator").builder)
                         .layer("indicator");
         for (ModeBuilder mode : modeByName.values())
-            for (IndicatorLayerConfigurationBuilder layer : mode.indicator.builder.layerByName().values())
+            for (Map.Entry<String, IndicatorLayerConfigurationBuilder> entry : mode.indicator.builder.layerByName().entrySet()) {
+                IndicatorLayerConfigurationBuilder layer = entry.getValue();
+                if (layer.positions() != null && layer.positions().size() == 2 &&
+                    mode.indicator.setPropertyPaths.contains(new ModePropertyPath(
+                            List.of("indicator", "layerByName", entry.getKey(), "size"))))
+                    throw new IllegalArgumentException(
+                            "Invalid definition of " + entry.getKey() + " for " + mode.modeName +
+                            ": a layer with two positions takes its size from them");
                 layer.extend(defaultLayer);
+            }
         // Cascades font-color mutations to the focused, selected and prefix variants,
         // except where the configuration sets them explicitly.
         for (ModeBuilder mode : modeByName.values())
@@ -2702,7 +2710,7 @@ public class ConfigurationParser {
             case "font-size" -> ModePropertyHandler.of(prefix.append("fontSize"), v -> parseDouble(v, false, 0, 1000), v -> layer.fontSize(v));
             case "font-weight" -> ModePropertyHandler.of(prefix.append("fontWeight"), v -> FontWeight.of(v), v -> layer.fontWeight(v));
             case "text-style-sheet" -> ModePropertyHandler.of(prefix.append("textStyleSheet"), v -> v, v -> layer.textStyleSheet(v));
-            case "position" -> ModePropertyHandler.of(prefix.append("position"), v -> IndicatorPosition.fromString(v), v -> layer.position(v));
+            case "position" -> ModePropertyHandler.of(prefix.append("positions"), v -> parseIndicatorPositions(v), v -> layer.positions(v));
             case "follow-mouse" -> ModePropertyHandler.of(prefix.append("followMouse"), v -> Boolean.parseBoolean(v), v -> layer.followMouse(v));
             // @formatter:on
             default -> null;
@@ -3341,6 +3349,16 @@ public class ConfigurationParser {
                     "Invalid property value " + percent +
                     ": must be less than or equal to " + max);
         return percent;
+    }
+
+    private static List<IndicatorPosition> parseIndicatorPositions(String propertyValue) {
+        List<IndicatorPosition> positions = Arrays.stream(propertyValue.split("\\s+"))
+                                                  .map(IndicatorPosition::fromString)
+                                                  .toList();
+        if (positions.size() > 2)
+            throw new IllegalArgumentException(
+                    "Invalid indicator position: " + propertyValue + ", must be one or two positions");
+        return positions;
     }
 
     private static List<Key> parseKeyList(String propertyValue,

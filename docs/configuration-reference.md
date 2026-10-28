@@ -458,9 +458,22 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
 #### Position
 
 - **`position`**: `mouse` (default), `mouse-top-left`, `mouse-top-right`, `mouse-bottom-left`,
-  `mouse-bottom-right` or `screen-center`. `mouse` centers the layer behind the cursor, best with a
-  low opacity so the cursor stays visible. Near a screen edge, a corner position moves to the
-  other side of the cursor, and a layer with a text moves inward instead of being cut.
+  `mouse-bottom-right`, `screen-center`, `selection` or `last-selected-hint`. `mouse` centers the
+  layer behind the cursor, best with a low opacity so the cursor stays visible. Near a screen
+  edge, a corner position moves to the other side of the cursor, and a layer with a text moves
+  inward instead of being cut. `selection` and `last-selected-hint` center the layer on those
+  points of the overlay (see `mouse-movement`), and the layer moves with them, not with the
+  cursor.
+
+  With two positions, the layer runs from the first to the second: their distance is its width,
+  and `rotation` turns it from their direction. `aspect-ratio` still sets its height, and `size`
+  cannot be set. A line from the last selected hint to the selection, with a dot at the
+  selection:
+  ```properties
+  grid-mode.line-indicator.shape=line
+  grid-mode.line-indicator.position=last-selected-hint selection
+  grid-mode.dot-indicator.position=selection
+  ```
 - **`follow-mouse`**: Whether the layer moves with the cursor (default `true`). With `false`, the
   layer stays where it was when it was enabled, or when its keyframes started over.
 

@@ -14,7 +14,8 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                                           IndicatorStroke stroke,
                                           String text, String fontName, double fontSize,
                                           FontWeight fontWeight, String textStyleSheet,
-                                          IndicatorPosition position, boolean followMouse) {
+                                          List<IndicatorPosition> positions,
+                                          boolean followMouse) {
 
     public IndicatorLayerConfigurationBuilder builder() {
         return new IndicatorLayerConfigurationBuilder(this);
@@ -42,7 +43,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         private Double fontSize;
         private FontWeight fontWeight;
         private String textStyleSheet;
-        private IndicatorPosition position;
+        private List<IndicatorPosition> positions;
         private Boolean followMouse;
 
         public IndicatorLayerConfigurationBuilder() {
@@ -69,7 +70,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             this.fontSize = layer.fontSize;
             this.fontWeight = layer.fontWeight;
             this.textStyleSheet = layer.textStyleSheet;
-            this.position = layer.position;
+            this.positions = layer.positions;
             this.followMouse = layer.followMouse;
         }
 
@@ -248,13 +249,13 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             return textStyleSheet;
         }
 
-        public IndicatorLayerConfigurationBuilder position(IndicatorPosition position) {
-            this.position = position;
+        public IndicatorLayerConfigurationBuilder positions(List<IndicatorPosition> positions) {
+            this.positions = positions;
             return this;
         }
 
-        public IndicatorPosition position() {
-            return position;
+        public List<IndicatorPosition> positions() {
+            return positions;
         }
 
         public IndicatorLayerConfigurationBuilder followMouse(boolean followMouse) {
@@ -287,7 +288,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             if (fontSize == null) fontSize = parent.fontSize;
             if (fontWeight == null) fontWeight = parent.fontWeight;
             if (textStyleSheet == null) textStyleSheet = parent.textStyleSheet;
-            if (position == null) position = parent.position;
+            if (positions == null) positions = parent.positions;
             if (followMouse == null) followMouse = parent.followMouse;
         }
 
@@ -295,8 +296,9 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             return new IndicatorLayerConfiguration(enabled, z, shape, size, aspectRatio,
                     borderRadius, points, x, y, distance, angle, rotation, fillColor, fillOpacity,
                     stroke.build(),
-                    text, fontName, fontSize, fontWeight, textStyleSheet, position,
-                    followMouse);
+                    text, fontName, fontSize, fontWeight, textStyleSheet, positions,
+                    followMouse && !positions.contains(IndicatorPosition.SELECTION) &&
+                    !positions.contains(IndicatorPosition.LAST_SELECTED_HINT));
         }
     }
 }

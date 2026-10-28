@@ -7,12 +7,14 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 public class IndicatorManager implements ModeListener {
 
     private final Overlay overlay;
     private final AnimationPlayer animationPlayer;
+    private final HintManager hintManager;
     private Mode currentMode;
     private IndicatorConfiguration resolvedIndicator;
     private final Map<ModePropertyPath, Timeline> timelineByPropertyPath = new HashMap<>();
@@ -20,10 +22,13 @@ public class IndicatorManager implements ModeListener {
     private final Map<ModePropertyPath, Object> currentByPropertyPath = new HashMap<>();
     private final Set<String> anchoredLayerNames = new HashSet<>();
     private final Set<String> layerNamesToAnchor = new HashSet<>();
+    private Map<IndicatorPosition, Point> pointByPosition = Map.of();
 
-    public IndicatorManager(Overlay overlay, AnimationPlayer animationPlayer) {
+    public IndicatorManager(Overlay overlay, AnimationPlayer animationPlayer,
+                            HintManager hintManager) {
         this.overlay = overlay;
         this.animationPlayer = animationPlayer;
+        this.hintManager = hintManager;
     }
 
     public boolean animating() {
@@ -37,7 +42,8 @@ public class IndicatorManager implements ModeListener {
             layerNamesToAnchor.clear();
             return;
         }
-        overlay.setIndicator(indicator, Set.copyOf(layerNamesToAnchor), animating(),
+        overlay.setIndicator(indicator, Set.copyOf(layerNamesToAnchor), pointByPosition,
+                animating(),
                 !animationPlayer.animate(currentMode, "hideCursor").hideCursor().enabled());
         layerNamesToAnchor.clear();
     }
@@ -67,6 +73,19 @@ public class IndicatorManager implements ModeListener {
             if (!previousAnchoredLayerNames.contains(entry.getKey()))
                 layerNamesToAnchor.add(entry.getKey());
         }
+        Map<IndicatorPosition, Point> newPointByPosition = new HashMap<>();
+        if (hintManager.selectionPoint() != null)
+            newPointByPosition.put(IndicatorPosition.SELECTION, hintManager.selectionPoint());
+        if (hintManager.lastSelectedHintPoint() != null)
+            newPointByPosition.put(IndicatorPosition.LAST_SELECTED_HINT,
+                    hintManager.lastSelectedHintPoint());
+        for (Map.Entry<String, IndicatorLayerConfiguration> entry : indicator.layerByName()
+                                                                             .entrySet())
+            if (entry.getValue().enabled() && entry.getValue().positions().stream().anyMatch(
+                    position -> !Objects.equals(newPointByPosition.get(position),
+                            pointByPosition.get(position))))
+                layerNamesToAnchor.add(entry.getKey());
+        pointByPosition = newPointByPosition;
         return indicator;
     }
 

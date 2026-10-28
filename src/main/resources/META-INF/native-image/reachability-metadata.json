@@ -6943,7 +6943,7 @@
             "double",
             "mousemaster.FontWeight",
             "java.lang.String",
-            "mousemaster.IndicatorPosition",
+            "java.util.List",
             "boolean"
           ]
         },
@@ -6996,7 +6996,7 @@
           "parameterTypes": []
         },
         {
-          "name": "position",
+          "name": "positions",
           "parameterTypes": []
         },
         {

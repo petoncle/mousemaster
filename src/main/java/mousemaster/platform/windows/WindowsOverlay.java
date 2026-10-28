@@ -248,17 +248,19 @@ public class WindowsOverlay implements Overlay {
         for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
             if (indicatorWindow.showing())
                 showIndicatorWindow(indicatorWindow,
-                        indicatorWindow.renderer().currentIndicator(), Set.of(),
+                        indicatorWindow.renderer().currentIndicator(), Set.of(), Map.of(),
                         mousePosition);
     }
 
     private void showIndicatorWindow(WindowsIndicatorWindow indicatorWindow,
                                      IndicatorConfiguration indicator,
                                      Set<String> layerNamesToAnchor,
+                                     Map<IndicatorPosition, Point> pointByPosition,
                                      WinDef.POINT mousePosition) {
         IndicatorRenderer.WindowImage windowImage =
                 indicatorWindow.renderer().renderWindowImage(indicator, layerNamesToAnchor,
-                        mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
+                        pointByPosition, mouseRectangle(mousePosition),
+                        mouse.cursorVisualCenter(),
                         WindowsScreen.findActiveScreen(mousePosition), currentZoom,
                         hintMeshRenderer.lastSelectedHintBoxHexColor());
         indicatorWindow.show(windowImage.image(), windowImage.x(), windowImage.y());
@@ -267,13 +269,15 @@ public class WindowsOverlay implements Overlay {
     private void setIndicatorWindow(WindowsIndicatorWindow indicatorWindow,
                                     IndicatorConfiguration indicator,
                                     Set<String> layerNamesToAnchor,
+                                    Map<IndicatorPosition, Point> pointByPosition,
                                     WinDef.POINT mousePosition) {
         if (!indicator.enabled()) {
             indicatorWindow.hide();
             return;
         }
         boolean wasShowing = indicatorWindow.showing();
-        showIndicatorWindow(indicatorWindow, indicator, layerNamesToAnchor, mousePosition);
+        showIndicatorWindow(indicatorWindow, indicator, layerNamesToAnchor, pointByPosition,
+                mousePosition);
         if (!wasShowing)
             setTopmost();
     }
@@ -393,6 +397,7 @@ public class WindowsOverlay implements Overlay {
 
     @Override
     public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
+                             Map<IndicatorPosition, Point> pointByPosition,
                              boolean animating,
                              boolean includeOriginalCursor) {
         Objects.requireNonNull(indicator);
@@ -422,7 +427,8 @@ public class WindowsOverlay implements Overlay {
         if (renderAsCursor)
             setIndicatorCursor(following, animating, includeOriginalCursor, mousePosition);
         else {
-            setIndicatorWindow(followingIndicatorWindow, following, Set.of(), mousePosition);
+            setIndicatorWindow(followingIndicatorWindow, following, Set.of(), Map.of(),
+                    mousePosition);
             if (indicatorIsCursor) {
                 // The cursor changes on the next refresh, the window once it is composited.
                 Dwmapi.INSTANCE.DwmFlush();
@@ -432,7 +438,7 @@ public class WindowsOverlay implements Overlay {
             }
         }
         setIndicatorWindow(anchoredIndicatorWindow, anchored, layerNamesToAnchor,
-                mousePosition);
+                pointByPosition, mousePosition);
     }
 
     private void setIndicatorCursor(IndicatorConfiguration indicator, boolean animating,

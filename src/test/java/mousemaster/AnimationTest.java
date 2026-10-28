@@ -69,7 +69,7 @@ class AnimationTest {
                 configuration.activeKeyboardLayout());
         animationPlayer = new AnimationPlayer(configuration.animationConfigurationByName());
         commandRunner.setAnimationPlayer(animationPlayer);
-        indicatorManager = new IndicatorManager(overlay, animationPlayer);
+        indicatorManager = new IndicatorManager(overlay, animationPlayer, hintManager);
         comboWatcher.setModeListeners(List.of(indicatorManager));
         comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
     }
