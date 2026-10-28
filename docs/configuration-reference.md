@@ -1073,6 +1073,12 @@ hint-mode.hint.background-opacity=0
       `per-pixel` (none: the gradient ramps inside a box and continues into the next).
       `per-subgrid` needs an area wider than a subgrid, so not with `across-subgrid` or
       `across-hint`.
+  - `box-border-color`: One color, or a gradient as for `box-color`. So are
+    `prefix-box-border-color`, `ui-element-box-color`, `ui-element-box-border-color` and
+    `<level>-box-border-color`.
+    ```properties
+    hint-mode.hint.box-border-color=across-screen per-pixel center-to-edge #F97316 #3B82F6
+    ```
   - `box-border-length`: Higher values create continuous lines between hint boxes, lower values create dotted separators
   - `box-border-radius`: Radius for rounded corners (0-1000, default 0).
   - `box-shadow-blur-radius`: Shadow blur radius (0-1000, default 10).

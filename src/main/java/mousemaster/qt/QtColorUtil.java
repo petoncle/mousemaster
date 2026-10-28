@@ -9,6 +9,7 @@ import mousemaster.Rectangle;
 import mousemaster.Shadow;
 
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 
 public final class QtColorUtil {
@@ -28,12 +29,13 @@ public final class QtColorUtil {
      *  thousands of boxes sharing a few appearances. QPainter copies the state it is given, so one
      *  brush or pen can back any number of paints. */
     private static final Map<Integer, QBrush> brushByRgba = new HashMap<>();
-    private static final Map<PenKey, QPen> penByKey = new HashMap<>();
+    /** By instance: QBrush equality is a native call, and every brush comes from these caches. */
+    private static final Map<QBrush, Map<PenKey, QPen>> penByKeyByBrush =
+            new IdentityHashMap<>();
     private static QBrush noBrush;
     private static QBrush opaqueWhiteBrush;
 
-    private record PenKey(int rgba, int width, Qt.PenCapStyle capStyle,
-                          Qt.PenJoinStyle joinStyle) {
+    private record PenKey(int width, Qt.PenCapStyle capStyle, Qt.PenJoinStyle joinStyle) {
     }
 
     public static QBrush qBrush(QColor color) {
@@ -172,7 +174,7 @@ public final class QtColorUtil {
         brushByGradient.clear();
         brushByArea.clear();
         brushBySweepStep.clear();
-        penByKey.clear();
+        penByKeyByBrush.clear();
         opaqueByRgba.clear();
     }
 
@@ -201,14 +203,20 @@ public final class QtColorUtil {
 
     public static QPen qPen(QColor color, int width, Qt.PenCapStyle capStyle,
                             Qt.PenJoinStyle joinStyle) {
-        return penByKey.computeIfAbsent(
-                new PenKey(color.rgba(), width, capStyle, joinStyle), key -> {
-                    QPen pen = new QPen(color);
-                    pen.setCapStyle(capStyle);
-                    pen.setJoinStyle(joinStyle);
-                    pen.setWidth(width);
-                    return pen;
-                });
+        return qPen(qBrush(color), width, capStyle, joinStyle);
+    }
+
+    public static QPen qPen(QBrush brush, int width, Qt.PenCapStyle capStyle,
+                            Qt.PenJoinStyle joinStyle) {
+        return penByKeyByBrush.computeIfAbsent(brush, key -> new HashMap<>())
+                              .computeIfAbsent(new PenKey(width, capStyle, joinStyle), key -> {
+                                  QPen pen = new QPen();
+                                  pen.setBrush(brush);
+                                  pen.setCapStyle(capStyle);
+                                  pen.setJoinStyle(joinStyle);
+                                  pen.setWidth(width);
+                                  return pen;
+                              });
     }
 
     public static QColor shadow(Shadow shadow, String lastSelectedHintBoxHexColor) {
