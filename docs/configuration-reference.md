@@ -675,7 +675,7 @@ windows the elements are looked for in:
 - `all-screens`: Every visible window on every connected screen
 - `active-window`: The active window, and its popups (menus, dropdowns, dialogs). A popup
   is hinted even where it extends past the window.
-- `last-selected-hint-cell`: The cell of the last selected hint
+- `last-selected-hint-cell`: The cell of the last selected hint, the element of a UI hint
 
 With the other regions, elements are cropped to the region, and elements
 covered by a window drawn over theirs are left out, so a hint is only shown where the
@@ -816,7 +816,8 @@ the point it is *centered* on. For UI hints it is the region the elements are lo
   - `active-screen`: The screen with the mouse cursor
   - `active-window`: The currently active window
   - `all-screens`: Every connected screen (one grid per screen — `area-center` does not apply)
-  - `last-selected-hint-cell`: The cell of the last selected hint (for a recursive grid)
+  - `last-selected-hint-cell`: The cell of the last selected hint (for a recursive grid), the
+    element of a UI hint
 
   `active-screen` is the default. What each region scans for UI hints is described in
   [Accessibility UI hints](#accessibility-ui-hints).

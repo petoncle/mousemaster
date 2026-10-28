@@ -1245,15 +1245,17 @@ public class HintManager implements ModeListener, MousePositionListener {
                 cellWidth, cellHeight);
     }
 
-    /** The desktop region a hint's cell covers. */
+    /** The desktop region a hint's cell covers. A UI hint's cell is its element. */
     private static Rectangle unzoomedHintCell(Hint hint, Zoom zoom) {
-        int left = (int) Math.round(zoom.unzoomedX(hint.centerX() - hint.cellWidth() / 2));
-        int top = (int) Math.round(zoom.unzoomedY(hint.centerY() - hint.cellHeight() / 2));
+        double cellWidth = hint.elementRectangle() == null ? hint.cellWidth() :
+                hint.elementRectangle().width();
+        double cellHeight = hint.elementRectangle() == null ? hint.cellHeight() :
+                hint.elementRectangle().height();
+        int left = (int) Math.round(zoom.unzoomedX(hint.centerX() - cellWidth / 2));
+        int top = (int) Math.round(zoom.unzoomedY(hint.centerY() - cellHeight / 2));
         return new Rectangle(left, top,
-                (int) Math.round(zoom.unzoomedX(hint.centerX() + hint.cellWidth() / 2)) -
-                left,
-                (int) Math.round(zoom.unzoomedY(hint.centerY() + hint.cellHeight() / 2)) -
-                top);
+                (int) Math.round(zoom.unzoomedX(hint.centerX() + cellWidth / 2)) - left,
+                (int) Math.round(zoom.unzoomedY(hint.centerY() + cellHeight / 2)) - top);
     }
 
     private static Rectangle hintCellRectangle(Hint hint) {
@@ -1531,8 +1533,9 @@ public class HintManager implements ModeListener, MousePositionListener {
             logger.trace("Saving lastSelectedHintPoint " + lastSelectedHintPoint);
             // Unzoomed, like lastSelectedHintPoint: a cell in screen units could not
             // compound, so zooming into it twice would magnify by the same factor.
-            pendingSelectedCell = exactMatchHint.cellWidth() > 0 ?
-                    unzoomedHintCell(exactMatchHint, currentZoom) : null;
+            pendingSelectedCell =
+                    exactMatchHint.cellWidth() > 0 || exactMatchHint.elementRectangle() != null ?
+                            unzoomedHintCell(exactMatchHint, currentZoom) : null;
             lastSelectedHintCell = pendingSelectedCell;
              if (hintMeshConfiguration.mouseMovement() != HintMouseMovement.NO_MOVEMENT) {
                  moveMouse(new Point(exactMatchHint.centerX(), exactMatchHint.centerY()));
