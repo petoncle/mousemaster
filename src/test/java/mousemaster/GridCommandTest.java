@@ -60,7 +60,7 @@ class GridCommandTest {
         start("""
                 grid-mode.hint.grid-max-row-count=2
                 grid-mode.hint.grid-max-column-count=2
-                grid-mode.hint.mouse-movement=mouse-follows-hint-grid-center
+                grid-mode.hint.mouse-movement=mouse-follows-overlay-center
                 """);
         switchMode("grid-mode");
         hintManager.shrinkGridUp();
@@ -73,7 +73,7 @@ class GridCommandTest {
         start("""
                 grid-mode.hint.grid-max-row-count=3
                 grid-mode.hint.grid-max-column-count=3
-                grid-mode.hint.mouse-movement=mouse-follows-hint-grid-center
+                grid-mode.hint.mouse-movement=mouse-follows-overlay-center
                 """);
         switchMode("grid-mode");
         hintManager.shrinkGridUp();
@@ -88,7 +88,7 @@ class GridCommandTest {
                 grid-mode.hint.area-height-percent=0.5
                 grid-mode.hint.grid-max-row-count=1
                 grid-mode.hint.grid-max-column-count=1
-                grid-mode.hint.mouse-movement=mouse-follows-hint-grid-center
+                grid-mode.hint.mouse-movement=mouse-follows-overlay-center
                 """);
         switchMode("grid-mode");
         hintManager.moveGridRight();
@@ -183,7 +183,7 @@ class GridCommandTest {
                 grid-mode.to.other-grid-mode=+o
                 grid-mode.hint.grid-max-row-count=2
                 grid-mode.hint.grid-max-column-count=2
-                grid-mode.hint.mouse-movement=mouse-follows-hint-grid-center
+                grid-mode.hint.mouse-movement=mouse-follows-overlay-center
                 other-grid-mode.to.idle-mode=+esc
                 other-grid-mode.mouse=grid-mode.mouse
                 other-grid-mode.hint=grid-mode.hint

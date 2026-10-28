@@ -34,7 +34,7 @@ The layout above shows normal mode ([warpd-keyboardlayouteditor.json](assets/war
 - Similar to Vimium-like browser extensions, but applicable to the entire screen.
 - Automatically switch back to the previous mode (idle mode or normal mode) after hint selection.
 - Trigger a second hint pass, subdividing the cell you selected into a finer grid, with _leftalt + leftshift + x_ (or _leftshift + x_ in normal mode).
-- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-row-count`, and `hint.grid-max-column-count` in [warpd.properties](../configuration/warpd.properties).
+- A balance between hint size, number and screen space is crucial and can be configured: see `overlay.font-size`, `overlay.grid-max-row-count`, and `overlay.grid-max-column-count` in [warpd.properties](../configuration/warpd.properties).
 - Exit with _esc_.
 
 ## History Mode (_leftalt + h_ or _;_ in normal mode)

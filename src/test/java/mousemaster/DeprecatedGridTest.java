@@ -55,7 +55,7 @@ class DeprecatedGridTest {
                 "grid-mode.grid.background-opacity=0",
                 "grid-mode.grid.synchronization=mouse-follows-grid-center");
         assertTrue(hint.visible());
-        assertEquals(HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER, hint.mouseMovement());
+        assertEquals(HintMouseMovement.MOUSE_FOLLOWS_OVERLAY_CENTER, hint.mouseMovement());
         assertEquals(1, layout(hint).maxRowCount());
         assertEquals(3, layout(hint).maxColumnCount());
         assertEquals(Color.parse("#00FF00"), style(hint).boxBorderColor());

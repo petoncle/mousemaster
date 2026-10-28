@@ -346,11 +346,11 @@ than one bulk reset — a bulk reset would also clear `showrecursivehintkeys`.
 ### Geometry
 
 ```properties
-_recursive-hint-mode.hint.area=last-selected-hint-cell
-_recursive-hint-mode.hint.area-center=last-selected-hint | _{mouseanchored} -> mouse
-_recursive-hint-mode.hint.grid-max-row-count=3
-_recursive-hint-mode.hint.grid-cell-sizing=fit
-recursive-hint1-mode.hint.area=active-screen
+_recursive-hint-mode.overlay.area=last-selected-hint-cell
+_recursive-hint-mode.overlay.area-center=last-selected-hint | _{mouseanchored} -> mouse
+_recursive-hint-mode.overlay.grid-max-row-count=3
+_recursive-hint-mode.overlay.grid-cell-sizing=fit
+recursive-hint1-mode.overlay.area=active-screen
 ```
 
 `area=last-selected-hint-cell` is what makes it recursive: each level's area *is* the cell picked
@@ -363,11 +363,11 @@ given in 100 %-screen pixels and grown by the screen's scale, so none of it need
 ### Two looks, toggled by `capslock`
 
 ```properties
-_recursive-hint-mode.hint.font-opacity=1 | ^{showrecursivehintkeys} -> 0
-_recursive-hint-mode.hint.decoration-label-override=plus
-_recursive-hint-mode.hint.decoration-font-opacity=0 | ^{showrecursivehintkeys} -> 1
-_recursive-hint-mode.hint.subdecoration-label-keys=recursivehintkey
-_recursive-hint-mode.hint.subdecoration-label-override=^{showrecursivehintkeys} -> .
+_recursive-hint-mode.overlay.font-opacity=1 | ^{showrecursivehintkeys} -> 0
+_recursive-hint-mode.overlay.decoration-label-override=plus
+_recursive-hint-mode.overlay.decoration-font-opacity=0 | ^{showrecursivehintkeys} -> 1
+_recursive-hint-mode.overlay.subdecoration-label-keys=recursivehintkey
+_recursive-hint-mode.overlay.subdecoration-label-override=^{showrecursivehintkeys} -> .
 ```
 
 `showrecursivehintkeys` is declared `pressed`, so the default is the **keys** look: every cell shows its
@@ -383,7 +383,7 @@ branches all describe the dots look.
 `isnomove` is pressed on entry. Whether the pointer follows is a four-branch mutation:
 
 ```properties
-_recursive-hint-mode.hint.mouse-movement=mouse-follows-hint-grid-center \
+_recursive-hint-mode.overlay.mouse-movement=mouse-follows-overlay-center \
   | ^{recursivehintwheel} _{isnomove rightalt} -> mouse-follows-selected-hint \
   | _{isnomove islclick | isnomove ismclick | isnomove isrclick} ^{islongpresshintkey isnohintclick rightalt} -> mouse-follows-selected-hint \
   | _{isnomove} ^{islclick ismclick isrclick islongpresshintkey rightalt} -> no-movement
@@ -393,7 +393,7 @@ The three values differ in *when* they move:
 
 | Value | On arriving at a level | On the final cell pick |
 |---|---|---|
-| `mouse-follows-hint-grid-center` | yes, to the region's center | yes, to the cell |
+| `mouse-follows-overlay-center` | yes, to the region's center | yes, to the cell |
 | `mouse-follows-selected-hint` | no | yes, to the cell |
 | `no-movement` | no | no |
 
@@ -413,7 +413,7 @@ Rightmost matching branch wins and the four are mutually exclusive, so it reads 
 
 ```properties
 _recursive-hint-mode.macro.setislclick=^{islclick recursivehintwheel} +leftbutton -> #islclick
-_recursive-hint-mode.hint.box-color=#000000 | _{islclick} -> #00FF00 | _{ismclick} -> #FF00FF | _{isrclick} -> #00FFFF
+_recursive-hint-mode.overlay.box-color=#000000 | _{islclick} -> #00FF00 | _{ismclick} -> #FF00FF | _{isrclick} -> #00FFFF
 recursive-hint1-mode.to.recursive-hint2-mode=^{islclick ismclick isrclick rightalt} +recursivehintkey
 _recursive-hint-mode.to.click-after-hint-mode=_{islclick | ismclick | isrclick} ^{rightalt} +recursivehintkey | ...
 ```
@@ -532,7 +532,7 @@ does nothing there.
 normal-mode.macro.fasttrackrecursivehint2=^{leftalt} +7 -> #autodrilling k ~autodrilling
 normal-mode.to.recursive-hint1-mode=+autodrilling
 normal-mode.macro.setmouseanchored=+autodrilling -> #mouseanchored
-_recursive-hint-mode.hint.visible=true | _{autodrilling} -> false
+_recursive-hint-mode.overlay.visible=true | _{autodrilling} -> false
 _recursive-hint-mode.macro.unsetmouseanchored=^{autodrilling} +recursivehintkey -> ~mouseanchored
 normal-mode.break-combo-preparation=+middlebutton-0-150 -middlebutton-1 | ^{leftalt} +fasttrackkey
 ```
@@ -543,7 +543,7 @@ third, one ninth or one twenty-seventh of the screen, **centered on the cursor**
 - `autodrilling` is a virtual key, and pressing it *is* the trigger for `to.recursive-hint1-mode` — the
   macro opens the grid by pressing a key that does not exist.
 - It then types `k`, the center cell, once, twice or three times; each drills a level.
-- `hint.visible` is false while `autodrilling` is held, so the intermediate grids are never drawn.
+- `overlay.visible` is false while `autodrilling` is held, so the intermediate grids are never drawn.
 - `mouseanchored` rewrites `area-center` from `last-selected-hint` to `mouse`, so each level
   recenters on the cursor. It survives into the destination and is released by the first *real* hint key
   press, so the grid stays on the cursor until you aim.
@@ -561,8 +561,8 @@ they can still arm a click.
 ## UI hints
 
 ```properties
-ui-hint-mode.hint.type=ui-vision
-ui-hint-mode.hint.box-border-color=#FFFF00 | _{isrclick} -> #00FFFF | _{ismclick} -> #FF00FF | _{rightalt} -> #FFFFFF
+ui-hint-mode.overlay.type=ui-vision
+ui-hint-mode.overlay.box-border-color=#FFFF00 | _{isrclick} -> #00FFFF | _{ismclick} -> #FF00FF | _{rightalt} -> #FFFFFF
 click-after-ui-hint-mode.release.left=^{ismclick isrclick} +uihintkey-0-150 -uihintkey | +hintback | +rightctrl
 click-after-ui-hint-mode.to.ui-hint-mode=^{uihintkey anybutton mouseanimation} wait-300
 ```
@@ -597,7 +597,7 @@ screen-grid-mode.shrink-grid.up=^{leftshift leftctrl} +up
 screen-grid-mode.move-grid.up=_{leftshift} +up
 screen-grid-mode.snap.up=_{leftctrl} +up
 screen-grid-mode.move-to-grid-center=+leftshift -leftshift
-screen-grid-mode.hint.box-border-thickness=1 | _{300%} -> 0.66667
+screen-grid-mode.overlay.box-border-thickness=1 | _{300%} -> 0.66667
 screen-grid-mode.start-move.up=_{up} -rightalt
 ```
 
@@ -614,9 +614,9 @@ moving in the same instant, with no gap.
 
 Snap mode is the same region as a 1×1 grid: only the outer boundary exists, so a direction key throws
 the pointer to that edge or corner. Screen snap keeps the pointer where it is; window snap recenters
-it (`mouse-follows-hint-grid-center`), which makes `rightalt`+`;` the shortest way to say "put the pointer in this window".
+it (`mouse-follows-overlay-center`), which makes `rightalt`+`;` the shortest way to say "put the pointer in this window".
 
-`window-snap-mode.hint.area-top-inset=15` keeps snapping up on the **title bar** rather than the
+`window-snap-mode.overlay.area-top-inset=15` keeps snapping up on the **title bar** rather than the
 invisible resize border above it. With a held `space` that is the whole window-drag workflow:
 `rightalt`+`;` puts the pointer in the window, `i` on the title bar, release both keys, hold `space` to
 grab, `i j k l` to move, tap `space` to drop.
@@ -639,12 +639,12 @@ it, so `rightalt`+`space` works whether you were quick or slow.
 ### Recentering on an app switch
 
 ```properties
-center-mouse-mode.hint.area=active-window
-center-mouse-mode.hint.visible=false
-center-mouse-mode.hint.grid-cell-sizing=fit
-center-mouse-mode.hint.grid-max-row-count=1
-center-mouse-mode.hint.grid-max-column-count=1
-center-mouse-mode.hint.mouse-movement=mouse-follows-hint-grid-center
+center-mouse-mode.overlay.area=active-window
+center-mouse-mode.overlay.visible=false
+center-mouse-mode.overlay.grid-cell-sizing=fit
+center-mouse-mode.overlay.grid-max-row-count=1
+center-mouse-mode.overlay.grid-max-column-count=1
+center-mouse-mode.overlay.mouse-movement=mouse-follows-overlay-center
 center-mouse-mode.to.previous-mode-from-history-stack=_{isidling} wait-0
 idle-mode.to.center-mouse-mode=^{nonexistingapp.exe}
 ```
@@ -655,7 +655,7 @@ switched to.
 `^{nonexistingapp.exe}` is easy to misread. It is an app precondition on a combo with *no key moves*,
 and mousemaster runs those only when the active application changes; since no process bears that name
 the precondition is always true, so it means "on any app change", not "never". The mode does its work on
-entry — `hint.visible=false`, so the grid is computed but never drawn — and `wait-0` leaves again on
+entry — `overlay.visible=false`, so the grid is computed but never drawn — and `wait-0` leaves again on
 the next frame.
 
 ## Arrow-key mode
@@ -676,8 +676,8 @@ without it, releasing the leader while a direction key was down would leave an a
 ## The indicator as a status display
 
 `_indicator-mode.indicator.render-as-cursor=true | _{rustdesk.exe} -> false` makes the indicator *be*
-the system cursor image, with the real arrow glyph composited on top, instead of an overlay window
-chasing the pointer. RustDesk draws the remote cursor itself, so it is excluded.
+the system cursor image, with the real arrow glyph composited on top, instead of a window chasing the
+pointer. RustDesk draws the remote cursor itself, so it is excluded.
 
 **Base color is the mode:** red normal, orange surgical and zoom, cyan typing, spring green one-shot,
 magenta arrow mode. **Mouse state overrides it**, applied identically to fill, inner outline and shadow:
@@ -741,10 +741,10 @@ A few macros reach into specific applications, all through `macro-hint-mode`, an
 
 ```properties
 idle-mode.to.macro-hint-mode=+f13
-macro-hint-mode.hint.visible=false
-macro-hint-mode.hint.grid-cell-width=9.8
-macro-hint-mode.hint.layout-row-count=4
-macro-hint-mode.hint.layout-column-count=10
+macro-hint-mode.overlay.visible=false
+macro-hint-mode.overlay.grid-cell-width=9.8
+macro-hint-mode.overlay.layout-row-count=4
+macro-hint-mode.overlay.layout-column-count=10
 macro-hint-mode.press.left=+space
 ```
 

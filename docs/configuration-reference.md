@@ -16,7 +16,7 @@
 - [Mouse move commands](#mouse-move-commands)
 - [Mouse button click commands](#mouse-button-click-commands)
 - [Wheel commands](#wheel-scrolling-commands)
-- [Hint properties](#hint-properties)
+- [Overlay properties](#overlay-properties)
 - [App aliases](#app-aliases)
 - [Position history](#position-history)
 - [Macros](#macros)
@@ -104,7 +104,7 @@ For example:
 ```properties
 normal-mode.indicator.enabled=true
 normal-mode.mouse.initial-velocity=1600
-hint-mode.hint.type=grid
+ui-hint-mode.overlay.type=ui-vision
 ```
 
 ### Property inheritance
@@ -233,7 +233,7 @@ The `|` separates the default value from combo-triggered mutations. Each `combo 
 For example, change the hint box border color while shift is held, to signal that a different action will follow:
 
 ```properties
-hint-mode.hint.box-border-color=#FFFFFF | _{leftshift} -> #00FFFF
+hint-mode.overlay.box-border-color=#FFFFFF | _{leftshift} -> #00FFFF
 ```
 
 - Default border color: `#FFFFFF` (white)
@@ -489,16 +489,16 @@ normal-mode.indicator.render-as-cursor=true
 ```
 
 `render-as-cursor` draws the layers that follow the mouse into the system cursor image, with the
-real cursor glyph composited on top, instead of into an overlay window that follows the pointer.
+real cursor glyph composited on top, instead of into a window that follows the pointer.
 Nothing can lag behind, since there is nothing to follow. Windows only (default false); it is
-ignored on macOS, where the indicator is always an overlay window.
+ignored on macOS, where the indicator is always a window.
 
 Because the indicator then *is* the cursor, anything that hides the cursor hides the indicator
 too. In particular, the Windows pointer option "Hide pointer while typing" (on by default)
 hides the cursor on every keystroke until the mouse moves, so with `render-as-cursor` the
 indicator disappears right after a key press and only comes back once the pointer is moved.
 Turn that option off (Mouse Properties > Pointer Options > Visibility) if you see this; the
-overlay indicator is not affected. See [#86](https://github.com/petoncle/mousemaster/issues/86).
+windowed indicator is not affected. See [#86](https://github.com/petoncle/mousemaster/issues/86).
 
 #### Excluding from capture
 
@@ -630,20 +630,25 @@ normal-mode.stop-wheel.left=-wheelleft
 normal-mode.stop-wheel.right=-wheelright
 ```
 
-## Hint properties
+## Overlay properties
+
+The overlay is what a mode lays over the screen to pick a place: a grid, boxes on UI elements, or
+saved positions. Each box is a hint, and `selection-keys` labels the hints with the keys to type.
+The indicator and the zoom are configured on their own: `overlay.visible=false` hides the overlay
+only. Earlier versions called this block `hint`, and `hint.` still works.
 
 The hint system in mousemaster displays labels on the screen that you can select with keystrokes to move the mouse to specific locations. This is similar to the hint systems in browser extensions like Vimium, but works system-wide.
 
-### Hint types
+### Overlay types
 
-The type of hint system to use is configured with the following property:
+The type of overlay is configured with the following property:
 
 ```properties
-hint-mode.hint.type=grid
+ui-hint-mode.overlay.type=ui-vision
 ```
 
 The **`type`** property determines what hints are displayed:
-- `grid`: Displays a grid of hints laid out across the screen
+- `grid` (default): Displays a grid of hints laid out across the screen
 - `position-history`, or any `<name>-position-history`: Displays discrete absolutely positioned hints at the positions saved in that history (see [Position history](#position-history))
 - `ui-accessibility` (formerly `ui`): Displays hints at interactive UI elements (see [Accessibility UI hints](#accessibility-ui-hints))
 - `ui-vision`: Displays hints at elements detected on screen (see [Vision UI hints](#vision-ui-hints))
@@ -657,23 +662,23 @@ element is found. Unlike grid hints, accessibility UI hints are positioned based
 elements' locations.
 
 ```properties
-ui-hint-mode.hint.type=ui-accessibility
-ui-hint-mode.hint.area=active-screen
-ui-hint-mode.hint.selection-keys=selectionkey
-ui-hint-mode.hint.select=+selectionkey
-ui-hint-mode.hint.deselect=backspace
-ui-hint-mode.hint.mouse-movement=mouse-follows-selected-hint
-ui-hint-mode.hint.font-size=10
-ui-hint-mode.hint.font-weight=bold
-ui-hint-mode.hint.font-color=#FFFFFF
-ui-hint-mode.hint.box-color=#204E8A
-ui-hint-mode.hint.box-opacity=1
-ui-hint-mode.hint.box-horizontal-padding=8
-ui-hint-mode.hint.box-vertical-padding=0
-ui-hint-mode.hint.box-border-radius=3
+ui-hint-mode.overlay.type=ui-accessibility
+ui-hint-mode.overlay.area=active-screen
+ui-hint-mode.overlay.selection-keys=selectionkey
+ui-hint-mode.overlay.select=+selectionkey
+ui-hint-mode.overlay.deselect=backspace
+ui-hint-mode.overlay.mouse-movement=mouse-follows-selected-hint
+ui-hint-mode.overlay.font-size=10
+ui-hint-mode.overlay.font-weight=bold
+ui-hint-mode.overlay.font-color=#FFFFFF
+ui-hint-mode.overlay.box-color=#204E8A
+ui-hint-mode.overlay.box-opacity=1
+ui-hint-mode.overlay.box-horizontal-padding=8
+ui-hint-mode.overlay.box-vertical-padding=0
+ui-hint-mode.overlay.box-border-radius=3
 ```
 
-**`area`** (see [Hint layout and positioning](#hint-layout-and-positioning)) selects the
+**`area`** (see [Overlay area and layout](#overlay-area-and-layout)) selects the
 windows the elements are looked for in:
 - `active-screen`: Every visible window on the screen with the mouse cursor
 - `all-screens`: Every visible window on every connected screen
@@ -693,9 +698,9 @@ region as they do a grid's, so that only the elements around a point get a hint.
 scaled or moved is scanned like any other region, without the window's popups:
 
 ```properties
-ui-hint-mode.hint.area-width-percent=0.33
-ui-hint-mode.hint.area-height-percent=0.33
-ui-hint-mode.hint.area-center=mouse
+ui-hint-mode.overlay.area-width-percent=0.33
+ui-hint-mode.overlay.area-height-percent=0.33
+ui-hint-mode.overlay.area-center=mouse
 ```
 
 **`ui-order`** is the order the elements are labeled in, the first ones getting the shortest
@@ -708,10 +713,10 @@ further (at 100% scaling), so with `left-to-right` a taskbar on the left edge, w
 few pixels apart horizontally, is one column labeled from top to bottom:
 
 ```properties
-ui-hint-mode.hint.ui-order=left-to-right
+ui-hint-mode.overlay.ui-order=left-to-right
 ```
 
-`ui-order` only applies to `hint.type=ui-accessibility` and `hint.type=ui-vision`, and setting it
+`ui-order` only applies to `overlay.type=ui-accessibility` and `overlay.type=ui-vision`, and setting it
 on another hint type is rejected.
 
 A scan that finds no element leaves the mode showing nothing. The built-in virtual key
@@ -736,15 +741,15 @@ paddings equal to the border thickness, the border goes around the element and d
 The two opacities are 0 by default, so no element box is drawn:
 
 ```properties
-ui-hint-mode.hint.ui-element-box-border-color=#2EA043
-ui-hint-mode.hint.ui-element-box-border-opacity=1
-ui-hint-mode.hint.ui-element-box-border-thickness=2
-ui-hint-mode.hint.ui-element-box-border-radius=3
-ui-hint-mode.hint.ui-element-box-horizontal-padding=2
-ui-hint-mode.hint.ui-element-box-vertical-padding=2
+ui-hint-mode.overlay.ui-element-box-border-color=#2EA043
+ui-hint-mode.overlay.ui-element-box-border-opacity=1
+ui-hint-mode.overlay.ui-element-box-border-thickness=2
+ui-hint-mode.overlay.ui-element-box-border-radius=3
+ui-hint-mode.overlay.ui-element-box-horizontal-padding=2
+ui-hint-mode.overlay.ui-element-box-vertical-padding=2
 ```
 
-`ui-element-box-*` only applies to `hint.type=ui-accessibility` and `hint.type=ui-vision`, and
+`ui-element-box-*` only applies to `overlay.type=ui-accessibility` and `overlay.type=ui-vision`, and
 setting it on another hint type is rejected.
 
 ### Vision UI hints
@@ -756,9 +761,9 @@ desktops and anything else that exposes no accessibility information, at the cos
 knowing what an element is.
 
 ```properties
-ui-hint-mode.hint.type=ui-vision
-ui-hint-mode.hint.area=active-screen
-ui-hint-mode.hint.vision-density=6
+ui-hint-mode.overlay.type=ui-vision
+ui-hint-mode.overlay.area=active-screen
+ui-hint-mode.overlay.vision-density=6
 ```
 
 Vision UI hints read the same **`area`** and **`ui-order`** as accessibility UI hints, and
@@ -767,7 +772,7 @@ hook, so mousemaster stays responsive while a scan is in progress, and `ishintme
 pressed when a scan finds nothing, exactly as for accessibility UI hints.
 
 - **`vision-density`**: How hard the detection looks, 1 to 8 (default 6). A higher value gives
-  more hints, on smaller things. It only applies to `hint.type=ui-vision`, and setting it on
+  more hints, on smaller things. It only applies to `overlay.type=ui-vision`, and setting it on
   another hint type is rejected.
   - 1 leaves **plain text** out: it hints only what the ink draws without a gap (an icon, a
     filled button, a checkbox, a picture) or what a border surrounds on every side (a field,
@@ -786,31 +791,31 @@ pressed when a scan finds nothing, exactly as for accessibility UI hints.
   gets no hint (default 0). It leaves out the bars, separators and underlines detected beside
   what they belong to, such as the bar a taskbar draws by the icon of an open app. It also
   leaves out what is detected only by a thin part of it: at 6, a checkbox found by one edge of
-  its outline or a three-dot button loses its hint. It only applies to `hint.type=ui-vision`,
+  its outline or a three-dot button loses its hint. It only applies to `overlay.type=ui-vision`,
   and setting it on another hint type is rejected.
 
   ```properties
-  ui-hint-mode.hint.vision-min-size=6
+  ui-hint-mode.overlay.vision-min-size=6
   ```
 
 On macOS the capture asks for the Screen Recording permission the first time a scan runs;
 hints appear once it is granted.
 
-### Hint layout and positioning
+### Overlay area and layout
 
 The following properties control where hints appear and how they're arranged:
 
 ```properties
 # Hint area configuration
-hint-mode.hint.area=active-screen
-hint-mode.hint.area-center=screen-center
+hint-mode.overlay.area=active-screen
+hint-mode.overlay.area-center=screen-center
 
 # Grid layout configuration
-hint-mode.hint.grid-cell-width=74
-hint-mode.hint.grid-cell-height=36
-hint-mode.hint.grid-cell-sizing=fixed
-hint-mode.hint.layout-row-count=6
-hint-mode.hint.layout-column-count=5
+hint-mode.overlay.grid-cell-width=74
+hint-mode.overlay.grid-cell-height=36
+hint-mode.overlay.grid-cell-sizing=fixed
+hint-mode.overlay.layout-row-count=6
+hint-mode.overlay.layout-column-count=5
 ```
 
 The hint area is two independent settings: **`area`** sets its *size*, **`area-center`** sets
@@ -870,37 +875,37 @@ the point it is *centered* on. For UI hints it is the region the elements are lo
 
   A grid with no more cells than there are selection keys gives every hint a single key and no prefix.
 
-### Screen-specific hint configurations
+### Screen-specific overlay configurations
 
 Any hint property can hold a different value per screen: give the screen as a precondition of a [combo property](#mode-property-mutation).
 
 ```properties
 # A 4K screen gets denser hints than the others:
-hint1-mode.hint.grid-cell-width=74 | _{3840x2160-100%} -> 96
-hint1-mode.hint.grid-cell-height=41 | _{3840x2160-100%} -> 54
-hint1-mode.hint.layout-row-count=6 | _{3840x2160-100%} -> 4
-hint1-mode.hint.layout-column-count=5 | _{3840x2160-100%} -> 10
+hint1-mode.overlay.grid-cell-width=74 | _{3840x2160-100%} -> 96
+hint1-mode.overlay.grid-cell-height=41 | _{3840x2160-100%} -> 54
+hint1-mode.overlay.layout-row-count=6 | _{3840x2160-100%} -> 4
+hint1-mode.overlay.layout-column-count=5 | _{3840x2160-100%} -> 10
 ```
 
 A screen filter is a screen resolution (`3840x2160`), a screen scale (`150%`), or both (`3840x2160-150%`). Each screen resolves its own value when the hints are drawn, so a mesh covering several screens gets a value per screen. The most specific matching filter wins: resolution and scale first, then resolution, then scale. A screen matching none of them takes the default value.
 
-A length — a padding, a border thickness, radius or length, a shadow blur or offset — is in the pixels of a 100% screen, and the screen's scale grows it, exactly as it grows a font size. A hint therefore keeps its proportions on a 200% or 300% screen with no per-screen value at all. To pin a length to a pixel count on one scale, override it there and divide: `hint1-mode.hint.box-border-thickness=1 | _{150%} -> 0.67` draws a single pixel at 150%.
+A length — a padding, a border thickness, radius or length, a shadow blur or offset — is in the pixels of a 100% screen, and the screen's scale grows it, exactly as it grows a font size. A hint therefore keeps its proportions on a 200% or 300% screen with no per-screen value at all. To pin a length to a pixel count on one scale, override it there and divide: `hint1-mode.overlay.box-border-thickness=1 | _{150%} -> 0.67` draws a single pixel at 150%.
 
 ```properties
 # Every screen scaled at 300%, whatever its resolution.
-hint1-mode.hint.box-border-radius=1 | _{300%} -> 3
+hint1-mode.overlay.box-border-radius=1 | _{300%} -> 3
 
 # Mixed with a key precondition: on 300% screens only, and only while
 # leftshift is pressed.
-hint1-mode.hint.box-border-radius=1 | _{300% leftshift} -> 3
+hint1-mode.overlay.box-border-radius=1 | _{300% leftshift} -> 3
 
 # Either of two screens. A space means AND, as it does between keys, so two
 # filters have to be alternatives: no screen is both at once.
-hint1-mode.hint.box-border-radius=1 | _{3840x2160-300% | 1366x768-100%} -> 3
+hint1-mode.overlay.box-border-radius=1 | _{3840x2160-300% | 1366x768-100%} -> 3
 
 # Alongside a key, one filter per branch: a | in that block would read as an
 # alternative to the key, which no screen can satisfy.
-hint1-mode.hint.box-border-radius=1 | _{leftshift 3840x2160-300%} -> 3 \
+hint1-mode.overlay.box-border-radius=1 | _{leftshift 3840x2160-300%} -> 3 \
     | _{leftshift 1366x768-100%} -> 3
 ```
 
@@ -930,10 +935,10 @@ screen-alias.smallscreen=1920x1080-125% 1366x768-100%
 # An alias can name another one, like a key alias can.
 screen-alias.tunedscreen=largescreen mediumscreen smallscreen
 
-hint1-mode.hint.grid-cell-sizing=fit
-hint1-mode.hint.grid-max-column-count=25 | _{mediumscreen | largescreen} -> 40
-hint1-mode.hint.grid-max-row-count=30 | _{smallscreen} -> 20 | _{mediumscreen | largescreen} -> 40
-hint1-mode.hint.selection-keys=hintkey | _{mediumscreen | largescreen} -> extendedhintkey
+hint1-mode.overlay.grid-cell-sizing=fit
+hint1-mode.overlay.grid-max-column-count=25 | _{mediumscreen | largescreen} -> 40
+hint1-mode.overlay.grid-max-row-count=30 | _{smallscreen} -> 20 | _{mediumscreen | largescreen} -> 40
+hint1-mode.overlay.selection-keys=hintkey | _{mediumscreen | largescreen} -> extendedhintkey
 ```
 
 Aliases that split the screens into sets let each property name a set instead of a screen, so
@@ -948,27 +953,27 @@ one exact, and lets an unlisted scale fall back to the default value.
 ```properties
 # Selection configuration
 key-alias.selectionkey=a b c d e f g h i j k l m n o p q r s t u v w x y z
-hint-mode.hint.selection-keys=selectionkey
-hint-mode.hint.select=+selectionkey
-hint-mode.hint.deselect=backspace
+hint-mode.overlay.selection-keys=selectionkey
+hint-mode.overlay.select=+selectionkey
+hint-mode.overlay.deselect=backspace
 hint-mode.to.normal-mode=+selectionkey
-hint-mode.hint.mouse-movement=mouse-follows-selected-hint
-hint-mode.hint.eat-unused-selection-keys=true
-hint-mode.hint.label-override=plus
+hint-mode.overlay.mouse-movement=mouse-follows-selected-hint
+hint-mode.overlay.eat-unused-selection-keys=true
+hint-mode.overlay.label-override=plus
 ```
 
 - **`selection-keys`**: Keys that can be pressed to select hints. Without selection keys (the
   default), the hints have no labels and cannot be selected, and `select` and `deselect` are
   rejected. `none` gives no selection keys, for example in a mutation that shows the labels only
-  while a key is pressed: `grid-mode.hint.selection-keys=none | _{labels} -> hintkey`.
+  while a key is pressed: `grid-mode.overlay.selection-keys=none | _{labels} -> hintkey`.
   `select` then works with the keys of every branch.
-- **`select`**: Combo that triggers hint selection. For example, if you want to be able to hold leftshift while pressing a hint selection key, then use `hint-mode.hint.select=_{none | leftshift} +selectionkey`
+- **`select`**: Combo that triggers hint selection. For example, if you want to be able to hold leftshift while pressing a hint selection key, then use `hint-mode.overlay.select=_{none | leftshift} +selectionkey`
 - **`deselect`** (formerly `undo`): Combo that deselects the last selection key
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
 - **`mouse-movement`**: Controls how the mouse moves when interacting with hints
   - `no-movement`: Mouse stays in its current position
   - `mouse-follows-selected-hint`: Mouse moves to the selected hint (default behavior)
-  - `mouse-follows-hint-grid-center`: Mouse moves to the center of the hint grid
+  - `mouse-follows-overlay-center` (formerly `mouse-follows-hint-grid-center`): Mouse moves to the center of the overlay
   - Use `no-movement` when the next mode will be another hint grid
 - **`move-to-last-selected-hint`**: Like `to.<mode-name>`, a command of the mode, not a hint
   property. It moves the mouse to the last selected hint, for example after `no-movement` left
@@ -981,90 +986,90 @@ hint-mode.hint.label-override=plus
 ```properties
 # Box appearance
 # One color, or several for a gradient through them.
-hint-mode.hint.box-color=#000000
-hint-mode.hint.box-opacity=0.4
-hint-mode.hint.box-border-thickness=1
-hint-mode.hint.box-border-length=1000
-hint-mode.hint.box-border-color=#FFFFFF
-hint-mode.hint.box-border-opacity=0.4
-hint-mode.hint.box-border-radius=0
+hint-mode.overlay.box-color=#000000
+hint-mode.overlay.box-opacity=0.4
+hint-mode.overlay.box-border-thickness=1
+hint-mode.overlay.box-border-length=1000
+hint-mode.overlay.box-border-color=#FFFFFF
+hint-mode.overlay.box-border-opacity=0.4
+hint-mode.overlay.box-border-radius=0
 # false draws the lines between the boxes only, no frame around the grid
-hint-mode.hint.box-framed=true
+hint-mode.overlay.box-framed=true
 
 # Box shadow, mostly useful for UI hints and position history hints
-hint-mode.hint.box-shadow-blur-radius=10
-hint-mode.hint.box-shadow-color=#000000
-hint-mode.hint.box-shadow-opacity=0
-hint-mode.hint.box-shadow-stack-count=1
-hint-mode.hint.box-shadow-horizontal-offset=2
-hint-mode.hint.box-shadow-vertical-offset=2
+hint-mode.overlay.box-shadow-blur-radius=10
+hint-mode.overlay.box-shadow-color=#000000
+hint-mode.overlay.box-shadow-opacity=0
+hint-mode.overlay.box-shadow-stack-count=1
+hint-mode.overlay.box-shadow-horizontal-offset=2
+hint-mode.overlay.box-shadow-vertical-offset=2
 
 # Box size relative to the grid cell (for the hint grid only)
-hint-mode.hint.box-width-percent=1.0
-hint-mode.hint.box-height-percent=1.0
+hint-mode.overlay.box-width-percent=1.0
+hint-mode.overlay.box-height-percent=1.0
 
 # Decorations: purely visual grids drawn over the hints. subdecoration is drawn inside each
 # hint cell (a preview of the next level), subsubdecoration inside each of those, and
 # decoration spans the whole hint grid as one big cell.
 # Set subdecoration-label-keys to label the cells.
-hint-mode.hint.subdecoration-max-row-count=1
-hint-mode.hint.subdecoration-max-column-count=1
-hint-mode.hint.subdecoration-label-keys=
-hint-mode.hint.subdecoration-box-border-thickness=1
-hint-mode.hint.subdecoration-box-border-length=10000
-hint-mode.hint.subdecoration-box-border-color=#FFFFFF
-hint-mode.hint.subdecoration-box-border-opacity=1.0
-hint-mode.hint.subdecoration-box-framed=false
-hint-mode.hint.subdecoration-font-size=10
-hint-mode.hint.subdecoration-font-color=#FFFFFF
-hint-mode.hint.subdecoration-font-opacity=1.0
+hint-mode.overlay.subdecoration-max-row-count=1
+hint-mode.overlay.subdecoration-max-column-count=1
+hint-mode.overlay.subdecoration-label-keys=
+hint-mode.overlay.subdecoration-box-border-thickness=1
+hint-mode.overlay.subdecoration-box-border-length=10000
+hint-mode.overlay.subdecoration-box-border-color=#FFFFFF
+hint-mode.overlay.subdecoration-box-border-opacity=1.0
+hint-mode.overlay.subdecoration-box-framed=false
+hint-mode.overlay.subdecoration-font-size=10
+hint-mode.overlay.subdecoration-font-color=#FFFFFF
+hint-mode.overlay.subdecoration-font-opacity=1.0
 
 # Box padding, mostly useful for UI hints and position history hints
-hint-mode.hint.box-horizontal-padding=0
-hint-mode.hint.box-vertical-padding=0
+hint-mode.overlay.box-horizontal-padding=0
+hint-mode.overlay.box-vertical-padding=0
 
 # Font appearance
-hint-mode.hint.font-name=Consolas
-hint-mode.hint.font-size=18
-hint-mode.hint.font-spacing-percent=0.7
-hint-mode.hint.font-color=#FFFFFF
-hint-mode.hint.font-opacity=1.0
+hint-mode.overlay.font-name=Consolas
+hint-mode.overlay.font-size=18
+hint-mode.overlay.font-spacing-percent=0.7
+hint-mode.overlay.font-color=#FFFFFF
+hint-mode.overlay.font-opacity=1.0
 
 # Font effects
-hint-mode.hint.font-outline-thickness=0
-hint-mode.hint.font-outline-color=#000000
-hint-mode.hint.font-outline-opacity=0.5
-hint-mode.hint.font-shadow-blur-radius=0
-hint-mode.hint.font-shadow-color=#000000
-hint-mode.hint.font-shadow-opacity=1.0
-hint-mode.hint.font-shadow-horizontal-offset=0
-hint-mode.hint.font-shadow-vertical-offset=0
+hint-mode.overlay.font-outline-thickness=0
+hint-mode.overlay.font-outline-color=#000000
+hint-mode.overlay.font-outline-opacity=0.5
+hint-mode.overlay.font-shadow-blur-radius=0
+hint-mode.overlay.font-shadow-color=#000000
+hint-mode.overlay.font-shadow-opacity=1.0
+hint-mode.overlay.font-shadow-horizontal-offset=0
+hint-mode.overlay.font-shadow-vertical-offset=0
 
 # Selected hint appearance
-hint-mode.hint.selected-font-color=#A3A3A3
-hint-mode.hint.selected-font-opacity=1.0
+hint-mode.overlay.selected-font-color=#A3A3A3
+hint-mode.overlay.selected-font-opacity=1.0
 
 # Prefix box (for multi-character hints). A border is never drawn where an enclosing one
 # already draws, so the hint boxes leave the prefix box its own.
-hint-mode.hint.prefix-box-enabled=true
-hint-mode.hint.prefix-box-border-thickness=2
-hint-mode.hint.prefix-box-border-color=#FFD93D
-hint-mode.hint.prefix-box-border-opacity=0.8
+hint-mode.overlay.prefix-box-enabled=true
+hint-mode.overlay.prefix-box-border-thickness=2
+hint-mode.overlay.prefix-box-border-color=#FFD93D
+hint-mode.overlay.prefix-box-border-opacity=0.8
 # false draws the lines between the prefix boxes only, no frame around the grid
-hint-mode.hint.prefix-box-framed=true
-hint-mode.hint.prefix-in-background=true
+hint-mode.overlay.prefix-box-framed=true
+hint-mode.overlay.prefix-in-background=true
 
 # Animation
-hint-mode.hint.transition-animation-enabled=true
-hint-mode.hint.transition-animation-duration-millis=100
+hint-mode.overlay.transition-animation-enabled=true
+hint-mode.overlay.transition-animation-duration-millis=100
 
 # Fade animation (when hints appear or disappear)
-hint-mode.hint.fade-animation-enabled=true
-hint-mode.hint.fade-animation-duration-millis=100
+hint-mode.overlay.fade-animation-enabled=true
+hint-mode.overlay.fade-animation-duration-millis=100
 
 # Background, mostly useful for UI hints and position history hints
-hint-mode.hint.background-color=#000000
-hint-mode.hint.background-opacity=0
+hint-mode.overlay.background-color=#000000
+hint-mode.overlay.background-opacity=0
 ```
 
 - Box appearance: controls the background and border of hint boxes
@@ -1072,8 +1077,8 @@ hint-mode.hint.background-opacity=0
     through OkLab. Each box takes the color at its own position, so with `top-to-bottom` a grid row
     is one color. `box-opacity` applies to the whole gradient.
     ```properties
-    hint-mode.hint.box-color=#FF0000 #FFA500 #FFFF00 #00FF00 #800080
-    hint-mode.hint.box-color=across-screen left-to-right #FF6B00 #FF006E
+    hint-mode.overlay.box-color=#FF0000 #FFA500 #FFFF00 #00FF00 #800080
+    hint-mode.overlay.box-color=across-screen left-to-right #FF6B00 #FF006E
     ```
     Keywords go anywhere among the colors, in any order:
     - Direction: `top-to-bottom` (default), `bottom-to-top`, `left-to-right`, `right-to-left`, the
@@ -1081,7 +1086,7 @@ hint-mode.hint.background-opacity=0
       and `corner-to-center` reach the last color at the corners, `center-to-edge` and
       `edge-to-center` at every edge.
     - What one sweep covers, narrowest first: `across-hint` (each box), `across-subgrid` (each
-      [subgrid](#hint-layout-and-positioning), so the gradient repeats), `across-all-hints` (the
+      [subgrid](#overlay-area-and-layout), so the gradient repeats), `across-all-hints` (the
       hints on that screen), `across-area` (default, the region `area` names, so
       the sweep spans it even where no hint sits), `across-screen`, `across-all-screens` (one sweep
       over the whole arrangement).
@@ -1093,7 +1098,7 @@ hint-mode.hint.background-opacity=0
     `prefix-box-border-color`, `ui-element-box-color`, `ui-element-box-border-color` and
     `<level>-box-border-color`.
     ```properties
-    hint-mode.hint.box-border-color=across-screen per-pixel center-to-edge #F97316 #3B82F6
+    hint-mode.overlay.box-border-color=across-screen per-pixel center-to-edge #F97316 #3B82F6
     ```
   - `box-border-length`: Higher values create continuous lines between hint boxes, lower values create dotted separators
   - `box-border-radius`: Radius for rounded corners (0-1000, default 0).
@@ -1135,7 +1140,7 @@ A hint is made of several keys (letters). For example, hint JKK is made of 3 key
 - The prefix (JK) can be displayed "in the background" with `prefix-in-background=true`.
 
 - Hints in the same subgrid have the same prefix (see
-  [Subgrid layout](#hint-layout-and-positioning)), so a subgrid one row tall gives one prefix per row
+  [Subgrid layout](#overlay-area-and-layout)), so a subgrid one row tall gives one prefix per row
   and one column wide one prefix per column.
 
 Initially:
@@ -1176,12 +1181,12 @@ Each state supports the following font properties:
 category (`font-` and `prefix-font-`), shared across all 3 states.
 
 The property naming pattern is:
-- Default: `hint.font-*`
-- Selected: `hint.selected-font-*`
-- Focused: `hint.focused-font-*`
-- Prefix default: `hint.prefix-font-*`
-- Prefix selected: `hint.prefix-selected-font-*`
-- Prefix focused: `hint.prefix-focused-font-*`
+- Default: `overlay.font-*`
+- Selected: `overlay.selected-font-*`
+- Focused: `overlay.focused-font-*`
+- Prefix default: `overlay.prefix-font-*`
+- Prefix selected: `overlay.prefix-selected-font-*`
+- Prefix focused: `overlay.prefix-focused-font-*`
 
 ### Multi-level hint example
 
@@ -1190,47 +1195,45 @@ This example shows how to create a two-level hint system, where the first level 
 ```properties
 key-alias.selectionkey=a b c d e f g h i j k l m n o p q r s t u v w x y z
 # First level hint mode
-hint1-mode.hint.type=grid
-hint1-mode.hint.area=active-screen
-hint1-mode.hint.selection-keys=selectionkey
+hint1-mode.overlay.area=active-screen
+hint1-mode.overlay.selection-keys=selectionkey
 hint1-mode.to.hint2-mode=+selectionkey
 # Don't move mouse after first selection
-hint1-mode.hint.mouse-movement=no-movement
+hint1-mode.overlay.mouse-movement=no-movement
 
 # Second level hint mode
-hint2-mode.hint.type=grid
-hint2-mode.hint.area=active-screen
+hint2-mode.overlay.area=active-screen
 # Center on last selected hint
-hint2-mode.hint.area-center=last-selected-hint
+hint2-mode.overlay.area-center=last-selected-hint
 # 3x8 grid
-hint2-mode.hint.grid-max-row-count=3
-hint2-mode.hint.grid-max-column-count=8
+hint2-mode.overlay.grid-max-row-count=3
+hint2-mode.overlay.grid-max-column-count=8
 # Smaller cells for precision
-hint2-mode.hint.grid-cell-width=30
-hint2-mode.hint.grid-cell-height=20
-hint2-mode.hint.font-size=7
-hint2-mode.hint.selection-keys=selectionkey
+hint2-mode.overlay.grid-cell-width=30
+hint2-mode.overlay.grid-cell-height=20
+hint2-mode.overlay.font-size=7
+hint2-mode.overlay.selection-keys=selectionkey
 hint2-mode.to.normal-mode=+selectionkey
 # Move mouse after second selection
-hint2-mode.hint.mouse-movement=mouse-follows-selected-hint
+hint2-mode.overlay.mouse-movement=mouse-follows-selected-hint
 ```
 
 ### Grid commands
 
-The grid commands act on the hint grid of the mode. A hint grid without `selection-keys` has no
+The grid commands act on the grid of the overlay. An overlay without `selection-keys` has no
 labels and selects nothing: it is a grid to shrink, move and snap to.
 
 ```properties
 normal-mode.to.grid-mode=+g
 grid-mode.to.normal-mode=+esc
-grid-mode.hint.grid-cell-sizing=fit
-grid-mode.hint.grid-max-row-count=2
-grid-mode.hint.grid-max-column-count=2
-grid-mode.hint.mouse-movement=mouse-follows-hint-grid-center
-grid-mode.hint.box-color=#FF0000
-grid-mode.hint.box-opacity=0.1
-grid-mode.hint.box-border-color=#FF0000
-grid-mode.hint.box-border-opacity=1
+grid-mode.overlay.grid-cell-sizing=fit
+grid-mode.overlay.grid-max-row-count=2
+grid-mode.overlay.grid-max-column-count=2
+grid-mode.overlay.mouse-movement=mouse-follows-overlay-center
+grid-mode.overlay.box-color=#FF0000
+grid-mode.overlay.box-opacity=0.1
+grid-mode.overlay.box-border-color=#FF0000
+grid-mode.overlay.box-border-opacity=1
 
 # Halve the grid, keeping the half in the direction
 grid-mode.shrink-grid.up=+uparrow
@@ -1262,18 +1265,18 @@ grid-mode.move-to-grid-center=+space
   bottom edge of the grid, the mouse stops on the last pixel of the grid.
 - **`move-to-grid-center`**: Moves the mouse to the center of the grid.
 
-A mode with the same `hint.type`, area and layout keeps the grid where the commands left it. With
+A mode with the same `overlay.type`, area and layout keeps the grid where the commands left it. With
 `area-center=mouse`, a command first centers the grid on the mouse. With
-`mouse-movement=mouse-follows-hint-grid-center`, the mouse goes to the center of the grid after
+`mouse-movement=mouse-follows-overlay-center`, the mouse goes to the center of the grid after
 each change.
 
-Earlier versions had a separate `grid`. Its properties still work, as hint properties:
+Earlier versions had a separate `grid`. Its properties still work, as overlay properties:
 `grid.row-count` and `grid.column-count` are `grid-max-row-count` and `grid-max-column-count`,
 `grid.line-visible` is `visible`, `grid.line-color`, `grid.line-thickness` and `grid.line-opacity`
 are `box-border-color`, `box-border-thickness` and `box-border-opacity`, `grid.background-color` and
 `grid.background-opacity` are `box-color` and `box-opacity`, and `grid.synchronization` is
 `mouse-movement` (`grid-center-follows-mouse` is `area-center=mouse`). A mode that uses them, or a
-grid command, without a hint property gets the old grid: an invisible `fit` 2x2 grid with red boxes.
+grid command, without an overlay property gets the old grid: an invisible `fit` 2x2 grid with red boxes.
 
 ## App aliases
 
@@ -1370,20 +1373,20 @@ Position history works in conjunction with a hint mode whose type is the name of
 
 ```properties
 # Configure a hint mode to use position history
-position-hint-mode.hint.type=position-history
-position-hint-mode.hint.selection-keys=a b c d e f g h i j k l m n o p q r s t u v w x y z
+position-hint-mode.overlay.type=position-history
+position-hint-mode.overlay.selection-keys=a b c d e f g h i j k l m n o p q r s t u v w x y z
 
 # Switch to position hint mode
 normal-mode.to.position-hint-mode=+p
 
 # A hint mode for the browser history
-browser-hint-mode.hint.type=browser-position-history
+browser-hint-mode.overlay.type=browser-position-history
 ```
 
-Because `hint.type` can be combo-triggered, one hint mode can show different histories:
+Because `overlay.type` can be combo-triggered, one hint mode can show different histories:
 
 ```properties
-position-hint-mode.hint.type=position-history | _{browserapp} -> browser-position-history
+position-hint-mode.overlay.type=position-history | _{browserapp} -> browser-position-history
 ```
 
 When you enter a position history hint mode:
@@ -1479,7 +1482,7 @@ detection: an undeclared unknown key name is still rejected at load time.
 # "drilling" is held only for the span of the macro; gate a property on it.
 virtual-key.drilling=released
 some-mode.macro.example=+g -> #drilling k k ~drilling
-some-mode.hint.visible=true | _{drilling} -> false
+some-mode.overlay.visible=true | _{drilling} -> false
 ```
 
 A macro can also leave a virtual key pressed past its own end, making it persistent state that

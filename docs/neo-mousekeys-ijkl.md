@@ -48,7 +48,7 @@ _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the
 - Similar to Vimium-like browser extensions, but applicable to the entire screen.
 - Trigger a second hint pass, subdividing the cell you selected into a finer grid, by holding _leftshift_ while selecting a hint.
 - Undo an accidental key press with _backspace_.
-- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-row-count`, and `hint.grid-max-column-count` in [neo-mousekeys-ijkl.properties](../configuration/neo-mousekeys-ijkl.properties).
+- A balance between hint size, number and screen space is crucial and can be configured: see `overlay.font-size`, `overlay.grid-max-row-count`, and `overlay.grid-max-column-count` in [neo-mousekeys-ijkl.properties](../configuration/neo-mousekeys-ijkl.properties).
 - Go back to normal mode with _esc_ or _backspace_.
 
 ## Recursive Hint Mode (_r_ in normal mode)

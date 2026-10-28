@@ -112,7 +112,7 @@ class HintSelectionKeysTest {
                         }));
         Mode mode = parse(gridMode + """
                 grid-mode.mouse.smooth-jump-enabled=false
-                grid-mode.hint.mouse-movement=mouse-follows-hint-grid-center
+                grid-mode.hint.mouse-movement=mouse-follows-overlay-center
                 """).get("grid-mode");
         mouseManager.modeChanged(mode);
         hintManager(mouseManager).modeChanged(mode);

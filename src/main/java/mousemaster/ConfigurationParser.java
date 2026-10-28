@@ -37,8 +37,8 @@ public class ConfigurationParser {
 
     private static final Pattern appAliasPattern = Pattern.compile("\"([^\"]*)\"|(\\S+)");
     private static final Pattern propertyLinePattern = Pattern.compile("(.+?)=(.+)");
-    // a-mode.hint.grid-cell-width
-    // a-mode.hint.grid-cell-width.1920x1080-100%
+    // a-mode.overlay.grid-cell-width
+    // a-mode.overlay.grid-cell-width.1920x1080-100%
     private static final Pattern modeKeyPattern =
             Pattern.compile("([^.]+-mode)(\\.([^.]+)(\\.([^.]+))?(\\.([^.]+))?)?");
     private static final Map<String, Property<?>> defaultPropertyByName = defaultPropertyByName();
@@ -137,7 +137,7 @@ public class ConfigurationParser {
                 new Property<>("mouse", mouse),
                 new Property<>("wheel", wheel), 
                 new Property<>("grid", gridHintMesh),
-                new Property<>("hint", hintMesh), 
+                new Property<>("overlay", hintMesh),
                 new Property<>("timeout", timeout), 
                 new Property<>("indicator", indicator), 
                 new Property<>("hide-cursor", hideCursor),
@@ -653,11 +653,11 @@ public class ConfigurationParser {
                           mode.hintMesh.builder.deselectCombos())
                       .anyMatch(combos -> combos != null && !combos.isEmpty()))
                 throw new IllegalArgumentException(
-                        "Invalid definition of hint for " + mode.modeName +
-                        ": hint.select and hint.deselect need hint.selection-keys");
+                        "Invalid definition of overlay for " + mode.modeName +
+                        ": overlay.select and overlay.deselect need overlay.selection-keys");
             if (mode.hintMesh.builder.enabled() &&
                 mode.hintMesh.builder.selectCombos() == null) {
-                logger.trace(mode.modeName + ".hint.select is missing, using selection keys");
+                logger.trace(mode.modeName + ".overlay.select is missing, using selection keys");
                 mode.hintMesh.builder.selectCombos(
                         deriveSelectCombosFromHintSelectionKeys(mode,
                                 defaultComboMoveDuration, mode.modeName));
@@ -708,7 +708,7 @@ public class ConfigurationParser {
                         new ComboPrecondition.PressedKeyPrecondition(List.of())),
                 new ComboPrecondition.ComboAppPrecondition(Set.of(), Set.of()),
                 new ComboPrecondition.ComboVariablePrecondition(List.of()));
-        String label = modeName + ".hint.select";
+        String label = modeName + ".overlay.select";
         return hintSelectionKeys(mode).stream()
                                 .map(key -> new Combo(label, emptyComboPrecondition,
                                         ComboSequence.ofMoves(
@@ -865,7 +865,7 @@ public class ConfigurationParser {
             Map.entry("fade-animation-duration-millis", "fade-animation-duration-millis"));
 
     private static final Map<String, String> HINT_PROPERTY_BY_SYNCHRONIZATION = Map.of(
-            "mouse-follows-grid-center", "mouse-movement=mouse-follows-hint-grid-center",
+            "mouse-follows-grid-center", "mouse-movement=mouse-follows-overlay-center",
             "mouse-and-grid-center-unsynchronized", "mouse-movement=no-movement",
             "grid-center-follows-mouse", "area-center=mouse");
 
@@ -1209,16 +1209,19 @@ public class ConfigurationParser {
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
-            case "hint", "grid" -> {
+            case "overlay", "hint", "grid" -> {
                 Property<HintMeshConfigurationBuilder> hintMesh =
-                        group2.equals("hint") ? mode.hintMesh : mode.grid;
+                        group2.equals("grid") ? mode.grid : mode.hintMesh;
                 if (keyMatcher.group(group3) == null)
-                    hintMesh.parsePropertyReference(propertyKey, propertyValue,
+                    // hint is the former name of overlay.
+                    hintMesh.parsePropertyReference(
+                            propertyKey.replaceFirst("\\.hint$", ".overlay"),
+                            propertyValue.replaceFirst("\\.hint$", ".overlay"),
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
                 else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
-                            "Invalid hint property key");
+                            "Invalid overlay property key");
                 else {
                     if (hintMesh.builder.enabled() == null)
                         hintMesh.builder.enabled(true);
@@ -1252,7 +1255,7 @@ public class ConfigurationParser {
                             logger.warn(
                                     "hint.move-mouse has been deprecated: use " +
                                     modeName +
-                                    ".hint.mouse-movement=" +
+                                    ".overlay.mouse-movement=" +
                                     (moveMouse ? "mouse-follows-selected-hint" :
                                             "no-movement") + " instead");
                             if (hintMesh.builder.mouseMovement() == null) {
@@ -1294,7 +1297,7 @@ public class ConfigurationParser {
                                             keyAliases, appAliases, keyResolver, allVariableNames));
                         }
                         default -> throw new IllegalArgumentException(
-                                "Invalid hint property key");
+                                "Invalid overlay property key");
                     }
                 }
             }
@@ -1790,12 +1793,12 @@ public class ConfigurationParser {
         return switch (propertyValue) {
             case "no-movement" -> HintMouseMovement.NO_MOVEMENT;
             case "mouse-follows-selected-hint" -> HintMouseMovement.MOUSE_FOLLOWS_SELECTED_HINT;
-            case "mouse-follows-hint-grid-center" -> HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER;
+            case "mouse-follows-overlay-center", "mouse-follows-hint-grid-center" -> HintMouseMovement.MOUSE_FOLLOWS_OVERLAY_CENTER;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": mouse-movement should be one of " +
                     List.of("no-movement", "mouse-follows-selected-hint",
-                            "mouse-follows-hint-grid-center"));
+                            "mouse-follows-overlay-center"));
         };
     }
 
@@ -2332,25 +2335,25 @@ public class ConfigurationParser {
                     hintMeshType.type() == HintMeshType.HintMeshTypeType.UI_VISION;
             if (!uiType && mode.hintMesh.setPropertyPaths.contains(HINT_UI_ORDER_PATH))
                 throw new IllegalArgumentException(
-                        "Invalid definition of hint for " + mode.modeName +
-                        ": hint.ui-order only applies to hint.type=ui-accessibility or " +
-                        "hint.type=ui-vision");
+                        "Invalid definition of overlay for " + mode.modeName +
+                        ": overlay.ui-order only applies to overlay.type=ui-accessibility or " +
+                        "overlay.type=ui-vision");
             if (!uiType && HINT_UI_ELEMENT_BOX_PATHS.stream()
                                                     .anyMatch(mode.hintMesh.setPropertyPaths::contains))
                 throw new IllegalArgumentException(
-                        "Invalid definition of hint for " + mode.modeName +
-                        ": hint.ui-element-box-* only applies to hint.type=ui-accessibility or " +
-                        "hint.type=ui-vision");
+                        "Invalid definition of overlay for " + mode.modeName +
+                        ": overlay.ui-element-box-* only applies to overlay.type=ui-accessibility or " +
+                        "overlay.type=ui-vision");
             if (hintMeshType.type() != HintMeshType.HintMeshTypeType.UI_VISION
                 && mode.hintMesh.setPropertyPaths.contains(HINT_VISION_DENSITY_PATH))
                 throw new IllegalArgumentException(
-                        "Invalid definition of hint for " + mode.modeName +
-                        ": hint.vision-density only applies to hint.type=ui-vision");
+                        "Invalid definition of overlay for " + mode.modeName +
+                        ": overlay.vision-density only applies to overlay.type=ui-vision");
             if (hintMeshType.type() != HintMeshType.HintMeshTypeType.UI_VISION
                 && mode.hintMesh.setPropertyPaths.contains(HINT_VISION_MIN_SIZE_PATH))
                 throw new IllegalArgumentException(
-                        "Invalid definition of hint for " + mode.modeName +
-                        ": hint.vision-min-size only applies to hint.type=ui-vision");
+                        "Invalid definition of overlay for " + mode.modeName +
+                        ": overlay.vision-min-size only applies to overlay.type=ui-vision");
             switch (hintMeshType.type()) {
                 case GRID -> {
                     HintGridLayoutBuilder defaultLayout =
@@ -2364,7 +2367,7 @@ public class ConfigurationParser {
                         defaultLayout.layoutRowOriented() == null
                     )
                         throw new IllegalArgumentException(
-                                "Definition of hint for " + mode.modeName +
+                                "Definition of overlay for " + mode.modeName +
                                 " is incomplete: expected " +
                                 List.of("grid-max-row-count", "grid-max-column-count",
                                         "grid-cell-width", "grid-cell-height",
@@ -2787,19 +2790,19 @@ public class ConfigurationParser {
             // Top-level properties
             case "enabled" -> ModePropertyHandler.of(prefix.append("enabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.enabled(v));
             case "visible" -> ModePropertyHandler.of(prefix.append("visible"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.visible(v));
-            case "mouse-movement" -> ModePropertyHandler.of(prefix.append("mouseMovement"), v -> parseHintMouseMovement("hint.mouse-movement", v), v -> hintMeshBuilder.mouseMovement(v));
+            case "mouse-movement" -> ModePropertyHandler.of(prefix.append("mouseMovement"), v -> parseHintMouseMovement("overlay.mouse-movement", v), v -> hintMeshBuilder.mouseMovement(v));
             case "eat-unused-selection-keys" -> ModePropertyHandler.of(prefix.append("eatUnusedSelectionKeys"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.eatUnusedSelectionKeys(v));
             // Type property (sealed variant): uses Function for GRID because it
             // needs the current area/gridLayout at mutation time, not parse time.
             case "type" -> new ModePropertyHandler(prefix.append("type"), v -> {
                 HintMeshType.HintMeshTypeType typeType =
-                        parseHintMeshTypeType("hint.type", v, positionHistoryNames);
+                        parseHintMeshTypeType("overlay.type", v, positionHistoryNames);
                 return switch (typeType) {
                     case GRID -> (Object) (Function<Object, Object>) currentType -> {
                         if (currentType instanceof HintMeshType.GridHintMesh)
                             return currentType;
                         throw new IllegalArgumentException(
-                                "Cannot combo-trigger hint type to grid: current type is " +
+                                "Cannot combo-trigger overlay type to grid: current type is " +
                                 currentType.getClass().getSimpleName());
                     };
                     case POSITION_HISTORY -> new HintMeshType.PositionHistoryHintMesh(v);
@@ -2814,36 +2817,36 @@ public class ConfigurationParser {
                         if (currentType instanceof HintMeshType.UiVisionHintMesh)
                             return currentType;
                         throw new IllegalArgumentException(
-                                "Cannot combo-trigger hint type to ui-vision: current type is " +
+                                "Cannot combo-trigger overlay type to ui-vision: current type is " +
                                 currentType.getClass().getSimpleName());
                     };
                 };
             }, v -> {
                 HintMeshType.HintMeshTypeBuilder type = hintMeshBuilder.type();
-                type.type(parseHintMeshTypeType("hint.type", v, positionHistoryNames));
+                type.type(parseHintMeshTypeType("overlay.type", v, positionHistoryNames));
                 if (type.type() == HintMeshType.HintMeshTypeType.POSITION_HISTORY)
                     type.positionHistoryName(v);
             });
-            case "ui-order" -> ModePropertyHandler.of(prefix.append("type", "order"), v -> parseUiHintOrder("hint.ui-order", v), v -> hintMeshBuilder.type().uiOrder(v));
+            case "ui-order" -> ModePropertyHandler.of(prefix.append("type", "order"), v -> parseUiHintOrder("overlay.ui-order", v), v -> hintMeshBuilder.type().uiOrder(v));
             case "vision-density" -> ModePropertyHandler.of(prefix.append("type", "density"), v -> parseUnsignedInteger(v, 1, Vision.densities), v -> hintMeshBuilder.type().visionDensity(v));
             case "vision-min-size" -> ModePropertyHandler.of(prefix.append("type", "minSize"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.type().visionMinSize(v));
             // Area = size + center. Mutations set the record component directly
             // (the mutator keeps the sibling component), so no Function is needed.
             // grid-area*, ui-area and active-screen-grid-area-center are deprecated aliases.
-            case "area", "grid-area", "ui-area" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "source"), v -> parseHintGridAreaSizeSource("hint.area", v), v -> hintMeshBuilder.type().area().source(v));
+            case "area", "grid-area", "ui-area" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "source"), v -> parseHintGridAreaSizeSource("overlay.area", v), v -> hintMeshBuilder.type().area().source(v));
             case "area-width-percent", "grid-area-width-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().area().widthPercent(v));
             case "area-height-percent", "grid-area-height-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().area().heightPercent(v));
             case "area-top-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "topInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> hintMeshBuilder.type().area().topInset(v));
             case "area-bottom-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "bottomInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> hintMeshBuilder.type().area().bottomInset(v));
             case "area-left-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "leftInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> hintMeshBuilder.type().area().leftInset(v));
             case "area-right-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "rightInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> hintMeshBuilder.type().area().rightInset(v));
-            case "area-center", "grid-area-center", "active-screen-grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseHintGridAreaCenter("hint.area-center", v), v -> hintMeshBuilder.type().area().center(v));
+            case "area-center", "grid-area-center", "active-screen-grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseHintGridAreaCenter("overlay.area-center", v), v -> hintMeshBuilder.type().area().center(v));
             // Grid layout properties (screen-filtered)
             case "grid-max-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxRowCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(screenFilter).maxRowCount(v));
             case "grid-max-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxColumnCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(screenFilter).maxColumnCount(v));
             case "grid-cell-width" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellSizing", "cellWidth"), v -> parseDouble(v, false, 0, 10_000), v -> hintMeshBuilder.type().gridLayout(screenFilter).cellWidth(v));
             case "grid-cell-height" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellSizing", "cellHeight"), v -> parseDouble(v, false, 0, 10_000), v -> hintMeshBuilder.type().gridLayout(screenFilter).cellHeight(v));
-            case "grid-cell-sizing" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellSizingType"), v -> parseHintCellSizingType("hint.grid-cell-sizing", v), v -> hintMeshBuilder.type().gridLayout(screenFilter).cellSizingType(v));
+            case "grid-cell-sizing" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellSizingType"), v -> parseHintCellSizingType("overlay.grid-cell-sizing", v), v -> hintMeshBuilder.type().gridLayout(screenFilter).cellSizingType(v));
             case "layout-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "layoutRowCount"), v -> parseUnsignedInteger(v, 1, 1_000_000_000), v -> hintMeshBuilder.type().gridLayout(screenFilter).layoutRowCount(v));
             case "layout-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "layoutColumnCount"), v -> parseUnsignedInteger(v, 1, 1_000_000_000), v -> hintMeshBuilder.type().gridLayout(screenFilter).layoutColumnCount(v));
             case "layout-row-oriented" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "layoutRowOriented"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.type().gridLayout(screenFilter).layoutRowOriented(v));
@@ -3370,7 +3373,7 @@ public class ConfigurationParser {
             case "ui-accessibility" -> HintMeshType.HintMeshTypeType.UI_ACCESSIBILITY;
             case "ui" -> {
                 logger.warn(
-                        "hint.type=ui has been deprecated: use hint.type=ui-accessibility instead");
+                        "hint.type=ui has been deprecated: use overlay.type=ui-accessibility instead");
                 yield HintMeshType.HintMeshTypeType.UI_ACCESSIBILITY;
             }
             case "ui-vision" -> HintMeshType.HintMeshTypeType.UI_VISION;
@@ -3630,7 +3633,7 @@ public class ConfigurationParser {
                     extendVelocity(builder.velocity(), parent.velocity());
                 }
             };
-            hintMesh = new HintMeshProperty("hint", modeName, propertyByKey);
+            hintMesh = new HintMeshProperty("overlay", modeName, propertyByKey);
             grid = new HintMeshProperty("grid", modeName, propertyByKey);
             timeout = new Property<>("timeout", modeName, propertyByKey,
                     new ModeTimeoutBuilder()) {

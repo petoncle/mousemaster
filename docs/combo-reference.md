@@ -496,7 +496,7 @@ Some virtual keys are maintained by mousemaster. They can be read like any other
 | `isunhandledkeypressing`   | A key that is not part of any combo of the current mode is held.                                                  |
 | `ishintmeshempty`          | The current mode's hint mesh has been computed and holds no hint. Only [accessibility UI hints](configuration-reference.md#accessibility-ui-hints) and [vision UI hints](configuration-reference.md#vision-ui-hints) can come up empty. |
 | `iswindows`, `ismacos`     | mousemaster runs on that operating system.                                                                       |
-| `3840x2160-300%`           | The active screen matches that [screen filter](configuration-reference.md#screen-specific-hint-configurations): a resolution, a scale (`300%`), or both. A `screen-alias` names a set of them. |
+| `3840x2160-300%`           | The active screen matches that [screen filter](configuration-reference.md#screen-specific-overlay-configurations): a resolution, a scale (`300%`), or both. A `screen-alias` names a set of them. |
 
 ```
 _{isidling} +a                                     combo only works while the mouse is idle
@@ -523,10 +523,10 @@ The last matching branch wins (rightmost has highest priority). The leftmost bra
 hint3-mode.zoom.percent=1 | _{iszoom} -> 30
 
 # Several overrides
-_hint-mode.hint.box-color=#000000 | _{isslow} -> #00FF00 | _{iszoom} -> #FF00FF
+_hint-mode.overlay.box-color=#000000 | _{isslow} -> #00FF00 | _{iszoom} -> #FF00FF
 
 # A virtual key and a real key
-_hint-mode.hint.box-border-color=#FFFF00 | _{iszoom} -> #00FF00 | _{rightalt} -> #FFFFFF
+_hint-mode.overlay.box-border-color=#FFFF00 | _{iszoom} -> #00FF00 | _{rightalt} -> #FFFFFF
 ```
 
 ### Example: slow and zoom toggles
@@ -542,7 +542,7 @@ _hint-mode.macro.unsetisslow=_{isslow} +s -> ~isslow
 _hint-mode.macro.setiszoom=^{iszoom} +z -> #iszoom
 _hint-mode.macro.unsetiszoom=_{iszoom} +z -> ~iszoom
 
-_hint-mode.hint.box-color=#000000 | _{isslow} -> #00FF00 | _{iszoom} -> #FF00FF
+_hint-mode.overlay.box-color=#000000 | _{isslow} -> #00FF00 | _{iszoom} -> #FF00FF
 ```
 
 ### Example: zoom toggle
@@ -557,8 +557,8 @@ hint3-mode.macro.setiszoom=^{iszoom} +z -> #iszoom
 hint3-mode.macro.unsetiszoom=_{iszoom} +z -> ~iszoom
 
 hint3-mode.zoom.percent=1 | _{iszoom} -> 30
-hint3-mode.hint.grid-cell-width=10.7
-hint3-mode.hint.grid-cell-height=6.0
+hint3-mode.overlay.grid-cell-width=10.7
+hint3-mode.overlay.grid-cell-height=6.0
 ```
 
 ---

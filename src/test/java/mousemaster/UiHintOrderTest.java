@@ -67,7 +67,7 @@ public class UiHintOrderTest {
                         hint-mode.hint.type=grid
                         hint-mode.hint.ui-order=left-to-right
                         """));
-        assertTrue(exception.getMessage().contains("hint.ui-order"),
+        assertTrue(exception.getMessage().contains("overlay.ui-order"),
                 exception.getMessage());
     }
 

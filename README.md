@@ -61,8 +61,8 @@ https://github.com/user-attachments/assets/7300bf36-6a02-4615-b068-30c38571fc24
    - **author.properties**: an IJKL configuration designed to control everything with the right hand only ([see documentation](docs/author.md))
 3. Place the executable and the configuration file of your choice in the same directory.
 4. Rename the configuration file to **mousemaster.properties**.
-5. Run **mousemaster.exe**: make sure to run it as administrator if you want the
-   mousemaster overlay to be displayed on top of everything else.
+5. Run **mousemaster.exe**: make sure to run it as administrator if you want
+   mousemaster to draw on top of everything else.
 6. Feel free to open a [GitHub Issue](https://github.com/petoncle/mousemaster/issues)
    or join the [Discord](https://discord.gg/GSB6MaKb2R) if you need help creating your own
    configuration. If you have ideas for a better configuration that
@@ -107,7 +107,7 @@ permissions are needed.
    survive replacing mousemaster.app with a new build. Quit and reopen that terminal after
    granting, then run mousemaster again.
    - **Input Monitoring**, to read the keys you press. Always needed.
-   - **Accessibility**, only for UI hints (`hint.type=ui`).
+   - **Accessibility**, only for UI hints (`overlay.type=ui-accessibility`).
    - **Screen Recording**, only for zoom (`mode.zoom`).
 
 ## Usage
