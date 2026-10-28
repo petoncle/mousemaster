@@ -6726,6 +6726,10 @@
           ]
         },
         {
+          "name": "deselectCombos",
+          "parameterTypes": []
+        },
+        {
           "name": "eatUnusedSelectionKeys",
           "parameterTypes": []
         },
@@ -6755,10 +6759,6 @@
         },
         {
           "name": "type",
-          "parameterTypes": []
-        },
-        {
-          "name": "unselectCombos",
           "parameterTypes": []
         },
         {

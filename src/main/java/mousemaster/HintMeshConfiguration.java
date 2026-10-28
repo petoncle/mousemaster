@@ -16,7 +16,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     String modeAfterSelection,
                                     boolean eatUnusedSelectionKeys,
                                     List<Combo> selectCombos,
-                                    List<Combo> unselectCombos) {
+                                    List<Combo> deselectCombos) {
 
     public static class HintMeshConfigurationBuilder {
         private Boolean enabled;
@@ -30,7 +30,7 @@ public record HintMeshConfiguration(boolean enabled,
         private String modeAfterSelection;
         private Boolean eatUnusedSelectionKeys;
         private List<Combo> selectCombos;
-        private List<Combo> unselectCombos;
+        private List<Combo> deselectCombos;
 
         public HintMeshConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
@@ -75,8 +75,8 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshConfigurationBuilder unselectCombos(List<Combo> unselectCombos) {
-            this.unselectCombos = unselectCombos;
+        public HintMeshConfigurationBuilder deselectCombos(List<Combo> deselectCombos) {
+            this.deselectCombos = deselectCombos;
             return this;
         }
 
@@ -116,8 +116,8 @@ public record HintMeshConfiguration(boolean enabled,
             return selectCombos;
         }
 
-        public List<Combo> unselectCombos() {
-            return unselectCombos;
+        public List<Combo> deselectCombos() {
+            return deselectCombos;
         }
 
         public HintMeshConfiguration build() {
@@ -128,7 +128,7 @@ public record HintMeshConfiguration(boolean enabled,
                     modeAfterSelection,
                     eatUnusedSelectionKeys,
                     selectCombos,
-                    unselectCombos);
+                    deselectCombos);
         }
 
     }

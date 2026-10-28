@@ -82,7 +82,7 @@ public sealed interface Command {
     record Noop(String name) implements Command {}
 
     record SelectHintKey() implements Command {}
-    record UnselectHintKey() implements Command {}
+    record DeselectHintKey() implements Command {}
 
     record MutateMode(String modeName, ModePropertyPath propertyPath, Object newPropertyValue, Combo combo) implements Command {
         @Override

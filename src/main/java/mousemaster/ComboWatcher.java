@@ -1124,7 +1124,7 @@ public class ComboWatcher {
                 Predicate<Command> switchModeOrHintPredicate =
                         c -> c instanceof Command.SwitchMode ||
                              c instanceof Command.SelectHintKey ||
-                             c instanceof Command.UnselectHintKey;
+                             c instanceof Command.DeselectHintKey;
                 if (ignoreSwitchModeAndHintCommands &&
                     commands.stream()
                             .anyMatch(switchModeOrHintPredicate)) {
@@ -1235,13 +1235,13 @@ public class ComboWatcher {
             return;
         Key lastEventKey = lastKeyEvent == null ? null : lastKeyEvent.key();
         List<Command> commands = new ArrayList<>(commandsToRun);
-        // Run hint selection/unselection commands first, before variable and
+        // Run hint selection/deselection commands first, before variable and
         // mutation commands. If a hint command supersedes other commands,
         // skip the rest.
         for (int i = 0; i < commands.size(); i++) {
             Command command = commands.get(i);
             if (command instanceof Command.SelectHintKey ||
-                command instanceof Command.UnselectHintKey) {
+                command instanceof Command.DeselectHintKey) {
                 commandRunner.run(command, lastEventKey);
                 commands.remove(i);
                 i--;

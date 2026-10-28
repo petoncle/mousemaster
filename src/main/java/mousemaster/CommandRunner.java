@@ -123,7 +123,7 @@ public class CommandRunner {
             case Noop noop -> {}
 
             case SelectHintKey selectHintKey -> hintManager.selectHintKey(eventKey);
-            case UnselectHintKey unselectHintKey -> hintManager.unselectHintKey();
+            case DeselectHintKey deselectHintKey -> hintManager.deselectHintKey();
             // @formatter:on
         }
     }

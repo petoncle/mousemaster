@@ -663,7 +663,7 @@ ui-hint-mode.hint.type=ui-accessibility
 ui-hint-mode.hint.area=active-screen
 ui-hint-mode.hint.selection-keys=selectionkey
 ui-hint-mode.hint.select=+selectionkey
-ui-hint-mode.hint.undo=backspace
+ui-hint-mode.hint.deselect=backspace
 ui-hint-mode.hint.mouse-movement=mouse-follows-selected-hint
 ui-hint-mode.hint.font-size=10
 ui-hint-mode.hint.font-weight=bold
@@ -952,7 +952,7 @@ one exact, and lets an unlisted scale fall back to the default value.
 key-alias.selectionkey=a b c d e f g h i j k l m n o p q r s t u v w x y z
 hint-mode.hint.selection-keys=selectionkey
 hint-mode.hint.select=+selectionkey
-hint-mode.hint.undo=backspace
+hint-mode.hint.deselect=backspace
 hint-mode.to.normal-mode=+selectionkey
 hint-mode.hint.mouse-movement=mouse-follows-selected-hint
 hint-mode.hint.eat-unused-selection-keys=true
@@ -960,12 +960,12 @@ hint-mode.hint.label-override=plus
 ```
 
 - **`selection-keys`**: Keys that can be pressed to select hints. Without selection keys (the
-  default), the hints have no labels and cannot be selected, and `select` and `undo` are
+  default), the hints have no labels and cannot be selected, and `select` and `deselect` are
   rejected. `none` gives no selection keys, for example in a mutation that shows the labels only
   while a key is pressed: `grid-mode.hint.selection-keys=none | _{labels} -> hintkey`.
   `select` then works with the keys of every branch.
 - **`select`**: Combo that triggers hint selection. For example, if you want to be able to hold leftshift while pressing a hint selection key, then use `hint-mode.hint.select=_{none | leftshift} +selectionkey`
-- **`undo`**: Key combo to undo the last hint selection keystroke
+- **`deselect`** (formerly `undo`): Combo that deselects the last selection key
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
 - **`mouse-movement`**: Controls how the mouse moves when interacting with hints
   - `no-movement`: Mouse stays in its current position

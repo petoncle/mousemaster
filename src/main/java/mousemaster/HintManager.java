@@ -295,7 +295,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 // lastSelectedHintPoint moved) making hints differ from the
                 // stored state, which resets selectedKeySequence to [].
                 // If we wanted to do the rebuilding, we should probably have a hint.clear-selection command
-                // (similar to hint.undo which could be renamed to undo-selection).
+                // (similar to hint.deselect).
                 return;
             }
              // When going from hint2-1 to hint2-2, even if we already have been in hint2-2
@@ -1447,12 +1447,9 @@ public class HintManager implements ModeListener, MousePositionListener {
         // No op.
     }
 
-    /**
-     * Undo.
-     */
-    public void unselectHintKey() {
+    public void deselectHintKey() {
         if (pendingUiHintQuery != null)
-            // Let user perform an action on undo (e.g. switch mode) even when UI hint query is ongoing.
+            // Let user perform an action on deselect (e.g. switch mode) even when UI hint query is ongoing.
             return;
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (!hintMeshConfiguration.enabled())
@@ -1564,7 +1561,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     /**
-     * Other commands should be canceled when an unselect hint key is successful,
+     * Other commands should be canceled when a deselect hint key is successful,
      * when a select hint key does not trigger a hint match (and there are still some
      * letters to select), and when an unused selection key is eaten.
      */

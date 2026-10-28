@@ -648,11 +648,11 @@ public class ConfigurationParser {
             checkMissingProperties(mode);
             if (mode.hintMesh.builder.enabled() && hintSelectionKeys(mode).isEmpty() &&
                 Stream.of(mode.hintMesh.builder.selectCombos(),
-                          mode.hintMesh.builder.unselectCombos())
+                          mode.hintMesh.builder.deselectCombos())
                       .anyMatch(combos -> combos != null && !combos.isEmpty()))
                 throw new IllegalArgumentException(
                         "Invalid definition of hint for " + mode.modeName +
-                        ": hint.select and hint.undo need hint.selection-keys");
+                        ": hint.select and hint.deselect need hint.selection-keys");
             if (mode.hintMesh.builder.enabled() &&
                 mode.hintMesh.builder.selectCombos() == null) {
                 logger.trace(mode.modeName + ".hint.select is missing, using selection keys");
@@ -661,7 +661,7 @@ public class ConfigurationParser {
                                 defaultComboMoveDuration, mode.modeName));
             }
             mode.comboMap.hintSelectCombos(mode.hintMesh.builder.selectCombos());
-            mode.comboMap.hintUnselectCombos(mode.hintMesh.builder.unselectCombos());
+            mode.comboMap.hintDeselectCombos(mode.hintMesh.builder.deselectCombos());
             usedKeys(mode.comboMap, allComboAndMacroKeys);
         }
         List<Key> missingKeys = allComboAndMacroKeys.stream()
@@ -1245,8 +1245,8 @@ public class ConfigurationParser {
                                             defaultComboMoveDuration,
                                             keyAliases, appAliases, keyResolver, allVariableNames));
                         }
-                        case "undo" -> {
-                            mode.hintMesh.builder.unselectCombos(
+                        case "deselect", "undo" -> {
+                            mode.hintMesh.builder.deselectCombos(
                                     parseCombos(propertyValue, propertyKey,
                                             defaultComboMoveDuration,
                                             keyAliases, appAliases, keyResolver, allVariableNames));
@@ -4118,8 +4118,8 @@ public class ConfigurationParser {
                     builder.eatUnusedSelectionKeys(parent.eatUnusedSelectionKeys());
                 if (builder.selectCombos() == null)
                     builder.selectCombos(parent.selectCombos());
-                if (builder.unselectCombos() == null)
-                    builder.unselectCombos(parent.unselectCombos());
+                if (builder.deselectCombos() == null)
+                    builder.deselectCombos(parent.deselectCombos());
             }
 
         }
@@ -4326,7 +4326,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> resetVariables;
 
         List<Combo> hintSelectCombos;
-        List<Combo> hintUnselectCombos;
+        List<Combo> hintDeselectCombos;
 
         public ComboMapConfigurationBuilder(String modeName,
                                             Map<PropertyKey, Property<?>> propertyByKey) {
@@ -4366,8 +4366,8 @@ public class ConfigurationParser {
               hintSelectCombos = combos;
           }
 
-          public void hintUnselectCombos(List<Combo> combos) {
-              hintUnselectCombos = combos;
+          public void hintDeselectCombos(List<Combo> combos) {
+              hintDeselectCombos = combos;
           }
 
           private static class ComboMapProperty extends Property<Map<Combo, List<Command>>> {
@@ -4421,8 +4421,8 @@ public class ConfigurationParser {
             Map<Combo, List<Command>> commandsByCombo = new LinkedHashMap<>();
             if (hintSelectCombos != null)
                 add(commandsByCombo, hintSelectCombos.stream().collect(Collectors.toMap(Function.identity(), combo -> List.of(new SelectHintKey()))));
-            if (hintUnselectCombos != null)
-                add(commandsByCombo, hintUnselectCombos.stream().collect(Collectors.toMap(Function.identity(), combo -> List.of(new UnselectHintKey()))));
+            if (hintDeselectCombos != null)
+                add(commandsByCombo, hintDeselectCombos.stream().collect(Collectors.toMap(Function.identity(), combo -> List.of(new DeselectHintKey()))));
             add(commandsByCombo, to.builder);
             add(commandsByCombo, startMove.builder);
             add(commandsByCombo, stopMove.builder);
