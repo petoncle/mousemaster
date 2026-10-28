@@ -996,18 +996,27 @@ public final class HintMeshRenderer {
         int originX = containerGeometry.x(), originY = containerGeometry.y();
         containerGeometry.dispose();
         // Where each old border sits now (window coords), so its box resumes from there without a jump.
+        List<HintBox> oldBoxes =
+                animateTransition && morph.layer != null ? morph.layer.boxes : List.of();
         Map<List<Key>, Rectangle> startByKey = new HashMap<>();
-        if (animateTransition && morph.layer != null)
-            for (HintBox oldBox : morph.layer.boxes)
-                startByKey.put(oldBox.hint.keySequence(), oldBox.rectangle());
+        for (HintBox oldBox : oldBoxes)
+            startByKey.put(oldBox.hint.keySequence(), oldBox.rectangle());
         int boxCount = newBoxes.size();
-        List<Rectangle> starts = new ArrayList<>(boxCount);
         List<Rectangle> targets = new ArrayList<>(boxCount);
+        for (HintBox box : newBoxes)
+            targets.add(new Rectangle(box.x() + originX, box.y() + originY, box.width(), box.height()));
+        Rectangle newBounds = Rectangle.union(targets);
+        Rectangle oldBounds = oldBoxes.isEmpty() ? null :
+                Rectangle.union(oldBoxes.stream().map(HintBox::rectangle).toList());
+        List<Rectangle> starts = new ArrayList<>(boxCount);
         boolean boxesMove = false;
-        for (HintBox box : newBoxes) {
-            Rectangle target = new Rectangle(box.x() + originX, box.y() + originY, box.width(), box.height());
-            Rectangle start = startByKey.getOrDefault(box.hint.keySequence(), target);
-            targets.add(target);
+        for (int boxIndex = 0; boxIndex < boxCount; boxIndex++) {
+            HintBox box = newBoxes.get(boxIndex);
+            Rectangle target = targets.get(boxIndex);
+            // A box without keys starts where it sits in the new grid, mapped onto the old one.
+            Rectangle start = !box.hint.keySequence().isEmpty() ?
+                    startByKey.getOrDefault(box.hint.keySequence(), target) :
+                    oldBounds == null ? target : mappedRectangle(target, newBounds, oldBounds);
             starts.add(start);
             boxesMove |= !start.equals(target);
         }
@@ -1019,7 +1028,6 @@ public final class HintMeshRenderer {
             // Carry over the borders of every grid whose content is still shrinking, dropping the ones
             // this grid covers: it draws their area itself now, and backing out of a drill returns to a
             // grid that is in the list, whose borders would then be drawn twice.
-            Rectangle newBounds = Rectangle.union(targets);
             Rectangle previousBounds = Rectangle.union(morph.targets);
             outgoing = new ArrayList<>();
             for (OutgoingBorders previous : morph.layer.outgoing)
@@ -1090,6 +1098,17 @@ public final class HintMeshRenderer {
         morph.animation = animation;
         morph.callback = callback;
         animation.start();
+    }
+
+    /** The rectangle at the same place in {@code to} as it is in {@code from}. */
+    private static Rectangle mappedRectangle(Rectangle rectangle, Rectangle from, Rectangle to) {
+        double xScale = (double) to.width() / from.width();
+        double yScale = (double) to.height() / from.height();
+        int left = to.x() + (int) Math.round((rectangle.x() - from.x()) * xScale);
+        int top = to.y() + (int) Math.round((rectangle.y() - from.y()) * yScale);
+        return new Rectangle(left, top,
+                to.x() + (int) Math.round((rectangle.x() + rectangle.width() - from.x()) * xScale) - left,
+                to.y() + (int) Math.round((rectangle.y() + rectangle.height() - from.y()) * yScale) - top);
     }
 
     /** Hands the cropped container's visible region, in window coordinates, to {@code clip} each frame.
@@ -1878,7 +1897,8 @@ public final class HintMeshRenderer {
                     containerWidth, containerHeight);
         }
         dropOverlappingDecorationLabels(hintBoxes, areaBox,
-                style.fontStyle().defaultFontStyle().opacity() != 0,
+                style.fontStyle().defaultFontStyle().opacity() != 0 &&
+                !hints.getFirst().keySequence().isEmpty(),
                 subDecorationStyles, areaDecorationStyles);
         hintBoxGeometriesByHintMeshKey.put(hintMeshKey, hintBoxGeometries);
         logger.debug(

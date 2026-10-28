@@ -28,7 +28,6 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static mousemaster.Command.*;
@@ -89,10 +88,7 @@ public class ConfigurationParser {
                 .visible(true)
                 .mouseMovement(HintMouseMovement.MOUSE_FOLLOWS_SELECTED_HINT);
         hintMesh.keys(AnyScreenFilter.ANY_SCREEN_FILTER)
-                .selectionKeys(IntStream.rangeClosed('a', 'z')
-                                        .mapToObj(c -> String.valueOf((char) c))
-                                        .map(Key::ofName)
-                                        .toList())
+                .selectionKeys(List.of())
                 .rowKeyOffset(0);
         HintMeshStyleBuilder hintMeshStyleBuilder =
                 hintMesh.style(AnyScreenFilter.ANY_SCREEN_FILTER);
@@ -650,6 +646,12 @@ public class ConfigurationParser {
         Set<Key> allComboAndMacroKeys = new HashSet<>();
         for (ModeBuilder mode : modeByName.values()) {
             checkMissingProperties(mode);
+            if (mode.hintMesh.builder.enabled() && hintSelectionKeys(mode).isEmpty() &&
+                (mode.hintMesh.builder.selectCombos() != null ||
+                 mode.hintMesh.builder.unselectCombos() != null))
+                throw new IllegalArgumentException(
+                        "Invalid definition of hint for " + mode.modeName +
+                        ": hint.select and hint.undo need hint.selection-keys");
             if (mode.hintMesh.builder.enabled() &&
                 mode.hintMesh.builder.selectCombos() == null) {
                 logger.trace(mode.modeName + ".hint.select is missing, using selection keys");
@@ -698,28 +700,40 @@ public class ConfigurationParser {
     private static List<Combo> deriveSelectCombosFromHintSelectionKeys(ModeBuilder mode,
                                                                        ComboMoveDuration defaultComboMoveDuration,
                                                                        String modeName) {
-        Set<Key> hintSelectionKeys =
-                mode.hintMesh.builder.keysByFilter()
-                                     .map()
-                                     .values()
-                                     .stream()
-                                     .map(HintMeshKeysBuilder::selectionKeys)
-                                     .filter(Objects::nonNull)
-                                     .flatMap(Collection::stream)
-                                     .collect(Collectors.toSet());
         ComboPrecondition emptyComboPrecondition = new ComboPrecondition(
                 new ComboPrecondition.ComboKeyPrecondition(Set.of(),
                         new ComboPrecondition.PressedKeyPrecondition(List.of())),
                 new ComboPrecondition.ComboAppPrecondition(Set.of(), Set.of()),
                 new ComboPrecondition.ComboVariablePrecondition(List.of()));
         String label = modeName + ".hint.select";
-        return hintSelectionKeys.stream()
+        return hintSelectionKeys(mode).stream()
                                 .map(key -> new Combo(label, emptyComboPrecondition,
                                         ComboSequence.ofMoves(
                                                 List.<KeyComboMove>of(new PressComboMove(
                                                         KeyOrAlias.ofKey(key), false, true,
                                                         defaultComboMoveDuration, null)))))
                                 .toList();
+    }
+
+    /** The keys of every screen and of every mutation branch. */
+    private static Set<Key> hintSelectionKeys(ModeBuilder mode) {
+        Stream<List<Key>> screenKeys = mode.hintMesh.builder.keysByFilter()
+                                                            .map()
+                                                            .values()
+                                                            .stream()
+                                                            .map(HintMeshKeysBuilder::selectionKeys);
+        Stream<List<Key>> branchKeys =
+                mode.hintMesh.mutateModeCommands.values()
+                                                .stream()
+                                                .flatMap(Collection::stream)
+                                                .map(command -> command instanceof MutateMode mutateMode &&
+                                                                mutateMode.propertyPath()
+                                                                          .equalsIgnoringScreenFilter(HINT_SELECTION_KEYS_PATH) ?
+                                                        (List<Key>) mutateMode.newPropertyValue() : null);
+        return Stream.concat(screenKeys, branchKeys)
+                     .filter(Objects::nonNull)
+                     .flatMap(Collection::stream)
+                     .collect(Collectors.toSet());
     }
 
     private static final String IDLE_INDICATOR_STATE = "idle";
@@ -2237,6 +2251,8 @@ public class ConfigurationParser {
                     "Property " + propertyKey + " is defined twice");
     }
 
+    private static final ModePropertyPath HINT_SELECTION_KEYS_PATH =
+            new ModePropertyPath(List.of("hintMesh", "keysByFilter", "selectionKeys"));
     private static final ModePropertyPath HINT_UI_ORDER_PATH =
             new ModePropertyPath(List.of("hintMesh", "type", "order"));
     private static final ModePropertyPath HINT_VISION_DENSITY_PATH =
@@ -3336,6 +3352,8 @@ public class ConfigurationParser {
     private static List<Key> parseHintKeys(String propertyValue,
                                            Map<String, KeyAlias> keyAliases,
                                            KeyResolver keyResolver) {
+        if (propertyValue.equals("none"))
+            return List.of();
         List<Key> hintKeys = parseKeyList(propertyValue, keyAliases, keyResolver);
         if (hintKeys.size() <= 1)
             // Even 1 key is not enough because we use fixed-length hints.

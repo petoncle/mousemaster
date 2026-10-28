@@ -474,7 +474,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintCountThatStartWithSelectedHintKeySequence++;
             selectedHintKeySequenceCenterX += hint.centerX();
             selectedHintKeySequenceCenterY += hint.centerY();
-            if (hint.keySequence().size() == selectedHintKeySequence.size()) {
+            if (!selectedHintKeySequence.isEmpty() &&
+                hint.keySequence().size() == selectedHintKeySequence.size()) {
                 break;
             }
         }
@@ -492,7 +493,10 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     public boolean showingHintMesh() {
         return pendingUiHintQuery != null ||
-               (!hintMeshStates.isEmpty() && !hintJustSelected);
+               (!hintMeshStates.isEmpty() && !hintJustSelected &&
+                currentMode.hintMesh().visible() &&
+                !currentMode.hintMesh().keysByFilter().get(screenFilter).selectionKeys()
+                            .isEmpty());
     }
 
     public boolean waitingForUiElements() {
@@ -1086,6 +1090,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                                              int layoutRowCount, int layoutColumnCount,
                                              boolean layoutRowOriented,
                                              Set<Integer> prefixLengths) {
+        if (keys.isEmpty())
+            return List.of();
         int bigColumnCount = (int) Math.ceil((double) columnCount / layoutColumnCount);
         // Number of sub grids in a column.
         int bigRowCount = (int) Math.ceil((double) rowCount / layoutRowCount);
@@ -1307,31 +1313,17 @@ public class HintManager implements ModeListener, MousePositionListener {
                 decoration.maxRowCount(), decoration.maxColumnCount(), true);
         FixedSizeHintGrid grid = hintGridForArea(area,
                 area.center(), decorationLayout, scale, zoom);
-        List<Hint> decorationHints;
-        int prefixLength = -1;
-        if (decoration.labelKeys().isEmpty()) {
-            // Lines only (e.g. a centered cross): positioned cells, no labels.
-            decorationHints = new ArrayList<>();
-            for (int row = 0; row < grid.rowCount(); row++)
-                for (int column = 0; column < grid.columnCount(); column++)
-                    decorationHints.add(new Hint(
-                            grid.hintMeshX() + (column + 0.5) * grid.cellWidth(),
-                            grid.hintMeshY() + (row + 0.5) * grid.cellHeight(),
-                            grid.cellWidth(), grid.cellHeight(), List.of(), null));
-        }
-        else {
-            int layoutRowCount = Math.min(grid.rowCount(), decorationLayout.layoutRowCount());
-            int layoutColumnCount = Math.min(grid.columnCount(),
-                    decorationLayout.layoutColumnCount());
-            int subgridCount = grid.subgridCount(layoutRowCount, layoutColumnCount);
-            Set<Integer> prefixLengths = new HashSet<>();
-            decorationHints = buildHints(grid, decoration.labelKeys(), 0,
-                    grid.hintCount(), 0, subgridCount, 0, layoutRowCount,
-                    layoutColumnCount, decorationLayout.layoutRowOriented(),
-                    prefixLengths);
-            prefixLength = prefixLengths.size() == 1 ?
-                    prefixLengths.iterator().next() : -1;
-        }
+        int layoutRowCount = Math.min(grid.rowCount(), decorationLayout.layoutRowCount());
+        int layoutColumnCount = Math.min(grid.columnCount(),
+                decorationLayout.layoutColumnCount());
+        int subgridCount = grid.subgridCount(layoutRowCount, layoutColumnCount);
+        Set<Integer> prefixLengths = new HashSet<>();
+        List<Hint> decorationHints = buildHints(grid, decoration.labelKeys(), 0,
+                grid.hintCount(), 0, subgridCount, 0, layoutRowCount,
+                layoutColumnCount, decorationLayout.layoutRowOriented(),
+                prefixLengths);
+        int prefixLength = prefixLengths.size() == 1 ?
+                prefixLengths.iterator().next() : -1;
         HintMeshStyle decorationStyle = style.builder()
                 .boxColor(decoration.boxColor())
                 .boxOpacity(decoration.boxOpacity())
@@ -1507,7 +1499,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             return;
         HintMeshKeys hintMeshKeys = hintMeshConfiguration.keysByFilter()
                                                          .get(screenFilter);
-        if (hintJustSelected)
+        if (hintJustSelected || hintMeshKeys.selectionKeys().isEmpty())
             return;
         List<Key> newSelectedKeySequence = new ArrayList<>(hintMesh.selectedKeySequence());
         newSelectedKeySequence.add(key);

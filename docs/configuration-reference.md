@@ -953,7 +953,11 @@ hint-mode.hint.eat-unused-selection-keys=true
 hint-mode.hint.label-override=plus
 ```
 
-- **`selection-keys`**: Keys that can be pressed to select hints
+- **`selection-keys`**: Keys that can be pressed to select hints. Without selection keys (the
+  default), the hints have no labels and cannot be selected, and `select` and `undo` are
+  rejected. `none` gives no selection keys, for example in a mutation that shows the labels only
+  while a key is pressed: `grid-mode.hint.selection-keys=none | _{labels} -> hintkey`.
+  `select` then works with the keys of every branch.
 - **`select`**: Combo that triggers hint selection. For example, if you want to be able to hold leftshift while pressing a hint selection key, then use `hint-mode.hint.select=_{none | leftshift} +selectionkey`
 - **`undo`**: Key combo to undo the last hint selection keystroke
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
