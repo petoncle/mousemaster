@@ -14,6 +14,7 @@ public record Decoration(int maxRowCount, int maxColumnCount,
                          double boxBorderThickness, double boxBorderLength,
                          Color boxBorderColor, double boxBorderOpacity,
                          double boxBorderRadius, boolean boxFramed,
+                         double boxHorizontalPadding, double boxVerticalPadding,
                          HintFontStyle fontStyle) {
 
     public DecorationBuilder builder() {
@@ -33,6 +34,8 @@ public record Decoration(int maxRowCount, int maxColumnCount,
         private Double boxBorderOpacity;
         private Double boxBorderRadius;
         private Boolean boxFramed;
+        private Double boxHorizontalPadding;
+        private Double boxVerticalPadding;
         private HintFontStyle.HintFontStyleBuilder fontStyle =
                 new HintFontStyle.HintFontStyleBuilder();
 
@@ -52,6 +55,8 @@ public record Decoration(int maxRowCount, int maxColumnCount,
             this.boxBorderOpacity = decoration.boxBorderOpacity;
             this.boxBorderRadius = decoration.boxBorderRadius;
             this.boxFramed = decoration.boxFramed;
+            this.boxHorizontalPadding = decoration.boxHorizontalPadding;
+            this.boxVerticalPadding = decoration.boxVerticalPadding;
             this.fontStyle = decoration.fontStyle.builder();
         }
 
@@ -105,6 +110,14 @@ public record Decoration(int maxRowCount, int maxColumnCount,
 
         public Boolean boxFramed() {
             return boxFramed;
+        }
+
+        public Double boxHorizontalPadding() {
+            return boxHorizontalPadding;
+        }
+
+        public Double boxVerticalPadding() {
+            return boxVerticalPadding;
         }
 
         public DecorationBuilder maxRowCount(Integer maxRowCount) {
@@ -167,6 +180,16 @@ public record Decoration(int maxRowCount, int maxColumnCount,
             return this;
         }
 
+        public DecorationBuilder boxHorizontalPadding(Double boxHorizontalPadding) {
+            this.boxHorizontalPadding = boxHorizontalPadding;
+            return this;
+        }
+
+        public DecorationBuilder boxVerticalPadding(Double boxVerticalPadding) {
+            this.boxVerticalPadding = boxVerticalPadding;
+            return this;
+        }
+
         public Decoration build(Decoration defaultDecoration) {
             return new Decoration(
                     maxRowCount == null ? defaultDecoration.maxRowCount : maxRowCount,
@@ -181,6 +204,8 @@ public record Decoration(int maxRowCount, int maxColumnCount,
                     boxBorderOpacity == null ? defaultDecoration.boxBorderOpacity : boxBorderOpacity,
                     boxBorderRadius == null ? defaultDecoration.boxBorderRadius : boxBorderRadius,
                     boxFramed == null ? defaultDecoration.boxFramed : boxFramed,
+                    boxHorizontalPadding == null ? defaultDecoration.boxHorizontalPadding : boxHorizontalPadding,
+                    boxVerticalPadding == null ? defaultDecoration.boxVerticalPadding : boxVerticalPadding,
                     fontStyle.build()
             );
         }

@@ -6097,6 +6097,8 @@
             "double",
             "double",
             "boolean",
+            "double",
+            "double",
             "mousemaster.HintFontStyle"
           ]
         },
@@ -6115,6 +6117,8 @@
             "double",
             "double",
             "boolean",
+            "double",
+            "double",
             "mousemaster.HintFontStyle"
           ]
         },
@@ -6140,6 +6144,14 @@
         },
         {
           "name": "boxFramed",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxHorizontalPadding",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxVerticalPadding",
           "parameterTypes": []
         },
         {

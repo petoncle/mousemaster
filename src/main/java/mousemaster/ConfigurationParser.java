@@ -261,7 +261,8 @@ public class ConfigurationParser {
                       .boxColor(GradientColor.parse("#000000")).boxOpacity(0d)
                       .boxBorderThickness(1d).boxBorderLength(10_000d)
                       .boxBorderColor(Color.parse("#FFFFFF")).boxBorderOpacity(1d)
-                      .boxBorderRadius(0d).boxFramed(false);
+                      .boxBorderRadius(0d).boxFramed(false)
+                      .boxHorizontalPadding(0d).boxVerticalPadding(0d);
             decoration.fontStyle().defaultFontStyle()
                       .name(FontStyle.defaultName).weight(FontWeight.NORMAL).size(10d)
                       .color(Color.parse("#FFFFFF")).opacity(1d)
@@ -2752,6 +2753,8 @@ public class ConfigurationParser {
             case "box-border-opacity" -> ModePropertyHandler.of(p.append("boxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).decoration(index).boxBorderOpacity(v));
             case "box-border-radius" -> ModePropertyHandler.of(p.append("boxBorderRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).decoration(index).boxBorderRadius(v));
             case "box-framed" -> ModePropertyHandler.of(p.append("boxFramed"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(screenFilter).decoration(index).boxFramed(v));
+            case "box-horizontal-padding" -> ModePropertyHandler.of(p.append("boxHorizontalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).decoration(index).boxHorizontalPadding(v));
+            case "box-vertical-padding" -> ModePropertyHandler.of(p.append("boxVerticalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).decoration(index).boxVerticalPadding(v));
             case "font-name" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "name"), v -> v, v -> hintMeshBuilder.style(screenFilter).decoration(index).fontStyle().defaultFontStyle().name(v));
             case "font-weight" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(screenFilter).decoration(index).fontStyle().defaultFontStyle().weight(v));
             case "font-size" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(screenFilter).decoration(index).fontStyle().defaultFontStyle().size(v));
@@ -3981,6 +3984,10 @@ public class ConfigurationParser {
                             cd.boxBorderRadius(pd.boxBorderRadius());
                         if (!childDoesNotNeedParentProperty(b -> b.decoration(i).boxFramed(), childStyleByFilter, filter))
                             cd.boxFramed(pd.boxFramed());
+                        if (!childDoesNotNeedParentProperty(b -> b.decoration(i).boxHorizontalPadding(), childStyleByFilter, filter))
+                            cd.boxHorizontalPadding(pd.boxHorizontalPadding());
+                        if (!childDoesNotNeedParentProperty(b -> b.decoration(i).boxVerticalPadding(), childStyleByFilter, filter))
+                            cd.boxVerticalPadding(pd.boxVerticalPadding());
                     }
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::transitionAnimationEnabled,

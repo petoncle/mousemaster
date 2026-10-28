@@ -1769,6 +1769,21 @@ public final class HintMeshRenderer {
             maxHintRight += shadowPadRight;
             maxHintBottom += shadowPadBottom;
         }
+        if (hintMesh.decoration() != null) {
+            Rectangle area = hintMesh.decoration().backgroundArea();
+            int horizontalPadding =
+                    scaledLength(style.decorations().getFirst().boxHorizontalPadding(), screenScale);
+            int verticalPadding =
+                    scaledLength(style.decorations().getFirst().boxVerticalPadding(), screenScale);
+            minHintLeft = Math.min(minHintLeft,
+                    (int) Math.round((area.x() - horizontalPadding) / qtScaleFactor));
+            minHintTop = Math.min(minHintTop,
+                    (int) Math.round((area.y() - verticalPadding) / qtScaleFactor));
+            maxHintRight = Math.max(maxHintRight, (int) Math.round(
+                    (area.x() + area.width() + horizontalPadding) / qtScaleFactor));
+            maxHintBottom = Math.max(maxHintBottom, (int) Math.round(
+                    (area.y() + area.height() + verticalPadding) / qtScaleFactor));
+        }
         int offsetX = minHintLeft - hintMeshWindow.window.x();
         int offsetY = minHintTop - hintMeshWindow.window.y();
         // The boxes are moved into the container at (offsetX, offsetY), so the sweep is too.
@@ -2055,7 +2070,8 @@ public final class HintMeshRenderer {
     private record DecorationStyle(QBrush boxColor, GradientColor boxBorderColor,
                                    double boxBorderOpacity, Rectangle boxBorderGradientArea,
                                    int borderThicknessPx, int borderLengthPx,
-                                   int borderRadiusPx, boolean boxFramed,
+                                   int borderRadiusPx, int horizontalPaddingPx,
+                                   int verticalPaddingPx, boolean boxFramed,
                                    boolean labelVisible,
                                    QtFontStyle labelStyle,
                                    List<Key> labelOverride,
@@ -2073,6 +2089,8 @@ public final class HintMeshRenderer {
                 scaledLength(decoration.boxBorderThickness(), screenScale),
                 scaledLength(decoration.boxBorderLength(), screenScale),
                 scaledLength(decoration.boxBorderRadius(), screenScale),
+                scaledLength(decoration.boxHorizontalPadding(), screenScale),
+                scaledLength(decoration.boxVerticalPadding(), screenScale),
                 decoration.boxFramed(),
                 font.opacity() != 0,
                 QtHintFont.qtFontStyle(font, screenScale, lastSelectedHintBoxHexColor),
@@ -2112,15 +2130,22 @@ public final class HintMeshRenderer {
                     decorationBoxLeft == 0, decorationBoxTop == 0,
                     decorationBoxRight == parentWidth, decorationBoxBottom == parentHeight,
                     decorationStyle.boxFramed(), qtScaleFactor, decorationStyle.borderRadiusPx());
-            decorationBox.setGeometry(decorationBoxLeft, decorationBoxTop,
-                    decorationBoxRight - decorationBoxLeft, decorationBoxBottom - decorationBoxTop);
+            int horizontalPadding =
+                    (int) Math.round(decorationStyle.horizontalPaddingPx() / qtScaleFactor);
+            int verticalPadding =
+                    (int) Math.round(decorationStyle.verticalPaddingPx() / qtScaleFactor);
+            int decorationBoxWidth =
+                    decorationBoxRight - decorationBoxLeft + 2 * horizontalPadding;
+            int decorationBoxHeight =
+                    decorationBoxBottom - decorationBoxTop + 2 * verticalPadding;
+            decorationBox.setGeometry(decorationBoxLeft - horizontalPadding,
+                    decorationBoxTop - verticalPadding, decorationBoxWidth, decorationBoxHeight);
             decorationBox.setDecorationLabel(labelKeys.stream()
                             .map(Key::hintLabel).collect(Collectors.joining()),
                     decorationStyle.labelStyle(),
                     decorationStyle.labelVerticalAlignment());
             parentBox.decorationBoxes.add(decorationBox);
-            addDecorationBoxes(decorationBox, decorationBoxRight - decorationBoxLeft,
-                    decorationBoxBottom - decorationBoxTop,
+            addDecorationBoxes(decorationBox, decorationBoxWidth, decorationBoxHeight,
                     decorationMesh.subDecoration(), decorationStyles, depth + 1,
                     qtScaleFactor);
         }

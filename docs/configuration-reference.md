@@ -1125,6 +1125,14 @@ hint-mode.overlay.background-opacity=0
   - `<level>-box-border-thickness` / `<level>-box-border-color` / `<level>-box-border-opacity` / `<level>-box-border-radius`: The lines. (Names mirror the top-level `box-border-*`.)
   - `<level>-box-border-length`: Length of each line; high values (default 10000) draw continuous lines, low values draw short marks (e.g. a `+` at the center of a 2x2 decoration).
   - `<level>-box-framed`: Whether this level draws its own frame (default false). A decoration spans its parent box exactly, so its frame would land on the parent's border and double it; false draws the interior lines only. Same property as the top-level `box-framed` and `prefix-box-framed`, which default to true since nothing above them draws that frame.
+  - `<level>-box-horizontal-padding` / `<level>-box-vertical-padding`: Grow each box around its cell, as `box-horizontal-padding` grows a hint box (default 0). With `box-framed=false`, a framed `decoration-` with paddings equal to its border thickness draws its frame around the grid, where a UI hint's element box draws:
+    ```properties
+    refine-ui-hint-mode.overlay.box-framed=false
+    refine-ui-hint-mode.overlay.decoration-box-framed=true
+    refine-ui-hint-mode.overlay.decoration-box-border-radius=1
+    refine-ui-hint-mode.overlay.decoration-box-horizontal-padding=1
+    refine-ui-hint-mode.overlay.decoration-box-vertical-padding=1
+    ```
 
 - Font appearance: controls how hint labels appear
     - `font-spacing-percent`: Controls character spacing (0=touching, 1=evenly distributed, 0.5=minimal spacing with alignment)
