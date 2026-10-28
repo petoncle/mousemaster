@@ -33,8 +33,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             double uiElementBoxVerticalPadding,
                             double boxWidthPercent,
                             double boxHeightPercent,
-                            double cellHorizontalPadding,
-                            double cellVerticalPadding,
+                            double boxHorizontalPadding,
+                            double boxVerticalPadding,
                             List<Decoration> decorations,
                             boolean transitionAnimationEnabled,
                             Duration transitionAnimationDuration,
@@ -79,8 +79,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Double uiElementBoxVerticalPadding;
         private Double boxWidthPercent;
         private Double boxHeightPercent;
-        private Double cellHorizontalPadding;
-        private Double cellVerticalPadding;
+        private Double boxHorizontalPadding;
+        private Double boxVerticalPadding;
         // Index 0 = whole-area decoration, 1 = subdecoration, 2 = subsubdecoration.
         private final List<Decoration.DecorationBuilder> decorations = new ArrayList<>(
                 List.of(new Decoration.DecorationBuilder(),
@@ -129,8 +129,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.uiElementBoxVerticalPadding = style.uiElementBoxVerticalPadding;
             this.boxWidthPercent = style.boxWidthPercent;
             this.boxHeightPercent = style.boxHeightPercent;
-            this.cellHorizontalPadding = style.cellHorizontalPadding;
-            this.cellVerticalPadding = style.cellVerticalPadding;
+            this.boxHorizontalPadding = style.boxHorizontalPadding;
+            this.boxVerticalPadding = style.boxVerticalPadding;
             this.decorations.clear();
             for (Decoration decoration : style.decorations)
                 this.decorations.add(decoration.builder());
@@ -275,13 +275,13 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
-        public HintMeshStyleBuilder cellHorizontalPadding(Double cellHorizontalPadding) {
-            this.cellHorizontalPadding = cellHorizontalPadding;
+        public HintMeshStyleBuilder boxHorizontalPadding(Double boxHorizontalPadding) {
+            this.boxHorizontalPadding = boxHorizontalPadding;
             return this;
         }
 
-        public HintMeshStyleBuilder cellVerticalPadding(Double cellVerticalPadding) {
-            this.cellVerticalPadding = cellVerticalPadding;
+        public HintMeshStyleBuilder boxVerticalPadding(Double boxVerticalPadding) {
+            this.boxVerticalPadding = boxVerticalPadding;
             return this;
         }
 
@@ -454,12 +454,12 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return boxHeightPercent;
         }
 
-        public Double cellHorizontalPadding() {
-            return cellHorizontalPadding;
+        public Double boxHorizontalPadding() {
+            return boxHorizontalPadding;
         }
 
-        public Double cellVerticalPadding() {
-            return cellVerticalPadding;
+        public Double boxVerticalPadding() {
+            return boxVerticalPadding;
         }
 
         public Boolean transitionAnimationEnabled() {
@@ -532,8 +532,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     uiElementBoxVerticalPadding == null ? defaultStyle.uiElementBoxVerticalPadding : uiElementBoxVerticalPadding,
                     boxWidthPercent == null ? defaultStyle.boxWidthPercent : boxWidthPercent,
                     boxHeightPercent == null ? defaultStyle.boxHeightPercent : boxHeightPercent,
-                    cellHorizontalPadding == null ? defaultStyle.cellHorizontalPadding : cellHorizontalPadding,
-                    cellVerticalPadding == null ? defaultStyle.cellVerticalPadding : cellVerticalPadding,
+                    boxHorizontalPadding == null ? defaultStyle.boxHorizontalPadding : boxHorizontalPadding,
+                    boxVerticalPadding == null ? defaultStyle.boxVerticalPadding : boxVerticalPadding,
                     builtDecorations,
                     transitionAnimationEnabled == null ? defaultStyle.transitionAnimationEnabled : transitionAnimationEnabled,
                     transitionAnimationDuration == null ? defaultStyle.transitionAnimationDuration : transitionAnimationDuration,

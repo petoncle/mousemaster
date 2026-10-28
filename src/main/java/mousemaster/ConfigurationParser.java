@@ -150,8 +150,8 @@ public class ConfigurationParser {
                 .uiElementBoxVerticalPadding(0d)
                 .boxWidthPercent(1d)
                 .boxHeightPercent(1d)
-                .cellHorizontalPadding(0d)
-                .cellVerticalPadding(0d)
+                .boxHorizontalPadding(0d)
+                .boxVerticalPadding(0d)
                 .transitionAnimationEnabled(true)
                 .transitionAnimationDuration(Duration.ofMillis(100))
                 .fadeAnimationEnabled(true)
@@ -2964,8 +2964,8 @@ public class ConfigurationParser {
             // Style: box dimensions
             case "box-width-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxWidthPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).boxWidthPercent(v));
             case "box-height-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxHeightPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).boxHeightPercent(v));
-            case "cell-horizontal-padding", "box-horizontal-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "cellHorizontalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).cellHorizontalPadding(v));
-            case "cell-vertical-padding", "box-vertical-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "cellVerticalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).cellVerticalPadding(v));
+            case "box-horizontal-padding", "cell-horizontal-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxHorizontalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).boxHorizontalPadding(v));
+            case "box-vertical-padding", "cell-vertical-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxVerticalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).boxVerticalPadding(v));
             case "label-override" -> ModePropertyHandler.of(prefix.append("styleByFilter", "labelOverride"), v -> parseKeyList(v, keyAliases, keyResolver), v -> hintMeshBuilder.style(screenFilter).labelOverride(v));
             // Style: animation & background
             case "transition-animation-enabled" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transitionAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(screenFilter).transitionAnimationEnabled(v));
@@ -3977,13 +3977,13 @@ public class ConfigurationParser {
                             childStyleByFilter, filter))
                         childStyle.boxHeightPercent(parentStyle.boxHeightPercent());
                     if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::cellHorizontalPadding,
+                            HintMeshStyleBuilder::boxHorizontalPadding,
                             childStyleByFilter, filter))
-                        childStyle.cellHorizontalPadding(parentStyle.cellHorizontalPadding());
+                        childStyle.boxHorizontalPadding(parentStyle.boxHorizontalPadding());
                     if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::cellVerticalPadding,
+                            HintMeshStyleBuilder::boxVerticalPadding,
                             childStyleByFilter, filter))
-                        childStyle.cellVerticalPadding(parentStyle.cellVerticalPadding());
+                        childStyle.boxVerticalPadding(parentStyle.boxVerticalPadding());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::labelOverride,
                             childStyleByFilter, filter))

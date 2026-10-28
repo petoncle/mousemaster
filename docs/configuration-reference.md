@@ -664,8 +664,8 @@ ui-hint-mode.hint.font-weight=bold
 ui-hint-mode.hint.font-color=#FFFFFF
 ui-hint-mode.hint.box-color=#204E8A
 ui-hint-mode.hint.box-opacity=1
-ui-hint-mode.hint.cell-horizontal-padding=8
-ui-hint-mode.hint.cell-vertical-padding=0
+ui-hint-mode.hint.box-horizontal-padding=8
+ui-hint-mode.hint.box-vertical-padding=0
 ui-hint-mode.hint.box-border-radius=3
 ```
 
@@ -718,9 +718,9 @@ ui-hint-mode.to.normal-mode=_{ishintmeshempty}
 ```
 
 Accessibility UI hints use the same appearance properties as other hint types (`box-*`,
-`font-*`, etc.). The `cell-horizontal-padding` and `cell-vertical-padding` properties are
-particularly useful for UI hints since the hint boxes are sized to fit the label text rather
-than a fixed grid cell.
+`font-*`, etc.). The `box-horizontal-padding` and `box-vertical-padding` properties (formerly
+`cell-horizontal-padding` and `cell-vertical-padding`) are particularly useful for UI hints
+since the hint boxes are sized to fit the label text rather than a fixed grid cell.
 
 The **`ui-element-box-*`** properties draw the box of each element, behind its hint box. They are
 the same as the `box-*` properties: `ui-element-box-color`, `ui-element-box-opacity`,
@@ -1004,9 +1004,9 @@ hint-mode.hint.subdecoration-font-size=10
 hint-mode.hint.subdecoration-font-color=#FFFFFF
 hint-mode.hint.subdecoration-font-opacity=1.0
 
-# Cell padding, mostly useful for UI hints and position history hints
-hint-mode.hint.cell-horizontal-padding=0
-hint-mode.hint.cell-vertical-padding=0
+# Box padding, mostly useful for UI hints and position history hints
+hint-mode.hint.box-horizontal-padding=0
+hint-mode.hint.box-vertical-padding=0
 
 # Font appearance
 hint-mode.hint.font-name=Consolas

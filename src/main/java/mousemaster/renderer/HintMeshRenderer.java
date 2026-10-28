@@ -1446,8 +1446,8 @@ public final class HintMeshRenderer {
         GradientColor prefixBoxBorderColor = gradientColor(style.prefixBoxBorderColor());
         Rectangle prefixBoxBorderGradientArea =
                 gradientArea(prefixBoxBorderColor.area(), hintMeshWindow, hintMesh);
-        int cellHorizontalPadding = scaledLength(style.cellHorizontalPadding(), screenScale);
-        int cellVerticalPadding = scaledLength(style.cellVerticalPadding(), screenScale);
+        int boxHorizontalPadding = scaledLength(style.boxHorizontalPadding(), screenScale);
+        int boxVerticalPadding = scaledLength(style.boxVerticalPadding(), screenScale);
         int boxBorderThickness = scaledLength(style.boxBorderThickness(), screenScale);
         int boxBorderLength = scaledLength(style.boxBorderLength(), screenScale);
         int boxBorderRadius = scaledLength(style.boxBorderRadius(), screenScale);
@@ -1516,9 +1516,9 @@ public final class HintMeshRenderer {
             // A grid cell is used as-is so boxes tile perfectly. Text that overflows is handled
             // by the label layer.
             double cellWidth = (isHintPartOfGrid ? hint.cellWidth() : advancePixels) +
-                               2 * cellHorizontalPadding;
+                               2 * boxHorizontalPadding;
             double cellHeight = (isHintPartOfGrid ? hint.cellHeight() : lineHeightPixels) +
-                                2 * cellVerticalPadding;
+                                2 * boxVerticalPadding;
             int x = hintRoundedX(hint.centerX(), cellWidth, qtScaleFactor);
             int y = hintRoundedY(hint.centerY(), cellHeight, qtScaleFactor);
             int fullBoxWidth = (int) (cellWidth / qtScaleFactor);

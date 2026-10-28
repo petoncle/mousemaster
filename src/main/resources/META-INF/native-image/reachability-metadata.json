@@ -6940,11 +6940,11 @@
           "parameterTypes": []
         },
         {
-          "name": "cellHorizontalPadding",
+          "name": "boxHorizontalPadding",
           "parameterTypes": []
         },
         {
-          "name": "cellVerticalPadding",
+          "name": "boxVerticalPadding",
           "parameterTypes": []
         },
         {
