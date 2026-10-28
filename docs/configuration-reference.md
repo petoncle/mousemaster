@@ -1094,6 +1094,8 @@ hint-mode.overlay.background-opacity=0
       `per-pixel` (none: the gradient ramps inside a box and continues into the next).
       `per-subgrid` needs an area wider than a subgrid, so not with `across-subgrid` or
       `across-hint`.
+    - A grid without subgrids, such as one without `selection-keys`, is one subgrid: with
+      `per-subgrid`, all its boxes share one color.
   - `box-border-color`: One color, or a gradient as for `box-color`. So are
     `prefix-box-border-color`, `ui-element-box-color`, `ui-element-box-border-color` and
     `<level>-box-border-color`.

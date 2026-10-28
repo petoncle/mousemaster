@@ -1422,18 +1422,14 @@ public final class HintMeshRenderer {
         double maxHintCenterX = -Double.MAX_VALUE;
         double maxHintCenterY = -Double.MAX_VALUE;
         Map<List<Key>, HintGroup> hintGroupByPrefix = new HashMap<>();
+        HintGroup meshGroup = new HintGroup();
         for (Hint hint : hintMeshWindow.hints()) {
-            if (hintMesh.prefixLength() != -1) {
-                List<Key> prefix = hint.keySequence().subList(0, hintMesh.prefixLength());
-                HintGroup hintGroup =
-                        hintGroupByPrefix.computeIfAbsent(prefix,
-                                key -> new HintGroup());
-                hintGroup.minHintCenterX = Math.min(hintGroup.minHintCenterX, hint.centerX());
-                hintGroup.minHintCenterY = Math.min(hintGroup.minHintCenterY, hint.centerY());
-                hintGroup.maxHintCenterX = Math.max(hintGroup.maxHintCenterX, hint.centerX());
-                hintGroup.maxHintCenterY = Math.max(hintGroup.maxHintCenterY, hint.centerY());
-                hintGroup.atLeastOneHintVisible |= hint.startsWith(hintMesh.selectedKeySequence());
-            }
+            HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, meshGroup, hint);
+            hintGroup.minHintCenterX = Math.min(hintGroup.minHintCenterX, hint.centerX());
+            hintGroup.minHintCenterY = Math.min(hintGroup.minHintCenterY, hint.centerY());
+            hintGroup.maxHintCenterX = Math.max(hintGroup.maxHintCenterX, hint.centerX());
+            hintGroup.maxHintCenterY = Math.max(hintGroup.maxHintCenterY, hint.centerY());
+            hintGroup.atLeastOneHintVisible |= hint.startsWith(hintMesh.selectedKeySequence());
             if (!hint.startsWith(hintMesh.selectedKeySequence()))
                 continue;
             minHintCenterX = Math.min(minHintCenterX, hint.centerX());
@@ -1576,7 +1572,8 @@ public final class HintMeshRenderer {
             boolean gridTopEdge = !isHintPartOfGrid || hint.centerY() == minHintCenterY || style.boxHeightPercent() != 1;
             boolean gridRightEdge = !isHintPartOfGrid || hint.centerX() == maxHintCenterX || style.boxWidthPercent() != 1;
             boolean gridBottomEdge = !isHintPartOfGrid || hint.centerY() == maxHintCenterY || style.boxHeightPercent() != 1;
-            HintGroup hintGroup = hintGroupByPrefix.get(prefix);
+            HintGroup hintGroup = hintMesh.prefixLength() == -1 ? meshGroup :
+                    hintGroupByPrefix.get(prefix);
             HintBox hintBox =
                     new HintBox(hint, boxBorderLength,
                             boxBorderThickness,
@@ -1798,7 +1795,7 @@ public final class HintMeshRenderer {
             hintBox.move(hintBox.x() - offsetX, hintBox.y() - offsetY);
             HintLabel hintLabel = hintLabels.get(hintIndex);
             hintLabel.move(hintBox.x(), hintBox.y());
-            HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, hintBox.hint);
+            HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, meshGroup, hintBox.hint);
             if (boxSweptPerHint && boxColor.step() == GradientStep.PIXEL)
                 hintBox.setColor(sweptBrush(boxColor, style.boxOpacity(),
                         areaNarrowedToGroup(boxColor, boxGradientArea, hintGroup),
@@ -1817,7 +1814,7 @@ public final class HintMeshRenderer {
         }
         for (HintBox elementBox : elementBoxes) {
             elementBox.move(elementBox.x() - offsetX, elementBox.y() - offsetY);
-            HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, elementBox.hint);
+            HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, meshGroup, elementBox.hint);
             Point hintCenter = new Point(elementBox.hint.centerX(), elementBox.hint.centerY());
             Rectangle pixelRectangle = elementBox.pixelRectangle(0, 0);
             if (style.uiElementBoxOpacity() != 0)
@@ -2006,10 +2003,11 @@ public final class HintMeshRenderer {
                 new Point(end.x() - origin.x(), end.y() - origin.y()));
     }
 
-    private static HintGroup hintGroupOf(HintMesh hintMesh,
-                                         Map<List<Key>, HintGroup> hintGroupByPrefix, Hint hint) {
-        return hintMesh.prefixLength() == -1 ? null : hintGroupByPrefix.get(
-                hint.keySequence().subList(0, hintMesh.prefixLength()));
+    /** Without prefixes, the whole mesh is one group. */
+    private HintGroup hintGroupOf(HintMesh hintMesh, Map<List<Key>, HintGroup> hintGroupByPrefix,
+                                  HintGroup meshGroup, Hint hint) {
+        return hintMesh.prefixLength() == -1 ? meshGroup : hintGroupByPrefix.computeIfAbsent(
+                hint.keySequence().subList(0, hintMesh.prefixLength()), prefix -> new HintGroup());
     }
 
     private static Rectangle areaNarrowedToGroup(GradientColor color, Rectangle area,
