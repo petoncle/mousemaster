@@ -805,7 +805,7 @@
 {
   "name":"mousemaster.HintGridAreaSize",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintGridAreaSizeSource","double","double"] }, {"name":"heightPercent","parameterTypes":[] }, {"name":"source","parameterTypes":[] }, {"name":"widthPercent","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintGridAreaSizeSource","double","double","int","int","int","int"] }, {"name":"bottomInset","parameterTypes":[] }, {"name":"heightPercent","parameterTypes":[] }, {"name":"leftInset","parameterTypes":[] }, {"name":"rightInset","parameterTypes":[] }, {"name":"source","parameterTypes":[] }, {"name":"topInset","parameterTypes":[] }, {"name":"widthPercent","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.HintGridLayout",

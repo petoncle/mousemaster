@@ -827,6 +827,10 @@ the point it is *centered* on. For UI hints it is the region the elements are lo
   E.g. `area=active-screen` + `area-width-percent=0.5` covers the middle 50%
   of the screen's width. Works with both `grid-cell-sizing=fit` and `=fixed`.
 
+- **`area-top-inset`** / **`area-bottom-inset`** / **`area-left-inset`** /
+  **`area-right-inset`**: Margins cut from the scaled area, in pixels at 100% scaling (default
+  `0`). E.g. `area=active-window` + `area-top-inset=15` leaves out the window's title bar.
+
 - **`area-center`** (point the area is centered on):
   - `screen-center`: Center of the screen
   - `mouse`: Current mouse position

@@ -609,7 +609,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (area.size().source() == HintGridAreaSizeSource.ALL_SCREENS)
             return Rectangle.union(screenManager.screens().stream()
                     .map(screen -> scaledArea(screen.rectangle(), area.size(),
-                            screen.rectangle().center()))
+                            screen.rectangle().center(), screen.scale()))
                     .toList());
         if (area.size().source() == HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL)
             return cellGridArea(lastSelectedHintCell == null ?
@@ -620,7 +620,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                         overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0) :
                         screenManager.activeScreen().rectangle();
         return scaledArea(sourceRectangle, area.size(),
-                areaCenter(area.center(), lastSelectedHintPoint));
+                areaCenter(area.center(), lastSelectedHintPoint),
+                screenManager.activeScreen().scale());
     }
 
     private static List<Rectangle> screenRectangles(Collection<Screen> screens) {
@@ -673,7 +674,8 @@ public class HintManager implements ModeListener, MousePositionListener {
      */
     private Rectangle cellGridArea(Rectangle cell, HintGridAreaSize size,
                                    HintGridAreaCenter center) {
-        return scaledArea(cell, size, areaCenter(center, cell.center()));
+        return scaledArea(cell, size, areaCenter(center, cell.center()),
+                screenManager.activeScreen().scale());
     }
 
     private Point areaCenter(HintGridAreaCenter center, Point lastSelectedHint) {
@@ -688,13 +690,18 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private static Rectangle scaledArea(Rectangle sourceRectangle, HintGridAreaSize size,
-                                        Point gridCenter) {
+                                        Point gridCenter, double scale) {
         int width = (int) Math.round(sourceRectangle.width() * size.widthPercent());
         int height = (int) Math.round(sourceRectangle.height() * size.heightPercent());
+        int topInset = (int) (size.topInset() * scale);
+        int bottomInset = (int) (size.bottomInset() * scale);
+        int leftInset = (int) (size.leftInset() * scale);
+        int rightInset = (int) (size.rightInset() * scale);
         return new Rectangle(
-                (int) Math.round(gridCenter.x() - width / 2.0),
-                (int) Math.round(gridCenter.y() - height / 2.0),
-                width, height);
+                (int) Math.round(gridCenter.x() - width / 2.0) + leftInset,
+                (int) Math.round(gridCenter.y() - height / 2.0) + topInset,
+                Math.max(1, width - leftInset - rightInset),
+                Math.max(1, height - topInset - bottomInset));
     }
 
     private HintMesh buildHintMesh(
@@ -717,7 +724,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 List<Rectangle> areaRectangles = new ArrayList<>();
                 for (Screen screen : sortedScreens) {
                     Rectangle areaRectangle = scaledArea(screen.rectangle(), area.size(),
-                            screen.rectangle().center());
+                            screen.rectangle().center(), screen.scale());
                     areaRectangles.add(areaRectangle);
                     HintGridLayout gridLayout = gridHintMesh.layout(
                             ScreenFilter.of(activeScreen));
@@ -760,7 +767,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                                 overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0), zoom)
                                 .center();
                     };
-                    areaRectangle = scaledArea(sourceRectangle, area.size(), gridCenter);
+                    areaRectangle = scaledArea(sourceRectangle, area.size(), gridCenter,
+                            activeScreen.scale());
                 }
                 logger.trace("Grid center " + gridCenter);
                 Screen scaleScreen = screenManager.nearestScreenContaining(

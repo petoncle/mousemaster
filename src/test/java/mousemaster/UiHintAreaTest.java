@@ -62,7 +62,7 @@ public class UiHintAreaTest {
     @Test
     void uiHintAreaCanBeScaledAndCentered() throws IOException {
         assertEquals(new HintGridArea(
-                        new HintGridAreaSize(HintGridAreaSizeSource.ACTIVE_SCREEN, 0.3, 0.4),
+                        new HintGridAreaSize(HintGridAreaSizeSource.ACTIVE_SCREEN, 0.3, 0.4, 0, 0, 0, 0),
                         HintGridAreaCenter.MOUSE),
                 uiHintArea(parse(uiMode + """
                         ui-hint-mode.hint.area-width-percent=0.3
@@ -107,6 +107,17 @@ public class UiHintAreaTest {
             hintManager.selectHintKey(key);
         hintManager.modeChanged(modeMap.get("ui-hint-mode"));
         assertEquals(List.of(new Rectangle(960, 540, 960, 540)), areas);
+    }
+
+    @Test
+    void theInsetsCutMarginsFromTheArea() throws IOException {
+        ModeMap modeMap = parse(uiMode + """
+                ui-hint-mode.hint.area-top-inset=15
+                ui-hint-mode.hint.area-left-inset=10
+                """).modeMap();
+        List<Rectangle> areas = new ArrayList<>();
+        hintManager(areas).modeChanged(modeMap.get("ui-hint-mode"));
+        assertEquals(List.of(new Rectangle(10, 15, 1910, 1065)), areas);
     }
 
     private static HintManager hintManager(List<Rectangle> areas) {

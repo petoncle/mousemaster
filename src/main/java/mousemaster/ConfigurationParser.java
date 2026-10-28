@@ -198,7 +198,11 @@ public class ConfigurationParser {
                 hintMesh.type().area();
         hintGridAreaBuilder.source(HintGridAreaSizeSource.ACTIVE_SCREEN)
                            .widthPercent(1.0)
-                           .heightPercent(1.0);
+                           .heightPercent(1.0)
+                           .topInset(0)
+                           .bottomInset(0)
+                           .leftInset(0)
+                           .rightInset(0);
         hintMeshTypeBuilder.uiOrder(UiHintOrder.TOP_TO_BOTTOM);
         hintMeshTypeBuilder.visionDensity(6);
         hintMeshTypeBuilder.visionMinSize(0d);
@@ -2795,7 +2799,7 @@ public class ConfigurationParser {
                             currentType instanceof HintMeshType.UiAccessibilityHintMesh uiAccessibilityHintMesh ?
                                     uiAccessibilityHintMesh : new HintMeshType.UiAccessibilityHintMesh(
                                     new HintGridArea(new HintGridAreaSize(
-                                            HintGridAreaSizeSource.ACTIVE_SCREEN, 1, 1),
+                                            HintGridAreaSizeSource.ACTIVE_SCREEN, 1, 1, 0, 0, 0, 0),
                                             HintGridAreaCenter.SCREEN_CENTER),
                                     UiHintOrder.TOP_TO_BOTTOM);
                     case UI_VISION -> (Object) (Function<Object, Object>) currentType -> {
@@ -2821,6 +2825,10 @@ public class ConfigurationParser {
             case "area", "grid-area", "ui-area" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "source"), v -> parseHintGridAreaSizeSource("hint.area", v), v -> hintMeshBuilder.type().area().source(v));
             case "area-width-percent", "grid-area-width-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().area().widthPercent(v));
             case "area-height-percent", "grid-area-height-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().area().heightPercent(v));
+            case "area-top-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "topInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> hintMeshBuilder.type().area().topInset(v));
+            case "area-bottom-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "bottomInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> hintMeshBuilder.type().area().bottomInset(v));
+            case "area-left-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "leftInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> hintMeshBuilder.type().area().leftInset(v));
+            case "area-right-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "rightInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> hintMeshBuilder.type().area().rightInset(v));
             case "area-center", "grid-area-center", "active-screen-grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseHintGridAreaCenter("hint.area-center", v), v -> hintMeshBuilder.type().area().center(v));
             // Grid layout properties (screen-filtered)
             case "grid-max-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxRowCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(screenFilter).maxRowCount(v));
@@ -3779,6 +3787,14 @@ public class ConfigurationParser {
                     builder.type().area().widthPercent(parent.type().area().widthPercent());
                 if (builder.type().area().heightPercent() == null)
                     builder.type().area().heightPercent(parent.type().area().heightPercent());
+                if (builder.type().area().topInset() == null)
+                    builder.type().area().topInset(parent.type().area().topInset());
+                if (builder.type().area().bottomInset() == null)
+                    builder.type().area().bottomInset(parent.type().area().bottomInset());
+                if (builder.type().area().leftInset() == null)
+                    builder.type().area().leftInset(parent.type().area().leftInset());
+                if (builder.type().area().rightInset() == null)
+                    builder.type().area().rightInset(parent.type().area().rightInset());
                 if (builder.type().area().center() == null)
                     builder.type().area().center(parent.type().area().center());
                 if (builder.type().uiOrder() == null)

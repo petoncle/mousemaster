@@ -6610,15 +6610,35 @@
           "parameterTypes": [
             "mousemaster.HintGridAreaSizeSource",
             "double",
-            "double"
+            "double",
+            "int",
+            "int",
+            "int",
+            "int"
           ]
+        },
+        {
+          "name": "bottomInset",
+          "parameterTypes": []
         },
         {
           "name": "heightPercent",
           "parameterTypes": []
         },
         {
+          "name": "leftInset",
+          "parameterTypes": []
+        },
+        {
+          "name": "rightInset",
+          "parameterTypes": []
+        },
+        {
           "name": "source",
+          "parameterTypes": []
+        },
+        {
+          "name": "topInset",
           "parameterTypes": []
         },
         {
