@@ -2,10 +2,10 @@ package mousemaster;
 
 import mousemaster.VelocityConfiguration.VelocityConfigurationBuilder;
 
-public record Mouse(VelocityConfiguration velocity,
-                    boolean smoothJumpEnabled, double smoothJumpVelocity) {
+public record MovementConfiguration(VelocityConfiguration velocity,
+                                    boolean smoothJumpEnabled, double smoothJumpVelocity) {
 
-    public static class MouseBuilder {
+    public static class MovementConfigurationBuilder {
 
         private final VelocityConfigurationBuilder velocity = new VelocityConfigurationBuilder();
         private Boolean smoothJumpEnabled;
@@ -15,12 +15,12 @@ public record Mouse(VelocityConfiguration velocity,
             return velocity;
         }
 
-        public MouseBuilder smoothJumpEnabled(boolean smoothJumpEnabled) {
+        public MovementConfigurationBuilder smoothJumpEnabled(boolean smoothJumpEnabled) {
             this.smoothJumpEnabled = smoothJumpEnabled;
             return this;
         }
 
-        public MouseBuilder smoothJumpVelocity(double smoothJumpVelocity) {
+        public MovementConfigurationBuilder smoothJumpVelocity(double smoothJumpVelocity) {
             this.smoothJumpVelocity = smoothJumpVelocity;
             return this;
         }
@@ -33,8 +33,8 @@ public record Mouse(VelocityConfiguration velocity,
             return smoothJumpEnabled;
         }
 
-        public Mouse build() {
-            return new Mouse(velocity.build(), smoothJumpEnabled, smoothJumpVelocity);
+        public MovementConfiguration build() {
+            return new MovementConfiguration(velocity.build(), smoothJumpEnabled, smoothJumpVelocity);
         }
     }
 }

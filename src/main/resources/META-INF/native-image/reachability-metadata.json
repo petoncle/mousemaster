@@ -7236,7 +7236,7 @@
             "boolean",
             "java.lang.String",
             "mousemaster.ComboMap",
-            "mousemaster.Mouse",
+            "mousemaster.MovementConfiguration",
             "mousemaster.Wheel",
             "mousemaster.HintMeshConfiguration",
             "mousemaster.ModeTimeout",
@@ -7254,7 +7254,7 @@
             "boolean",
             "java.lang.String",
             "mousemaster.ComboMap",
-            "mousemaster.Mouse",
+            "mousemaster.MovementConfiguration",
             "mousemaster.Wheel",
             "mousemaster.HintMeshConfiguration",
             "mousemaster.ModeTimeout",
@@ -7353,7 +7353,7 @@
       ]
     },
     {
-      "type": "mousemaster.Mouse",
+      "type": "mousemaster.MovementConfiguration",
       "methods": [
         {
           "name": "<init>",

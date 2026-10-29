@@ -10,7 +10,7 @@ import mousemaster.HintMeshStyle.HintMeshStyleBuilder;
 import mousemaster.IndicatorConfiguration.IndicatorConfigurationBuilder;
 import mousemaster.IndicatorLayerConfiguration.IndicatorLayerConfigurationBuilder;
 import mousemaster.ModeTimeout.ModeTimeoutBuilder;
-import mousemaster.Mouse.MouseBuilder;
+import mousemaster.MovementConfiguration.MovementConfigurationBuilder;
 import mousemaster.ScreenFilterMap.ScreenFilterMapBuilder;
 import mousemaster.Wheel.WheelBuilder;
 import mousemaster.ZoomConfiguration.ZoomConfigurationBuilder;
@@ -47,7 +47,7 @@ public class ConfigurationParser {
         AtomicReference<Boolean> pushModeToHistoryStack = new AtomicReference<>(false);
         AtomicReference<Boolean> stopCommandsFromPreviousMode = new AtomicReference<>(false);
         AtomicReference<String> modeAfterPressingUnhandledKeysOnly = new AtomicReference<>();
-        MouseBuilder mouse = new MouseBuilder();
+        MovementConfigurationBuilder mouse = new MovementConfigurationBuilder();
         mouse.velocity().initialVelocity(1000)
                  .maxVelocity(2200)
                  .acceleration(3000)
@@ -2655,7 +2655,7 @@ public class ConfigurationParser {
     }
 
     private static ModePropertyHandler mouseHandler(
-            ModePropertyPath prefix, Mouse.MouseBuilder mouse, String key) {
+            ModePropertyPath prefix, MovementConfigurationBuilder mouse, String key) {
         return switch (key) {
             case "initial-velocity" -> ModePropertyHandler.of(prefix.append("velocity", "initialVelocity"), v -> Double.parseDouble(v), v -> mouse.velocity().initialVelocity(v));
             case "max-velocity" -> ModePropertyHandler.of(prefix.append("velocity", "maxVelocity"), v -> Double.parseDouble(v), v -> mouse.velocity().maxVelocity(v));
@@ -3724,7 +3724,7 @@ public class ConfigurationParser {
         Property<AtomicReference<Boolean>> pushModeToHistoryStack;
         Property<AtomicReference<String>> modeAfterUnhandledKeyPress;
         ComboMapConfigurationBuilder comboMap;
-        Property<MouseBuilder> mouse;
+        Property<MovementConfigurationBuilder> mouse;
         Property<WheelBuilder> wheel;
         Property<HintMeshConfigurationBuilder> hintMesh;
         Property<HintMeshConfigurationBuilder> grid;
@@ -3764,10 +3764,10 @@ public class ConfigurationParser {
                         builder.set(parent.get());
                 }
             };
-            mouse = new Property<>("mouse", modeName, propertyByKey, new MouseBuilder()) {
+            mouse = new Property<>("mouse", modeName, propertyByKey, new MovementConfigurationBuilder()) {
                 @Override
                 void extend(Object parent_) {
-                    MouseBuilder parent = (MouseBuilder) parent_;
+                    MovementConfigurationBuilder parent = (MovementConfigurationBuilder) parent_;
                     extendVelocity(builder.velocity(), parent.velocity());
                     if (builder.smoothJumpEnabled() == null)
                         builder.smoothJumpEnabled(parent.smoothJumpEnabled());

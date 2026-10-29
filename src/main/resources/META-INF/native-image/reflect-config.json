@@ -861,7 +861,7 @@
 {
   "name":"mousemaster.Mode",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.String","boolean","boolean","java.lang.String","mousemaster.ComboMap","mousemaster.Mouse","mousemaster.Wheel","mousemaster.HintMeshConfiguration","mousemaster.ModeTimeout","mousemaster.IndicatorConfiguration","mousemaster.HideCursor","mousemaster.ZoomConfiguration","java.util.Map"] }, {"name":"<init>","parameterTypes":["java.lang.String","boolean","boolean","java.lang.String","mousemaster.ComboMap","mousemaster.Mouse","mousemaster.Wheel","mousemaster.HintMeshConfiguration","mousemaster.ModeTimeout","mousemaster.IndicatorConfiguration","mousemaster.HideCursor","mousemaster.ZoomConfiguration","double"] }, {"name":"comboMap","parameterTypes":[] }, {"name":"cursorScale","parameterTypes":[] }, {"name":"hideCursor","parameterTypes":[] }, {"name":"hintMesh","parameterTypes":[] }, {"name":"indicator","parameterTypes":[] }, {"name":"modeAfterUnhandledKeyPress","parameterTypes":[] }, {"name":"mouse","parameterTypes":[] }, {"name":"name","parameterTypes":[] }, {"name":"pushModeToHistoryStack","parameterTypes":[] }, {"name":"stopCommandsFromPreviousMode","parameterTypes":[] }, {"name":"timelineByPropertyPath","parameterTypes":[] }, {"name":"timeout","parameterTypes":[] }, {"name":"wheel","parameterTypes":[] }, {"name":"zoom","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String","boolean","boolean","java.lang.String","mousemaster.ComboMap","mousemaster.MovementConfiguration","mousemaster.Wheel","mousemaster.HintMeshConfiguration","mousemaster.ModeTimeout","mousemaster.IndicatorConfiguration","mousemaster.HideCursor","mousemaster.ZoomConfiguration","java.util.Map"] }, {"name":"<init>","parameterTypes":["java.lang.String","boolean","boolean","java.lang.String","mousemaster.ComboMap","mousemaster.MovementConfiguration","mousemaster.Wheel","mousemaster.HintMeshConfiguration","mousemaster.ModeTimeout","mousemaster.IndicatorConfiguration","mousemaster.HideCursor","mousemaster.ZoomConfiguration","double"] }, {"name":"comboMap","parameterTypes":[] }, {"name":"cursorScale","parameterTypes":[] }, {"name":"hideCursor","parameterTypes":[] }, {"name":"hintMesh","parameterTypes":[] }, {"name":"indicator","parameterTypes":[] }, {"name":"modeAfterUnhandledKeyPress","parameterTypes":[] }, {"name":"mouse","parameterTypes":[] }, {"name":"name","parameterTypes":[] }, {"name":"pushModeToHistoryStack","parameterTypes":[] }, {"name":"stopCommandsFromPreviousMode","parameterTypes":[] }, {"name":"timelineByPropertyPath","parameterTypes":[] }, {"name":"timeout","parameterTypes":[] }, {"name":"wheel","parameterTypes":[] }, {"name":"zoom","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.ModeTimeout",
@@ -869,7 +869,7 @@
   "methods":[{"name":"<init>","parameterTypes":["boolean","java.time.Duration","java.lang.String","boolean"] }, {"name":"duration","parameterTypes":[] }, {"name":"enabled","parameterTypes":[] }, {"name":"modeName","parameterTypes":[] }, {"name":"onlyIfIdle","parameterTypes":[] }]
 },
 {
-  "name":"mousemaster.Mouse",
+  "name":"mousemaster.MovementConfiguration",
   "allRecordComponents":true,
   "methods":[{"name":"<init>","parameterTypes":["mousemaster.VelocityConfiguration","boolean","double"] }, {"name":"smoothJumpEnabled","parameterTypes":[] }, {"name":"smoothJumpVelocity","parameterTypes":[] }, {"name":"velocity","parameterTypes":[] }]
 },
