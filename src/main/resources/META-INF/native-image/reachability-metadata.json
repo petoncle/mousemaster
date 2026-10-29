@@ -7227,6 +7227,7 @@
             "java.lang.String",
             "mousemaster.ComboMap",
             "mousemaster.MovementConfiguration",
+            "mousemaster.VelocityConfiguration",
             "mousemaster.Wheel",
             "mousemaster.HintMeshConfiguration",
             "mousemaster.ModeTimeout",
@@ -7292,6 +7293,10 @@
         },
         {
           "name": "stopCommandsFromPreviousMode",
+          "parameterTypes": []
+        },
+        {
+          "name": "target",
           "parameterTypes": []
         },
         {

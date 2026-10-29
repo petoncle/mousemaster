@@ -11,6 +11,7 @@ import mousemaster.IndicatorConfiguration.IndicatorConfigurationBuilder;
 import mousemaster.IndicatorLayerConfiguration.IndicatorLayerConfigurationBuilder;
 import mousemaster.ModeTimeout.ModeTimeoutBuilder;
 import mousemaster.MovementConfiguration.MovementConfigurationBuilder;
+import mousemaster.VelocityConfiguration.VelocityConfigurationBuilder;
 import mousemaster.ScreenFilterMap.ScreenFilterMapBuilder;
 import mousemaster.Wheel.WheelBuilder;
 import mousemaster.ZoomConfiguration.ZoomConfigurationBuilder;
@@ -143,6 +144,7 @@ public class ConfigurationParser {
                 new Property<>("push-mode-to-history-stack", pushModeToHistoryStack),
                 new Property<>("mode-after-unhandled-key-press", modeAfterPressingUnhandledKeysOnly),
                 new Property<>("mouse", mouse),
+                new Property<>("target", mouse.velocity()),
                 new Property<>("wheel", wheel), 
                 new Property<>("grid", gridHintMesh),
                 new Property<>("overlay", hintMesh),
@@ -153,6 +155,8 @@ public class ConfigurationParser {
                 new Property<>("to", Map.of()),
                 new Property<>("start-move", Map.of()),
                 new Property<>("stop-move", Map.of()),
+                new Property<>("start-move-target", Map.of()),
+                new Property<>("stop-move-target", Map.of()),
                 new Property<>("press", Map.of()),
                 new Property<>("release", Map.of()),
                 new Property<>("toggle", Map.of()),
@@ -632,7 +636,7 @@ public class ConfigurationParser {
                     mode.stopCommandsFromPreviousMode,
                     mode.pushModeToHistoryStack,
                     mode.modeAfterUnhandledKeyPress,
-                    mode.mouse, mode.wheel,
+                    mode.mouse, mode.target, mode.wheel,
                     mode.hintMesh, mode.timeout, mode.indicator,
                     mode.hideCursor, mode.zoom)) {
                 for (Map.Entry<Combo, List<Command>> entry :
@@ -1349,6 +1353,31 @@ public class ConfigurationParser {
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
+            case "target" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.target.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid target property key");
+                else {
+                    ModePropertyHandler handler = velocityHandler(
+                            new ModePropertyPath(List.of("target")),
+                            mode.target.builder, keyMatcher.group(group4));
+                    if (handler == null)
+                        throw new IllegalArgumentException(
+                                "Invalid target property key");
+                    if (!tryParseComboProperty(propertyValue, modeName,
+                            handler.propertyPath(), handler.valueParser(),
+                            handler.modeBuilderSetter(),
+                            mode.target.mutateModeCommands,
+                            mode.target.setPropertyPaths,
+                            defaultComboMoveDuration, keyAliases, appAliases,
+                            keyResolver, allVariableNames, null))
+                        handler.modeBuilderSetter().accept(propertyValue);
+                }
+            }
             case "wheel" -> {
                 if (keyMatcher.group(group3) == null)
                     mode.wheel.parsePropertyReference(propertyKey, propertyValue,
@@ -1358,9 +1387,9 @@ public class ConfigurationParser {
                     throw new IllegalArgumentException(
                             "Invalid wheel property key");
                 else {
-                    ModePropertyHandler handler = wheelHandler(
-                            new ModePropertyPath(List.of("wheel")),
-                            mode.wheel.builder, keyMatcher.group(group4));
+                    ModePropertyHandler handler = velocityHandler(
+                            new ModePropertyPath(List.of("wheel", "velocity")),
+                            mode.wheel.builder.velocity(), keyMatcher.group(group4));
                     if (handler == null)
                         throw new IllegalArgumentException(
                                 "Invalid wheel property key");
@@ -1617,6 +1646,46 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "start-move-target" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.comboMap.startMoveTarget.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid start-move-target property key");
+                else {
+                    switch (keyMatcher.group(group4)) {
+                        // @formatter:off
+                        case "up" -> setCommand(mode.comboMap.startMoveTarget.builder,  propertyValue, new StartMoveTargetUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.startMoveTarget.builder,  propertyValue, new StartMoveTargetDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.startMoveTarget.builder,  propertyValue, new StartMoveTargetLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.startMoveTarget.builder,  propertyValue, new StartMoveTargetRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "stop-move-target" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.comboMap.stopMoveTarget.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid stop-move-target property key");
+                else {
+                    switch (keyMatcher.group(group4)) {
+                        // @formatter:off
+                        case "up" -> setCommand(mode.comboMap.stopMoveTarget.builder,  propertyValue, new StopMoveTargetUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.stopMoveTarget.builder,  propertyValue, new StopMoveTargetDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.stopMoveTarget.builder,  propertyValue, new StopMoveTargetLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.stopMoveTarget.builder,  propertyValue, new StopMoveTargetRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
@@ -2739,25 +2808,20 @@ public class ConfigurationParser {
     private static ModePropertyHandler mouseHandler(
             ModePropertyPath prefix, MovementConfigurationBuilder mouse, String key) {
         return switch (key) {
-            case "initial-velocity" -> ModePropertyHandler.of(prefix.append("velocity", "initialVelocity"), v -> Double.parseDouble(v), v -> mouse.velocity().initialVelocity(v));
-            case "max-velocity" -> ModePropertyHandler.of(prefix.append("velocity", "maxVelocity"), v -> Double.parseDouble(v), v -> mouse.velocity().maxVelocity(v));
-            case "acceleration" -> ModePropertyHandler.of(prefix.append("velocity", "acceleration"), v -> Double.parseDouble(v), v -> mouse.velocity().acceleration(v));
-            case "acceleration-easing" -> ModePropertyHandler.of(prefix.append("velocity", "accelerationEasing"), v -> parseEasing(v), v -> mouse.velocity().accelerationEasing(v));
-            case "deceleration" -> ModePropertyHandler.of(prefix.append("velocity", "deceleration"), v -> Double.parseDouble(v), v -> mouse.velocity().deceleration(v));
             case "smooth-jump-enabled" -> ModePropertyHandler.of(prefix.append("smoothJumpEnabled"), v -> Boolean.parseBoolean(v), v -> mouse.smoothJumpEnabled(v));
             case "smooth-jump-velocity" -> ModePropertyHandler.of(prefix.append("smoothJumpVelocity"), v -> Double.parseDouble(v), v -> mouse.smoothJumpVelocity(v));
-            default -> null;
+            default -> velocityHandler(prefix.append("velocity"), mouse.velocity(), key);
         };
     }
 
-    private static ModePropertyHandler wheelHandler(
-            ModePropertyPath prefix, Wheel.WheelBuilder wheel, String key) {
+    private static ModePropertyHandler velocityHandler(
+            ModePropertyPath prefix, VelocityConfigurationBuilder velocity, String key) {
         return switch (key) {
-            case "initial-velocity" -> ModePropertyHandler.of(prefix.append("velocity", "initialVelocity"), v -> Double.parseDouble(v), v -> wheel.velocity().initialVelocity(v));
-            case "max-velocity" -> ModePropertyHandler.of(prefix.append("velocity", "maxVelocity"), v -> Double.parseDouble(v), v -> wheel.velocity().maxVelocity(v));
-            case "acceleration" -> ModePropertyHandler.of(prefix.append("velocity", "acceleration"), v -> Double.parseDouble(v), v -> wheel.velocity().acceleration(v));
-            case "acceleration-easing" -> ModePropertyHandler.of(prefix.append("velocity", "accelerationEasing"), v -> parseEasing(v), v -> wheel.velocity().accelerationEasing(v));
-            case "deceleration" -> ModePropertyHandler.of(prefix.append("velocity", "deceleration"), v -> Double.parseDouble(v), v -> wheel.velocity().deceleration(v));
+            case "initial-velocity" -> ModePropertyHandler.of(prefix.append("initialVelocity"), v -> Double.parseDouble(v), v -> velocity.initialVelocity(v));
+            case "max-velocity" -> ModePropertyHandler.of(prefix.append("maxVelocity"), v -> Double.parseDouble(v), v -> velocity.maxVelocity(v));
+            case "acceleration" -> ModePropertyHandler.of(prefix.append("acceleration"), v -> Double.parseDouble(v), v -> velocity.acceleration(v));
+            case "acceleration-easing" -> ModePropertyHandler.of(prefix.append("accelerationEasing"), v -> parseEasing(v), v -> velocity.accelerationEasing(v));
+            case "deceleration" -> ModePropertyHandler.of(prefix.append("deceleration"), v -> Double.parseDouble(v), v -> velocity.deceleration(v));
             default -> null;
         };
     }
@@ -3807,6 +3871,7 @@ public class ConfigurationParser {
         Property<AtomicReference<String>> modeAfterUnhandledKeyPress;
         ComboMapConfigurationBuilder comboMap;
         Property<MovementConfigurationBuilder> mouse;
+        Property<VelocityConfigurationBuilder> target;
         Property<WheelBuilder> wheel;
         Property<HintMeshConfigurationBuilder> hintMesh;
         Property<HintMeshConfigurationBuilder> grid;
@@ -3855,6 +3920,12 @@ public class ConfigurationParser {
                         builder.smoothJumpEnabled(parent.smoothJumpEnabled());
                     if (builder.smoothJumpVelocity() == null)
                         builder.smoothJumpVelocity(parent.smoothJumpVelocity());
+                }
+            };
+            target = new Property<>("target", modeName, propertyByKey, new VelocityConfigurationBuilder()) {
+                @Override
+                void extend(Object parent_) {
+                    extendVelocity(builder, (VelocityConfigurationBuilder) parent_);
                 }
             };
             wheel = new Property<>("wheel", modeName, propertyByKey, new WheelBuilder()) {
@@ -3931,7 +4002,7 @@ public class ConfigurationParser {
                     pushModeToHistoryStack.builder.get(),
                     modeAfterUnhandledKeyPress.builder.get(),
                     comboMap.build(),
-                    mouse.builder.build(), wheel.builder.build(),
+                    mouse.builder.build(), target.builder.build(), wheel.builder.build(),
                     hintMesh.builder.build(), timeout.builder.build(),
                     indicator.builder.build(), hideCursor.builder.build(),
                     zoom.builder.build(), Map.of());
@@ -4493,6 +4564,8 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> to;
         Property<Map<Combo, List<Command>>> startMove;
         Property<Map<Combo, List<Command>>> stopMove;
+        Property<Map<Combo, List<Command>>> startMoveTarget;
+        Property<Map<Combo, List<Command>>> stopMoveTarget;
         Property<Map<Combo, List<Command>>> press;
         Property<Map<Combo, List<Command>>> release;
         Property<Map<Combo, List<Command>>> toggle;
@@ -4528,6 +4601,8 @@ public class ConfigurationParser {
             to = new ComboMapProperty("to", modeName, propertyByKey);
             startMove = new ComboMapProperty("start-move", modeName, propertyByKey);
             stopMove = new ComboMapProperty("stop-move", modeName, propertyByKey);
+            startMoveTarget = new ComboMapProperty("start-move-target", modeName, propertyByKey);
+            stopMoveTarget = new ComboMapProperty("stop-move-target", modeName, propertyByKey);
             press = new ComboMapProperty("press", modeName, propertyByKey);
             release = new ComboMapProperty("release", modeName, propertyByKey);
             toggle = new ComboMapProperty("toggle", modeName, propertyByKey);
@@ -4613,6 +4688,8 @@ public class ConfigurationParser {
             add(commandsByCombo, to.builder);
             add(commandsByCombo, startMove.builder);
             add(commandsByCombo, stopMove.builder);
+            add(commandsByCombo, startMoveTarget.builder);
+            add(commandsByCombo, stopMoveTarget.builder);
             add(commandsByCombo, snapTarget.builder);
             add(commandsByCombo, shrinkGrid.builder);
             add(commandsByCombo, moveGrid.builder);

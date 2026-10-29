@@ -50,6 +50,12 @@ public class Mover {
                decelerating;
     }
 
+    boolean moving(boolean horizontal, boolean forward) {
+        if (horizontal)
+            return xMoveForwardStack.contains(forward);
+        return yMoveForwardStack.contains(forward);
+    }
+
     private boolean activelyMoving() {
         return !xMoveForwardStack.isEmpty() || !yMoveForwardStack.isEmpty();
     }

@@ -14,6 +14,16 @@ public sealed interface Command {
     record StopMoveLeft() implements Command {}
     record StopMoveRight() implements Command {}
 
+    record StartMoveTargetUp() implements Command {}
+    record StartMoveTargetDown() implements Command {}
+    record StartMoveTargetLeft() implements Command {}
+    record StartMoveTargetRight() implements Command {}
+
+    record StopMoveTargetUp() implements Command {}
+    record StopMoveTargetDown() implements Command {}
+    record StopMoveTargetLeft() implements Command {}
+    record StopMoveTargetRight() implements Command {}
+
     record PressLeft() implements Command {}
     record PressMiddle() implements Command {}
     record PressRight() implements Command {}

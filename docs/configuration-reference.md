@@ -10,6 +10,7 @@
 - [Mode property mutation](#mode-property-mutation)
 - [Mouse properties](#mouse-properties)
 - [Wheel properties](#wheel-scrolling-properties)
+- [Target properties](#target-properties)
 - [Indicator properties](#indicator-properties)
 - [Cursor properties](#cursor-properties)
 - [Zoom properties](#zoom-properties)
@@ -291,6 +292,19 @@ normal-mode.wheel.deceleration=0
 
 The properties mean what the mouse ones do, except that `acceleration-easing` defaults to `1`
 (linear) rather than `smootherstep`, and `deceleration` to `0` (no coast).
+
+### Target properties
+
+```properties
+grid-mode.target.initial-velocity=1600
+grid-mode.target.max-velocity=2200
+grid-mode.target.acceleration=1500
+grid-mode.target.acceleration-easing=1
+grid-mode.target.deceleration=0
+```
+
+The speed of `start-move-target` when the mouse does not follow the target. The properties mean
+what the mouse ones do, with the same defaults. The target has no smooth jump.
 
 ### Indicator properties
 
@@ -1325,6 +1339,10 @@ grid-mode.snap-target.right=_{leftctrl} +rightarrow
 
 # Move the target to the grid center
 grid-mode.move-target-to.grid-center=+space
+
+# Move the target while the key is held
+grid-mode.start-move-target.up=_{leftalt} +uparrow
+grid-mode.stop-move-target.up=-uparrow
 ```
 
 - **`shrink-grid.<direction>`**: Halves the grid, keeping the half on that side, whatever its
@@ -1334,11 +1352,15 @@ grid-mode.move-target-to.grid-center=+space
 - **`snap-target.<direction>`**: Moves the target to the next cell edge in the direction. At
   the right or bottom edge of the grid, it stops on the last pixel of the grid.
 - **`move-target-to.grid-center`**: Moves the target to the center of the grid.
+- **`start-move-target.<direction>`** / **`stop-move-target.<direction>`**: Start and stop a
+  continuous move of the target, with the `target` properties. When the mouse follows the
+  target, they move the mouse, with the `mouse` properties. A mode where the mouse follows the
+  target stops a move of the target.
 
-A command name says what it moves: `snap-target` and `move-target-to` move the target,
-`move-grid` and `shrink-grid` the grid. A name that says nothing, such as `start-move` or
-`move-to`, moves the mouse. `<verb>-to.<point>` jumps to a point, and `start-move` and
-`stop-move` are the only continuous movement.
+A command name says what it moves: `snap-target`, `move-target-to` and `start-move-target` move
+the target, `move-grid` and `shrink-grid` the grid. A name that says nothing, such as
+`start-move` or `move-to`, moves the mouse. `<verb>-to.<point>` jumps to a point, and
+`start-move` and `start-move-target` move until `stop-move` and `stop-move-target`.
 
 A mode with the same `overlay.type`, area and layout keeps the grid where the commands left it. With
 `area-center=mouse`, a command first centers the grid on the mouse. With

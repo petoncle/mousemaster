@@ -51,6 +51,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     /** The area of the overlay the current mode was entered from, unzoomed. */
     private Rectangle lastOverlayArea;
     private Point targetPoint;
+    private final Mover targetMover = new Mover();
 
     private record CellGridLevel(String modeName, Rectangle cell, Rectangle area) {
     }
@@ -363,6 +364,73 @@ public class HintManager implements ModeListener, MousePositionListener {
         snapTarget(true, true);
     }
 
+    public void startMoveTargetUp() {
+        if (currentMode.hintMesh().mouseFollowsTarget())
+            mouseManager.startMoveUp();
+        else
+            targetMover.startMoveUp();
+    }
+
+    public void startMoveTargetDown() {
+        if (currentMode.hintMesh().mouseFollowsTarget())
+            mouseManager.startMoveDown();
+        else
+            targetMover.startMoveDown();
+    }
+
+    public void startMoveTargetLeft() {
+        if (currentMode.hintMesh().mouseFollowsTarget())
+            mouseManager.startMoveLeft();
+        else
+            targetMover.startMoveLeft();
+    }
+
+    public void startMoveTargetRight() {
+        if (currentMode.hintMesh().mouseFollowsTarget())
+            mouseManager.startMoveRight();
+        else
+            targetMover.startMoveRight();
+    }
+
+    public void stopMoveTargetUp() {
+        if (targetMover.moving(false, false))
+            targetMover.stopMoveUp();
+        else
+            mouseManager.stopMoveUp();
+    }
+
+    public void stopMoveTargetDown() {
+        if (targetMover.moving(false, true))
+            targetMover.stopMoveDown();
+        else
+            mouseManager.stopMoveDown();
+    }
+
+    public void stopMoveTargetLeft() {
+        if (targetMover.moving(true, false))
+            targetMover.stopMoveLeft();
+        else
+            mouseManager.stopMoveLeft();
+    }
+
+    public void stopMoveTargetRight() {
+        if (targetMover.moving(true, true))
+            targetMover.stopMoveRight();
+        else
+            mouseManager.stopMoveRight();
+    }
+
+    public void update(double delta) {
+        Point move = targetMover.move(delta);
+        if (move == null)
+            return;
+        double scale = screenManager.nearestScreenContaining(targetPoint.x(), targetPoint.y())
+                                    .scale();
+        double x = targetPoint.x() + (long) move.x() * scale;
+        double y = targetPoint.y() + (long) move.y() * scale;
+        targetPoint = screenManager.nearestScreenContaining(x, y).rectangle().nearestPoint(x, y);
+    }
+
     /** Backward, a target 1 pixel past a cell edge snaps to the edge before it. */
     private void snapTarget(boolean horizontal, boolean forward) {
         List<Rectangle> cells = gridCells();
@@ -433,6 +501,9 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (!newMode.hintMesh().mouseFollowsTarget() &&
             (currentMode == null || currentMode.hintMesh().mouseFollowsTarget()))
             targetPoint = new Point(mouseX, mouseY);
+        targetMover.modeChanged(new MovementConfiguration(newMode.target(), false, 0),
+                newMode.stopCommandsFromPreviousMode() ||
+                newMode.hintMesh().mouseFollowsTarget());
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
         if (currentMode == null ||
             !hintMeshConfiguration.type().equals(currentMode.hintMesh().type()))

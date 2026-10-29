@@ -21,6 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GridCommandTest {
 
     private final List<Object> mousePositions = new ArrayList<>();
+    private final List<Object> mouseMoves = new ArrayList<>();
+    private double screenScale = 1;
     private ModeMap modeMap;
     private MouseManager mouseManager;
     private HintManager hintManager;
@@ -36,7 +38,7 @@ class GridCommandTest {
                 KeyboardLayout.keyboardLayoutByShortName.get("uk-qwerty"));
         modeMap = configuration.modeMap();
         ScreenManager screenManager = new ScreenManager(
-                () -> Set.of(new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1)));
+                () -> Set.of(new Screen(new Rectangle(0, 0, 1920, 1080), 96, screenScale)));
         mouseManager = new MouseManager(screenManager,
                 (MouseController) Proxy.newProxyInstance(
                         MouseController.class.getClassLoader(),
@@ -44,6 +46,8 @@ class GridCommandTest {
                         (proxy, method, args) -> {
                             if (method.getName().equals("synchronousMoveTo"))
                                 mousePositions.addAll(List.of(args));
+                            if (method.getName().equals("moveBy"))
+                                mouseMoves.addAll(List.of(args));
                             return null;
                         }));
         hintManager = new HintManager(configuration.positionHistoryConfigurationByName(),
@@ -242,6 +246,105 @@ class GridCommandTest {
         assertEquals(new Point(1919, 100), hintManager.targetPoint());
         hintManager.moveToTarget();
         assertEquals(List.of(1919, 100), mousePositions);
+    }
+
+    private void update(double delta) {
+        mouseManager.update(delta);
+        hintManager.update(delta);
+    }
+
+    @Test
+    void withNoMovementAMoveMovesTheTargetAndNotTheMouse() throws IOException {
+        start("""
+                grid-mode.overlay.mouse-follows-target=false
+                grid-mode.target.initial-velocity=1000
+                grid-mode.target.max-velocity=1000
+                grid-mode.target.deceleration=0
+                """);
+        hintManager.mouseMoved(100, 100);
+        switchMode("grid-mode");
+        hintManager.startMoveTargetRight();
+        update(0.1);
+        assertEquals(new Point(200, 100), hintManager.targetPoint());
+        hintManager.stopMoveTargetRight();
+        update(0.1);
+        assertEquals(new Point(200, 100), hintManager.targetPoint());
+        assertEquals(List.of(), mouseMoves);
+    }
+
+    @Test
+    void aMoveOfTheTargetMovesTheMouseThatFollowsIt() throws IOException {
+        start("""
+                grid-mode.mouse.initial-velocity=1000
+                grid-mode.mouse.max-velocity=1000
+                grid-mode.mouse.deceleration=0
+                """);
+        switchMode("grid-mode");
+        hintManager.startMoveTargetRight();
+        update(0.1);
+        assertEquals(List.of(true, 100.0, false, 0.0), mouseMoves);
+        hintManager.stopMoveTargetRight();
+        update(0.1);
+        assertEquals(List.of(true, 100.0, false, 0.0), mouseMoves);
+    }
+
+    @Test
+    void aStopEndsTheMoveOfTheMouseAfterTheMouseStopsFollowing() throws IOException {
+        start("""
+                grid-mode.mouse.deceleration=0
+                grid-mode.to.other-grid-mode=+o
+                other-grid-mode.to.idle-mode=+esc
+                other-grid-mode.overlay.mouse-follows-target=false
+                """);
+        switchMode("grid-mode");
+        hintManager.startMoveTargetRight();
+        switchMode("other-grid-mode");
+        hintManager.stopMoveTargetRight();
+        update(0.1);
+        assertEquals(List.of(), mouseMoves);
+    }
+
+    @Test
+    void aMoveOfTheTargetStopsWhenTheMouseFollowsTheTarget() throws IOException {
+        start("""
+                grid-mode.overlay.mouse-follows-target=false
+                grid-mode.target.initial-velocity=1000
+                grid-mode.target.max-velocity=1000
+                grid-mode.to.other-grid-mode=+o
+                other-grid-mode.to.idle-mode=+esc
+                """);
+        hintManager.mouseMoved(100, 100);
+        switchMode("grid-mode");
+        hintManager.startMoveTargetRight();
+        switchMode("other-grid-mode");
+        switchMode("grid-mode");
+        update(0.1);
+        assertEquals(new Point(100, 100), hintManager.targetPoint());
+    }
+
+    @Test
+    void aMoveOfTheTargetIsScaledAsAMoveOfTheMouseIs() throws IOException {
+        screenScale = 3;
+        start("""
+                grid-mode.overlay.mouse-follows-target=false
+                grid-mode.target.initial-velocity=100
+                grid-mode.target.max-velocity=100
+                """);
+        hintManager.mouseMoved(100, 100);
+        switchMode("grid-mode");
+        hintManager.startMoveTargetRight();
+        update(0.1);
+        assertEquals(new Point(130, 100), hintManager.targetPoint());
+    }
+
+    @Test
+    void theTargetHasTheSpeedKeysOfTheMouse() throws IOException {
+        start("grid-mode.target.max-velocity=500\n");
+        assertEquals(500, modeMap.get("grid-mode").target().maxVelocity());
+        assertEquals(modeMap.get("idle-mode").mouse().velocity(),
+                modeMap.get("idle-mode").target());
+        assertThrows(IllegalArgumentException.class,
+                () -> start("grid-mode.target.smooth-jump-enabled=true\n"));
     }
 
     private List<Command> commands(String modeName) {

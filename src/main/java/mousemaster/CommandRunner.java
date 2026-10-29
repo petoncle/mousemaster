@@ -49,6 +49,16 @@ public class CommandRunner {
             case StopMoveLeft stopMoveLeft -> mouseManager.stopMoveLeft();
             case StopMoveRight stopMoveRight -> mouseManager.stopMoveRight();
 
+            case StartMoveTargetUp startMoveTargetUp -> hintManager.startMoveTargetUp();
+            case StartMoveTargetDown startMoveTargetDown -> hintManager.startMoveTargetDown();
+            case StartMoveTargetLeft startMoveTargetLeft -> hintManager.startMoveTargetLeft();
+            case StartMoveTargetRight startMoveTargetRight -> hintManager.startMoveTargetRight();
+
+            case StopMoveTargetUp stopMoveTargetUp -> hintManager.stopMoveTargetUp();
+            case StopMoveTargetDown stopMoveTargetDown -> hintManager.stopMoveTargetDown();
+            case StopMoveTargetLeft stopMoveTargetLeft -> hintManager.stopMoveTargetLeft();
+            case StopMoveTargetRight stopMoveTargetRight -> hintManager.stopMoveTargetRight();
+
             case PressLeft pressLeft -> mouseManager.pressLeft();
             case PressMiddle pressMiddle -> mouseManager.pressMiddle();
             case PressRight pressRight -> mouseManager.pressRight();
