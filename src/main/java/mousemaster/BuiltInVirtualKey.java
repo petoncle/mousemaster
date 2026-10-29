@@ -47,6 +47,12 @@ public final class BuiltInVirtualKey {
         return new Key(screenFilter.toString(), null, null);
     }
 
+    /** Pressed while the position history, of the active app, holds a position: its name
+     *  without the hyphens. */
+    public static Key positionHistoryKey(String positionHistoryName) {
+        return new Key(positionHistoryName.replace("-", ""), null, null);
+    }
+
     /** The filter a screen filter key is pressed on, or null if the key is not one. */
     public static ScreenFilter screenFilter(Key key) {
         return ScreenFilter.of(key.name());

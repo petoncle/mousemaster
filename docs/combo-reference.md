@@ -496,6 +496,7 @@ Some virtual keys are maintained by mousemaster. They can be read like any other
 | `isunhandledkeypressing`   | A key that is not part of any combo of the current mode is held.                                                  |
 | `ishintmeshempty`          | The current mode's hint mesh has been computed and holds no hint. Only [accessibility UI hints](configuration-reference.md#accessibility-ui-hints) and [vision UI hints](configuration-reference.md#vision-ui-hints) can come up empty. |
 | `iswindows`, `ismacos`     | mousemaster runs on that operating system.                                                                       |
+| `dragpositionhistory`      | The [position history](configuration-reference.md#position-history) `drag-position-history`, of the active app, holds a position. A history's key is its name without the hyphens. |
 | `3840x2160-300%`           | The active screen matches that [screen filter](configuration-reference.md#screen-specific-overlay-configurations): a resolution, a scale (`300%`), or both. A `screen-alias` names a set of them. |
 
 ```

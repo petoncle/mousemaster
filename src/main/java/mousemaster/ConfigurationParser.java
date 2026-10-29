@@ -340,8 +340,10 @@ public class ConfigurationParser {
                         forcedActiveAndConfigurationKeyboardLayouts.configurationKeyboardLayout;
         Map<String, AnimationConfiguration> animationConfigurationByName =
                 parseAnimationConfigurations(properties);
+        Set<String> positionHistoryNames = parsePositionHistoryNames(properties);
         DeclaredVirtualKeyNames declaredVirtualKeyNames =
-                parseDeclaredVirtualKeyNames(properties, animationConfigurationByName.keySet());
+                parseDeclaredVirtualKeyNames(properties, animationConfigurationByName.keySet(),
+                        positionHistoryNames);
         KeyResolver keyResolver =
                 new KeyResolver(activeKeyboardLayout, configurationKeyboardLayout,
                         declaredVirtualKeyNames.names(), animationConfigurationByName.keySet());
@@ -359,7 +361,6 @@ public class ConfigurationParser {
         });
         Map<String, AppAlias> appAliases = configurationAliases.appAliasByName;
         Set<String> allVariableNames = parseVariableNames(properties, keyAliases, keyResolver);
-        Set<String> positionHistoryNames = parsePositionHistoryNames(properties);
 
         String logLevel = null;
         KeyRedaction keyRedaction = KeyRedaction.NONE;
@@ -958,8 +959,11 @@ public class ConfigurationParser {
 
     /** The names of the virtual-keys line: a built-in one is never declared. */
     private static DeclaredVirtualKeyNames parseDeclaredVirtualKeyNames(
-            List<String> properties, Set<String> animationNames) {
+            List<String> properties, Set<String> animationNames,
+            Set<String> positionHistoryNames) {
         Set<String> names = new HashSet<>(animationNames);
+        for (String positionHistoryName : positionHistoryNames)
+            names.add(BuiltInVirtualKey.positionHistoryKey(positionHistoryName).name());
         Set<String> initiallyPressed = new HashSet<>();
         for (String property : properties) {
             Matcher lineMatcher = propertyLinePattern.matcher(property);

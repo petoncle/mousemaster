@@ -1,5 +1,6 @@
 package mousemaster;
 
+import mousemaster.platform.MouseController;
 import mousemaster.platform.Overlay;
 import org.junit.jupiter.api.Test;
 
@@ -140,6 +141,52 @@ public class PositionHistoryTest {
                 null, () -> activeApp[0], new KeyRedactor(KeyRedaction.NONE), null);
         hintManager.modeChanged(configuration.modeMap().get(Mode.IDLE_MODE_NAME));
         return hintManager;
+    }
+
+    @Test
+    void aPositionHistoryReadsAsAPressedKeyWhileItHoldsAPosition() throws IOException {
+        Configuration configuration = parse("""
+                idle-mode.drag-position-history.save-position=+f1
+                idle-mode.indicator.size=10 | _{dragpositionhistory} -> 20
+                """);
+        App[] activeApp = {new App("notepad.exe")};
+        HintManager hintManager = hintManager(configuration, activeApp);
+        ComboWatcher comboWatcher =
+                new ComboWatcher(null, hintManager, () -> activeApp[0], null, Instant::now,
+                        Set.of(), Set.of(), new KeyRedactor(KeyRedaction.NONE),
+                        configuration.modeMap(),
+                        configuration.initiallySetVariables(), configuration.virtualKeys(),
+                        configuration.initiallyPressedVirtualKeys(),
+                        configuration.activeKeyboardLayout());
+        comboWatcher.setModeListeners(List.of());
+        comboWatcher.modeChanged(configuration.modeMap().get(Mode.IDLE_MODE_NAME));
+        Runnable tick = () -> {
+            comboWatcher.update(0.01);
+            comboWatcher.updateBuiltInVirtualKeys(
+                    new MouseState(new MouseManager(null, (MouseController) Proxy.newProxyInstance(
+                            MouseController.class.getClassLoader(),
+                            new Class<?>[] {MouseController.class},
+                            (proxy, method, args) -> null))),
+                    new KeyboardState(null) {
+                        @Override
+                        public boolean pressingUnhandledKeyInCurrentMode() {
+                            return false;
+                        }
+                    }, new AnimationPlayer(Map.of()));
+        };
+        tick.run();
+        assertEquals(10, size(comboWatcher));
+        hintManager.mouseMoved(10, 10);
+        hintManager.saveCurrentPosition("drag-position-history");
+        tick.run();
+        assertEquals(20, size(comboWatcher));
+        hintManager.unsaveCurrentPosition("drag-position-history");
+        tick.run();
+        assertEquals(10, size(comboWatcher));
+    }
+
+    private static double size(ComboWatcher comboWatcher) {
+        return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").size();
     }
 
     @Test

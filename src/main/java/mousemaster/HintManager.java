@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.IntStream;
 
@@ -1830,20 +1831,28 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
     }
 
+    Set<String> positionHistoryNames() {
+        return positionHistoryConfigurationByName.keySet();
+    }
+
     PositionHistory positionHistory(String positionHistoryName) {
+        return positionHistory(positionHistoryName, activeAppFinder::activeApp);
+    }
+
+    PositionHistory positionHistory(String positionHistoryName, Supplier<App> activeApp) {
         PositionHistoryConfiguration configuration =
                 positionHistoryConfigurationByName.get(positionHistoryName);
         PositionHistoryKey key = new PositionHistoryKey(positionHistoryName,
-                isolationKey(configuration.isolation()));
+                isolationKey(configuration.isolation(), activeApp));
         return positionHistoryByKey.computeIfAbsent(key,
                 key1 -> new PositionHistory(key1, configuration.maxSize()));
     }
 
-    private PositionHistoryIsolationKey isolationKey(PositionHistoryIsolation isolation) {
+    private static PositionHistoryIsolationKey isolationKey(PositionHistoryIsolation isolation,
+                                                            Supplier<App> activeApp) {
         return switch (isolation) {
             case NONE -> new NonePositionHistoryIsolationKey();
-            case ACTIVE_APP -> new ActiveAppPositionHistoryIsolationKey(
-                    activeAppFinder.activeApp());
+            case ACTIVE_APP -> new ActiveAppPositionHistoryIsolationKey(activeApp.get());
         };
     }
 

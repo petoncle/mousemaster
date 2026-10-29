@@ -287,6 +287,10 @@ public class ComboWatcher {
                 keyboardState.pressingUnhandledKeyInCurrentMode());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_HINT_MESH_EMPTY,
                 hintManager.hintMeshEmpty());
+        for (String positionHistoryName : hintManager.positionHistoryNames())
+            setVirtualKeyPressed(BuiltInVirtualKey.positionHistoryKey(positionHistoryName),
+                    !hintManager.positionHistory(positionHistoryName, () -> lastActiveApp)
+                                .positions().isEmpty());
         for (String animationName : animationPlayer.animationNames())
             setVirtualKeyPressed(new Key(animationName, null, null),
                     animationPlayer.running(animationName));
