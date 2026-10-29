@@ -130,7 +130,7 @@ class AnimationTest {
     @Test
     void theIndicatorIsExcludedFromCaptureWhileAnAnimationRuns() {
         load("screenshot-animation.duration-millis=100",
-                "idle-mode.screenshot-animation.start=+a",
+                "idle-mode.start.screenshot-animation=+a",
                 "idle-mode.indicator.enabled=true",
                 "idle-mode.indicator.exclude-from-capture=false | _{screenshotanimation} -> true");
         tick(0);
@@ -147,7 +147,7 @@ class AnimationTest {
     void aTextShowsTheKeyThatMatchedItsAliasInPlace() {
         load("key-alias.move=i j",
                 "keycast-animation.duration-millis=100",
-                "idle-mode.keycast-animation.start=+move",
+                "idle-mode.start.keycast-animation=+move",
                 "idle-mode.indicator.text={move} | +move -> You pressed <b>{move}</b>");
         assertEquals("i j", text());
         tap("i");
@@ -167,7 +167,7 @@ class AnimationTest {
     @Test
     void aLayerIsAnchoredWhenEnabledAndWhenItsKeyframesStartOver() {
         load("ripple-animation.duration-millis=100",
-                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.start.ripple-animation=+a",
                 "idle-mode.indicator.enabled=true",
                 "idle-mode.ripple-indicator.follow-mouse=false",
                 "idle-mode.ripple-indicator.size=10 | _{rippleanimation} -> 0% 10; 100% 40");
@@ -201,7 +201,7 @@ class AnimationTest {
     @Test
     void anAnimationReadsAsPressedForItsDuration() {
         load("ripple-animation.duration-millis=100",
-                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.start.ripple-animation=+a",
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 42");
         tap("a");
         assertEquals(42, size());
@@ -215,7 +215,7 @@ class AnimationTest {
     @Test
     void startingARunningAnimationStartsItOver() {
         load("ripple-animation.duration-millis=100",
-                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.start.ripple-animation=+a",
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 42");
         tap("a");
         tick(0.06);
@@ -232,8 +232,8 @@ class AnimationTest {
     @Test
     void stoppingAnAnimationEndsIt() {
         load("ripple-animation.duration-millis=100",
-                "idle-mode.ripple-animation.start=+a",
-                "idle-mode.ripple-animation.stop=+b",
+                "idle-mode.start.ripple-animation=+a",
+                "idle-mode.stop.ripple-animation=+b",
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 42");
         tap("a");
         tick(0.01);
@@ -243,12 +243,25 @@ class AnimationTest {
     }
 
     @Test
+    void theFormerNamesOfTheAnimationCommandsStillWork() {
+        load("ripple-animation.duration-millis=100",
+                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.ripple-animation.stop=+b",
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 42");
+        tap("a");
+        assertEquals(42, size());
+        tap("b");
+        tick(0);
+        assertEquals(26, size());
+    }
+
+    @Test
     void stoppingAnAnimationReleasesItsKey() {
         load("click-burst-animation.duration-millis=100",
                 "click-rest-animation.duration-millis=80",
-                "idle-mode.click-burst-animation.start=+a",
-                "idle-mode.click-burst-animation.stop=+b",
-                "idle-mode.click-rest-animation.start=-clickburstanimation",
+                "idle-mode.start.click-burst-animation=+a",
+                "idle-mode.stop.click-burst-animation=+b",
+                "idle-mode.start.click-rest-animation=-clickburstanimation",
                 "idle-mode.indicator.size=26 | _{clickrestanimation} -> 30 | _{clickburstanimation} -> 42");
         tap("a");
         tick(0.01);
@@ -262,9 +275,9 @@ class AnimationTest {
         load("virtual-key.held=pressed",
                 "click-burst-animation.duration-millis=500",
                 "click-rest-animation.duration-millis=80",
-                "idle-mode.click-burst-animation.start=+a",
-                "idle-mode.click-burst-animation.stop=_{clickburstanimation held} wait-250",
-                "idle-mode.click-rest-animation.start=-clickburstanimation",
+                "idle-mode.start.click-burst-animation=+a",
+                "idle-mode.stop.click-burst-animation=_{clickburstanimation held} wait-250",
+                "idle-mode.start.click-rest-animation=-clickburstanimation",
                 "idle-mode.indicator.size=26 | _{clickrestanimation} -> 30 | _{clickburstanimation} -> 42");
         tap("a");
         tick(0.2);
@@ -277,8 +290,8 @@ class AnimationTest {
     void stoppingAnAnimationThatIsNotRunningDoesNothing() {
         load("click-burst-animation.duration-millis=100",
                 "click-rest-animation.duration-millis=80",
-                "idle-mode.click-burst-animation.stop=+b",
-                "idle-mode.click-rest-animation.start=-clickburstanimation",
+                "idle-mode.stop.click-burst-animation=+b",
+                "idle-mode.start.click-rest-animation=-clickburstanimation",
                 "idle-mode.indicator.size=26 | _{clickrestanimation} -> 30");
         tap("b");
         tick(0);
@@ -288,7 +301,7 @@ class AnimationTest {
     @Test
     void anAnimationNeedsADuration() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> load("idle-mode.ripple-animation.start=+a"));
+                () -> load("idle-mode.start.ripple-animation=+a"));
         assertTrue(exception.getMessage().contains("ripple-animation.duration-millis"));
     }
 
@@ -304,7 +317,7 @@ class AnimationTest {
     @Test
     void keyframesFollowTheAnimation() {
         load("ripple-animation.duration-millis=100",
-                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.start.ripple-animation=+a",
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 36");
         tick(0);
         tap("a");
@@ -321,7 +334,7 @@ class AnimationTest {
     @Test
     void currentIsWhatWasDrawnWhenTheAnimationStarted() {
         load("ripple-animation.duration-millis=100",
-                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.start.ripple-animation=+a",
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 100% 36");
         tick(0);
         tap("a");
@@ -334,7 +347,7 @@ class AnimationTest {
     @Test
     void keyframesAtTheSamePercentJump() {
         load("ripple-animation.duration-millis=100",
-                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.start.ripple-animation=+a",
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 50% 10; 50% 40; 100% 40");
         tick(0);
         tap("a");
@@ -348,7 +361,7 @@ class AnimationTest {
     @Test
     void keyframesCanBePlacedInMilliseconds() {
         load("ripple-animation.duration-millis=200",
-                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.start.ripple-animation=+a",
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 50ms 20; 100% 20");
         tick(0);
         tap("a");
@@ -362,7 +375,7 @@ class AnimationTest {
     @Test
     void aStepHoldsTheValueUntilItsKeyframe() {
         load("ripple-animation.duration-millis=100",
-                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.start.ripple-animation=+a",
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30 step");
         tick(0);
         tap("a");
@@ -378,7 +391,7 @@ class AnimationTest {
     @Test
     void anExponentialOutReachesItsKeyframe() {
         load("ripple-animation.duration-millis=100",
-                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.start.ripple-animation=+a",
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30 exponential-out-10");
         tick(0);
         tap("a");
@@ -391,7 +404,7 @@ class AnimationTest {
     void anAnimationRepeatsItsCycles() {
         load("ripple-animation.duration-millis=100",
                 "ripple-animation.repeat=2",
-                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.start.ripple-animation=+a",
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
         tick(0);
         tap("a");
@@ -407,8 +420,8 @@ class AnimationTest {
     void aLoopRunsUntilItIsStopped() {
         load("ripple-animation.duration-millis=100",
                 "ripple-animation.repeat=loop",
-                "idle-mode.ripple-animation.start=+a",
-                "idle-mode.ripple-animation.stop=+b",
+                "idle-mode.start.ripple-animation=+a",
+                "idle-mode.stop.ripple-animation=+b",
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
         tick(0);
         tap("a");
@@ -424,7 +437,7 @@ class AnimationTest {
         load("ripple-animation.duration-millis=100",
                 "ripple-animation.repeat=loop",
                 "ripple-animation.direction=alternate",
-                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.start.ripple-animation=+a",
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
         tick(0);
         tap("a");
@@ -442,9 +455,9 @@ class AnimationTest {
                 "burst-animation.duration-millis=250",
                 "fade-animation.duration-millis=250",
                 "cut-animation.duration-millis=40",
-                "idle-mode.burst-animation.start=+a",
-                "idle-mode.fade-animation.start=^{held} -burstanimation",
-                "idle-mode.cut-animation.start=_{held} -burstanimation",
+                "idle-mode.start.burst-animation=+a",
+                "idle-mode.start.fade-animation=^{held} -burstanimation",
+                "idle-mode.start.cut-animation=_{held} -burstanimation",
                 "idle-mode.indicator.size=26 | _{burstanimation} -> 42 | _{fadeanimation} -> 30 | _{cutanimation} -> 10");
         tap("a");
         tick(0.25);
@@ -460,7 +473,7 @@ class AnimationTest {
     @Test
     void keyframesCanHideTheCursorForPartOfAnAnimation() {
         load("click-burst-animation.duration-millis=100",
-                "idle-mode.click-burst-animation.start=+a",
+                "idle-mode.start.click-burst-animation=+a",
                 "idle-mode.hide-cursor.enabled=false | _{clickburstanimation} -> 0% true; 50% false");
         tap("a");
         assertTrue(hideCursorEnabled());
@@ -471,7 +484,7 @@ class AnimationTest {
     @Test
     void keyframesCanShowTheIndicatorForPartOfAnAnimation() {
         load("click-burst-animation.duration-millis=100",
-                "idle-mode.click-burst-animation.start=+a",
+                "idle-mode.start.click-burst-animation=+a",
                 "idle-mode.indicator.enabled=false | _{clickburstanimation} -> 0% true; 50% false");
         tick(0);
         assertNull(drawn.getLast());
@@ -492,7 +505,7 @@ class AnimationTest {
     @Test
     void currentIsTheStateABranchTookOverFromEvenIfItWasNeverDrawn() {
         load("click-burst-animation.duration-millis=100",
-                "idle-mode.click-burst-animation.start=+a",
+                "idle-mode.start.click-burst-animation=+a",
                 "idle-mode.indicator.fill-color=#FF0000 | _{clickburstanimation} -> 0% current | _{b} -> #00FF00");
         tick(0);
         comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, Key.ofName("b")));
@@ -507,7 +520,7 @@ class AnimationTest {
         load("out-animation.duration-millis=100",
                 "idle-mode.to.normal-mode=+x",
                 "normal-mode.indicator.fill-color=#00FFFF",
-                "idle-mode.out-animation.start=#{*}-0",
+                "idle-mode.start.out-animation=#{*}-0",
                 "idle-mode.indicator.enabled=false | _{outanimation} -> true",
                 "idle-mode.indicator.fill-color=#FF0000 | _{outanimation} -> 0% current");
         comboWatcher.modeChanged(modeMap.get("normal-mode"));
@@ -525,8 +538,8 @@ class AnimationTest {
                 "pop-out-animation.duration-millis=100",
                 "idle-mode.to.normal-mode=+x",
                 "idle-mode.to.other-mode=+y",
-                "normal-mode.pop-in-animation.start=#{*}-0",
-                "idle-mode.pop-out-animation.start=#{*}-0",
+                "normal-mode.start.pop-in-animation=#{*}-0",
+                "idle-mode.start.pop-out-animation=#{*}-0",
                 "idle-mode.indicator=normal-mode.indicator",
                 "idle-mode.indicator.enabled=false | _{popoutanimation} -> true",
                 "normal-mode.indicator.size=26 | _{popinanimation} -> 0% 4; 100% 26 | _{popoutanimation} -> 0% current; 100% 2",
@@ -561,7 +574,7 @@ class AnimationTest {
     void currentIsTheLayersOwnValueWhenTheModeItCameFromHasNoSuchLayer() {
         load("ripple-animation.duration-millis=100",
                 "ripple-animation.repeat=loop",
-                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.start.ripple-animation=+a",
                 "idle-mode.to.other-mode=+b",
                 "idle-mode.indicator.enabled=true",
                 "other-mode.indicator.enabled=true",

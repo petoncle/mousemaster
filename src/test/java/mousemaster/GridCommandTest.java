@@ -273,7 +273,7 @@ class GridCommandTest {
                 grid-mode.hint.grid-max-row-count=2
                 grid-mode.hint.grid-max-column-count=2
                 grid-mode.hint.mouse-movement=no-movement
-                grid-mode.position-history.save-position=+s
+                grid-mode.save.position-history=+s
                 """);
         hintManager.mouseMoved(100, 100);
         switchMode("grid-mode");
@@ -293,7 +293,7 @@ class GridCommandTest {
         start("""
                 grid-mode.hint.saved-position-history=position-history
                 grid-mode.hint.saved-box-color=#FF0000
-                grid-mode.position-history.save-position=+s
+                grid-mode.save.position-history=+s
                 """);
         hintManager.mouseMoved(100, 100);
         switchMode("grid-mode");

@@ -320,7 +320,7 @@ Each of those four re-enters the mode through the self-transition, which rebuild
 save would not appear as a hint and a jump would leave a stale selection.
 
 `position-history.isolation=active-app` gives every application its own list, and both click-follow-up
-modes have a `position-history.save-position`, so **every hint click records where it landed**, per
+modes have a `save.position-history`, so **every hint click records where it landed**, per
 application. `press`/`release` are inherited from normal mode, so you can click without releasing `m` —
 hence `positionhistorykey` in normal mode's button preconditions.
 
@@ -485,7 +485,7 @@ cell-key taps drill to the destination, and a quick commit there releases it at 
 `^{hintandrecursivehintkey anybutton} wait-150` is "every key that could have committed is now up", one
 combo for every path. Its leading wait is measured from the last key event, so each tap restarts it —
 that is the window to tap the cell key again for a **double or triple click**. The same combo drives the
-seven `unset*` macros, `break-combo-preparation` and `position-history.save-position`, so "the click is
+seven `unset*` macros, `break-combo-preparation` and `save.position-history`, so "the click is
 over" is stated once instead of per commit path. Note `anybutton` is the *keys*, not the mouse-button
 state, so a held button never blocks the return.
 

@@ -21,7 +21,7 @@ public enum ZoomCenter {
                     logger.warn(
                             "Cannot use last selected hint as zoom center because " +
                             "no hint was selected, this is likely due to " +
-                            "a misconfiguration of <previous-mode>.hint.select, " +
+                            "a misconfiguration of <previous-mode>.select, " +
                             "using screen center as fallback");
                     yield screenRectangle.center();
                 }

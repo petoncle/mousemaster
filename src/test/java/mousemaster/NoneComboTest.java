@@ -44,7 +44,7 @@ class NoneComboTest {
                 "hint-mode.to.idle-mode=+esc",
                 "hint-mode.hint.type=grid",
                 "hint-mode.hint.selection-keys=a b c d",
-                "hint-mode.hint.select=none"), Command.SelectHintKey.class));
+                "hint-mode.select=none"), Command.SelectHintKey.class));
     }
 
     @Test
@@ -52,7 +52,7 @@ class NoneComboTest {
         assertFalse(has(mode("hint-mode", "idle-mode.to.hint-mode=+leftshift",
                 "hint-mode.to.idle-mode=+esc",
                 "hint-mode.hint.type=grid",
-                "hint-mode.hint.select=none"), Command.SelectHintKey.class));
+                "hint-mode.select=none"), Command.SelectHintKey.class));
     }
 
 }

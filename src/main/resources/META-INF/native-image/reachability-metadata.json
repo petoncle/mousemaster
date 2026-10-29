@@ -6463,14 +6463,8 @@
             "mousemaster.ScreenFilterMap",
             "java.lang.String",
             "java.lang.String",
-            "boolean",
-            "java.util.List",
-            "java.util.List"
+            "boolean"
           ]
-        },
-        {
-          "name": "deselectCombos",
-          "parameterTypes": []
         },
         {
           "name": "eatUnusedSelectionKeys",
@@ -6490,10 +6484,6 @@
         },
         {
           "name": "mouseFollowsTarget",
-          "parameterTypes": []
-        },
-        {
-          "name": "selectCombos",
           "parameterTypes": []
         },
         {

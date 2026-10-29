@@ -448,7 +448,7 @@ key pressed for as long as an animation runs:
 ```properties
 key-alias.move=i j k l
 keycast-animation.duration-millis=1000
-normal-mode.keycast-animation.start=+move
+normal-mode.start.keycast-animation=+move
 normal-mode.keycast-indicator.enabled=false | _{keycastanimation} -> true
 normal-mode.keycast-indicator.shape=rectangle
 normal-mode.keycast-indicator.text-style-sheet=td { color: #FFFFFF; }
@@ -535,7 +535,7 @@ windowed indicator is not affected. See [#86](https://github.com/petoncle/mousem
 
 ```properties
 screenshot-animation.duration-millis=300
-normal-mode.screenshot-animation.start=#printscreen
+normal-mode.start.screenshot-animation=#printscreen
 normal-mode.flash-indicator.enabled=false | _{screenshotanimation} -> true
 normal-mode.indicator.exclude-from-capture=false | _{screenshotanimation} -> true
 ```
@@ -549,15 +549,16 @@ An animation is a named clock, defined once for the whole configuration and star
 
 ```properties
 click-burst-animation.duration-millis=500
-_indicator-mode.click-burst-animation.start=+isleftmousepressing | +ismiddlemousepressing | +isrightmousepressing
-_indicator-mode.click-burst-animation.stop=_{clickburstanimation ismousepressing} wait-250
+_indicator-mode.start.click-burst-animation=+isleftmousepressing | +ismiddlemousepressing | +isrightmousepressing
+_indicator-mode.stop.click-burst-animation=_{clickburstanimation ismousepressing} wait-250
 ```
 
 - **`<name>-animation.duration-millis`**: The length of one cycle. Required.
 - **`<name>-animation.repeat`**: A number of cycles (default `1`) or `loop`.
 - **`<name>-animation.direction`**: `forward` (default) or `alternate`, which plays every other
   cycle backwards.
-- **`<mode>.<name>-animation.start`** / **`stop`**: The combos that start and stop it in that mode.
+- **`<mode>.start.<name>-animation`** / **`stop`**: The combos that start and stop it in that
+  mode.
   Starting a running animation starts it over.
 
 While it runs, an animation reads as a pressed key named without its hyphens
@@ -570,7 +571,7 @@ A branch on an animation can give a property keyframes instead of a value:
 
 ```properties
 click-rest-animation.duration-millis=80
-_indicator-mode.click-rest-animation.start=-clickburstanimation
+_indicator-mode.start.click-rest-animation=-clickburstanimation
 _indicator-mode.indicator.size=26 | _{clickrestanimation} -> 0% current; 100% 26 0.7 | _{clickburstanimation} -> 0% 13; 100% 78 exponential-out-10
 _indicator-mode.indicator.stroke-opacity=1 | _{clickburstanimation} -> 0% 1; 250ms 1; 500ms 0 0.7
 ```
@@ -696,8 +697,8 @@ elements' locations.
 ui-hint-mode.overlay.type=ui-accessibility
 ui-hint-mode.overlay.area=active-screen
 ui-hint-mode.overlay.selection-keys=selectionkey
-ui-hint-mode.overlay.select=+selectionkey
-ui-hint-mode.overlay.deselect=backspace
+ui-hint-mode.select=+selectionkey
+ui-hint-mode.deselect=backspace
 ui-hint-mode.overlay.mouse-follows-target=true
 ui-hint-mode.overlay.font-size=10
 ui-hint-mode.overlay.font-weight=bold
@@ -997,8 +998,8 @@ one exact, and lets an unlisted scale fall back to the default value.
 # Selection configuration
 key-alias.selectionkey=a b c d e f g h i j k l m n o p q r s t u v w x y z
 hint-mode.overlay.selection-keys=selectionkey
-hint-mode.overlay.select=+selectionkey
-hint-mode.overlay.deselect=backspace
+hint-mode.select=+selectionkey
+hint-mode.deselect=backspace
 hint-mode.to.normal-mode=+selectionkey
 hint-mode.overlay.mouse-follows-target=true
 hint-mode.overlay.eat-unused-selection-keys=true
@@ -1010,7 +1011,7 @@ hint-mode.overlay.label-override=plus
   rejected. `none` gives no selection keys, for example in a mutation that shows the labels only
   while a key is pressed: `grid-mode.overlay.selection-keys=none | _{labels} -> hintkey`.
   `select` then works with the keys of every branch.
-- **`select`**: Combo that triggers hint selection. For example, if you want to be able to hold leftshift while pressing a hint selection key, then use `hint-mode.overlay.select=_{none | leftshift} +selectionkey`
+- **`select`**: Combo that triggers hint selection. For example, if you want to be able to hold leftshift while pressing a hint selection key, then use `hint-mode.select=_{none | leftshift} +selectionkey`
 - **`deselect`**: Combo that deselects the last selection key
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
 - **`mouse-follows-target`**: Whether the mouse follows the target (default `true`). The
@@ -1388,15 +1389,15 @@ Position history allows you to save positions of the target (see `mouse-follows-
 position-history.max-size=16
 
 # Define a key to save the position of the target
-normal-mode.position-history.save-position=+f1
+normal-mode.save.position-history=+f1
 
 # Define a key to clear all saved positions
-normal-mode.position-history.clear=+f2
+normal-mode.clear.position-history=+f2
 ```
 
 - **`max-size`**: Maximum number of positions that can be stored, 1-100 (older positions are removed when this limit is reached). Default 16.
-- **`save-position`**: Command to save the position of the target to history
-- **`unsave-position`**: Command to remove the saved position the target is on
+- **`save`**: Command to save the position of the target to history
+- **`unsave`**: Command to remove the saved position the target is on
 - **`clear`**: Command to clear all saved positions
 - **`cycle-next`** / **`cycle-previous`**: Commands to move the target to the next or previous saved position, continuing from the one it is on. The mouse follows, unless the mode has `mouse-follows-target=false`
 
@@ -1414,9 +1415,9 @@ Position history names end with `-position-history`, the same way mode names end
 ```properties
 # Two isolated histories, with their own sizes
 browser-position-history.max-size=4
-normal-mode.position-history.save-position=+f1
-normal-mode.browser-position-history.save-position=_{browserapp} +f2
-normal-mode.browser-position-history.clear=+f3
+normal-mode.save.position-history=+f1
+normal-mode.save.browser-position-history=_{browserapp} +f2
+normal-mode.clear.browser-position-history=+f3
 ```
 
 A history exists as soon as a mode defines a command for it. Positions saved in one history are invisible to the others, and each history has its own cycling position.
@@ -1494,13 +1495,13 @@ ui-hint-mode.overlay.saved-font-color=#000000
 
 ```properties
 # Save positions in normal mode
-normal-mode.position-history.save-position=+f1
+normal-mode.save.position-history=+f1
 
 # Access saved positions through hint mode
 normal-mode.to.position-hint-mode=+p
 
 # Clear all saved positions if needed
-normal-mode.position-history.clear=+f2
+normal-mode.clear.position-history=+f2
 ```
 
 Typical usage:

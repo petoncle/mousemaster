@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -84,7 +85,46 @@ class HintSelectionKeysTest {
     @Test
     void selectWithoutSelectionKeysIsRejected() {
         assertThrows(IllegalArgumentException.class,
-                () -> parse(gridMode + "grid-mode.hint.select=+a\n"));
+                () -> parse(gridMode + "grid-mode.select=+a\n"));
+    }
+
+    private static Set<Combo> combos(Mode mode, Class<? extends Command> commandType) {
+        return mode.comboMap().commandsByCombo().entrySet().stream()
+                   .filter(entry -> entry.getValue().stream().anyMatch(commandType::isInstance))
+                   .map(Map.Entry::getKey)
+                   .collect(Collectors.toSet());
+    }
+
+    private static final String twoGridModes = gridMode + """
+            grid-mode.hint.selection-keys=a b c d
+            grid-mode.to.other-grid-mode=+o
+            other-grid-mode.to.idle-mode=+esc
+            other-grid-mode.overlay=grid-mode.overlay
+            """;
+
+    @Test
+    void anOverlayReferenceDoesNotCopySelectAndDeselect() throws IOException {
+        ModeMap modeMap = parse(twoGridModes + """
+                grid-mode.select=_{leftshift} +a
+                grid-mode.deselect=+backspace
+                """);
+        assertEquals(1, combos(modeMap.get("grid-mode"), Command.SelectHintKey.class).size());
+        assertEquals(4, combos(modeMap.get("other-grid-mode"), Command.SelectHintKey.class).size());
+        assertEquals(Set.of(), combos(modeMap.get("other-grid-mode"), Command.DeselectHintKey.class));
+    }
+
+    @Test
+    void theFormerSelectAndDeselectStillWorkAndAnOverlayReferenceCopiesThem() throws IOException {
+        ModeMap modeMap = parse(twoGridModes + """
+                grid-mode.hint.select=_{leftshift} +a
+                grid-mode.hint.undo=+backspace
+                """);
+        for (Class<? extends Command> commandType : List.of(Command.SelectHintKey.class,
+                Command.DeselectHintKey.class)) {
+            assertEquals(1, combos(modeMap.get("grid-mode"), commandType).size());
+            assertEquals(combos(modeMap.get("grid-mode"), commandType),
+                    combos(modeMap.get("other-grid-mode"), commandType));
+        }
     }
 
     @Test

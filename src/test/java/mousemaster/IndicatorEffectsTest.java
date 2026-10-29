@@ -135,7 +135,7 @@ class IndicatorEffectsTest {
         // Three rings, 40ms apart: the stagger is a hold at the start of each ring's timeline.
         List<String> lines = new ArrayList<>(List.of(
                 "ripple-animation.duration-millis=400",
-                "idle-mode.ripple-animation.start=+a",
+                "idle-mode.start.ripple-animation=+a",
                 "idle-mode.indicator.enabled=false"));
         int[] holdPercents = {0, 10, 20};
         for (int i = 0; i < 3; i++) {
@@ -191,8 +191,8 @@ class IndicatorEffectsTest {
     void aSpinnerLoopsWhileItsKeyIsHeldAndStopsOnRelease() {
         load("spin-animation.duration-millis=1000",
                 "spin-animation.repeat=loop",
-                "idle-mode.spin-animation.start=+b",
-                "idle-mode.spin-animation.stop=-b",
+                "idle-mode.start.spin-animation=+b",
+                "idle-mode.stop.spin-animation=-b",
                 "idle-mode.indicator.enabled=false",
                 "idle-mode.arc-indicator.enabled=false | _{spinanimation} -> true",
                 "idle-mode.arc-indicator.fill-opacity=0",
@@ -216,7 +216,7 @@ class IndicatorEffectsTest {
     void anOrbitIsADistanceAtAnAngleOnATimeline() {
         load("orbit-animation.duration-millis=1000",
                 "orbit-animation.repeat=loop",
-                "idle-mode.orbit-animation.start=+c",
+                "idle-mode.start.orbit-animation=+c",
                 "idle-mode.indicator.enabled=false",
                 "idle-mode.dot-indicator.enabled=false | _{orbitanimation} -> true",
                 "idle-mode.dot-indicator.size=6",
@@ -239,7 +239,7 @@ class IndicatorEffectsTest {
     void aKeycastShowsTheKeyForTheLifeOfItsAnimation() {
         load("key-alias.move=i j k l",
                 "keycast-animation.duration-millis=800",
-                "idle-mode.keycast-animation.start=+move",
+                "idle-mode.start.keycast-animation=+move",
                 "idle-mode.indicator.enabled=false",
                 "idle-mode.keycast-indicator.enabled=false | _{keycastanimation} -> true",
                 "idle-mode.keycast-indicator.shape=rectangle",
@@ -267,7 +267,7 @@ class IndicatorEffectsTest {
     void aKeycastShowsTheTypedCharacter() {
         load("key-alias.move=questionmark j",
                 "keycast-animation.duration-millis=800",
-                "idle-mode.keycast-animation.start=+move",
+                "idle-mode.start.keycast-animation=+move",
                 "idle-mode.indicator.enabled=false",
                 "idle-mode.keycast-indicator.enabled=false | _{keycastanimation} -> true",
                 "idle-mode.keycast-indicator.shape=rectangle",
@@ -283,7 +283,7 @@ class IndicatorEffectsTest {
     void aKeycastRemapsTheTypedCharacter() {
         load("key-alias.move=questionmark j",
                 "keycast-animation.duration-millis=800",
-                "idle-mode.keycast-animation.start=+move",
+                "idle-mode.start.keycast-animation=+move",
                 "idle-mode.indicator.enabled=false",
                 "idle-mode.keycast-indicator.enabled=false | _{keycastanimation} -> true",
                 "idle-mode.keycast-indicator.shape=rectangle",
@@ -299,7 +299,7 @@ class IndicatorEffectsTest {
     void aKeycastShowsTheKeyItselfWithoutShift() {
         load("key-alias.move=/ questionmark",
                 "keycast-animation.duration-millis=800",
-                "idle-mode.keycast-animation.start=+move",
+                "idle-mode.start.keycast-animation=+move",
                 "idle-mode.indicator.enabled=false",
                 "idle-mode.keycast-indicator.enabled=false | _{keycastanimation} -> true",
                 "idle-mode.keycast-indicator.shape=rectangle",
@@ -317,7 +317,7 @@ class IndicatorEffectsTest {
     @Test
     void aTypewriterStepsItsTextAndDrawsTheLastKeyframe() {
         load("type-animation.duration-millis=300",
-                "idle-mode.type-animation.start=+a",
+                "idle-mode.start.type-animation=+a",
                 "idle-mode.indicator.enabled=false",
                 "idle-mode.t-indicator.shape=text",
                 "idle-mode.t-indicator.enabled=false | _{typeanimation} -> true",
@@ -340,8 +340,8 @@ class IndicatorEffectsTest {
     void theEndOfATypewriterCanHoldTheWordWithASecondAnimation() {
         load("type-animation.duration-millis=300",
                 "hold-animation.duration-millis=1500",
-                "idle-mode.type-animation.start=+a",
-                "idle-mode.hold-animation.start=-typeanimation",
+                "idle-mode.start.type-animation=+a",
+                "idle-mode.start.hold-animation=-typeanimation",
                 "idle-mode.indicator.enabled=false",
                 "idle-mode.t-indicator.shape=text",
                 "idle-mode.t-indicator.enabled=false | _{typeanimation | holdanimation} -> true",
@@ -366,7 +366,7 @@ class IndicatorEffectsTest {
     @Test
     void aColorKeyframeIsMixedNotStepped() {
         load("fade-animation.duration-millis=100",
-                "idle-mode.fade-animation.start=+a",
+                "idle-mode.start.fade-animation=+a",
                 "idle-mode.indicator.enabled=true",
                 "idle-mode.indicator.fill-color=#FF0000 | _{fadeanimation} -> 0% #FF0000; 100% #0000FF");
         tick(0);
@@ -382,7 +382,7 @@ class IndicatorEffectsTest {
     @Test
     void aShapeKeyframeJumps() {
         load("morph-animation.duration-millis=100",
-                "idle-mode.morph-animation.start=+a",
+                "idle-mode.start.morph-animation=+a",
                 "idle-mode.indicator.enabled=true",
                 "idle-mode.indicator.shape=circle | _{morphanimation} -> 0% circle; 50% star");
         tick(0);
@@ -399,8 +399,8 @@ class IndicatorEffectsTest {
     void aMarqueeMovesTheDashOffsetOnATimeline() {
         load("marquee-animation.duration-millis=500",
                 "marquee-animation.repeat=loop",
-                "idle-mode.marquee-animation.start=+a",
-                "idle-mode.marquee-animation.stop=-a",
+                "idle-mode.start.marquee-animation=+a",
+                "idle-mode.stop.marquee-animation=-a",
                 "idle-mode.indicator.enabled=false",
                 "idle-mode.dash-indicator.enabled=false | _{marqueeanimation} -> true",
                 "idle-mode.dash-indicator.fill-opacity=0",
@@ -425,7 +425,7 @@ class IndicatorEffectsTest {
         load("pulse-animation.duration-millis=100",
                 "pulse-animation.repeat=2",
                 "idle-mode.to.normal-mode=+leftshift",
-                "normal-mode.pulse-animation.start=#{*}-0",
+                "normal-mode.start.pulse-animation=#{*}-0",
                 "normal-mode.indicator.enabled=true",
                 "normal-mode.indicator.size=26 | _{pulseanimation} -> 0% 20; 50% 32; 100% 20");
         tick(0);
@@ -446,7 +446,7 @@ class IndicatorEffectsTest {
     @Test
     void oneAnimationCanDriveTwoPropertiesWithTheirOwnKeyframes() {
         load("pop-animation.duration-millis=200",
-                "idle-mode.pop-animation.start=+a",
+                "idle-mode.start.pop-animation=+a",
                 "idle-mode.indicator.enabled=true",
                 "idle-mode.indicator.size=26 | _{popanimation} -> 0% 26; 30% 40; 100% 26",
                 "idle-mode.indicator.fill-opacity=0.2 | _{popanimation} -> 0% 1; 100% 0.2");

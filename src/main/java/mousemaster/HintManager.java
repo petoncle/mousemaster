@@ -465,8 +465,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                 // Skip rebuilding: the grid would get a new center (because
                 // lastSelectedHintPoint moved) making hints differ from the
                 // stored state, which resets selectedKeySequence to [].
-                // If we wanted to do the rebuilding, we should probably have a hint.clear-selection command
-                // (similar to hint.deselect).
+                // If we wanted to do the rebuilding, we should probably have a clear-selection command
+                // (similar to deselect).
                 return;
             }
              // When going from hint2-1 to hint2-2, even if we already have been in hint2-2

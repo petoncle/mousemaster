@@ -163,13 +163,15 @@ public class ConfigurationParser {
                 new Property<>("move-grid", Map.of()),
                 new Property<>("move-target-to", Map.of()),
                 new Property<>("move-to", Map.of()),
-                new Property<>("save-position", Map.of()),
-                new Property<>("unsave-position", Map.of()),
+                new Property<>("save", Map.of()),
+                new Property<>("unsave", Map.of()),
                 new Property<>("clear", Map.of()),
                 new Property<>("cycle-next", Map.of()),
                 new Property<>("cycle-previous", Map.of()),
                 new Property<>("start", Map.of()),
                 new Property<>("stop", Map.of()),
+                new Property<>("select", Map.of()),
+                new Property<>("deselect", Map.of()),
                 new Property<>("break-combo-preparation", Map.of()),
                 new Property<>("break-macro", Map.of()),
                 new Property<>("exit", Map.of()),
@@ -335,6 +337,8 @@ public class ConfigurationParser {
                                       KeyboardLayout platformActiveKeyboardLayout) {
         properties = desugarIndicatorStates(properties);
         properties = desugarMouseMovement(desugarGrid(properties));
+        properties = desugarPositionHistoryAndAnimationCommands(properties);
+        properties = desugarOverlaySelect(properties);
         ForcedActiveAndConfigurationKeyboardLayouts
                 forcedActiveAndConfigurationKeyboardLayouts = parseForcedAndConfigurationLayouts(properties);
         KeyboardLayout activeKeyboardLayout =
@@ -676,21 +680,18 @@ public class ConfigurationParser {
         for (ModeBuilder mode : modeByName.values()) {
             checkMissingProperties(mode);
             if (mode.hintMesh.builder.enabled() && hintSelectionKeys(mode).isEmpty() &&
-                Stream.of(mode.hintMesh.builder.selectCombos(),
-                          mode.hintMesh.builder.deselectCombos())
-                      .anyMatch(combos -> combos != null && !combos.isEmpty()))
+                Stream.of(mode.comboMap.select.builder, mode.comboMap.deselect.builder)
+                      .anyMatch(commandsByCombo -> commandsByCombo.keySet().stream()
+                                                                  .anyMatch(Objects::nonNull)))
                 throw new IllegalArgumentException(
                         "Invalid definition of overlay for " + mode.modeName +
-                        ": overlay.select and overlay.deselect need overlay.selection-keys");
-            if (mode.hintMesh.builder.enabled() &&
-                mode.hintMesh.builder.selectCombos() == null) {
-                logger.trace(mode.modeName + ".overlay.select is missing, using selection keys");
-                mode.hintMesh.builder.selectCombos(
-                        deriveSelectCombosFromHintSelectionKeys(mode,
-                                defaultComboMoveDuration, mode.modeName));
+                        ": select and deselect need overlay.selection-keys");
+            if (mode.hintMesh.builder.enabled() && mode.comboMap.select.builder.isEmpty()) {
+                logger.trace(mode.modeName + ".select is missing, using selection keys");
+                for (Combo combo : deriveSelectCombosFromHintSelectionKeys(mode,
+                        defaultComboMoveDuration, mode.modeName))
+                    mode.comboMap.select.builder.put(combo, List.of(new SelectHintKey()));
             }
-            mode.comboMap.hintSelectCombos(mode.hintMesh.builder.selectCombos());
-            mode.comboMap.hintDeselectCombos(mode.hintMesh.builder.deselectCombos());
             usedKeys(mode.comboMap, allComboAndMacroKeys);
         }
         List<Key> missingKeys = allComboAndMacroKeys.stream()
@@ -735,7 +736,7 @@ public class ConfigurationParser {
                         new ComboPrecondition.PressedKeyPrecondition(List.of())),
                 new ComboPrecondition.ComboAppPrecondition(Set.of(), Set.of()),
                 new ComboPrecondition.ComboVariablePrecondition(List.of()));
-        String label = modeName + ".overlay.select";
+        String label = modeName + ".select";
         return hintSelectionKeys(mode).stream()
                                 .map(key -> new Combo(label, emptyComboPrecondition,
                                         ComboSequence.ofMoves(
@@ -966,6 +967,104 @@ public class ConfigurationParser {
                                   movement -> String.valueOf(movement.group().endsWith("-center"))));
         }
         return desugared;
+    }
+
+    private static final Map<String, String> POSITION_HISTORY_COMMAND_BY_FORMER_NAME = Map.of(
+            "save-position", "save",
+            "unsave-position", "unsave",
+            "clear", "clear",
+            "cycle-next", "cycle-next",
+            "cycle-previous", "cycle-previous");
+
+    /**
+     * Rewrites the former position history and animation commands with the command first:
+     * a-mode.position-history.clear=+x becomes a-mode.clear.position-history=+x, and
+     * a-mode.pop-in-animation.start=+x becomes a-mode.start.pop-in-animation=+x.
+     */
+    private static List<String> desugarPositionHistoryAndAnimationCommands(
+            List<String> properties) {
+        List<String> desugared = new ArrayList<>(properties.size());
+        for (String property : properties) {
+            Matcher lineMatcher = propertyLinePattern.matcher(property);
+            Matcher keyMatcher = modeKeyPattern.matcher(
+                    lineMatcher.matches() ? lineMatcher.group(1).strip() : "");
+            if (!keyMatcher.matches() || keyMatcher.group(3) == null ||
+                keyMatcher.group(7) != null) {
+                desugared.add(property);
+                continue;
+            }
+            String modeName = keyMatcher.group(1);
+            String name = keyMatcher.group(3);
+            String command = keyMatcher.group(5);
+            String value = lineMatcher.group(2).strip();
+            if (name.equals("position-history") && command == null) {
+                for (String positionHistoryCommand : POSITION_HISTORY_COMMAND_BY_FORMER_NAME.values())
+                    desugared.add(modeName + "." + positionHistoryCommand + "=" +
+                                  value.replaceFirst("\\.position-history$",
+                                          "." + positionHistoryCommand));
+            }
+            else if (command != null && isPositionHistoryName(name) &&
+                     POSITION_HISTORY_COMMAND_BY_FORMER_NAME.containsKey(command))
+                desugared.add(modeName + "." + POSITION_HISTORY_COMMAND_BY_FORMER_NAME.get(command) +
+                              "." + name + "=" + value);
+            else if (isAnimationName(name) && ("start".equals(command) || "stop".equals(command)))
+                desugared.add(modeName + "." + command + "." + name + "=" + value);
+            else
+                desugared.add(property);
+        }
+        return desugared;
+    }
+
+    private static final Pattern overlaySelectKeyPattern =
+            Pattern.compile("([^.]+-mode)\\.(?:overlay|hint|grid)\\.(select|deselect|undo)");
+    private static final Pattern overlayKeyPattern =
+            Pattern.compile("([^.]+-mode)\\.(?:overlay|hint|grid)");
+
+    /**
+     * Rewrites the former overlay.select and overlay.deselect as select and deselect:
+     * a-mode.overlay.select=+x becomes a-mode.select=+x. An overlay reference copied them, so
+     * b-mode.overlay=a-mode.overlay also gets b-mode.select=a-mode.select.
+     */
+    private static List<String> desugarOverlaySelect(List<String> properties) {
+        List<String> desugared = new ArrayList<>(properties.size());
+        Set<String> propertyKeys = new HashSet<>();
+        Set<String> commands = new HashSet<>();
+        for (String property : properties) {
+            Matcher lineMatcher = propertyLinePattern.matcher(property);
+            if (!lineMatcher.matches()) {
+                desugared.add(property);
+                continue;
+            }
+            Matcher keyMatcher = overlaySelectKeyPattern.matcher(lineMatcher.group(1).strip());
+            if (keyMatcher.matches()) {
+                String command = keyMatcher.group(2).equals("undo") ? "deselect" :
+                        keyMatcher.group(2);
+                commands.add(command);
+                propertyKeys.add(keyMatcher.group(1) + "." + command);
+                desugared.add(keyMatcher.group(1) + "." + command + "=" +
+                              lineMatcher.group(2).strip());
+            }
+            else {
+                propertyKeys.add(lineMatcher.group(1).strip());
+                desugared.add(property);
+            }
+        }
+        List<String> referenced = new ArrayList<>(desugared.size());
+        for (String property : desugared) {
+            referenced.add(property);
+            Matcher lineMatcher = propertyLinePattern.matcher(property);
+            if (!lineMatcher.matches())
+                continue;
+            Matcher keyMatcher = overlayKeyPattern.matcher(lineMatcher.group(1).strip());
+            Matcher valueMatcher = overlayKeyPattern.matcher(lineMatcher.group(2).strip());
+            if (!keyMatcher.matches() || !valueMatcher.matches())
+                continue;
+            for (String command : commands)
+                if (!propertyKeys.contains(keyMatcher.group(1) + "." + command))
+                    referenced.add(keyMatcher.group(1) + "." + command + "=" +
+                                   valueMatcher.group(1) + "." + command);
+        }
+        return referenced;
     }
 
     /** A name prefixed with + is pressed from the start; - or no prefix is not pressed. */
@@ -1342,19 +1441,7 @@ public class ConfigurationParser {
                         }
                         case "save-position-after-selection" -> {
                             throw new IllegalArgumentException(
-                                    "hint.save-position-after-selection has been deprecated and removed: use position-history.save-position instead");
-                        }
-                        case "select" -> {
-                            hintMesh.builder.selectCombos(
-                                    parseCombos(propertyValue, propertyKey,
-                                            defaultComboMoveDuration,
-                                            keyAliases, appAliases, keyResolver, allVariableNames));
-                        }
-                        case "deselect", "undo" -> {
-                            hintMesh.builder.deselectCombos(
-                                    parseCombos(propertyValue, propertyKey,
-                                            defaultComboMoveDuration,
-                                            keyAliases, appAliases, keyResolver, allVariableNames));
+                                    "hint.save-position-after-selection has been deprecated and removed: use save.position-history instead");
                         }
                         default -> throw new IllegalArgumentException(
                                 "Invalid overlay property key");
@@ -1743,6 +1830,33 @@ public class ConfigurationParser {
                         commandsByCombo -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToLastSelectedHint(), propertyKey, finalDefaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
+            case "save" -> mode.comboMap.savePosition.parseReferenceOr(propertyKey, propertyValue,
+                    commandsByCombo -> setCommand(mode.comboMap.savePosition.builder, propertyValue, new SavePosition(checkedPositionHistoryName(group2, keyMatcher.group(group4))), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                    childPropertiesByParentProperty, nonRootPropertyKeys);
+            case "unsave" -> mode.comboMap.unsavePosition.parseReferenceOr(propertyKey, propertyValue,
+                    commandsByCombo -> setCommand(mode.comboMap.unsavePosition.builder, propertyValue, new UnsavePosition(checkedPositionHistoryName(group2, keyMatcher.group(group4))), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                    childPropertiesByParentProperty, nonRootPropertyKeys);
+            case "clear" -> mode.comboMap.clearPositionHistory.parseReferenceOr(propertyKey, propertyValue,
+                    commandsByCombo -> setCommand(mode.comboMap.clearPositionHistory.builder, propertyValue, new ClearPositionHistory(checkedPositionHistoryName(group2, keyMatcher.group(group4))), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                    childPropertiesByParentProperty, nonRootPropertyKeys);
+            case "cycle-next" -> mode.comboMap.cycleNextPosition.parseReferenceOr(propertyKey, propertyValue,
+                    commandsByCombo -> setCommand(mode.comboMap.cycleNextPosition.builder, propertyValue, new CycleNextPosition(checkedPositionHistoryName(group2, keyMatcher.group(group4))), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                    childPropertiesByParentProperty, nonRootPropertyKeys);
+            case "cycle-previous" -> mode.comboMap.cyclePreviousPosition.parseReferenceOr(propertyKey, propertyValue,
+                    commandsByCombo -> setCommand(mode.comboMap.cyclePreviousPosition.builder, propertyValue, new CyclePreviousPosition(checkedPositionHistoryName(group2, keyMatcher.group(group4))), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                    childPropertiesByParentProperty, nonRootPropertyKeys);
+            case "start" -> mode.comboMap.startAnimation.parseReferenceOr(propertyKey, propertyValue,
+                    commandsByCombo -> setCommand(mode.comboMap.startAnimation.builder, propertyValue, new StartAnimation(checkedAnimationName(group2, keyMatcher.group(group4), animationConfigurationByName)), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                    childPropertiesByParentProperty, nonRootPropertyKeys);
+            case "stop" -> mode.comboMap.stopAnimation.parseReferenceOr(propertyKey, propertyValue,
+                    commandsByCombo -> setCommand(mode.comboMap.stopAnimation.builder, propertyValue, new StopAnimation(checkedAnimationName(group2, keyMatcher.group(group4), animationConfigurationByName)), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                    childPropertiesByParentProperty, nonRootPropertyKeys);
+            case "select" -> mode.comboMap.select.parseReferenceOr(propertyKey, propertyValue,
+                    commandsByCombo -> setCommand(mode.comboMap.select.builder, propertyValue, new SelectHintKey(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                    childPropertiesByParentProperty, nonRootPropertyKeys);
+            case "deselect" -> mode.comboMap.deselect.parseReferenceOr(propertyKey, propertyValue,
+                    commandsByCombo -> setCommand(mode.comboMap.deselect.builder, propertyValue, new DeselectHintKey(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                    childPropertiesByParentProperty, nonRootPropertyKeys);
             case "break-combo-preparation" -> mode.comboMap.breakComboPreparation.parseReferenceOr(propertyKey, propertyValue,
                     commandsByCombo -> setCommand(mode.comboMap.breakComboPreparation.builder,  propertyValue, new BreakComboPreparation(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                     childPropertiesByParentProperty, nonRootPropertyKeys);
@@ -1836,58 +1950,7 @@ public class ConfigurationParser {
                             allVariableNames);
                     return;
                 }
-                if (isAnimationName(group2)) {
-                    String animationKeyName = animationKeyName(group2);
-                    if (!animationConfigurationByName.containsKey(animationKeyName))
-                        throw new IllegalArgumentException(
-                                "Undefined animation " + group2 + ": missing " + group2 +
-                                ".duration-millis");
-                    if (keyMatcher.group(group4) == null || keyMatcher.group(group5) != null)
-                        throw new IllegalArgumentException("Invalid animation property key");
-                    switch (keyMatcher.group(group4)) {
-                        // @formatter:off
-                        case "start" -> setCommand(mode.comboMap.startAnimation.builder, propertyValue, new StartAnimation(animationKeyName), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "stop" -> setCommand(mode.comboMap.stopAnimation.builder, propertyValue, new StopAnimation(animationKeyName), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        // @formatter:on
-                        default -> throw new IllegalArgumentException(
-                                "Invalid animation property key");
-                    }
-                    return;
-                }
-                if (!isPositionHistoryName(group2))
-                    throw new IllegalArgumentException("Invalid mode property key");
-                if (keyMatcher.group(group3) == null) {
-                    if (!group2.equals("position-history"))
-                        throw new IllegalArgumentException(
-                                "A position history reference copies the commands of every position history: use position-history instead of " +
-                                group2);
-                    mode.comboMap.savePosition.parsePropertyReference(propertyKey, propertyValue,
-                            childPropertiesByParentProperty, nonRootPropertyKeys);
-                    mode.comboMap.unsavePosition.parsePropertyReference(propertyKey, propertyValue,
-                            childPropertiesByParentProperty, nonRootPropertyKeys);
-                    mode.comboMap.clearPositionHistory.parsePropertyReference(propertyKey, propertyValue,
-                            childPropertiesByParentProperty, nonRootPropertyKeys);
-                    mode.comboMap.cycleNextPosition.parsePropertyReference(propertyKey, propertyValue,
-                            childPropertiesByParentProperty, nonRootPropertyKeys);
-                    mode.comboMap.cyclePreviousPosition.parsePropertyReference(propertyKey, propertyValue,
-                            childPropertiesByParentProperty, nonRootPropertyKeys);
-                }
-                else if (keyMatcher.group(group5) != null)
-                    throw new IllegalArgumentException(
-                            "Invalid position-history property key");
-                else {
-                    switch (keyMatcher.group(group4)) {
-                        // @formatter:off
-                        case "save-position" -> setCommand(mode.comboMap.savePosition.builder,  propertyValue, new SavePosition(group2), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "unsave-position" -> setCommand(mode.comboMap.unsavePosition.builder,  propertyValue, new UnsavePosition(group2), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "clear" -> setCommand(mode.comboMap.clearPositionHistory.builder,  propertyValue, new ClearPositionHistory(group2), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "cycle-next" -> setCommand(mode.comboMap.cycleNextPosition.builder,  propertyValue, new CycleNextPosition(group2), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "cycle-previous" -> setCommand(mode.comboMap.cyclePreviousPosition.builder,  propertyValue, new CyclePreviousPosition(group2), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        // @formatter:on
-                        default -> throw new IllegalArgumentException(
-                                "Invalid position-history property key");
-                    }
-                }
+                throw new IllegalArgumentException("Invalid mode property key");
             }
         }
     }
@@ -2065,8 +2128,9 @@ public class ConfigurationParser {
      * First pass: a position history exists as soon as a mode defines a command for it.
      */
     static Set<String> parsePositionHistoryNames(List<String> properties) {
-        // Match: <mode-name>.<position-history-name>.<command-name>=...
-        Pattern commandPattern = Pattern.compile("[^.]+-mode\\.([^.]+)\\.[^.]+");
+        Pattern commandPattern = Pattern.compile("[^.]+-mode\\.(?:" +
+                String.join("|", POSITION_HISTORY_COMMAND_BY_FORMER_NAME.values()) +
+                ")\\.([^.]+)");
         Set<String> positionHistoryNames = new HashSet<>();
         for (String line : properties) {
             Matcher lineMatcher = propertyLinePattern.matcher(line);
@@ -2222,6 +2286,24 @@ public class ConfigurationParser {
 
     private static boolean isAnimationName(String name) {
         return name.endsWith("-animation");
+    }
+
+    private static String checkedPositionHistoryName(String propertyName,
+                                                     String positionHistoryName) {
+        if (positionHistoryName == null || !isPositionHistoryName(positionHistoryName))
+            throw new IllegalArgumentException("Invalid " + propertyName + " property key");
+        return positionHistoryName;
+    }
+
+    private static String checkedAnimationName(String propertyName, String animationName,
+                                               Map<String, AnimationConfiguration> animationConfigurationByName) {
+        if (animationName == null || !isAnimationName(animationName))
+            throw new IllegalArgumentException("Invalid " + propertyName + " property key");
+        if (!animationConfigurationByName.containsKey(animationKeyName(animationName)))
+            throw new IllegalArgumentException(
+                    "Undefined animation " + animationName + ": missing " + animationName +
+                    ".duration-millis");
+        return animationKeyName(animationName);
     }
 
     private static boolean isPositionHistoryName(String name) {
@@ -4213,10 +4295,6 @@ public class ConfigurationParser {
                     builder.savedPositionHistory(parent.savedPositionHistory());
                 if (builder.eatUnusedSelectionKeys() == null)
                     builder.eatUnusedSelectionKeys(parent.eatUnusedSelectionKeys());
-                if (builder.selectCombos() == null)
-                    builder.selectCombos(parent.selectCombos());
-                if (builder.deselectCombos() == null)
-                    builder.deselectCombos(parent.deselectCombos());
             }
 
         }
@@ -4442,9 +4520,8 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> setVariable;
         Property<Map<Combo, List<Command>>> unsetVariable;
         Property<Map<Combo, List<Command>>> resetVariables;
-
-        List<Combo> hintSelectCombos;
-        List<Combo> hintDeselectCombos;
+        Property<Map<Combo, List<Command>>> select;
+        Property<Map<Combo, List<Command>>> deselect;
 
         public ComboMapConfigurationBuilder(String modeName,
                                             Map<PropertyKey, Property<?>> propertyByKey) {
@@ -4461,8 +4538,8 @@ public class ConfigurationParser {
             moveGrid = new ComboMapProperty("move-grid", modeName, propertyByKey);
             moveTargetTo = new ComboMapProperty("move-target-to", modeName, propertyByKey);
             moveTo = new ComboMapProperty("move-to", modeName, propertyByKey);
-            savePosition = new ComboMapProperty("save-position", modeName, propertyByKey);
-            unsavePosition = new ComboMapProperty("unsave-position", modeName, propertyByKey);
+            savePosition = new ComboMapProperty("save", modeName, propertyByKey);
+            unsavePosition = new ComboMapProperty("unsave", modeName, propertyByKey);
             clearPositionHistory = new ComboMapProperty("clear", modeName, propertyByKey);
             cycleNextPosition = new ComboMapProperty("cycle-next", modeName, propertyByKey);
             cyclePreviousPosition = new ComboMapProperty("cycle-previous", modeName, propertyByKey);
@@ -4478,15 +4555,9 @@ public class ConfigurationParser {
             setVariable = new ComboMapProperty("set-variable", modeName, propertyByKey);
             unsetVariable = new ComboMapProperty("unset-variable", modeName, propertyByKey);
             resetVariables = new ComboMapProperty("reset-variables", modeName, propertyByKey);
+            select = new ComboMapProperty("select", modeName, propertyByKey);
+            deselect = new ComboMapProperty("deselect", modeName, propertyByKey);
         }
-
-          public void hintSelectCombos(List<Combo> combos) {
-              hintSelectCombos = combos;
-          }
-
-          public void hintDeselectCombos(List<Combo> combos) {
-              hintDeselectCombos = combos;
-          }
 
           private static class ComboMapProperty extends Property<Map<Combo, List<Command>>> {
 
@@ -4537,10 +4608,8 @@ public class ConfigurationParser {
 
         public Map<Combo, List<Command>> commandsByCombo() {
             Map<Combo, List<Command>> commandsByCombo = new LinkedHashMap<>();
-            if (hintSelectCombos != null)
-                add(commandsByCombo, hintSelectCombos.stream().collect(Collectors.toMap(Function.identity(), combo -> List.of(new SelectHintKey()))));
-            if (hintDeselectCombos != null)
-                add(commandsByCombo, hintDeselectCombos.stream().collect(Collectors.toMap(Function.identity(), combo -> List.of(new DeselectHintKey()))));
+            add(commandsByCombo, select.builder);
+            add(commandsByCombo, deselect.builder);
             add(commandsByCombo, to.builder);
             add(commandsByCombo, startMove.builder);
             add(commandsByCombo, stopMove.builder);

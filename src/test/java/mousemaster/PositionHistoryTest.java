@@ -26,9 +26,9 @@ public class PositionHistoryTest {
     }
 
     private static final String twoHistories = """
-            idle-mode.position-history.save-position=+f1
-            idle-mode.browser-position-history.save-position=+f2
-            idle-mode.browser-position-history.cycle-next=+f3
+            idle-mode.save.position-history=+f1
+            idle-mode.save.browser-position-history=+f2
+            idle-mode.cycle-next.browser-position-history=+f3
             idle-mode.to.browser-hint-mode=+m
             browser-hint-mode.hint.selection-keys=a b c d
             """;
@@ -81,8 +81,8 @@ public class PositionHistoryTest {
     void theActiveAppCanDriveTheHintPositionHistory() throws IOException {
         Configuration configuration = parse("""
                 app-alias.browserapp=firefox.exe chrome.exe
-                idle-mode.position-history.save-position=+f1
-                idle-mode.browser-position-history.save-position=+f2
+                idle-mode.save.position-history=+f1
+                idle-mode.save.browser-position-history=+f2
                 idle-mode.hint.selection-keys=a b c d
                 idle-mode.hint.type=position-history | _{browserapp} -> browser-position-history
                 """);
@@ -146,7 +146,7 @@ public class PositionHistoryTest {
     @Test
     void aPositionHistoryReadsAsAPressedKeyWhileItHoldsAPosition() throws IOException {
         Configuration configuration = parse("""
-                idle-mode.drag-position-history.save-position=+f1
+                idle-mode.save.drag-position-history=+f1
                 idle-mode.indicator.size=10 | _{dragpositionhistory} -> 20
                 """);
         App[] activeApp = {new App("notepad.exe")};
@@ -289,15 +289,30 @@ public class PositionHistoryTest {
     }
 
     @Test
-    void onlyTheDefaultPositionHistoryCanBeReferenced() throws IOException {
-        parse(twoHistories + browserHints +
-              "_other-mode.position-history=idle-mode.position-history\n");
-        IllegalArgumentException exception =
-                assertThrows(IllegalArgumentException.class, () -> parse(
-                        twoHistories + browserHints +
-                        "_other-mode.browser-position-history=idle-mode.browser-position-history\n"));
-        assertTrue(exception.getMessage().contains("every position history"),
-                exception.getMessage());
+    void aReferenceCopiesTheCommandsOfEveryPositionHistory() throws IOException {
+        List<Command> commands = commands(parse(twoHistories + browserHints +
+                "_other-mode.save=idle-mode.save\n"), "_other-mode");
+        assertTrue(commands.containsAll(List.of(new Command.SavePosition("position-history"),
+                new Command.SavePosition("browser-position-history"))), commands.toString());
+    }
+
+    @Test
+    void theFormerNamesOfThePositionHistoryCommandsStillWork() throws IOException {
+        Configuration configuration = parse("""
+                idle-mode.position-history.save-position=+f1
+                idle-mode.position-history.unsave-position=+f2
+                idle-mode.browser-position-history.clear=+f3
+                idle-mode.browser-position-history.cycle-next=+f4
+                idle-mode.browser-position-history.cycle-previous=+f5
+                _other-mode.position-history=idle-mode.position-history
+                """);
+        List<Command> commands = List.of(new Command.SavePosition("position-history"),
+                new Command.UnsavePosition("position-history"),
+                new Command.ClearPositionHistory("browser-position-history"),
+                new Command.CycleNextPosition("browser-position-history"),
+                new Command.CyclePreviousPosition("browser-position-history"));
+        assertTrue(commands(configuration, "idle-mode").containsAll(commands));
+        assertTrue(commands(configuration, "_other-mode").containsAll(commands));
     }
 
 }

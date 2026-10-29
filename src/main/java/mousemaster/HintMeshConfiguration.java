@@ -5,8 +5,6 @@ import mousemaster.HintMeshStyle.HintMeshStyleBuilder;
 import mousemaster.HintMeshType.HintMeshTypeBuilder;
 import mousemaster.ScreenFilterMap.ScreenFilterMapBuilder;
 
-import java.util.List;
-
 public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
                                     boolean mouseFollowsTarget,
@@ -16,9 +14,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     ScreenFilterMap<HintMeshStyle> styleByFilter,
                                     String modeAfterSelection,
                                     String savedPositionHistory,
-                                    boolean eatUnusedSelectionKeys,
-                                    List<Combo> selectCombos,
-                                    List<Combo> deselectCombos) {
+                                    boolean eatUnusedSelectionKeys) {
 
     public static class HintMeshConfigurationBuilder {
         private Boolean enabled;
@@ -33,8 +29,6 @@ public record HintMeshConfiguration(boolean enabled,
         private String modeAfterSelection;
         private String savedPositionHistory;
         private Boolean eatUnusedSelectionKeys;
-        private List<Combo> selectCombos;
-        private List<Combo> deselectCombos;
 
         public HintMeshConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
@@ -89,16 +83,6 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshConfigurationBuilder selectCombos(List<Combo> selectCombos) {
-            this.selectCombos = selectCombos;
-            return this;
-        }
-
-        public HintMeshConfigurationBuilder deselectCombos(List<Combo> deselectCombos) {
-            this.deselectCombos = deselectCombos;
-            return this;
-        }
-
         public HintMeshTypeBuilder type() {
             return type;
         }
@@ -135,14 +119,6 @@ public record HintMeshConfiguration(boolean enabled,
             return eatUnusedSelectionKeys;
         }
 
-        public List<Combo> selectCombos() {
-            return selectCombos;
-        }
-
-        public List<Combo> deselectCombos() {
-            return deselectCombos;
-        }
-
         public HintMeshConfiguration build() {
             return new HintMeshConfiguration(enabled, visible, mouseFollowsTarget,
                     targetFollowsOverlayCenter,
@@ -151,9 +127,7 @@ public record HintMeshConfiguration(boolean enabled,
                     styleByFilter.build(HintMeshStyleBuilder::build),
                     modeAfterSelection,
                     savedPositionHistory,
-                    eatUnusedSelectionKeys,
-                    selectCombos,
-                    deselectCombos);
+                    eatUnusedSelectionKeys);
         }
 
     }

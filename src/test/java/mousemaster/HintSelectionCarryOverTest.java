@@ -128,7 +128,7 @@ class HintSelectionCarryOverTest {
                         ui-hint-mode.overlay.selection-keys=a b
                         ui-hint-mode.overlay.type=ui-accessibility
                         ui-hint-mode.overlay.saved-position-history=position-history
-                        ui-hint-mode.position-history.clear=+c
+                        ui-hint-mode.clear.position-history=+c
                         """))), KeyboardLayout.keyboardLayoutByShortName.get("uk-qwerty"));
         ModeMap modeMap = configuration.modeMap();
         Future<List<UiElement>> found = CompletableFuture.completedFuture(
