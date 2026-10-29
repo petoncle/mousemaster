@@ -2021,8 +2021,7 @@ public class ComboWatcher {
         }
         newMutatedMode = (Mode) ModePropertyMutator.createWithField(newMutatedMode, "indicator",
                 new IndicatorConfiguration(newMutatedMode.indicator().renderAsCursor(),
-                        newMutatedMode.indicator().excludeFromCapture(),
-                        newMutatedMode.indicator().shadow(), layerByName));
+                        newMutatedMode.indicator().excludeFromCapture(), layerByName));
         mutatedMode = (Mode) ModePropertyMutator.createWithField(newMutatedMode,
                 "timelineByPropertyPath", Map.copyOf(timelineByPropertyPath));
     }

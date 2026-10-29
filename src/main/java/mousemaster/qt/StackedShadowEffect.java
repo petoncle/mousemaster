@@ -4,6 +4,7 @@ import io.qt.core.QPoint;
 import io.qt.core.QRect;
 import io.qt.core.QRectF;
 import io.qt.core.Qt;
+import io.qt.gui.QBrush;
 import io.qt.gui.QColor;
 import io.qt.gui.QImage;
 import io.qt.gui.QPainter;
@@ -56,7 +57,7 @@ public class StackedShadowEffect extends QtDropShadowEffect {
             logger.debug("Blurred a shadow in " + durationMillis + "ms");
     }
 
-    private void drawShadow(QPainter painter) {
+    protected void drawShadow(QPainter painter) {
         if (transparencyOnly) {
             redrawSourceOverShadow(painter);
             return;
@@ -72,32 +73,13 @@ public class StackedShadowEffect extends QtDropShadowEffect {
         QPixmap sourcePixmap = sourcePixmap(
                 Qt.CoordinateSystem.DeviceCoordinates, sourceOffset,
                 PixmapPadMode.PadToEffectiveBoundingRect);
-        QImage sourceImage = sourcePixmap.toImage();
-        int w = sourceImage.width();
-        int h = sourceImage.height();
-        // A brush supplies both color and opacity, so the silhouette it tints is rendered
-        // opaque and stacking shapes the alpha alone.
-        boolean brushed = shadowBrush() != null;
-        QColor shadowColor = brushed ? new QColor(255, 255, 255) : color();
-        ShadowImage shadow = renderShadowOnly(sourceImage, shadowColor,
-                blurRadius(), xOffset(), yOffset(), w, h);
-        shadowColor.dispose();
-        QImage stackedShadow = bakeStacking(shadow.image(), stackCount);
-        if (brushed) {
-            QPainter tintPainter = new QPainter(stackedShadow);
-            tintPainter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn);
-            QRect stackedRect = stackedShadow.rect();
-            tint(tintPainter, stackedRect);
-            stackedRect.dispose();
-            tintPainter.end();
-            tintPainter.dispose();
-        }
         QTransform savedTransform = painter.worldTransform();
         QTransform identity = new QTransform();
         painter.setWorldTransform(identity);
-        painter.drawImage(sourceOffset.x() + shadow.x(),
-                sourceOffset.y() + shadow.y(), stackedShadow);
-        stackedShadow.dispose();
+        QColor shadowColor = color();
+        drawShadow(painter, sourcePixmap, sourceOffset, blurRadius(), xOffset(), yOffset(),
+                shadowColor, shadowBrush(), stackCount);
+        shadowColor.dispose();
         painter.setWorldTransform(savedTransform);
         savedTransform.dispose();
         identity.dispose();
@@ -105,6 +87,36 @@ public class StackedShadowEffect extends QtDropShadowEffect {
         sourceOffset.dispose();
         drawSource(painter);
         redrawSourceOverShadow(painter);
+    }
+
+    /** Draws the shadow of the source where the source goes, the painter's transform reset. */
+    protected static void drawShadow(QPainter painter, QPixmap sourcePixmap, QPoint sourceOffset,
+                                     double blurRadius, double xOffset, double yOffset,
+                                     QColor color, QBrush brush, int stackCount) {
+        if (stackCount <= 1) {
+            QImage shadow = blurredShadow(sourcePixmap, xOffset, yOffset, blurRadius);
+            tint(shadow, color, brush);
+            painter.drawImage(sourceOffset, shadow);
+            shadow.dispose();
+            return;
+        }
+        QImage sourceImage = sourcePixmap.toImage();
+        int w = sourceImage.width();
+        int h = sourceImage.height();
+        // A brush supplies both color and opacity, so the silhouette it tints is rendered
+        // opaque and stacking shapes the alpha alone.
+        boolean brushed = brush != null;
+        QColor shadowColor = brushed ? new QColor(255, 255, 255) : color;
+        ShadowImage shadow = renderShadowOnly(sourceImage, shadowColor,
+                blurRadius, xOffset, yOffset, w, h);
+        if (brushed)
+            shadowColor.dispose();
+        QImage stackedShadow = bakeStacking(shadow.image(), stackCount);
+        if (brushed)
+            tint(stackedShadow, color, brush);
+        painter.drawImage(sourceOffset.x() + shadow.x(),
+                sourceOffset.y() + shadow.y(), stackedShadow);
+        stackedShadow.dispose();
     }
 
     protected void redrawSourceOverShadow(QPainter painter) {

@@ -27,7 +27,7 @@ class ColorAliasTest {
         assertEquals(expected, mode.hintMesh().styleByFilter().map().values().iterator().next().boxColor());
         assertEquals(expected, mode.indicator().layerByName().get("indicator").fillColor());
         assertEquals(expected, mode.indicator().layerByName().get("indicator").stroke().color());
-        assertEquals(expected, mode.indicator().shadow().color());
+        assertEquals(expected, mode.indicator().layerByName().get("indicator").shadow().color());
     }
 
     @Test

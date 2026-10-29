@@ -137,8 +137,7 @@ public class IndicatorManager implements ModeListener {
                         indicator, fieldNames, value, null);
         }
         return new IndicatorConfiguration(indicator.renderAsCursor(),
-                indicator.excludeFromCapture(), indicator.shadow(),
-                layerByName);
+                indicator.excludeFromCapture(), layerByName);
     }
 
     private static List<String> indicatorFieldNames(ModePropertyPath propertyPath) {

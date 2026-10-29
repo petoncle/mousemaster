@@ -70,7 +70,7 @@ class IndicatorLayerTest {
     }
 
     @Test
-    void renderAsCursorExcludeFromCaptureAndTheShadowBelongToTheIndicator() {
+    void renderAsCursorAndExcludeFromCaptureBelongToTheIndicator() {
         assertThrows(IllegalArgumentException.class,
                 () -> parse("idle-mode.ripple-indicator.render-as-cursor=true"));
         assertThrows(IllegalArgumentException.class,
@@ -78,13 +78,19 @@ class IndicatorLayerTest {
         assertTrue(parse("idle-mode.indicator.exclude-from-capture=true").modeMap()
                 .get(Mode.IDLE_MODE_NAME).indicator().excludeFromCapture());
         assertThrows(IllegalArgumentException.class,
-                () -> parse("idle-mode.ripple-indicator.shadow-opacity=1"));
-        assertEquals(1, parse("idle-mode.indicator.shadow-opacity=1").modeMap()
-                .get(Mode.IDLE_MODE_NAME).indicator().shadow().opacity());
-        assertThrows(IllegalArgumentException.class,
                 () -> parse("idle-mode.to.normal-mode=+leftshift",
                         "idle-mode.ripple-indicator.size=40",
                         "normal-mode.ripple-indicator=idle-mode.ripple-indicator"));
+    }
+
+    @Test
+    void aLayerHasItsOwnShadow() {
+        Mode mode = parse("idle-mode.indicator.shadow-opacity=1",
+                "idle-mode.ripple-indicator.shadow-color=#00FF00").modeMap()
+                                                                  .get(Mode.IDLE_MODE_NAME);
+        assertEquals(1, layer(mode, "indicator").shadow().opacity());
+        assertEquals(0, layer(mode, "ripple-indicator").shadow().opacity());
+        assertEquals(Color.parse("#00FF00"), layer(mode, "ripple-indicator").shadow().color());
     }
 
     @Test

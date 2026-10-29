@@ -317,6 +317,23 @@ class IndicatorWindowImageTest {
         assertTrue((right & 0xFF) > 0xE0 && (right >> 16 & 0xFF) < 0x20, Integer.toHexString(right));
     }
 
+    private static int alphaAt(WindowImage windowImage, int x, int y) {
+        IndicatorRenderer.IndicatorImage image = windowImage.image();
+        return image.argb()[(y - windowImage.y()) * image.width() + x - windowImage.x()] >>> 24;
+    }
+
+    @Test
+    void aLayerCastsOnlyItsOwnShadow() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        IndicatorConfiguration indicator = indicator("idle-mode.indicator.enabled=true",
+                "idle-mode.indicator.shadow-opacity=1",
+                "idle-mode.ripple-indicator.enabled=true", "idle-mode.ripple-indicator.x=100");
+        WindowImage image = render(new IndicatorRenderer(), indicator,
+                Set.of("indicator", "ripple-indicator"), 500);
+        assertTrue(alphaAt(image, 504, 504 + 14) > 0x20);
+        assertEquals(0, alphaAt(image, 604, 504 + 14));
+    }
+
     @Test
     void theLastSelectedHintBoxColorIsDrawnAgainWhenItChanges() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");

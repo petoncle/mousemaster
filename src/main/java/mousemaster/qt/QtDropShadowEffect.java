@@ -38,15 +38,19 @@ public class QtDropShadowEffect extends QGraphicsDropShadowEffect {
         return shadowBrush;
     }
 
-    /** Brushes are cached and shared, so this fills with one rather than disposing it. */
-    protected void tint(QPainter painter, QRect rect) {
-        if (shadowBrush != null) {
-            painter.fillRect(rect, shadowBrush);
-            return;
-        }
-        QColor shadowColor = color();
-        painter.fillRect(rect, shadowColor);
-        shadowColor.dispose();
+    /** Colors the image where it is opaque, with the brush if there is one. Brushes are cached
+     *  and shared, so this fills with one rather than disposing it. */
+    protected static void tint(QImage image, QColor color, QBrush brush) {
+        QPainter painter = new QPainter(image);
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn);
+        QRect rect = image.rect();
+        if (brush != null)
+            painter.fillRect(rect, brush);
+        else
+            painter.fillRect(rect, color);
+        rect.dispose();
+        painter.end();
+        painter.dispose();
     }
 
     protected void drawBlurredShadow(QPainter painter) {
@@ -62,11 +66,32 @@ public class QtDropShadowEffect extends QGraphicsDropShadowEffect {
             sourceOffset.dispose();
             return;
         }
+        QImage shadow = blurredShadow(sourcePixmap, xOffset(), yOffset(), blurRadius());
+        QColor shadowColor = color();
+        tint(shadow, shadowColor, shadowBrush);
+        shadowColor.dispose();
+
+        QTransform savedTransform = painter.worldTransform();
+        QTransform identity = new QTransform();
+        painter.setWorldTransform(identity);
+        painter.drawImage(sourceOffset, shadow);
+        painter.drawPixmap(sourceOffset, sourcePixmap);
+        painter.setWorldTransform(savedTransform);
+        savedTransform.dispose();
+        identity.dispose();
+        shadow.dispose();
+        sourcePixmap.dispose();
+        sourceOffset.dispose();
+    }
+
+    /** The source shifted by the offset and blurred, in an image of its size, to be colored. */
+    protected static QImage blurredShadow(QPixmap sourcePixmap, double xOffset, double yOffset,
+                                          double blurRadius) {
         int width = sourcePixmap.width(), height = sourcePixmap.height();
         QImage shifted = transparentImage(width, height);
         QPainter shiftPainter = new QPainter(shifted);
         shiftPainter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
-        QPointF shadowOffset = new QPointF(xOffset(), yOffset());
+        QPointF shadowOffset = new QPointF(xOffset, yOffset);
         shiftPainter.drawPixmap(shadowOffset, sourcePixmap);
         shadowOffset.dispose();
         shiftPainter.end();
@@ -76,7 +101,7 @@ public class QtDropShadowEffect extends QGraphicsDropShadowEffect {
         shifted.bits().get(0, pixels, 0, pixels.length);
         shifted.dispose();
         byte[] plane = ExpBlur.alphaPlane(pixels, width, height);
-        double radius = blurRadius();
+        double radius = blurRadius;
         double scale = 1;
         int blurWidth = width, blurHeight = height;
         // qt_blurImage halves the image once the radius reaches 4, and scales it back afterwards.
@@ -101,26 +126,7 @@ public class QtDropShadowEffect extends QGraphicsDropShadowEffect {
         blurPainter.end();
         blurPainter.dispose();
         blurredImage.dispose();
-
-        QPainter colorPainter = new QPainter(shadow);
-        colorPainter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn);
-        QRect shadowRect = shadow.rect();
-        tint(colorPainter, shadowRect);
-        shadowRect.dispose();
-        colorPainter.end();
-        colorPainter.dispose();
-
-        QTransform savedTransform = painter.worldTransform();
-        QTransform identity = new QTransform();
-        painter.setWorldTransform(identity);
-        painter.drawImage(sourceOffset, shadow);
-        painter.drawPixmap(sourceOffset, sourcePixmap);
-        painter.setWorldTransform(savedTransform);
-        savedTransform.dispose();
-        identity.dispose();
-        shadow.dispose();
-        sourcePixmap.dispose();
-        sourceOffset.dispose();
+        return shadow;
     }
 
     private static QImage transparentImage(int width, int height) {

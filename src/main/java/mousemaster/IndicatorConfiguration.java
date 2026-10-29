@@ -1,13 +1,11 @@
 package mousemaster;
 
 import mousemaster.IndicatorLayerConfiguration.IndicatorLayerConfigurationBuilder;
-import mousemaster.Shadow.ShadowBuilder;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public record IndicatorConfiguration(boolean renderAsCursor, boolean excludeFromCapture,
-                                     Shadow shadow,
                                      Map<String, IndicatorLayerConfiguration> layerByName) {
 
     public boolean enabled() {
@@ -21,7 +19,6 @@ public record IndicatorConfiguration(boolean renderAsCursor, boolean excludeFrom
 
         private Boolean renderAsCursor;
         private Boolean excludeFromCapture;
-        private final ShadowBuilder shadow = new ShadowBuilder();
         private final Map<String, IndicatorLayerConfigurationBuilder> layerByName =
                 new LinkedHashMap<>();
 
@@ -43,10 +40,6 @@ public record IndicatorConfiguration(boolean renderAsCursor, boolean excludeFrom
             return excludeFromCapture;
         }
 
-        public ShadowBuilder shadow() {
-            return shadow;
-        }
-
         public Map<String, IndicatorLayerConfigurationBuilder> layerByName() {
             return layerByName;
         }
@@ -59,7 +52,6 @@ public record IndicatorConfiguration(boolean renderAsCursor, boolean excludeFrom
         public void extend(IndicatorConfigurationBuilder parent) {
             if (renderAsCursor == null) renderAsCursor = parent.renderAsCursor;
             if (excludeFromCapture == null) excludeFromCapture = parent.excludeFromCapture;
-            shadow.extend(parent.shadow);
             for (Map.Entry<String, IndicatorLayerConfigurationBuilder> entry : parent.layerByName.entrySet())
                 layer(entry.getKey()).extend(entry.getValue());
         }
@@ -68,7 +60,7 @@ public record IndicatorConfiguration(boolean renderAsCursor, boolean excludeFrom
             Map<String, IndicatorLayerConfiguration> builtLayerByName = new LinkedHashMap<>();
             for (Map.Entry<String, IndicatorLayerConfigurationBuilder> entry : layerByName.entrySet())
                 builtLayerByName.put(entry.getKey(), entry.getValue().build());
-            return new IndicatorConfiguration(renderAsCursor, excludeFromCapture, shadow.build(),
+            return new IndicatorConfiguration(renderAsCursor, excludeFromCapture,
                     builtLayerByName);
         }
     }

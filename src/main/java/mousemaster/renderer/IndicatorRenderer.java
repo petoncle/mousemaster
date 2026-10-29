@@ -33,6 +33,8 @@ public final class IndicatorRenderer {
     private QWidget layersWidget;
     private final List<IndicatorLayerWidget> widgets = new ArrayList<>();
     private IndicatorShadowEffect shadowEffect;
+    private final List<ShadowCast> shadowCasts = new ArrayList<>();
+    private double shadowScale;
     private IndicatorConfiguration currentIndicator;
     private List<IndicatorLayerConfiguration> currentEnabledLayers;
     private Rectangle gradientArea;
@@ -113,8 +115,7 @@ public final class IndicatorRenderer {
             if (entry.getValue().followMouse() == followMouse)
                 layerByName.put(entry.getKey(), entry.getValue());
         return new IndicatorConfiguration(indicator.renderAsCursor(),
-                indicator.excludeFromCapture(), indicator.shadow(),
-                layerByName);
+                indicator.excludeFromCapture(), layerByName);
     }
 
     private void setGradientSampling(Rectangle mouseRectangle, Point cursorVisualCenter,
@@ -269,12 +270,16 @@ public final class IndicatorRenderer {
         return size + size % 2;
     }
 
-    private int indicatorShadowPadding(Shadow shadow, double scale) {
-        if (shadow.blurRadius() == 0)
-            return 0;
-        return (int) Math.ceil((shadow.blurRadius() +
-                Math.max(Math.abs(shadow.horizontalOffset()),
-                         Math.abs(shadow.verticalOffset()))) * scale);
+    private static int shadowPadding(List<IndicatorLayerConfiguration> layers, double scale) {
+        int shadowPadding = 0;
+        for (IndicatorLayerConfiguration layer : layers) {
+            Shadow shadow = layer.shadow();
+            if (shadow.blurRadius() != 0)
+                shadowPadding = Math.max(shadowPadding, (int) Math.ceil((shadow.blurRadius() +
+                        Math.max(Math.abs(shadow.horizontalOffset()),
+                                 Math.abs(shadow.verticalOffset()))) * scale));
+        }
+        return shadowPadding;
     }
 
 
@@ -348,7 +353,7 @@ public final class IndicatorRenderer {
                         .build();
         });
         return new IndicatorConfiguration(indicator.renderAsCursor(),
-                indicator.excludeFromCapture(), indicator.shadow(), layerByName);
+                indicator.excludeFromCapture(), layerByName);
     }
 
     private List<Point> layerTopLefts(IndicatorConfiguration indicator,
@@ -567,7 +572,7 @@ public final class IndicatorRenderer {
         List<IndicatorLayerConfiguration> enabledLayers = enabledLayers(indicatorWithPositions);
         List<Point> topLefts = layerTopLefts(indicatorWithPositions, mouseAnchor, zoom);
         Rectangle layersRectangle = layersRectangle(enabledLayers, topLefts, screenScale);
-        int shadowPadding = indicatorShadowPadding(indicator.shadow(), screenScale);
+        int shadowPadding = shadowPadding(enabledLayers, screenScale);
         int x = layersRectangle.x() - shadowPadding;
         int y = layersRectangle.y() - shadowPadding;
         List<Point> offsets = new ArrayList<>();
@@ -596,11 +601,10 @@ public final class IndicatorRenderer {
     }
 
     public static boolean looksTheSameAnywhere(IndicatorConfiguration indicator) {
-        if (!looksTheSameAnywhere(indicator.shadow().color()))
-            return false;
         for (IndicatorLayerConfiguration layer : enabledLayers(indicator))
             if (!looksTheSameAnywhere(layer.fillColor()) ||
-                !looksTheSameAnywhere(layer.stroke().color()))
+                !looksTheSameAnywhere(layer.stroke().color()) ||
+                !looksTheSameAnywhere(layer.shadow().color()))
                 return false;
         return true;
     }
@@ -628,7 +632,7 @@ public final class IndicatorRenderer {
             layersSize = Math.max(layersSize, layerSizeWithStroke(layer, scale) + 2 * (int)
                     Math.round((Math.max(Math.abs(layer.x()), Math.abs(layer.y())) +
                                 Math.abs(layer.distance())) * scale));
-        int shadowPadding = indicatorShadowPadding(indicator.shadow(), scale);
+        int shadowPadding = shadowPadding(enabledLayers, scale);
         int imageSize = layersSize + 2 * shadowPadding;
         List<Point> topLefts = new ArrayList<>();
         for (IndicatorLayerConfiguration layer : enabledLayers) {
@@ -729,27 +733,50 @@ public final class IndicatorRenderer {
         return false;
     }
 
+    /** The layers that cast one shadow, blurred together as one shape. */
+    private record ShadowCast(Shadow shadow, List<IndicatorLayerWidget> widgets, QColor color,
+                              QBrush brush) {
+    }
+
     private void applyShadowEffect(double scale, String lastSelectedHintBoxHexColor) {
-        Shadow shadow = currentIndicator.shadow();
-        QColor baseColor = QtColorUtil.qColor(hex(shadow.color(), lastSelectedHintBoxHexColor), 1.0);
-        boolean hasShadow = shadow.opacity() > 0 && shadow.blurRadius() > 0;
-        if (hasShadow) {
+        for (ShadowCast shadowCast : shadowCasts)
+            shadowCast.color().dispose();
+        shadowCasts.clear();
+        shadowScale = scale;
+        Map<Shadow, List<IndicatorLayerWidget>> widgetsByShadow = new LinkedHashMap<>();
+        for (int i = 0; i < currentEnabledLayers.size(); i++) {
+            Shadow shadow = currentEnabledLayers.get(i).shadow();
+            if (shadow.opacity() > 0 && shadow.blurRadius() > 0)
+                widgetsByShadow.computeIfAbsent(shadow, shadow_ -> new ArrayList<>())
+                               .add(widgets.get(i));
+        }
+        if (!widgetsByShadow.isEmpty()) {
+            double left = 0, right = 0, top = 0, bottom = 0;
+            for (Map.Entry<Shadow, List<IndicatorLayerWidget>> entry : widgetsByShadow.entrySet()) {
+                Shadow shadow = entry.getKey();
+                QColor baseColor =
+                        QtColorUtil.qColor(hex(shadow.color(), lastSelectedHintBoxHexColor), 1.0);
+                QColor shadowColor = new QColor(baseColor.red(), baseColor.green(),
+                        baseColor.blue(), (int) Math.round(shadow.opacity() * 255));
+                baseColor.dispose();
+                GradientColor shadowSweep = sweep(shadow.color());
+                shadowCasts.add(new ShadowCast(shadow, entry.getValue(), shadowColor,
+                        shadowSweep == null ? null :
+                                brush(shadowColor, shadowSweep, sweepArea(layersTopLeft()))));
+                double radius = shadow.blurRadius() * scale;
+                left = Math.max(left, radius - shadow.horizontalOffset() * scale);
+                right = Math.max(right, radius + shadow.horizontalOffset() * scale);
+                top = Math.max(top, radius - shadow.verticalOffset() * scale);
+                bottom = Math.max(bottom, radius + shadow.verticalOffset() * scale);
+            }
             // Reused rather than replaced: installing a graphics effect sets up Qt machinery
             // that costs milliseconds, which an animating indicator would pay every frame.
             IndicatorShadowEffect effect = reusableShadowEffect();
             effect.setTransparencyOnly(false);
-            effect.setBlurRadius(shadow.blurRadius() * scale);
-            effect.setOffset(shadow.horizontalOffset() * scale,
-                    shadow.verticalOffset() * scale);
-            int alpha = (int) Math.round(shadow.opacity() * 255);
-            QColor shadowColor = new QColor(baseColor.red(), baseColor.green(),
-                    baseColor.blue(), alpha);
-            effect.setColor(shadowColor);
-            GradientColor shadowSweep = sweep(shadow.color());
-            effect.setShadowBrush(shadowSweep == null ? null :
-                    brush(shadowColor, shadowSweep, sweepArea(layersTopLeft())));
-            shadowColor.dispose();
-            effect.setStackCount(shadow.stackCount());
+            // Its own shadow is never drawn: it pads the source for the farthest shadow on
+            // each side.
+            effect.setOffset((right - left) / 2, (bottom - top) / 2);
+            effect.setBlurRadius(Math.max(left + right, top + bottom) / 2);
             install(effect);
         }
         else if (indicatorHasTransparency()) {
@@ -761,7 +788,6 @@ public final class IndicatorRenderer {
             shadowEffect = null;
             layersWidget.setGraphicsEffect(null);
         }
-        baseColor.dispose();
     }
 
     private Point layersTopLeft() {
@@ -1244,6 +1270,64 @@ public final class IndicatorRenderer {
                 return;
             }
             super.draw(painter);
+        }
+
+        @Override
+        protected void drawShadow(QPainter painter) {
+            if (transparencyOnly()) {
+                super.drawShadow(painter);
+                return;
+            }
+            QPoint sourceOffset = new QPoint();
+            QPixmap sourcePixmap = sourcePixmap(Qt.CoordinateSystem.DeviceCoordinates,
+                    sourceOffset, PixmapPadMode.PadToEffectiveBoundingRect);
+            QTransform savedTransform = painter.worldTransform();
+            QTransform identity = new QTransform();
+            painter.setWorldTransform(identity);
+            for (ShadowCast shadowCast : renderer.shadowCasts) {
+                QPixmap castPixmap =
+                        shadowCast.widgets().size() == renderer.currentEnabledLayers.size() ?
+                                sourcePixmap :
+                                castPixmap(sourcePixmap,
+                                        (int) Math.round(savedTransform.dx()) - sourceOffset.x(),
+                                        (int) Math.round(savedTransform.dy()) - sourceOffset.y(),
+                                        shadowCast.widgets());
+                Shadow shadow = shadowCast.shadow();
+                drawShadow(painter, castPixmap, sourceOffset,
+                        shadow.blurRadius() * renderer.shadowScale,
+                        shadow.horizontalOffset() * renderer.shadowScale,
+                        shadow.verticalOffset() * renderer.shadowScale, shadowCast.color(),
+                        shadowCast.brush(), shadow.stackCount());
+                if (castPixmap != sourcePixmap)
+                    castPixmap.dispose();
+            }
+            painter.drawPixmap(sourceOffset, sourcePixmap);
+            painter.setWorldTransform(savedTransform);
+            savedTransform.dispose();
+            identity.dispose();
+            sourcePixmap.dispose();
+            sourceOffset.dispose();
+            redrawSourceOverShadow(painter);
+        }
+
+        /** The source as only these layers draw it. */
+        private static QPixmap castPixmap(QPixmap sourcePixmap, int x, int y,
+                                          List<IndicatorLayerWidget> widgets) {
+            QPixmap castPixmap = new QPixmap(sourcePixmap.width(), sourcePixmap.height());
+            castPixmap.setDevicePixelRatio(sourcePixmap.devicePixelRatio());
+            QColor transparent = new QColor(0, 0, 0, 0);
+            castPixmap.fill(transparent);
+            transparent.dispose();
+            QPainter painter = new QPainter(castPixmap);
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+            painter.translate(x, y);
+            for (IndicatorLayerWidget widget : widgets) {
+                painter.setClipRect(widget.x(), widget.y(), widget.width(), widget.height());
+                widget.redrawSourceOverShadow(painter, true);
+            }
+            painter.end();
+            painter.dispose();
+            return castPixmap;
         }
 
         @Override

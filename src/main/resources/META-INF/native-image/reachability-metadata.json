@@ -6895,7 +6895,6 @@
           "parameterTypes": [
             "boolean",
             "boolean",
-            "mousemaster.Shadow",
             "java.util.Map"
           ]
         },
@@ -6909,10 +6908,6 @@
         },
         {
           "name": "renderAsCursor",
-          "parameterTypes": []
-        },
-        {
-          "name": "shadow",
           "parameterTypes": []
         }
       ]
@@ -6938,6 +6933,7 @@
             "mousemaster.Color",
             "double",
             "mousemaster.IndicatorStroke",
+            "mousemaster.Shadow",
             "java.lang.String",
             "java.lang.String",
             "double",
@@ -6997,6 +6993,10 @@
         },
         {
           "name": "positions",
+          "parameterTypes": []
+        },
+        {
+          "name": "shadow",
           "parameterTypes": []
         },
         {

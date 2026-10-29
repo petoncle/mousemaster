@@ -1,6 +1,7 @@
 package mousemaster;
 
 import mousemaster.IndicatorStroke.IndicatorStrokeBuilder;
+import mousemaster.Shadow.ShadowBuilder;
 
 import java.util.List;
 
@@ -11,7 +12,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                                           double distance, double angle,
                                           double rotation, Color fillColor,
                                           double fillOpacity,
-                                          IndicatorStroke stroke,
+                                          IndicatorStroke stroke, Shadow shadow,
                                           String text, String fontName, double fontSize,
                                           FontWeight fontWeight, String textStyleSheet,
                                           List<IndicatorPosition> positions,
@@ -38,6 +39,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         private Color fillColor;
         private Double fillOpacity;
         private IndicatorStrokeBuilder stroke = new IndicatorStrokeBuilder();
+        private ShadowBuilder shadow = new ShadowBuilder();
         private String text;
         private String fontName;
         private Double fontSize;
@@ -65,6 +67,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             this.fillColor = layer.fillColor;
             this.fillOpacity = layer.fillOpacity;
             this.stroke = new IndicatorStrokeBuilder(layer.stroke);
+            this.shadow = new ShadowBuilder(layer.shadow);
             this.text = layer.text;
             this.fontName = layer.fontName;
             this.fontSize = layer.fontSize;
@@ -204,6 +207,10 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             return stroke;
         }
 
+        public ShadowBuilder shadow() {
+            return shadow;
+        }
+
         public IndicatorLayerConfigurationBuilder text(String text) {
             this.text = text;
             return this;
@@ -283,6 +290,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             if (fillColor == null) fillColor = parent.fillColor;
             if (fillOpacity == null) fillOpacity = parent.fillOpacity;
             stroke.extend(parent.stroke);
+            shadow.extend(parent.shadow);
             if (text == null) text = parent.text;
             if (fontName == null) fontName = parent.fontName;
             if (fontSize == null) fontSize = parent.fontSize;
@@ -295,7 +303,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         public IndicatorLayerConfiguration build() {
             return new IndicatorLayerConfiguration(enabled, z, shape, size, aspectRatio,
                     borderRadius, points, x, y, distance, angle, rotation, fillColor, fillOpacity,
-                    stroke.build(),
+                    stroke.build(), shadow.build(),
                     text, fontName, fontSize, fontWeight, textStyleSheet, positions,
                     followMouse && !positions.contains(IndicatorPosition.SELECTION) &&
                     !positions.contains(IndicatorPosition.LAST_SELECTED_HINT));

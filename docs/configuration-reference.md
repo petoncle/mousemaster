@@ -306,7 +306,7 @@ normal-mode.ring-indicator.fill-opacity=0
 ```
 
 Every layer starts from the same defaults (a disabled 26-pixel red circle), not from the mode's
-`indicator`, and a mode that extends another extends each of its layers by name. The shadow,
+`indicator`, and a mode that extends another extends each of its layers by name.
 `render-as-cursor` and `exclude-from-capture` belong to the whole indicator, so they are set on
 `<mode>.indicator` only.
 
@@ -493,7 +493,8 @@ normal-mode.indicator.shadow-vertical-offset=2
 - **`shadow-stack-count`**: Number of times the shadow is composited on itself for a stronger effect (1-100, default 1)
 - **`shadow-horizontal-offset`** / **`shadow-vertical-offset`**: Shadow offset in pixels (-100 to 100, default 0)
 
-The shadow is cast by all the layers together.
+Each layer casts its own shadow. Layers with the same shadow cast it as one shape, and a shadow is
+never drawn over a layer, even a translucent one.
 
 #### Rendering as the system cursor
 
