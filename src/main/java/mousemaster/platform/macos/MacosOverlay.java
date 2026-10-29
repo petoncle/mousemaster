@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,7 +38,9 @@ public class MacosOverlay implements Overlay {
     private final List<MacosDesktopCapture> desktopCaptures = new ArrayList<>();
 
     private IndicatorRenderer followingIndicatorRenderer;
-    private IndicatorRenderer anchoredIndicatorRenderer;
+    private final Map<String, IndicatorRenderer> anchoredIndicatorRendererByLayerName =
+            new LinkedHashMap<>();
+    private List<String> anchoredLayerNames = List.of();
     private boolean indicatorExcludedFromCapture;
     private MacosZoomRenderer zoomRenderer;
     private Zoom currentZoom;
@@ -109,15 +112,26 @@ public class MacosOverlay implements Overlay {
 
     private void createIndicatorWindows() {
         followingIndicatorRenderer = new IndicatorRenderer();
-        anchoredIndicatorRenderer = new IndicatorRenderer();
         MacosWindow.applyOverlayProperties(followingIndicatorRenderer.window());
-        MacosWindow.applyOverlayProperties(anchoredIndicatorRenderer.window(),
-                MacosWindow.aboveOverlaysLevel);
     }
 
     private List<IndicatorRenderer> indicatorRenderers() {
-        return followingIndicatorRenderer == null ? List.of() :
-                List.of(followingIndicatorRenderer, anchoredIndicatorRenderer);
+        List<IndicatorRenderer> indicatorRenderers = new ArrayList<>();
+        if (followingIndicatorRenderer != null)
+            indicatorRenderers.add(followingIndicatorRenderer);
+        indicatorRenderers.addAll(anchoredIndicatorRendererByLayerName.values());
+        return indicatorRenderers;
+    }
+
+    private IndicatorRenderer anchoredIndicatorRenderer(String layerName) {
+        return anchoredIndicatorRendererByLayerName.computeIfAbsent(layerName, layerName_ -> {
+            IndicatorRenderer indicatorRenderer = new IndicatorRenderer();
+            MacosWindow.applyOverlayProperties(indicatorRenderer.window(),
+                    MacosWindow.aboveOverlaysLevel);
+            MacosWindow.setExcludedFromCapture(indicatorRenderer.window(),
+                    indicatorExcludedFromCapture);
+            return indicatorRenderer;
+        });
     }
 
     private TransparentWindow createStyledHintMeshWindow() {
@@ -155,11 +169,22 @@ public class MacosOverlay implements Overlay {
         }
         QPoint mousePosition = mouse.findMousePosition();
         setIndicator(followingIndicatorRenderer,
-                IndicatorRenderer.followingMouse(indicator, true), Set.of(), Map.of(),
+                IndicatorRenderer.followingMouse(indicator), Set.of(), Map.of(),
                 Map.of(), mousePosition);
-        setIndicator(anchoredIndicatorRenderer,
-                IndicatorRenderer.followingMouse(indicator, false), layerNamesToAnchor,
-                pointsByPosition, rectangleByArea, mousePosition);
+        Map<String, IndicatorConfiguration> anchored = IndicatorRenderer.anchoredLayers(indicator);
+        for (Map.Entry<String, IndicatorRenderer> entry :
+                anchoredIndicatorRendererByLayerName.entrySet())
+            if (!anchored.containsKey(entry.getKey()))
+                entry.getValue().hide();
+        for (Map.Entry<String, IndicatorConfiguration> entry : anchored.entrySet())
+            setIndicator(anchoredIndicatorRenderer(entry.getKey()), entry.getValue(),
+                    layerNamesToAnchor, pointsByPosition, rectangleByArea, mousePosition);
+        // The windows share a level: the one ordered front last is drawn on top.
+        if (!anchoredLayerNames.equals(List.copyOf(anchored.keySet())))
+            for (String layerName : anchored.keySet())
+                MacosWindow.orderFront(
+                        anchoredIndicatorRendererByLayerName.get(layerName).window());
+        anchoredLayerNames = List.copyOf(anchored.keySet());
     }
 
     private void setIndicator(IndicatorRenderer indicatorRenderer,

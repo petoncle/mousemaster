@@ -25,6 +25,7 @@ public final class MacosWindow {
             objectiveC.sel_registerName("setAnimationBehavior:");
     private static final Pointer setSharingType =
             objectiveC.sel_registerName("setSharingType:");
+    private static final Pointer orderFront = objectiveC.sel_registerName("orderFront:");
 
     private static final Pointer sharedApplication =
             objectiveC.sel_registerName("sharedApplication");
@@ -76,6 +77,11 @@ public final class MacosWindow {
         objectiveC.objc_msgSend(nsWindow, setIgnoresMouseEvents, 1);
         objectiveC.objc_msgSend(nsWindow, setHasShadow, 0);
         objectiveC.objc_msgSend(nsWindow, setAnimationBehavior, animationBehaviorNone);
+    }
+
+    /** QWidget.raise also activates the application. */
+    public static void orderFront(QWidget widget) {
+        objectiveC.objc_msgSend(nsWindow(widget), orderFront, Pointer.NULL);
     }
 
     public static void setExcludedFromCapture(QWidget widget, boolean excluded) {

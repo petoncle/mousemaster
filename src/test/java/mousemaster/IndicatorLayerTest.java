@@ -252,9 +252,11 @@ class IndicatorLayerTest {
                 "idle-mode.sheet-indicator.follow-mouse=false").modeMap().get(Mode.IDLE_MODE_NAME)
                                                               .indicator();
         assertEquals(java.util.Set.of("indicator"),
-                IndicatorRenderer.followingMouse(indicator, true).layerByName().keySet());
+                IndicatorRenderer.followingMouse(indicator).layerByName().keySet());
         assertEquals(java.util.Set.of("sheet-indicator"),
-                IndicatorRenderer.followingMouse(indicator, false).layerByName().keySet());
-        assertTrue(IndicatorRenderer.followingMouse(indicator, false).enabled());
+                IndicatorRenderer.anchoredLayers(indicator).keySet());
+        assertEquals(java.util.Set.of("sheet-indicator"),
+                IndicatorRenderer.anchoredLayers(indicator).get("sheet-indicator")
+                                 .layerByName().keySet());
     }
 }

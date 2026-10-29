@@ -105,12 +105,26 @@ public final class IndicatorRenderer {
         return layers;
     }
 
-    public static IndicatorConfiguration followingMouse(IndicatorConfiguration indicator,
-                                                        boolean followMouse) {
+    /** One indicator for each enabled layer that does not follow the mouse, in z order, so
+     *  that a layer that changes does not redraw the others. */
+    public static Map<String, IndicatorConfiguration> anchoredLayers(
+            IndicatorConfiguration indicator) {
+        Map<String, IndicatorConfiguration> indicatorByLayerName = new LinkedHashMap<>();
+        for (String layerName : enabledLayerNames(indicator)) {
+            IndicatorLayerConfiguration layer = indicator.layerByName().get(layerName);
+            if (!layer.followMouse())
+                indicatorByLayerName.put(layerName,
+                        new IndicatorConfiguration(indicator.renderAsCursor(),
+                                indicator.excludeFromCapture(), Map.of(layerName, layer)));
+        }
+        return indicatorByLayerName;
+    }
+
+    public static IndicatorConfiguration followingMouse(IndicatorConfiguration indicator) {
         Map<String, IndicatorLayerConfiguration> layerByName = new LinkedHashMap<>();
         for (Map.Entry<String, IndicatorLayerConfiguration> entry : indicator.layerByName()
                                                                              .entrySet())
-            if (entry.getValue().followMouse() == followMouse)
+            if (entry.getValue().followMouse())
                 layerByName.put(entry.getKey(), entry.getValue());
         return new IndicatorConfiguration(indicator.renderAsCursor(),
                 indicator.excludeFromCapture(), layerByName);
