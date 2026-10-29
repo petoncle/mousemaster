@@ -244,7 +244,11 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     /** The selection follows the mouse, until no-movement stops it where it is. */
     public Point selectionPoint() {
-        return noMovement(currentMode) ? selectionPoint : new Point(mouseX, mouseY);
+        return selectionPoint(currentMode);
+    }
+
+    private Point selectionPoint(Mode mode) {
+        return noMovement(mode) ? selectionPoint : new Point(mouseX, mouseY);
     }
 
     private static boolean noMovement(Mode mode) {
@@ -447,7 +451,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             currentPositionHistory =
                     positionHistory(positionHistoryHintMesh.positionHistoryName());
             if (currentPositionHistory.positions().isEmpty())
-                currentPositionHistory.save(new Point(mouseX, mouseY));
+                currentPositionHistory.save(selectionPoint(newMode));
         }
         ScreenFilter newScreenFilter = screenFilter(hintMeshConfiguration);
         List<Key> selectionKeys =
@@ -1847,11 +1851,11 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public void saveCurrentPosition(String positionHistoryName) {
-        positionHistory(positionHistoryName).save(new Point(mouseX, mouseY));
+        positionHistory(positionHistoryName).save(selectionPoint());
     }
 
     public void unsaveCurrentPosition(String positionHistoryName) {
-        positionHistory(positionHistoryName).unsave(new Point(mouseX, mouseY));
+        positionHistory(positionHistoryName).unsave(selectionPoint());
     }
 
     public void clearPositionHistory(String positionHistoryName) {
@@ -1860,10 +1864,9 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     public void cyclePosition(String positionHistoryName, int offset) {
         Point position =
-                positionHistory(positionHistoryName).cycle(offset, mouseX, mouseY);
+                positionHistory(positionHistoryName).cycle(offset, selectionPoint());
         if (position != null)
-            mouseManager.moveTo((int) Math.round(position.x()),
-                    (int) Math.round(position.y()));
+            select(position);
     }
 
 }

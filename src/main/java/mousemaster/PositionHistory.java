@@ -65,13 +65,13 @@ public class PositionHistory {
     /**
      * The position to cycle to, null if there is none.
      */
-    public Point cycle(int offset, int mouseX, int mouseY) {
+    public Point cycle(int offset, Point from) {
         if (positions.isEmpty())
             return null;
         for (int positionIndex = 0; positionIndex < positions.size(); positionIndex++) {
             Point position = positions.get(positionIndex);
-            if (Math.round(position.x()) == mouseX &&
-                Math.round(position.y()) == mouseY) {
+            if (Math.round(position.x()) == Math.round(from.x()) &&
+                Math.round(position.y()) == Math.round(from.y())) {
                 cycleIndex = positionIndex;
                 break;
             }

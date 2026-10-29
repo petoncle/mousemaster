@@ -24,14 +24,15 @@ class GridCommandTest {
     private HintManager hintManager;
 
     private void start(String properties) throws IOException {
-        modeMap = ConfigurationParser.parse(PropertiesReader.readPropertiesFile(
+        Configuration configuration = ConfigurationParser.parse(PropertiesReader.readPropertiesFile(
                         new BufferedReader(new StringReader("""
                                 idle-mode.to.grid-mode=+g
                                 grid-mode.to.idle-mode=+esc
                                 grid-mode.mouse.smooth-jump-enabled=false
                                 grid-mode.hint.grid-cell-sizing=fit
                                 """ + properties))),
-                KeyboardLayout.keyboardLayoutByShortName.get("uk-qwerty")).modeMap();
+                KeyboardLayout.keyboardLayoutByShortName.get("uk-qwerty"));
+        modeMap = configuration.modeMap();
         ScreenManager screenManager = new ScreenManager(
                 () -> Set.of(new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1)));
         mouseManager = new MouseManager(screenManager,
@@ -43,7 +44,8 @@ class GridCommandTest {
                                 mousePositions.addAll(List.of(args));
                             return null;
                         }));
-        hintManager = new HintManager(Map.of(), screenManager, mouseManager,
+        hintManager = new HintManager(configuration.positionHistoryConfigurationByName(),
+                screenManager, mouseManager,
                 (Overlay) Proxy.newProxyInstance(Overlay.class.getClassLoader(),
                         new Class<?>[] {Overlay.class}, (proxy, method, args) -> null),
                 null, () -> new App("test.exe"), new KeyRedactor(KeyRedaction.NONE), null);
@@ -229,6 +231,27 @@ class GridCommandTest {
         assertEquals(new Point(1919, 100), hintManager.selectionPoint());
         hintManager.moveToSelection();
         assertEquals(List.of(1919, 100), mousePositions);
+    }
+
+    @Test
+    void withNoMovementAPositionHistorySavesAndCyclesTheSelection() throws IOException {
+        start("""
+                grid-mode.hint.grid-max-row-count=2
+                grid-mode.hint.grid-max-column-count=2
+                grid-mode.hint.mouse-movement=no-movement
+                grid-mode.position-history.save-position=+s
+                """);
+        hintManager.mouseMoved(100, 100);
+        switchMode("grid-mode");
+        hintManager.snapRight();
+        hintManager.saveCurrentPosition("position-history");
+        hintManager.snapRight();
+        hintManager.saveCurrentPosition("position-history");
+        assertEquals(List.of(new Point(960, 100), new Point(1919, 100)),
+                hintManager.positionHistory("position-history").positions());
+        hintManager.cyclePosition("position-history", 1);
+        assertEquals(new Point(960, 100), hintManager.selectionPoint());
+        assertEquals(List.of(), mousePositions);
     }
 
     @Test

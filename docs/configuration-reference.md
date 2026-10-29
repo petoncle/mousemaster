@@ -1354,7 +1354,7 @@ In this example:
 
 ## Position history
 
-Position history allows you to save mouse positions and quickly return to them later. This feature can be used for frequently accessed UI elements or for creating custom navigation patterns.
+Position history allows you to save positions of the selection (see `mouse-movement`) and quickly return to them later. Unless the mode has `no-movement`, the selection follows the mouse, so these are mouse positions. This feature can be used for frequently accessed UI elements or for creating custom navigation patterns.
 
 ### Basic configuration
 
@@ -1362,7 +1362,7 @@ Position history allows you to save mouse positions and quickly return to them l
 # Set the maximum number of positions to remember
 position-history.max-size=16
 
-# Define a key to save the current mouse position
+# Define a key to save the position of the selection
 normal-mode.position-history.save-position=+f1
 
 # Define a key to clear all saved positions
@@ -1370,10 +1370,10 @@ normal-mode.position-history.clear=+f2
 ```
 
 - **`max-size`**: Maximum number of positions that can be stored, 1-100 (older positions are removed when this limit is reached). Default 16.
-- **`save-position`**: Command to save the current mouse position to history
-- **`unsave-position`**: Command to remove the saved position the mouse is on
+- **`save-position`**: Command to save the position of the selection to history
+- **`unsave-position`**: Command to remove the saved position the selection is on
 - **`clear`**: Command to clear all saved positions
-- **`cycle-next`** / **`cycle-previous`**: Commands to move the mouse to the next or previous saved position, continuing from the one it is on
+- **`cycle-next`** / **`cycle-previous`**: Commands to move the selection to the next or previous saved position, continuing from the one it is on. The mouse follows, unless the mode has `no-movement`
 
 ### Several position histories
 
@@ -1434,7 +1434,7 @@ position-hint-mode.overlay.type=position-history | _{browserapp} -> browser-posi
 When you enter a position history hint mode:
 1. One hint box will be displayed for each saved position
 2. Selecting a hint moves the mouse to that saved position
-3. If no positions are saved, no hints will be displayed
+3. If no positions are saved, the selection is saved first, so its hint is displayed
 
 ### Example workflow
 

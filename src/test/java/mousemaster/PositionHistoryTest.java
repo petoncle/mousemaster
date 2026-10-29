@@ -1,10 +1,12 @@
 package mousemaster;
 
+import mousemaster.platform.Overlay;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.lang.reflect.Proxy;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -128,9 +130,16 @@ public class PositionHistoryTest {
 
     private static HintManager hintManager(Configuration configuration,
                                            App[] activeApp) {
-        return new HintManager(configuration.positionHistoryConfigurationByName(), null,
-                new MouseManager(null, null), null, null, () -> activeApp[0],
-                new KeyRedactor(KeyRedaction.NONE), null);
+        ScreenManager screenManager = new ScreenManager(
+                () -> Set.of(new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1)));
+        HintManager hintManager = new HintManager(
+                configuration.positionHistoryConfigurationByName(), screenManager,
+                new MouseManager(screenManager, null),
+                (Overlay) Proxy.newProxyInstance(Overlay.class.getClassLoader(),
+                        new Class<?>[] {Overlay.class}, (proxy, method, args) -> null),
+                null, () -> activeApp[0], new KeyRedactor(KeyRedaction.NONE), null);
+        hintManager.modeChanged(configuration.modeMap().get(Mode.IDLE_MODE_NAME));
+        return hintManager;
     }
 
     @Test
