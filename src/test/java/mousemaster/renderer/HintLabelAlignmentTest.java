@@ -93,7 +93,7 @@ class HintLabelAlignmentTest {
             for (FontWeight weight : new FontWeight[] {FontWeight.NORMAL, FontWeight.BOLD}) {
                 FontStyle fontStyle = fontStyle(size, weight);
                 QtHintFontStyle style = QtHintFont.qtHintFontStyle(
-                        new HintFontStyle(fontStyle, 0, fontStyle, fontStyle), null, screenScale,
+                        new HintFontStyle(fontStyle, 0, fontStyle, fontStyle, fontStyle), null, screenScale,
                         "#FFFFFF");
                 QFontMetrics metrics = style.defaultStyle().metrics();
                 double glyphStep =
@@ -134,7 +134,7 @@ class HintLabelAlignmentTest {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         FontStyle fontStyle = fontStyle(10, FontWeight.NORMAL);
         QtHintFontStyle style = QtHintFont.qtHintFontStyle(
-                new HintFontStyle(fontStyle, 0, fontStyle, fontStyle), null, 1, "#FFFFFF");
+                new HintFontStyle(fontStyle, 0, fontStyle, fontStyle, fontStyle), null, 1, "#FFFFFF");
         HintMeshRenderer.HintLabel hintLabel = HintMeshRenderer.HintLabel.of(List.of(),
                 new HashMap<>(), 7, 7, 0, -1, style, 0, -1, FontVerticalAlignment.CAP_HEIGHT,
                 false, 1);

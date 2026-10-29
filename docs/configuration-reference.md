@@ -259,7 +259,7 @@ hint-mode.zoom.percent=1 | _{iszoom} -> 30
 
 A virtual key starts in its declared state, and reloading the configuration returns every one to it.
 
-When mutating a hint font property, related properties are automatically updated. For example, mutating `font-color` also mutates `selected-font-color`, `focused-font-color`, and the corresponding prefix variants (unless they were explicitly set in the configuration).
+When mutating a hint font property, related properties are automatically updated. For example, mutating `font-color` also mutates `selected-font-color`, `focused-font-color`, `saved-font-color`, and the corresponding prefix variants (unless they were explicitly set in the configuration).
 
 ### Mouse properties
 
@@ -1134,6 +1134,9 @@ hint-mode.overlay.background-opacity=0
     ```properties
     hint-mode.overlay.box-border-color=across-screen per-pixel center-to-edge #F97316 #3B82F6
     ```
+  - `saved-box-color`, `saved-box-opacity`, `saved-box-border-color`, `saved-box-border-opacity` and
+    the same four `saved-ui-element-box-` properties: the box of a hint at a saved position (see
+    [Saved hints](#saved-hints)).
   - `box-border-length`: Higher values create continuous lines between hint boxes, lower values create dotted separators
   - `box-border-radius`: Radius for rounded corners (0-1000, default 0).
   - `box-shadow-blur-radius`: Shadow blur radius (0-1000, default 10).
@@ -1203,6 +1206,9 @@ Font styles are configured per state and per category (non-prefix and prefix).
 
 The `font-*` properties define the default state. The `selected-font-*` and `focused-font-*` properties override specific values for selected and focused keys. Unset selected/focused properties inherit from the default state. The `prefix-` variants follow the same pattern, with unset prefix properties inheriting from the corresponding non-prefix properties.
 
+The `saved-font-*` properties replace the default and focused states in the keys of a saved hint
+(see [Saved hints](#saved-hints)). Unset saved properties inherit from the default state.
+
 Each state supports the following font properties:
 - `font-name`
 - `font-weight`
@@ -1229,6 +1235,7 @@ The property naming pattern is:
 - Prefix default: `overlay.prefix-font-*`
 - Prefix selected: `overlay.prefix-selected-font-*`
 - Prefix focused: `overlay.prefix-focused-font-*`
+- Saved: `overlay.saved-font-*`
 
 ### Multi-level hint example
 
@@ -1438,6 +1445,30 @@ When you enter a position history hint mode:
 1. One hint box will be displayed for each saved position
 2. Selecting a hint moves the mouse to that saved position
 3. If no positions are saved, the selection is saved first, so its hint is displayed
+
+### Saved hints
+
+An overlay can show which of its hints are at a saved position. `saved-position-history` names the
+history, and the `saved-` properties style those hints:
+
+```properties
+ui-hint-mode.overlay.saved-position-history=drag-position-history
+ui-hint-mode.overlay.saved-box-color=#00FF00
+ui-hint-mode.overlay.saved-box-opacity=0.5
+ui-hint-mode.overlay.saved-ui-element-box-border-color=#00FF00
+ui-hint-mode.overlay.saved-font-color=#000000
+```
+
+- A hint is saved when a saved position is in its element (UI hints) or its cell (grids), or on its
+  center when it has neither.
+- `saved-box-color`, `saved-box-opacity`, `saved-box-border-color`, `saved-box-border-opacity`,
+  `saved-ui-element-box-color`, `saved-ui-element-box-opacity`, `saved-ui-element-box-border-color`
+  and `saved-ui-element-box-border-opacity` replace the values of the box for a saved hint. A value
+  that is not set is the value of the box, mutations included.
+- The `saved-font-*` properties replace every font state in the keys of a saved hint: default,
+  selected and focused.
+- A saved hint stays shown when the selected keys hide the other hints.
+- A save, an unsave or a clear of that history shows on the overlay at once.
 
 ### Example workflow
 

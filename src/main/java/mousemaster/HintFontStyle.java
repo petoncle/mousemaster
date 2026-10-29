@@ -4,10 +4,16 @@ import mousemaster.FontStyle.FontStyleBuilder;
 
 public record HintFontStyle(FontStyle defaultFontStyle, double spacingPercent,
                             FontStyle selectedFontStyle,
-                            FontStyle focusedFontStyle) {
+                            FontStyle focusedFontStyle,
+                            FontStyle savedFontStyle) {
 
     public HintFontStyleBuilder builder() {
         return new HintFontStyleBuilder(this);
+    }
+
+    public HintFontStyle saved() {
+        return new HintFontStyle(savedFontStyle, spacingPercent, savedFontStyle,
+                savedFontStyle, savedFontStyle);
     }
 
     public static class HintFontStyleBuilder {
@@ -16,6 +22,7 @@ public record HintFontStyle(FontStyle defaultFontStyle, double spacingPercent,
         private Double spacingPercent;
         private FontStyleBuilder selectedFontStyle = new FontStyleBuilder();
         private FontStyleBuilder focusedFontStyle = new FontStyleBuilder();
+        private FontStyleBuilder savedFontStyle = new FontStyleBuilder();
 
         public HintFontStyleBuilder() {
 
@@ -26,6 +33,7 @@ public record HintFontStyle(FontStyle defaultFontStyle, double spacingPercent,
             this.spacingPercent = hintFontStyle.spacingPercent;
             this.selectedFontStyle = new FontStyleBuilder(hintFontStyle.selectedFontStyle);
             this.focusedFontStyle = new FontStyleBuilder(hintFontStyle.focusedFontStyle);
+            this.savedFontStyle = new FontStyleBuilder(hintFontStyle.savedFontStyle);
         }
 
         public FontStyleBuilder defaultFontStyle() {
@@ -44,6 +52,10 @@ public record HintFontStyle(FontStyle defaultFontStyle, double spacingPercent,
             return focusedFontStyle;
         }
 
+        public FontStyleBuilder savedFontStyle() {
+            return savedFontStyle;
+        }
+
         public HintFontStyleBuilder spacingPercent(Double fontSpacingPercent) {
             this.spacingPercent = fontSpacingPercent;
             return this;
@@ -54,7 +66,8 @@ public record HintFontStyle(FontStyle defaultFontStyle, double spacingPercent,
                     defaultFontStyle.build(),
                     spacingPercent,
                     selectedFontStyle.build(),
-                    focusedFontStyle.build()
+                    focusedFontStyle.build(),
+                    savedFontStyle.build()
             );
         }
 

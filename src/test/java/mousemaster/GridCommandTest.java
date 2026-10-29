@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The grid commands act on a hint grid on a 1920x1080 screen. */
@@ -276,6 +277,61 @@ class GridCommandTest {
         hintManager.cyclePosition("position-history", 1);
         assertEquals(new Point(960, 100), hintManager.selectionPoint());
         assertEquals(List.of(), mousePositions);
+    }
+
+    @Test
+    void anOverlayShowsTheSavedPositionsOfItsSavedPositionHistory() throws IOException {
+        start("""
+                grid-mode.hint.saved-position-history=position-history
+                grid-mode.hint.saved-box-color=#FF0000
+                grid-mode.position-history.save-position=+s
+                """);
+        hintManager.mouseMoved(100, 100);
+        switchMode("grid-mode");
+        assertEquals(List.of(), hintManager.hintMesh().savedPositions());
+        hintManager.saveCurrentPosition("position-history");
+        assertEquals(List.of(new Point(100, 100)), hintManager.hintMesh().savedPositions());
+        hintManager.unsaveCurrentPosition("position-history");
+        assertEquals(List.of(), hintManager.hintMesh().savedPositions());
+        assertEquals(GradientColor.parse("#FF0000"), modeMap.get("grid-mode").hintMesh()
+                .styleByFilter().get(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER).savedBoxColor());
+    }
+
+    @Test
+    void aSavedFontInheritsFromTheFont() throws IOException {
+        start("""
+                grid-mode.hint.font-size=20
+                grid-mode.hint.selected-font-color=#0000FF
+                grid-mode.hint.saved-font-color=#00FF00
+                """);
+        HintFontStyle fontStyle = modeMap.get("grid-mode").hintMesh().styleByFilter()
+                .get(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER).saved().fontStyle();
+        assertEquals(Color.parse("#00FF00"), fontStyle.defaultFontStyle().color());
+        assertEquals(20, fontStyle.defaultFontStyle().size());
+        assertEquals(Color.parse("#00FF00"), fontStyle.savedFontStyle().color());
+        assertEquals(Color.parse("#00FF00"), fontStyle.focusedFontStyle().color());
+        assertEquals(Color.parse("#00FF00"), fontStyle.selectedFontStyle().color());
+    }
+
+    @Test
+    void aFontMutationReachesTheSavedFont() throws IOException {
+        start("""
+                grid-mode.hint.font-color=#FFFFFF | _{isidling} -> #FF0000
+                """);
+        Mode mode = modeMap.get("grid-mode");
+        for (List<Command> commands : mode.comboMap().commandsByCombo().values())
+            for (Command command : commands)
+                if (command instanceof Command.MutateMode mutateMode)
+                    mode = mode.mutate(mutateMode.propertyPath(), mutateMode.newPropertyValue());
+        assertEquals(Color.parse("#FF0000"), mode.hintMesh().styleByFilter()
+                .get(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER).fontStyle().savedFontStyle().color());
+    }
+
+    @Test
+    void aSavedPositionHistoryMustBeDefined() {
+        assertThrows(IllegalArgumentException.class, () -> start("""
+                grid-mode.hint.saved-position-history=drag-position-history
+                """));
     }
 
     @Test

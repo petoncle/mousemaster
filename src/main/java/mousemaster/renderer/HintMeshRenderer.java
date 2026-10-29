@@ -1392,6 +1392,7 @@ public final class HintMeshRenderer {
         double maxHintCenterX = -Double.MAX_VALUE;
         double maxHintCenterY = -Double.MAX_VALUE;
         boolean atLeastOneHintVisible = false;
+        boolean atLeastOneHintSelectable = false;
         int left = Integer.MAX_VALUE;
         int top = Integer.MAX_VALUE;
         int right = Integer.MIN_VALUE;
@@ -1429,7 +1430,8 @@ public final class HintMeshRenderer {
             hintGroup.minHintCenterY = Math.min(hintGroup.minHintCenterY, hint.centerY());
             hintGroup.maxHintCenterX = Math.max(hintGroup.maxHintCenterX, hint.centerX());
             hintGroup.maxHintCenterY = Math.max(hintGroup.maxHintCenterY, hint.centerY());
-            hintGroup.atLeastOneHintVisible |= hint.startsWith(hintMesh.selectedKeySequence());
+            hintGroup.atLeastOneHintVisible |= visible(hint, hintMesh);
+            hintGroup.atLeastOneHintSelectable |= hint.startsWith(hintMesh.selectedKeySequence());
             if (!hint.startsWith(hintMesh.selectedKeySequence()))
                 continue;
             minHintCenterX = Math.min(minHintCenterX, hint.centerX());
@@ -1456,6 +1458,17 @@ public final class HintMeshRenderer {
         Rectangle boxGradientArea =
                 boxSweptPerHint ? gradientArea(boxColor.area(), hintMeshWindow, hintMesh) : null;
         QBrush boxBrush = boxSweptPerHint ? null : fillBrush(boxColor, style.boxOpacity());
+        List<Point> savedPositions = hintMesh.savedPositions();
+        HintMeshStyle savedStyle = style.saved();
+        QtHintFontStyle savedLabelFontStyle = savedPositions.isEmpty() ? null :
+                QtHintFont.qtHintFontStyle(savedStyle.fontStyle(),
+                        hasForegroundPrefixKeys ? savedStyle.prefixFontStyle() : null,
+                        screenScale, lastSelectedHintBoxHexColor);
+        Rectangle savedBoxGradientArea =
+                gradientArea(savedStyle.boxColor().area(), hintMeshWindow, hintMesh);
+        GradientColor savedBoxBorderColor = gradientColor(savedStyle.boxBorderColor());
+        Rectangle savedBoxBorderGradientArea =
+                gradientArea(savedBoxBorderColor.area(), hintMeshWindow, hintMesh);
         GradientColor boxBorderColor = gradientColor(style.boxBorderColor());
         Rectangle boxBorderGradientArea =
                 gradientArea(boxBorderColor.area(), hintMeshWindow, hintMesh);
@@ -1473,6 +1486,14 @@ public final class HintMeshRenderer {
         Shadow boxShadow = scaledShadow(style.boxShadow(), screenScale);
         boolean elementBoxVisible =
                 style.uiElementBoxOpacity() != 0 || style.uiElementBoxBorderOpacity() != 0;
+        boolean savedElementBoxVisible = savedStyle.uiElementBoxOpacity() != 0 ||
+                                         savedStyle.uiElementBoxBorderOpacity() != 0;
+        Rectangle savedElementBoxGradientArea =
+                gradientArea(savedStyle.uiElementBoxColor().area(), hintMeshWindow, hintMesh);
+        GradientColor savedElementBoxBorderColor =
+                gradientColor(savedStyle.uiElementBoxBorderColor());
+        Rectangle savedElementBoxBorderGradientArea =
+                gradientArea(savedElementBoxBorderColor.area(), hintMeshWindow, hintMesh);
         Rectangle elementBoxGradientArea =
                 gradientArea(style.uiElementBoxColor().area(), hintMeshWindow, hintMesh);
         GradientColor elementBoxBorderColor = gradientColor(style.uiElementBoxBorderColor());
@@ -1510,11 +1531,15 @@ public final class HintMeshRenderer {
 //            hintKeyMaxXAdvance = metrics.maxWidth();
         List<HintBox> hintBoxes = new ArrayList<>();
         List<HintLabel> hintLabels = new ArrayList<>();
+        List<HintLabel> unsavedHintLabels = new ArrayList<>();
+        List<HintLabel> savedHintLabels = new ArrayList<>();
         long beforeBoxes = System.nanoTime();
         long lastPumpTime = System.nanoTime();
         for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
             Hint hint = hints.get(hintIndex);
-            if (!hint.startsWith(hintMesh.selectedKeySequence()))
+            boolean selectable = hint.startsWith(hintMesh.selectedKeySequence());
+            boolean hintSaved = saved(hint, savedPositions);
+            if (!selectable && !hintSaved)
                 continue;
             List<Key> labelKeys = labelOverridden ? labelOverride : hint.keySequence();
             int totalXAdvance = labelFontStyle.defaultStyle()
@@ -1560,18 +1585,22 @@ public final class HintMeshRenderer {
                             fullBoxHeight, totalXAdvance,
                             labelOverridden ? -1 :
                                     (style.prefixInBackground() ? -1 : hintMesh.prefixLength()),
-                            labelFontStyle,
+                            hintSaved ? savedLabelFontStyle : labelFontStyle,
                             hintKeyMaxXAdvance,
-                            labelOverridden ? -1 :
+                            labelOverridden || !selectable ? -1 :
                                     (hintMesh.selectedKeySequence().size() - 1
                                     - (style.prefixInBackground() && hintMesh.prefixLength() != -1 ? prefix.size() : 0)),
                             style.fontStyle().defaultFontStyle().verticalAlignment(),
                             isHintPartOfTiledGrid, qtScaleFactor);
             hintLabels.add(hintLabel);
-            boolean gridLeftEdge = !isHintPartOfGrid || hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
-            boolean gridTopEdge = !isHintPartOfGrid || hint.centerY() == minHintCenterY || style.boxHeightPercent() != 1;
-            boolean gridRightEdge = !isHintPartOfGrid || hint.centerX() == maxHintCenterX || style.boxWidthPercent() != 1;
-            boolean gridBottomEdge = !isHintPartOfGrid || hint.centerY() == maxHintCenterY || style.boxHeightPercent() != 1;
+            if (hintSaved)
+                savedHintLabels.add(hintLabel);
+            else
+                unsavedHintLabels.add(hintLabel);
+            boolean gridLeftEdge = !isHintPartOfGrid || !selectable || hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
+            boolean gridTopEdge = !isHintPartOfGrid || !selectable || hint.centerY() == minHintCenterY || style.boxHeightPercent() != 1;
+            boolean gridRightEdge = !isHintPartOfGrid || !selectable || hint.centerX() == maxHintCenterX || style.boxWidthPercent() != 1;
+            boolean gridBottomEdge = !isHintPartOfGrid || !selectable || hint.centerY() == maxHintCenterY || style.boxHeightPercent() != 1;
             HintGroup hintGroup = hintMesh.prefixLength() == -1 ? meshGroup :
                     hintGroupByPrefix.get(prefix);
             HintBox hintBox =
@@ -1618,7 +1647,8 @@ public final class HintMeshRenderer {
             minHintTop = Math.min(minHintTop, y);
             maxHintRight = Math.max(maxHintRight, x + boxWidth);
             maxHintBottom = Math.max(maxHintBottom, y + boxHeight);
-            if (elementBoxVisible && hint.elementRectangle() != null) {
+            if ((elementBoxVisible || savedElementBoxVisible && hintSaved) &&
+                hint.elementRectangle() != null) {
                 int elementBoxLeft = (int) Math.round(
                         (hint.elementRectangle().x() - elementBoxHorizontalPadding) / qtScaleFactor);
                 int elementBoxTop = (int) Math.round(
@@ -1723,7 +1753,8 @@ public final class HintMeshRenderer {
                                 hintMesh.prefixLength(),
                                 prefixQtHintFontStyle,
                                 prefixHintKeyMaxXAdvance,
-                                hintMesh.selectedKeySequence().size() - 1,
+                                hintGroup.atLeastOneHintSelectable ?
+                                        hintMesh.selectedKeySequence().size() - 1 : -1,
                                 style.prefixFontStyle().defaultFontStyle().verticalAlignment(),
                                 isHintPartOfTiledGrid, qtScaleFactor);
                 // The group bounds come from boxes that are already scaled down.
@@ -1806,6 +1837,16 @@ public final class HintMeshRenderer {
                     boxBorderGradientArea, hintGroup, hintCenter,
                     isHintPartOfGrid ? windowPixelRectangle : hintBox.pixelRectangle(0, 0),
                     isHintPartOfGrid ? windowOrigin : sweepOrigin));
+            if (saved(hintBox.hint, savedPositions)) {
+                hintBox.setColor(brush(savedStyle.boxColor(), savedStyle.boxOpacity(),
+                        savedBoxGradientArea, hintGroup, hintCenter,
+                        hintBox.pixelRectangle(0, 0), sweepOrigin));
+                hintBox.setBorderColor(brush(savedBoxBorderColor,
+                        savedStyle.boxBorderOpacity(), savedBoxBorderGradientArea, hintGroup,
+                        hintCenter,
+                        isHintPartOfGrid ? windowPixelRectangle : hintBox.pixelRectangle(0, 0),
+                        isHintPartOfGrid ? windowOrigin : sweepOrigin));
+            }
             setDecorationBorderColors(hintBox, hintBox.pixelRectangle(0, 0),
                     subDecorationStyles, 0, hintGroup, sweepOrigin);
             if (hintMesh.selectedKeySequence().size() == hints.getFirst().keySequence().size() - 1) {
@@ -1824,6 +1865,15 @@ public final class HintMeshRenderer {
             elementBox.setBorderColor(brush(elementBoxBorderColor,
                     style.uiElementBoxBorderOpacity(), elementBoxBorderGradientArea, hintGroup,
                     hintCenter, pixelRectangle, sweepOrigin));
+            if (saved(elementBox.hint, savedPositions)) {
+                elementBox.setColor(brush(savedStyle.uiElementBoxColor(),
+                        savedStyle.uiElementBoxOpacity(), savedElementBoxGradientArea,
+                        hintGroup, hintCenter, pixelRectangle, sweepOrigin));
+                elementBox.setBorderColor(brush(savedElementBoxBorderColor,
+                        savedStyle.uiElementBoxBorderOpacity(),
+                        savedElementBoxBorderGradientArea, hintGroup, hintCenter,
+                        pixelRectangle, sweepOrigin));
+            }
         }
         List<HintBox> prefixBoxes = new ArrayList<>();
         List<HintLabel> prefixLabels = new ArrayList<>();
@@ -1874,8 +1924,11 @@ public final class HintMeshRenderer {
         addLabelLayers(container, prefixLabels, prefixQtHintFontStyle, hasSelectedKeys,
                 containerWidth, containerHeight, screenScale);
         // Layer 4: Hint labels.
-        addLabelLayers(container, hintLabels, labelFontStyle, hasSelectedKeys,
+        addLabelLayers(container, unsavedHintLabels, labelFontStyle, hasSelectedKeys,
                 containerWidth, containerHeight, screenScale);
+        if (!savedHintLabels.isEmpty())
+            addLabelLayers(container, savedHintLabels, savedLabelFontStyle, hasSelectedKeys,
+                    containerWidth, containerHeight, screenScale);
         // Layer 5: whole-area decoration (index 0), anchored to the grid area it was laid out in, not
         // to the container: a grid drilled past a screen edge has cells the container cannot show.
         HintBox areaBox = null;
@@ -2023,6 +2076,28 @@ public final class HintMeshRenderer {
                 hintGroup.centerArea().center() : center;
         return QtColorUtil.qBrush(color, opacity,
                 color.sweepPosition(sampledArea, sampled.x(), sampled.y()));
+    }
+
+    /** A saved hint stays when the selected keys hide the other hints. */
+    static boolean visible(Hint hint, HintMesh hintMesh) {
+        return hint.startsWith(hintMesh.selectedKeySequence()) ||
+               saved(hint, hintMesh.savedPositions());
+    }
+
+    /** A hint is saved when a saved position is in its element or its cell, or on its center
+     *  when it has neither. */
+    static boolean saved(Hint hint, List<Point> savedPositions) {
+        for (Point position : savedPositions) {
+            if (hint.elementRectangle() != null ?
+                    hint.elementRectangle().contains(position.x(), position.y()) :
+                    hint.cellWidth() > 0 ?
+                            Math.abs(position.x() - hint.centerX()) <= hint.cellWidth() / 2 &&
+                            Math.abs(position.y() - hint.centerY()) <= hint.cellHeight() / 2 :
+                            Math.round(position.x()) == Math.round(hint.centerX()) &&
+                            Math.round(position.y()) == Math.round(hint.centerY()))
+                return true;
+        }
+        return false;
     }
 
     /** box is in the pixels of the layer that paints it, whose top left is sweepOrigin. A border is
@@ -2202,27 +2277,35 @@ public final class HintMeshRenderer {
             }
     }
 
+    /** The key a drawn mesh is cached by: the mesh with its visible hints and saved positions moved
+     *  so that the smallest hint center x and y are 0. A mesh that only moved has the same key. */
     private HintMesh hintMeshKey(HintMesh hintMesh, List<Hint> hints) {
-        return new HintMesh.HintMeshBuilder(hintMesh)
-                .hints(trimmedHints(hints, hintMesh.selectedKeySequence()))
-                .build();
-    }
-
-    private List<Hint> trimmedHints(List<Hint> hints,
-                                           List<Key> selectedKeySequence) {
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
         for (Hint hint : hints) {
-            if (!hint.startsWith(selectedKeySequence))
+            if (!hint.startsWith(hintMesh.selectedKeySequence()))
                 continue;
             minHintCenterX = Math.min(minHintCenterX, hint.centerX());
             minHintCenterY = Math.min(minHintCenterY, hint.centerY());
         }
+        double trimX = minHintCenterX, trimY = minHintCenterY;
+        return new HintMesh.HintMeshBuilder(hintMesh)
+                .hints(trimmedHints(hints, hintMesh, trimX, trimY))
+                .savedPositions(hintMesh.savedPositions()
+                                        .stream()
+                                        .map(position -> new Point(position.x() - trimX,
+                                                position.y() - trimY))
+                                        .toList())
+                .build();
+    }
+
+    private List<Hint> trimmedHints(List<Hint> hints, HintMesh hintMesh,
+                                    double minHintCenterX, double minHintCenterY) {
         if (minHintCenterX == 0 && minHintCenterY == 0)
             return hints;
         List<Hint> trimmedHints = new ArrayList<>();
         for (Hint hint : hints) {
-            if (!hint.startsWith(selectedKeySequence))
+            if (!visible(hint, hintMesh))
                 continue;
             trimmedHints.add(new Hint(hint.centerX() - minHintCenterX,
                     hint.centerY() - minHintCenterY,

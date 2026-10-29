@@ -31,6 +31,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             double uiElementBoxBorderRadius,
                             double uiElementBoxHorizontalPadding,
                             double uiElementBoxVerticalPadding,
+                            GradientColor savedBoxColor,
+                            Double savedBoxOpacity,
+                            Color savedBoxBorderColor,
+                            Double savedBoxBorderOpacity,
+                            GradientColor savedUiElementBoxColor,
+                            Double savedUiElementBoxOpacity,
+                            Color savedUiElementBoxBorderColor,
+                            Double savedUiElementBoxBorderOpacity,
                             double boxWidthPercent,
                             double boxHeightPercent,
                             double boxHorizontalPadding,
@@ -47,6 +55,30 @@ public record HintMeshStyle(HintFontStyle fontStyle,
 
     public HintMeshStyleBuilder builder() {
         return new HintMeshStyleBuilder(this);
+    }
+
+    /** The style of a hint at a saved position: the saved values where they are set. */
+    public HintMeshStyle saved() {
+        HintMeshStyleBuilder saved = new HintMeshStyleBuilder(this)
+                .fontStyle(fontStyle.saved())
+                .prefixFontStyle(prefixFontStyle.saved());
+        if (savedBoxColor != null)
+            saved.boxColor(savedBoxColor);
+        if (savedBoxOpacity != null)
+            saved.boxOpacity(savedBoxOpacity);
+        if (savedBoxBorderColor != null)
+            saved.boxBorderColor(savedBoxBorderColor);
+        if (savedBoxBorderOpacity != null)
+            saved.boxBorderOpacity(savedBoxBorderOpacity);
+        if (savedUiElementBoxColor != null)
+            saved.uiElementBoxColor(savedUiElementBoxColor);
+        if (savedUiElementBoxOpacity != null)
+            saved.uiElementBoxOpacity(savedUiElementBoxOpacity);
+        if (savedUiElementBoxBorderColor != null)
+            saved.uiElementBoxBorderColor(savedUiElementBoxBorderColor);
+        if (savedUiElementBoxBorderOpacity != null)
+            saved.uiElementBoxBorderOpacity(savedUiElementBoxBorderOpacity);
+        return saved.build(null);
     }
 
     public static class HintMeshStyleBuilder {
@@ -77,6 +109,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Double uiElementBoxBorderRadius;
         private Double uiElementBoxHorizontalPadding;
         private Double uiElementBoxVerticalPadding;
+        private GradientColor savedBoxColor;
+        private Double savedBoxOpacity;
+        private Color savedBoxBorderColor;
+        private Double savedBoxBorderOpacity;
+        private GradientColor savedUiElementBoxColor;
+        private Double savedUiElementBoxOpacity;
+        private Color savedUiElementBoxBorderColor;
+        private Double savedUiElementBoxBorderOpacity;
         private Double boxWidthPercent;
         private Double boxHeightPercent;
         private Double boxHorizontalPadding;
@@ -127,6 +167,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.uiElementBoxBorderRadius = style.uiElementBoxBorderRadius;
             this.uiElementBoxHorizontalPadding = style.uiElementBoxHorizontalPadding;
             this.uiElementBoxVerticalPadding = style.uiElementBoxVerticalPadding;
+            this.savedBoxColor = style.savedBoxColor;
+            this.savedBoxOpacity = style.savedBoxOpacity;
+            this.savedBoxBorderColor = style.savedBoxBorderColor;
+            this.savedBoxBorderOpacity = style.savedBoxBorderOpacity;
+            this.savedUiElementBoxColor = style.savedUiElementBoxColor;
+            this.savedUiElementBoxOpacity = style.savedUiElementBoxOpacity;
+            this.savedUiElementBoxBorderColor = style.savedUiElementBoxBorderColor;
+            this.savedUiElementBoxBorderOpacity = style.savedUiElementBoxBorderOpacity;
             this.boxWidthPercent = style.boxWidthPercent;
             this.boxHeightPercent = style.boxHeightPercent;
             this.boxHorizontalPadding = style.boxHorizontalPadding;
@@ -265,6 +313,46 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
+        public HintMeshStyleBuilder savedBoxColor(GradientColor savedBoxColor) {
+            this.savedBoxColor = savedBoxColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder savedBoxOpacity(Double savedBoxOpacity) {
+            this.savedBoxOpacity = savedBoxOpacity;
+            return this;
+        }
+
+        public HintMeshStyleBuilder savedBoxBorderColor(Color savedBoxBorderColor) {
+            this.savedBoxBorderColor = savedBoxBorderColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder savedBoxBorderOpacity(Double savedBoxBorderOpacity) {
+            this.savedBoxBorderOpacity = savedBoxBorderOpacity;
+            return this;
+        }
+
+        public HintMeshStyleBuilder savedUiElementBoxColor(GradientColor savedUiElementBoxColor) {
+            this.savedUiElementBoxColor = savedUiElementBoxColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder savedUiElementBoxOpacity(Double savedUiElementBoxOpacity) {
+            this.savedUiElementBoxOpacity = savedUiElementBoxOpacity;
+            return this;
+        }
+
+        public HintMeshStyleBuilder savedUiElementBoxBorderColor(Color savedUiElementBoxBorderColor) {
+            this.savedUiElementBoxBorderColor = savedUiElementBoxBorderColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder savedUiElementBoxBorderOpacity(Double savedUiElementBoxBorderOpacity) {
+            this.savedUiElementBoxBorderOpacity = savedUiElementBoxBorderOpacity;
+            return this;
+        }
+
         public HintMeshStyleBuilder boxWidthPercent(Double boxWidthPercent) {
             this.boxWidthPercent = boxWidthPercent;
             return this;
@@ -348,6 +436,11 @@ public record HintMeshStyle(HintFontStyle fontStyle,
 
         public HintFontStyle.HintFontStyleBuilder prefixFontStyle() {
             return prefixFontStyle;
+        }
+
+        public HintMeshStyleBuilder prefixFontStyle(HintFontStyle prefixFontStyle) {
+            this.prefixFontStyle = prefixFontStyle.builder();
+            return this;
         }
 
         public GradientColor boxColor() {
@@ -446,6 +539,38 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return uiElementBoxVerticalPadding;
         }
 
+        public GradientColor savedBoxColor() {
+            return savedBoxColor;
+        }
+
+        public Double savedBoxOpacity() {
+            return savedBoxOpacity;
+        }
+
+        public Color savedBoxBorderColor() {
+            return savedBoxBorderColor;
+        }
+
+        public Double savedBoxBorderOpacity() {
+            return savedBoxBorderOpacity;
+        }
+
+        public GradientColor savedUiElementBoxColor() {
+            return savedUiElementBoxColor;
+        }
+
+        public Double savedUiElementBoxOpacity() {
+            return savedUiElementBoxOpacity;
+        }
+
+        public Color savedUiElementBoxBorderColor() {
+            return savedUiElementBoxBorderColor;
+        }
+
+        public Double savedUiElementBoxBorderOpacity() {
+            return savedUiElementBoxBorderOpacity;
+        }
+
         public Double boxWidthPercent() {
             return boxWidthPercent;
         }
@@ -530,6 +655,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     uiElementBoxBorderRadius == null ? defaultStyle.uiElementBoxBorderRadius : uiElementBoxBorderRadius,
                     uiElementBoxHorizontalPadding == null ? defaultStyle.uiElementBoxHorizontalPadding : uiElementBoxHorizontalPadding,
                     uiElementBoxVerticalPadding == null ? defaultStyle.uiElementBoxVerticalPadding : uiElementBoxVerticalPadding,
+                    savedBoxColor == null && defaultStyle != null ? defaultStyle.savedBoxColor : savedBoxColor,
+                    savedBoxOpacity == null && defaultStyle != null ? defaultStyle.savedBoxOpacity : savedBoxOpacity,
+                    savedBoxBorderColor == null && defaultStyle != null ? defaultStyle.savedBoxBorderColor : savedBoxBorderColor,
+                    savedBoxBorderOpacity == null && defaultStyle != null ? defaultStyle.savedBoxBorderOpacity : savedBoxBorderOpacity,
+                    savedUiElementBoxColor == null && defaultStyle != null ? defaultStyle.savedUiElementBoxColor : savedUiElementBoxColor,
+                    savedUiElementBoxOpacity == null && defaultStyle != null ? defaultStyle.savedUiElementBoxOpacity : savedUiElementBoxOpacity,
+                    savedUiElementBoxBorderColor == null && defaultStyle != null ? defaultStyle.savedUiElementBoxBorderColor : savedUiElementBoxBorderColor,
+                    savedUiElementBoxBorderOpacity == null && defaultStyle != null ? defaultStyle.savedUiElementBoxBorderOpacity : savedUiElementBoxBorderOpacity,
                     boxWidthPercent == null ? defaultStyle.boxWidthPercent : boxWidthPercent,
                     boxHeightPercent == null ? defaultStyle.boxHeightPercent : boxHeightPercent,
                     boxHorizontalPadding == null ? defaultStyle.boxHorizontalPadding : boxHorizontalPadding,

@@ -13,7 +13,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
                        List<Key> selectedKeySequence,
                        ScreenFilterMap<HintMeshStyle> styleByFilter,
                        Rectangle area, Rectangle backgroundArea, HintMesh decoration,
-                       HintMesh subDecoration) {
+                       HintMesh subDecoration, List<Point> savedPositions) {
 
     public HintMeshBuilder builder() {
         return new HintMeshBuilder(this);
@@ -29,6 +29,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
         private Rectangle backgroundArea;
         private HintMesh decoration;
         private HintMesh subDecoration;
+        private List<Point> savedPositions = List.of();
 
         public HintMeshBuilder() {
         }
@@ -43,6 +44,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
             this.backgroundArea = hintMesh.backgroundArea;
             this.decoration = hintMesh.decoration;
             this.subDecoration = hintMesh.subDecoration;
+            this.savedPositions = hintMesh.savedPositions;
         }
 
 
@@ -128,9 +130,15 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
             return this;
         }
 
+        public HintMeshBuilder savedPositions(List<Point> savedPositions) {
+            this.savedPositions = savedPositions;
+            return this;
+        }
+
         public HintMesh build() {
             return new HintMesh(visible, hints, prefixLength, selectedKeySequence,
-                    styleByFilter, area, backgroundArea, decoration, subDecoration);
+                    styleByFilter, area, backgroundArea, decoration, subDecoration,
+                    savedPositions);
         }
     }
 

@@ -2461,17 +2461,19 @@ public class ConfigurationParser {
 
     /**
      * Hint font style cascade rules, matching the cascade in cascadeAllFontStyles:
-     * defaultFontStyle -> focused/selected, fontStyle -> prefixFontStyle.
+     * defaultFontStyle -> focused/selected/saved, fontStyle -> prefixFontStyle.
      * Order matters: fontStyle.defaultFontStyle -> prefixFontStyle.defaultFontStyle
-     * must run before the prefixFontStyle.defaultFontStyle -> focused/selected rules,
+     * must run before the prefixFontStyle.defaultFontStyle -> focused/selected/saved rules,
      * so that transitive cascades work.
      */
     private static final List<CascadeRule> HINT_FONT_STYLE_CASCADE_RULES = List.of(
             new CascadeRule(List.of("fontStyle", "defaultFontStyle"), List.of("fontStyle", "focusedFontStyle")),
             new CascadeRule(List.of("fontStyle", "defaultFontStyle"), List.of("fontStyle", "selectedFontStyle")),
+            new CascadeRule(List.of("fontStyle", "defaultFontStyle"), List.of("fontStyle", "savedFontStyle")),
             new CascadeRule(List.of("fontStyle", "defaultFontStyle"), List.of("prefixFontStyle", "defaultFontStyle")),
             new CascadeRule(List.of("prefixFontStyle", "defaultFontStyle"), List.of("prefixFontStyle", "focusedFontStyle")),
-            new CascadeRule(List.of("prefixFontStyle", "defaultFontStyle"), List.of("prefixFontStyle", "selectedFontStyle"))
+            new CascadeRule(List.of("prefixFontStyle", "defaultFontStyle"), List.of("prefixFontStyle", "selectedFontStyle")),
+            new CascadeRule(List.of("prefixFontStyle", "defaultFontStyle"), List.of("prefixFontStyle", "savedFontStyle"))
     );
 
     /**
@@ -2869,6 +2871,7 @@ public class ConfigurationParser {
             case "visible" -> ModePropertyHandler.of(prefix.append("visible"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.visible(v));
             case "mouse-follows-selection" -> ModePropertyHandler.of(prefix.append("mouseFollowsSelection"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.mouseFollowsSelection(v));
             case "selection-follows-overlay-center" -> ModePropertyHandler.of(prefix.append("selectionFollowsOverlayCenter"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.selectionFollowsOverlayCenter(v));
+            case "saved-position-history" -> ModePropertyHandler.of(prefix.append("savedPositionHistory"), v -> positionHistoryName("overlay.saved-position-history", v, positionHistoryNames), v -> hintMeshBuilder.savedPositionHistory(v));
             case "eat-unused-selection-keys" -> ModePropertyHandler.of(prefix.append("eatUnusedSelectionKeys"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.eatUnusedSelectionKeys(v));
             // Type property (sealed variant): uses Function for GRID because it
             // needs the current area/gridLayout at mutation time, not parse time.
@@ -2978,6 +2981,21 @@ public class ConfigurationParser {
             case "focused-font-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "shadow", "stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> hintMeshBuilder.style(screenFilter).fontStyle().focusedFontStyle().shadow().stackCount(v));
             case "focused-font-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "shadow", "horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).fontStyle().focusedFontStyle().shadow().horizontalOffset(v));
             case "focused-font-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "shadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).fontStyle().focusedFontStyle().shadow().verticalOffset(v));
+            // Style: saved font
+            case "saved-font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "savedFontStyle", "color"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).fontStyle().savedFontStyle().color(v));
+            case "saved-font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "savedFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).fontStyle().savedFontStyle().opacity(v));
+            case "saved-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "savedFontStyle", "name"), v -> v, v -> hintMeshBuilder.style(screenFilter).fontStyle().savedFontStyle().name(v));
+            case "saved-font-weight" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "savedFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(screenFilter).fontStyle().savedFontStyle().weight(v));
+            case "saved-font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "savedFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(screenFilter).fontStyle().savedFontStyle().size(v));
+            case "saved-font-outline-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "savedFontStyle", "outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).fontStyle().savedFontStyle().outlineThickness(v));
+            case "saved-font-outline-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "savedFontStyle", "outlineColor"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).fontStyle().savedFontStyle().outlineColor(v));
+            case "saved-font-outline-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "savedFontStyle", "outlineOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).fontStyle().savedFontStyle().outlineOpacity(v));
+            case "saved-font-shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "savedFontStyle", "shadow", "blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).fontStyle().savedFontStyle().shadow().blurRadius(v));
+            case "saved-font-shadow-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "savedFontStyle", "shadow", "color"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).fontStyle().savedFontStyle().shadow().color(v));
+            case "saved-font-shadow-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "savedFontStyle", "shadow", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).fontStyle().savedFontStyle().shadow().opacity(v));
+            case "saved-font-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "savedFontStyle", "shadow", "stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> hintMeshBuilder.style(screenFilter).fontStyle().savedFontStyle().shadow().stackCount(v));
+            case "saved-font-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "savedFontStyle", "shadow", "horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).fontStyle().savedFontStyle().shadow().horizontalOffset(v));
+            case "saved-font-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "savedFontStyle", "shadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).fontStyle().savedFontStyle().shadow().verticalOffset(v));
             // Style: prefix font
             case "prefix-in-background" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixInBackground"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(screenFilter).prefixInBackground(v));
             case "prefix-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "name"), v -> v, v -> hintMeshBuilder.style(screenFilter).prefixFontStyle().defaultFontStyle().name(v));
@@ -3055,6 +3073,14 @@ public class ConfigurationParser {
             case "ui-element-box-border-length" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxBorderLength"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(screenFilter).uiElementBoxBorderLength(v));
             case "ui-element-box-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxBorderColor"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).uiElementBoxBorderColor(v));
             case "ui-element-box-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).uiElementBoxBorderOpacity(v));
+            case "saved-box-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "savedBoxColor"), v -> GradientColor.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).savedBoxColor(v));
+            case "saved-box-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "savedBoxOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).savedBoxOpacity(v));
+            case "saved-box-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "savedBoxBorderColor"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).savedBoxBorderColor(v));
+            case "saved-box-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "savedBoxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).savedBoxBorderOpacity(v));
+            case "saved-ui-element-box-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "savedUiElementBoxColor"), v -> GradientColor.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).savedUiElementBoxColor(v));
+            case "saved-ui-element-box-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "savedUiElementBoxOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).savedUiElementBoxOpacity(v));
+            case "saved-ui-element-box-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "savedUiElementBoxBorderColor"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).savedUiElementBoxBorderColor(v));
+            case "saved-ui-element-box-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "savedUiElementBoxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).savedUiElementBoxBorderOpacity(v));
             case "ui-element-box-border-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxBorderRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).uiElementBoxBorderRadius(v));
             case "ui-element-box-horizontal-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxHorizontalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).uiElementBoxHorizontalPadding(v));
             case "ui-element-box-vertical-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxVerticalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).uiElementBoxVerticalPadding(v));
@@ -3444,6 +3470,15 @@ public class ConfigurationParser {
                     "Invalid hint keys " + propertyValue +
                     ": at least two keys are required");
         return hintKeys;
+    }
+
+    private static String positionHistoryName(String propertyKey, String propertyValue,
+                                              Set<String> positionHistoryNames) {
+        if (!positionHistoryNames.contains(propertyValue))
+            throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": undefined position history " + propertyValue);
+        return propertyValue;
     }
 
     private static HintMeshType.HintMeshTypeType parseHintMeshTypeType(String propertyKey,
@@ -4012,6 +4047,38 @@ public class ConfigurationParser {
                             childStyleByFilter, filter))
                         childStyle.uiElementBoxBorderOpacity(parentStyle.uiElementBoxBorderOpacity());
                     if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::savedBoxColor,
+                            childStyleByFilter, filter))
+                        childStyle.savedBoxColor(parentStyle.savedBoxColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::savedBoxOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.savedBoxOpacity(parentStyle.savedBoxOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::savedBoxBorderColor,
+                            childStyleByFilter, filter))
+                        childStyle.savedBoxBorderColor(parentStyle.savedBoxBorderColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::savedBoxBorderOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.savedBoxBorderOpacity(parentStyle.savedBoxBorderOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::savedUiElementBoxColor,
+                            childStyleByFilter, filter))
+                        childStyle.savedUiElementBoxColor(parentStyle.savedUiElementBoxColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::savedUiElementBoxOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.savedUiElementBoxOpacity(parentStyle.savedUiElementBoxOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::savedUiElementBoxBorderColor,
+                            childStyleByFilter, filter))
+                        childStyle.savedUiElementBoxBorderColor(parentStyle.savedUiElementBoxBorderColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::savedUiElementBoxBorderOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.savedUiElementBoxBorderOpacity(parentStyle.savedUiElementBoxBorderOpacity());
+                    if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::uiElementBoxBorderRadius,
                             childStyleByFilter, filter))
                         childStyle.uiElementBoxBorderRadius(parentStyle.uiElementBoxBorderRadius());
@@ -4134,6 +4201,8 @@ public class ConfigurationParser {
                 }
                 if (builder.modeAfterSelection() == null)
                     builder.modeAfterSelection(parent.modeAfterSelection());
+                if (builder.savedPositionHistory() == null)
+                    builder.savedPositionHistory(parent.savedPositionHistory());
                 if (builder.eatUnusedSelectionKeys() == null)
                     builder.eatUnusedSelectionKeys(parent.eatUnusedSelectionKeys());
                 if (builder.selectCombos() == null)
@@ -4228,6 +4297,10 @@ public class ConfigurationParser {
         FontStyle.FontStyleBuilder caFoc = childAny == null ? null : childAny.fontStyle().focusedFontStyle();
         FontStyle.FontStyleBuilder pxFoc = parentX == null ? null : parentX.fontStyle().focusedFontStyle();
         FontStyle.FontStyleBuilder paFoc = parentAny == null ? null : parentAny.fontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder cxSav = childX.fontStyle().savedFontStyle();
+        FontStyle.FontStyleBuilder caSav = childAny == null ? null : childAny.fontStyle().savedFontStyle();
+        FontStyle.FontStyleBuilder pxSav = parentX == null ? null : parentX.fontStyle().savedFontStyle();
+        FontStyle.FontStyleBuilder paSav = parentAny == null ? null : parentAny.fontStyle().savedFontStyle();
         // prefixFontStyle sources
         FontStyle.FontStyleBuilder cxPSel = childX.prefixFontStyle().selectedFontStyle();
         FontStyle.FontStyleBuilder caPSel = childAny == null ? null : childAny.prefixFontStyle().selectedFontStyle();
@@ -4241,6 +4314,10 @@ public class ConfigurationParser {
         FontStyle.FontStyleBuilder caPFoc = childAny == null ? null : childAny.prefixFontStyle().focusedFontStyle();
         FontStyle.FontStyleBuilder pxPFoc = parentX == null ? null : parentX.prefixFontStyle().focusedFontStyle();
         FontStyle.FontStyleBuilder paPFoc = parentAny == null ? null : parentAny.prefixFontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder cxPSav = childX.prefixFontStyle().savedFontStyle();
+        FontStyle.FontStyleBuilder caPSav = childAny == null ? null : childAny.prefixFontStyle().savedFontStyle();
+        FontStyle.FontStyleBuilder pxPSav = parentX == null ? null : parentX.prefixFontStyle().savedFontStyle();
+        FontStyle.FontStyleBuilder paPSav = parentAny == null ? null : parentAny.prefixFontStyle().savedFontStyle();
         // Cascade prefix font styles, then font styles.
         // Child sources are exhausted before parent sources.
         // prefix-selected: child(prefix-selected, prefix-default, selected, default),
@@ -4253,6 +4330,11 @@ public class ConfigurationParser {
         cascadeFontStyle(cxPFoc,
                 cxPFoc, caPFoc, cxPDef, caPDef, cxFoc, caFoc, cxDef, caDef,
                 pxPFoc, paPFoc, pxPDef, paPDef, pxFoc, paFoc, pxDef, paDef);
+        // prefix-saved: child(prefix-saved, prefix-default, saved, default),
+        //                parent(prefix-saved, prefix-default, saved, default)
+        cascadeFontStyle(cxPSav,
+                cxPSav, caPSav, cxPDef, caPDef, cxSav, caSav, cxDef, caDef,
+                pxPSav, paPSav, pxPDef, paPDef, pxSav, paSav, pxDef, paDef);
         // prefix-default: child(prefix-default, default), parent(prefix-default, default)
         cascadeFontStyle(cxPDef,
                 cxPDef, caPDef, cxDef, caDef,
@@ -4275,6 +4357,10 @@ public class ConfigurationParser {
         cascadeFontStyle(cxFoc,
                 cxFoc, caFoc, cxDef, caDef,
                 pxFoc, paFoc, pxDef, paDef);
+        // fontStyle saved: child(saved, default), parent(saved, default)
+        cascadeFontStyle(cxSav,
+                cxSav, caSav, cxDef, caDef,
+                pxSav, paSav, pxDef, paDef);
         // fontStyle default: child, parent
         cascadeFontStyle(cxDef, cxDef, caDef, pxDef, paDef);
         // fontStyle spacingPercent: child, parent
@@ -4283,9 +4369,9 @@ public class ConfigurationParser {
         if (fontSpacing == null && parentX != null) fontSpacing = parentX.fontStyle().spacingPercent();
         if (fontSpacing == null && parentAny != null) fontSpacing = parentAny.fontStyle().spacingPercent();
         childX.fontStyle().spacingPercent(fontSpacing);
-        // Decoration fonts (independent of the main font). Selected/focused fall back to
+        // Decoration fonts (independent of the main font). Selected/focused/saved fall back to
         // the decoration's own default (decorations are non-interactive, but the shared
-        // HintFontStyle builds all three, so they must be non-null).
+        // HintFontStyle builds all four, so they must be non-null).
         for (int i = 0; i < childX.decorations().size(); i++) {
             HintFontStyle.HintFontStyleBuilder cxF = childX.decoration(i).fontStyle();
             HintFontStyle.HintFontStyleBuilder caF = childAny == null ? null : childAny.decoration(i).fontStyle();
@@ -4303,6 +4389,10 @@ public class ConfigurationParser {
                     caF == null ? null : caF.focusedFontStyle(), cxDDef, caDDef,
                     pxF == null ? null : pxF.focusedFontStyle(),
                     paF == null ? null : paF.focusedFontStyle(), pxDDef, paDDef);
+            cascadeFontStyle(cxF.savedFontStyle(), cxF.savedFontStyle(),
+                    caF == null ? null : caF.savedFontStyle(), cxDDef, caDDef,
+                    pxF == null ? null : pxF.savedFontStyle(),
+                    paF == null ? null : paF.savedFontStyle(), pxDDef, paDDef);
             cascadeFontStyle(cxDDef, cxDDef, caDDef, pxDDef, paDDef);
             Double spacing = cxF.spacingPercent();
             if (spacing == null && caF != null) spacing = caF.spacingPercent();

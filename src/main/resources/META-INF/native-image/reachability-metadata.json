@@ -6297,6 +6297,7 @@
             "mousemaster.FontStyle",
             "double",
             "mousemaster.FontStyle",
+            "mousemaster.FontStyle",
             "mousemaster.FontStyle"
           ]
         },
@@ -6314,6 +6315,10 @@
         },
         {
           "name": "spacingPercent",
+          "parameterTypes": []
+        },
+        {
+          "name": "savedFontStyle",
           "parameterTypes": []
         }
       ]
@@ -6457,6 +6462,7 @@
             "mousemaster.ScreenFilterMap",
             "mousemaster.ScreenFilterMap",
             "java.lang.String",
+            "java.lang.String",
             "boolean",
             "java.util.List",
             "java.util.List"
@@ -6505,6 +6511,10 @@
         {
           "name": "visible",
           "parameterTypes": []
+        },
+        {
+          "name": "savedPositionHistory",
+          "parameterTypes": []
         }
       ]
     },
@@ -6537,19 +6547,38 @@
             "mousemaster.HintFontStyle",
             "boolean",
             "mousemaster.HintFontStyle",
-            "java.lang.String",
+            "mousemaster.GradientColor",
             "double",
             "double",
             "double",
-            "java.lang.String",
+            "mousemaster.Color",
             "double",
             "double",
+            "boolean",
             "mousemaster.Shadow",
             "boolean",
             "double",
             "double",
-            "java.lang.String",
+            "mousemaster.Color",
             "double",
+            "boolean",
+            "mousemaster.GradientColor",
+            "double",
+            "double",
+            "double",
+            "mousemaster.Color",
+            "double",
+            "double",
+            "double",
+            "double",
+            "mousemaster.GradientColor",
+            "java.lang.Double",
+            "mousemaster.Color",
+            "java.lang.Double",
+            "mousemaster.GradientColor",
+            "java.lang.Double",
+            "mousemaster.Color",
+            "java.lang.Double",
             "double",
             "double",
             "double",
@@ -6559,7 +6588,8 @@
             "java.time.Duration",
             "boolean",
             "java.time.Duration",
-            "java.lang.String",
+            "mousemaster.Color",
+            "double",
             "double",
             "java.util.List"
           ]
@@ -6803,8 +6833,39 @@
         {
           "name": "uiElementBoxVerticalPadding",
           "parameterTypes": []
+        },
+        {
+          "name": "savedBoxColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "savedBoxOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "savedBoxBorderColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "savedBoxBorderOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "savedUiElementBoxColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "savedUiElementBoxOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "savedUiElementBoxBorderColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "savedUiElementBoxBorderOpacity",
+          "parameterTypes": []
         }
-
       ]
     },
     {

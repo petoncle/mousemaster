@@ -435,6 +435,8 @@ public final class QtHintFont {
             for (HintMeshStyle style : hintMeshConfiguration.styleByFilter().map().values()) {
                 fontStyles.add(style.fontStyle());
                 fontStyles.add(style.prefixFontStyle());
+                fontStyles.add(style.fontStyle().saved());
+                fontStyles.add(style.prefixFontStyle().saved());
             }
         }
         for (HintFontStyle hintFontStyle : fontStyles) {

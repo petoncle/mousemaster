@@ -1162,7 +1162,39 @@ public class HintManager implements ModeListener, MousePositionListener {
                         previousHintMeshState.hintMesh.selectedKeySequence());
             }
         }
-        return hintMesh.build();
+        return hintMesh.savedPositions(savedPositions(hintMeshConfiguration, zoom)).build();
+    }
+
+    /** The positions of the overlay's saved-position-history, in the overlay's coordinates. */
+    private List<Point> savedPositions(HintMeshConfiguration hintMeshConfiguration, Zoom zoom) {
+        if (hintMeshConfiguration.savedPositionHistory() == null)
+            return List.of();
+        return positionHistory(hintMeshConfiguration.savedPositionHistory())
+                .positions()
+                .stream()
+                .map(position -> new Point(zoom.zoomedX(position.x()),
+                        zoom.zoomedY(position.y())))
+                .toList();
+    }
+
+    /** Shows a save, unsave or clear on the overlay that styles that history's positions. A
+     *  completed selection is not drawn, as in finalizeHintSelection, and UI hints still being
+     *  found are built with the positions once they are. */
+    private void showSavedPositions(String positionHistoryName) {
+        HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
+        if (hintMesh == null || hintJustSelected || pendingUiHintQuery != null ||
+            !positionHistoryName.equals(hintMeshConfiguration.savedPositionHistory()))
+            return;
+        hintMesh = hintMesh.builder()
+                           .savedPositions(savedPositions(hintMeshConfiguration, currentZoom))
+                           .build();
+        hintMeshStates.compute(new HintMeshKey(hintMeshConfiguration.type(),
+                        hintMeshConfiguration.keysByFilter().get(screenFilter).selectionKeys(),
+                        currentMode.zoom()),
+                (k, hintMeshState) -> new HintMeshState(hintMesh,
+                        hintMeshState.previousModeSelectedHintPoint,
+                        hintMeshState.previousModeSelectedHintCell));
+        overlay.setHintMesh(hintMesh, currentZoom);
     }
 
     private void buildUiHints(HintMeshConfiguration hintMeshConfiguration,
@@ -1571,7 +1603,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     childDecoration, null);
         }
         return new HintMesh(true, decorationHints, prefixLength, List.of(),
-                decorationStyleByFilter, area, area, null, childMesh);
+                decorationStyleByFilter, area, area, null, childMesh, List.of());
     }
 
     private FixedSizeHintGrid fixedSizeHintGrid(Rectangle areaRectangle,
@@ -1858,14 +1890,17 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     public void saveCurrentPosition(String positionHistoryName) {
         positionHistory(positionHistoryName).save(selectionPoint());
+        showSavedPositions(positionHistoryName);
     }
 
     public void unsaveCurrentPosition(String positionHistoryName) {
         positionHistory(positionHistoryName).unsave(selectionPoint());
+        showSavedPositions(positionHistoryName);
     }
 
     public void clearPositionHistory(String positionHistoryName) {
         positionHistory(positionHistoryName).clear();
+        showSavedPositions(positionHistoryName);
     }
 
     public void cyclePosition(String positionHistoryName, int offset) {

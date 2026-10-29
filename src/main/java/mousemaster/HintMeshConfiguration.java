@@ -15,6 +15,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     ScreenFilterMap<HintMeshKeys> keysByFilter,
                                     ScreenFilterMap<HintMeshStyle> styleByFilter,
                                     String modeAfterSelection,
+                                    String savedPositionHistory,
                                     boolean eatUnusedSelectionKeys,
                                     List<Combo> selectCombos,
                                     List<Combo> deselectCombos) {
@@ -30,6 +31,7 @@ public record HintMeshConfiguration(boolean enabled,
         private final ScreenFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle>
                 styleByFilter = new ScreenFilterMapBuilder<>();
         private String modeAfterSelection;
+        private String savedPositionHistory;
         private Boolean eatUnusedSelectionKeys;
         private List<Combo> selectCombos;
         private List<Combo> deselectCombos;
@@ -64,6 +66,15 @@ public record HintMeshConfiguration(boolean enabled,
         public HintMeshStyleBuilder style(ScreenFilter filter) {
             return styleByFilter.map()
                                 .computeIfAbsent(filter, filter1 -> new HintMeshStyleBuilder());
+        }
+
+        public HintMeshConfigurationBuilder savedPositionHistory(String savedPositionHistory) {
+            this.savedPositionHistory = savedPositionHistory;
+            return this;
+        }
+
+        public String savedPositionHistory() {
+            return savedPositionHistory;
         }
 
         public HintMeshConfigurationBuilder modeAfterSelection(
@@ -139,6 +150,7 @@ public record HintMeshConfiguration(boolean enabled,
                     keysByFilter.build(HintMeshKeysBuilder::build),
                     styleByFilter.build(HintMeshStyleBuilder::build),
                     modeAfterSelection,
+                    savedPositionHistory,
                     eatUnusedSelectionKeys,
                     selectCombos,
                     deselectCombos);
