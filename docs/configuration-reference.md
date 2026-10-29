@@ -275,7 +275,8 @@ normal-mode.mouse.smooth-jump-velocity=30000
 ```
 - `acceleration-easing` controls the shape of the acceleration curve. A number sets the polynomial exponent: 1 = linear, 2 = quadratic (slow start, fast ramp), 0.5 = square root (fast start, slow ramp). Named curves: `smoothstep` (S-curve), `smootherstep` (S-curve with longer precision zone, the default), `logarithmic` (fast start, aggressive flatten), `exponential` (very slow start, explosive ramp).
 - When movement keys are released, the cursor coasts to a stop. Higher deceleration = shorter coast. Set to 0 for instant stop (no coast).
-- The velocity and acceleration are defined in pixel per second and pixel per square second.
+- The velocities and the acceleration are in pixels per second and pixels per square second at a
+  100% scale: on a 200% screen, the mouse moves twice as many pixels.
 - Whenever mousemaster sets the position of the mouse, the mouse will be teleported to the
   target position. Smooth jumping is for avoiding the instantaneous teleportation and move
   the mouse with a continuous movement instead. The jump speed is controlled with `smooth-jump-velocity`.

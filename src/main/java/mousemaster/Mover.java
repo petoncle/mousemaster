@@ -33,6 +33,7 @@ public class Mover {
     private int jumpX, jumpY;
     private int jumpBeginX, jumpBeginY;
     private int jumpEndX, jumpEndY;
+    private double jumpScale;
 
     public void reset() {
         moveDuration = 0;
@@ -137,7 +138,7 @@ public class Mover {
         if (!jumping)
             return null;
         jumpDuration += delta;
-        double jumpVelocity = configuration.smoothJumpVelocity(); // Pixels per second.
+        double jumpVelocity = configuration.smoothJumpVelocity() * jumpScale; // Pixels per second.
         double jumpDistance =
                 Math.hypot(jumpEndX - jumpBeginX, jumpEndY - jumpBeginY);
         double percent = Math.min(1, jumpDuration / (jumpDistance / jumpVelocity));
@@ -151,14 +152,16 @@ public class Mover {
         if (percent != 1) {
             if (jumpX == jumpEndX) {
                 int movingDeltaX = xMoveForwardStack.isEmpty() ? 0 :
-                        (int) (deltaDistanceX * (xMoveForwardStack.peek() ? 1 : -1));
+                        (int) Math.round((int) deltaDistanceX * jumpScale *
+                                         (xMoveForwardStack.peek() ? 1 : -1));
                 deltaDistanceX -= (int) deltaDistanceX;
                 nextJumpX += movingDeltaX;
                 jumpEndX += movingDeltaX;
             }
             if (jumpY == jumpEndY) {
                 int movingDeltaY = yMoveForwardStack.isEmpty() ? 0 :
-                        (int) (deltaDistanceY * (yMoveForwardStack.peek() ? 1 : -1));
+                        (int) Math.round((int) deltaDistanceY * jumpScale *
+                                         (yMoveForwardStack.peek() ? 1 : -1));
                 deltaDistanceY -= (int) deltaDistanceY;
                 nextJumpY += movingDeltaY;
                 jumpEndY += movingDeltaY;
@@ -390,7 +393,7 @@ public class Mover {
     }
 
     /** Starts a smooth jump, or returns the position to go to at once. */
-    public Point moveTo(int x, int y) {
+    public Point moveTo(int x, int y, double scale) {
         if (x == this.x && y == this.y) {
             jumping = false;
             jumpDuration = 0;
@@ -413,6 +416,7 @@ public class Mover {
         jumping = true;
         jumpEndX = x;
         jumpEndY = y;
+        jumpScale = scale;
         return null;
     }
 

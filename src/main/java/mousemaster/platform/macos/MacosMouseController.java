@@ -50,7 +50,9 @@ public class MacosMouseController implements MouseController {
         if (deltaX == 0 && deltaY == 0)
             return;
         QPoint position = findMousePosition();
-        moveTo(position.x() + deltaX, position.y() + deltaY);
+        double scale = MacosScreens.findActiveScreen(position).scale();
+        moveTo(position.x() + Math.round(deltaX * scale),
+                position.y() + Math.round(deltaY * scale));
     }
 
     @Override

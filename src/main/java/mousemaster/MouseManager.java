@@ -335,7 +335,8 @@ public class MouseManager implements ModeListener, MousePositionListener {
     }
 
     public void moveTo(int x, int y) {
-        Point position = mover.moveTo(x, y);
+        Point position = mover.moveTo(x, y,
+                screenManager.nearestScreenContaining(x, y).scale());
         if (position == null)
             return;
         mouseController.beginMove();

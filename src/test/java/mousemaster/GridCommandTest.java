@@ -338,6 +338,17 @@ class GridCommandTest {
     }
 
     @Test
+    void aSmoothJumpIsScaledAsAMoveIs() throws IOException {
+        screenScale = 3;
+        start("idle-mode.mouse.smooth-jump-velocity=1000\n");
+        switchMode("idle-mode");
+        mouseManager.mouseMoved(100, 100);
+        mouseManager.moveTo(400, 100);
+        mouseManager.update(0.1);
+        assertEquals(List.of(400, 100), mousePositions);
+    }
+
+    @Test
     void theTargetHasTheSpeedKeysOfTheMouse() throws IOException {
         start("grid-mode.target.max-velocity=500\n");
         assertEquals(500, modeMap.get("grid-mode").target().maxVelocity());
