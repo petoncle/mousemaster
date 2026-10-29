@@ -36,10 +36,10 @@ public sealed interface Command {
     record StopWheelLeft() implements Command {}
     record StopWheelRight() implements Command {}
 
-    record SnapSelectionUp() implements Command {}
-    record SnapSelectionDown() implements Command {}
-    record SnapSelectionLeft() implements Command {}
-    record SnapSelectionRight() implements Command {}
+    record SnapTargetUp() implements Command {}
+    record SnapTargetDown() implements Command {}
+    record SnapTargetLeft() implements Command {}
+    record SnapTargetRight() implements Command {}
 
     record ShrinkGridUp() implements Command {}
     record ShrinkGridDown() implements Command {}
@@ -51,11 +51,11 @@ public sealed interface Command {
     record MoveGridLeft() implements Command {}
     record MoveGridRight() implements Command {}
 
-    record MoveSelectionToGridCenter() implements Command {}
+    record MoveTargetToGridCenter() implements Command {}
 
     record MoveToLastSelectedHint() implements Command {}
 
-    record MoveToSelection() implements Command {}
+    record MoveToTarget() implements Command {}
 
     record SavePosition(String positionHistoryName) implements Command {}
     record UnsavePosition(String positionHistoryName) implements Command {}

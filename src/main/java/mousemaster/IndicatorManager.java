@@ -74,7 +74,7 @@ public class IndicatorManager implements ModeListener {
                 layerNamesToAnchor.add(entry.getKey());
         }
         Map<IndicatorPosition, Point> newPointByPosition = new HashMap<>();
-        newPointByPosition.put(IndicatorPosition.SELECTION, hintManager.selectionPoint());
+        newPointByPosition.put(IndicatorPosition.TARGET, hintManager.targetPoint());
         if (hintManager.lastSelectedHintPoint() != null)
             newPointByPosition.put(IndicatorPosition.LAST_SELECTED_HINT,
                     hintManager.lastSelectedHintPoint());

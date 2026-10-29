@@ -501,7 +501,7 @@ public final class IndicatorRenderer {
         if (point != null)
             return new Point(zoomedX(point.x(), zoom) - layerSizeWithStroke / 2.0,
                     zoomedY(point.y(), zoom) - layerSizeWithStroke / 2.0);
-        if (position == IndicatorPosition.MOUSE || position == IndicatorPosition.SELECTION ||
+        if (position == IndicatorPosition.MOUSE || position == IndicatorPosition.TARGET ||
             position == IndicatorPosition.LAST_SELECTED_HINT) {
             double centerX = mouseRectangle.x() + anchor.cursorVisualCenter().x();
             double centerY = mouseRectangle.y() + anchor.cursorVisualCenter().y();

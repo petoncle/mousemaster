@@ -9,8 +9,8 @@ import java.util.List;
 
 public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
-                                    boolean mouseFollowsSelection,
-                                    boolean selectionFollowsOverlayCenter,
+                                    boolean mouseFollowsTarget,
+                                    boolean targetFollowsOverlayCenter,
                                     HintMeshType type,
                                     ScreenFilterMap<HintMeshKeys> keysByFilter,
                                     ScreenFilterMap<HintMeshStyle> styleByFilter,
@@ -23,8 +23,8 @@ public record HintMeshConfiguration(boolean enabled,
     public static class HintMeshConfigurationBuilder {
         private Boolean enabled;
         private Boolean visible;
-        private Boolean mouseFollowsSelection;
-        private Boolean selectionFollowsOverlayCenter;
+        private Boolean mouseFollowsTarget;
+        private Boolean targetFollowsOverlayCenter;
         private final HintMeshTypeBuilder type = new HintMeshTypeBuilder();
         private final ScreenFilterMapBuilder<HintMeshKeysBuilder, HintMeshKeys>
                 keysByFilter = new ScreenFilterMapBuilder<>();
@@ -46,14 +46,14 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshConfigurationBuilder mouseFollowsSelection(boolean mouseFollowsSelection) {
-            this.mouseFollowsSelection = mouseFollowsSelection;
+        public HintMeshConfigurationBuilder mouseFollowsTarget(boolean mouseFollowsTarget) {
+            this.mouseFollowsTarget = mouseFollowsTarget;
             return this;
         }
 
-        public HintMeshConfigurationBuilder selectionFollowsOverlayCenter(
-                boolean selectionFollowsOverlayCenter) {
-            this.selectionFollowsOverlayCenter = selectionFollowsOverlayCenter;
+        public HintMeshConfigurationBuilder targetFollowsOverlayCenter(
+                boolean targetFollowsOverlayCenter) {
+            this.targetFollowsOverlayCenter = targetFollowsOverlayCenter;
             return this;
         }
 
@@ -111,12 +111,12 @@ public record HintMeshConfiguration(boolean enabled,
             return visible;
         }
 
-        public Boolean mouseFollowsSelection() {
-            return mouseFollowsSelection;
+        public Boolean mouseFollowsTarget() {
+            return mouseFollowsTarget;
         }
 
-        public Boolean selectionFollowsOverlayCenter() {
-            return selectionFollowsOverlayCenter;
+        public Boolean targetFollowsOverlayCenter() {
+            return targetFollowsOverlayCenter;
         }
 
         public ScreenFilterMapBuilder<HintMeshKeysBuilder, HintMeshKeys> keysByFilter() {
@@ -144,8 +144,8 @@ public record HintMeshConfiguration(boolean enabled,
         }
 
         public HintMeshConfiguration build() {
-            return new HintMeshConfiguration(enabled, visible, mouseFollowsSelection,
-                    selectionFollowsOverlayCenter,
+            return new HintMeshConfiguration(enabled, visible, mouseFollowsTarget,
+                    targetFollowsOverlayCenter,
                     type.build(),
                     keysByFilter.build(HintMeshKeysBuilder::build),
                     styleByFilter.build(HintMeshStyleBuilder::build),

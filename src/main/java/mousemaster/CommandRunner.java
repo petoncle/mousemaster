@@ -71,10 +71,10 @@ public class CommandRunner {
             case StopWheelLeft stopWheelLeft -> mouseManager.stopWheelLeft();
             case StopWheelRight stopWheelRight -> mouseManager.stopWheelRight();
 
-            case SnapSelectionUp snapSelectionUp -> hintManager.snapSelectionUp();
-            case SnapSelectionDown snapSelectionDown -> hintManager.snapSelectionDown();
-            case SnapSelectionLeft snapSelectionLeft -> hintManager.snapSelectionLeft();
-            case SnapSelectionRight snapSelectionRight -> hintManager.snapSelectionRight();
+            case SnapTargetUp snapTargetUp -> hintManager.snapTargetUp();
+            case SnapTargetDown snapTargetDown -> hintManager.snapTargetDown();
+            case SnapTargetLeft snapTargetLeft -> hintManager.snapTargetLeft();
+            case SnapTargetRight snapTargetRight -> hintManager.snapTargetRight();
 
             case ShrinkGridUp shrinkGridUp -> hintManager.shrinkGridUp();
             case ShrinkGridDown shrinkGridDown -> hintManager.shrinkGridDown();
@@ -86,11 +86,11 @@ public class CommandRunner {
             case MoveGridLeft moveGridLeft -> hintManager.moveGridLeft();
             case MoveGridRight moveGridRight -> hintManager.moveGridRight();
 
-            case MoveSelectionToGridCenter moveSelectionToGridCenter -> hintManager.moveSelectionToGridCenter();
+            case MoveTargetToGridCenter moveTargetToGridCenter -> hintManager.moveTargetToGridCenter();
 
             case MoveToLastSelectedHint moveToLastSelectedHint -> hintManager.moveToLastSelectedHint();
 
-            case MoveToSelection moveToSelection -> hintManager.moveToSelection();
+            case MoveToTarget moveToTarget -> hintManager.moveToTarget();
 
             case SavePosition(String positionHistoryName) -> hintManager.saveCurrentPosition(positionHistoryName);
             case UnsavePosition(String positionHistoryName) -> hintManager.unsaveCurrentPosition(positionHistoryName);

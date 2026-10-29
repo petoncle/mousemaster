@@ -50,7 +50,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private Rectangle areaOverride;
     /** The area of the overlay the current mode was entered from, unzoomed. */
     private Rectangle lastOverlayArea;
-    private Point selectionPoint;
+    private Point targetPoint;
 
     private record CellGridLevel(String modeName, Rectangle cell, Rectangle area) {
     }
@@ -243,15 +243,15 @@ public class HintManager implements ModeListener, MousePositionListener {
         return hintMesh;
     }
 
-    /** The selection follows the mouse, until mouse-follows-selection=false stops it where
+    /** The target follows the mouse, until mouse-follows-target=false stops it where
      *  it is. */
-    public Point selectionPoint() {
-        return selectionPoint(currentMode);
+    public Point targetPoint() {
+        return targetPoint(currentMode);
     }
 
-    private Point selectionPoint(Mode mode) {
-        return mode.hintMesh().mouseFollowsSelection() ? new Point(mouseX, mouseY) :
-                selectionPoint;
+    private Point targetPoint(Mode mode) {
+        return mode.hintMesh().mouseFollowsTarget() ? new Point(mouseX, mouseY) :
+                targetPoint;
     }
 
     public Point lastSelectedHintPoint() {
@@ -270,9 +270,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                 (int) lastSelectedHintPoint.y());
     }
 
-    public void moveToSelection() {
-        Point selection = selectionPoint();
-        mouseManager.moveTo((int) selection.x(), (int) selection.y());
+    public void moveToTarget() {
+        Point target = targetPoint();
+        mouseManager.moveTo((int) target.x(), (int) target.y());
     }
 
     public void shrinkGridUp() {
@@ -294,7 +294,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private void shrinkGrid(boolean horizontal, boolean forward) {
         List<Rectangle> cells = gridCells();
         if (cells == null ||
-            currentMode.hintMesh().selectionFollowsOverlayCenter() &&
+            currentMode.hintMesh().targetFollowsOverlayCenter() &&
             mouseManager.jumping(horizontal, forward))
             return;
         Rectangle grid = Rectangle.union(cells);
@@ -325,7 +325,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private void moveGrid(boolean horizontal, boolean forward) {
         List<Rectangle> cells = gridCells();
         if (cells == null ||
-            currentMode.hintMesh().selectionFollowsOverlayCenter() &&
+            currentMode.hintMesh().targetFollowsOverlayCenter() &&
             mouseManager.jumping(horizontal, forward))
             return;
         Rectangle grid = Rectangle.union(cells);
@@ -340,37 +340,37 @@ public class HintManager implements ModeListener, MousePositionListener {
         modeChanged(currentMode);
     }
 
-    public void moveSelectionToGridCenter() {
+    public void moveTargetToGridCenter() {
         List<Rectangle> cells = gridCells();
         if (cells == null)
             return;
-        select(Rectangle.union(cells).center());
+        moveTargetTo(Rectangle.union(cells).center());
     }
 
-    public void snapSelectionUp() {
-        snapSelection(false, false);
+    public void snapTargetUp() {
+        snapTarget(false, false);
     }
 
-    public void snapSelectionDown() {
-        snapSelection(false, true);
+    public void snapTargetDown() {
+        snapTarget(false, true);
     }
 
-    public void snapSelectionLeft() {
-        snapSelection(true, false);
+    public void snapTargetLeft() {
+        snapTarget(true, false);
     }
 
-    public void snapSelectionRight() {
-        snapSelection(true, true);
+    public void snapTargetRight() {
+        snapTarget(true, true);
     }
 
-    /** Backward, a selection 1 pixel past a cell edge snaps to the edge before it. */
-    private void snapSelection(boolean horizontal, boolean forward) {
+    /** Backward, a target 1 pixel past a cell edge snaps to the edge before it. */
+    private void snapTarget(boolean horizontal, boolean forward) {
         List<Rectangle> cells = gridCells();
         if (cells == null ||
-            currentMode.hintMesh().mouseFollowsSelection() &&
+            currentMode.hintMesh().mouseFollowsTarget() &&
             mouseManager.jumping(horizontal, forward))
             return;
-        Point from = selectionPoint();
+        Point from = targetPoint();
         int mouse = (int) (horizontal ? from.x() : from.y());
         Rectangle grid = Rectangle.union(cells);
         int lastPixel = horizontal ? grid.x() + grid.width() - 1 : grid.y() + grid.height() - 1;
@@ -383,7 +383,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             return;
         double x = horizontal ? cellEdge.getAsInt() : from.x();
         double y = horizontal ? from.y() : cellEdge.getAsInt();
-        select(screenManager.nearestScreenContaining(x, y).rectangle().nearestPoint(x, y));
+        moveTargetTo(screenManager.nearestScreenContaining(x, y).rectangle().nearestPoint(x, y));
         if (((HintMeshType.GridHintMesh) currentMode.hintMesh().type()).area().center() ==
             HintGridAreaCenter.MOUSE)
             modeChanged(currentMode);
@@ -430,9 +430,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                 currentMode != null && newMode.name().equals(currentMode.name());
         if (!sameMode)
             lastOverlayArea = overlayArea();
-        if (!newMode.hintMesh().mouseFollowsSelection() &&
-            (currentMode == null || currentMode.hintMesh().mouseFollowsSelection()))
-            selectionPoint = new Point(mouseX, mouseY);
+        if (!newMode.hintMesh().mouseFollowsTarget() &&
+            (currentMode == null || currentMode.hintMesh().mouseFollowsTarget()))
+            targetPoint = new Point(mouseX, mouseY);
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
         if (currentMode == null ||
             !hintMeshConfiguration.type().equals(currentMode.hintMesh().type()))
@@ -450,7 +450,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             currentPositionHistory =
                     positionHistory(positionHistoryHintMesh.positionHistoryName());
             if (currentPositionHistory.positions().isEmpty())
-                currentPositionHistory.save(selectionPoint(newMode));
+                currentPositionHistory.save(targetPoint(newMode));
         }
         ScreenFilter newScreenFilter = screenFilter(hintMeshConfiguration);
         List<Key> selectionKeys =
@@ -622,8 +622,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             else
                 overlay.setHintMesh(hintMesh, newZoom);
         }
-        if (hintMeshConfiguration.selectionFollowsOverlayCenter()) {
-            select(unzoomedPoint(
+        if (hintMeshConfiguration.targetFollowsOverlayCenter()) {
+            moveTargetTo(unzoomedPoint(
                     hintMeshCenter(hintMesh.hints(), hintMesh.selectedKeySequence())));
         }
     }
@@ -1728,8 +1728,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                     )
             );
             overlay.setHintMesh(hintMesh, currentZoom);
-            if (hintMeshConfiguration.selectionFollowsOverlayCenter()) {
-                select(unzoomedPoint(hintMeshCenter(hintMesh.hints(),
+            if (hintMeshConfiguration.targetFollowsOverlayCenter()) {
+                moveTargetTo(unzoomedPoint(hintMeshCenter(hintMesh.hints(),
                         hintMesh.selectedKeySequence())));
             }
             lastHintCommandSupercedesOtherCommands = true;
@@ -1781,7 +1781,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                             unzoomedHintCell(exactMatchHint, currentZoom) : null;
             lastSelectedHintCell = pendingSelectedCell;
             areaOverride = null;
-            select(exactMatchHintCenter);
+            moveTargetTo(exactMatchHintCenter);
             finalizeHintSelection(exactMatchHint, newSelectedKeySequence);
         }
         else {
@@ -1798,8 +1798,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                             hintMeshState.previousModeSelectedHintCell
                     ));
             overlay.setHintMesh(hintMesh, currentZoom);
-            if (hintMeshConfiguration.selectionFollowsOverlayCenter()) {
-                select(unzoomedPoint(
+            if (hintMeshConfiguration.targetFollowsOverlayCenter()) {
+                moveTargetTo(unzoomedPoint(
                         hintMeshCenter(hintMesh.hints(), newSelectedKeySequence)));
             }
             lastHintCommandSupercedesOtherCommands = true;
@@ -1831,9 +1831,9 @@ public class HintManager implements ModeListener, MousePositionListener {
         return new Point(currentZoom.unzoomedX(point.x()), currentZoom.unzoomedY(point.y()));
     }
 
-    private void select(Point point) {
-        if (!currentMode.hintMesh().mouseFollowsSelection()) {
-            selectionPoint = new Point(Math.round(point.x()), Math.round(point.y()));
+    private void moveTargetTo(Point point) {
+        if (!currentMode.hintMesh().mouseFollowsTarget()) {
+            targetPoint = new Point(Math.round(point.x()), Math.round(point.y()));
             return;
         }
         mouseX = (int) Math.round(point.x());
@@ -1889,12 +1889,12 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public void saveCurrentPosition(String positionHistoryName) {
-        positionHistory(positionHistoryName).save(selectionPoint());
+        positionHistory(positionHistoryName).save(targetPoint());
         showSavedPositions(positionHistoryName);
     }
 
     public void unsaveCurrentPosition(String positionHistoryName) {
-        positionHistory(positionHistoryName).unsave(selectionPoint());
+        positionHistory(positionHistoryName).unsave(targetPoint());
         showSavedPositions(positionHistoryName);
     }
 
@@ -1905,9 +1905,9 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     public void cyclePosition(String positionHistoryName, int offset) {
         Point position =
-                positionHistory(positionHistoryName).cycle(offset, selectionPoint());
+                positionHistory(positionHistoryName).cycle(offset, targetPoint());
         if (position != null)
-            select(position);
+            moveTargetTo(position);
     }
 
 }

@@ -305,7 +305,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                     borderRadius, points, x, y, distance, angle, rotation, fillColor, fillOpacity,
                     stroke.build(), shadow.build(),
                     text, fontName, fontSize, fontWeight, textStyleSheet, positions,
-                    followMouse && !positions.contains(IndicatorPosition.SELECTION) &&
+                    followMouse && !positions.contains(IndicatorPosition.TARGET) &&
                     !positions.contains(IndicatorPosition.LAST_SELECTED_HINT));
         }
     }

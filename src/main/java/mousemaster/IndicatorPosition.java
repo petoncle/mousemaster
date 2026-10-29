@@ -7,7 +7,7 @@ public enum IndicatorPosition {
     MOUSE_BOTTOM_LEFT,
     MOUSE_BOTTOM_RIGHT,
     SCREEN_CENTER,
-    SELECTION,
+    TARGET,
     LAST_SELECTED_HINT;
 
     public static IndicatorPosition fromString(String value) {
@@ -18,7 +18,7 @@ public enum IndicatorPosition {
             case "mouse-bottom-left" -> MOUSE_BOTTOM_LEFT;
             case "mouse-bottom-right" -> MOUSE_BOTTOM_RIGHT;
             case "screen-center" -> SCREEN_CENTER;
-            case "selection" -> SELECTION;
+            case "target" -> TARGET;
             case "last-selected-hint" -> LAST_SELECTED_HINT;
             case "center" -> throw new IllegalArgumentException(
                     "Invalid indicator position: center has been renamed mouse");
@@ -28,7 +28,7 @@ public enum IndicatorPosition {
                             value);
             default -> throw new IllegalArgumentException(
                     "Invalid indicator position: " + value +
-                    ", must be 'mouse', 'mouse-top-left', 'mouse-top-right', 'mouse-bottom-left', 'mouse-bottom-right', 'screen-center', 'selection' or 'last-selected-hint'");
+                    ", must be 'mouse', 'mouse-top-left', 'mouse-top-right', 'mouse-bottom-left', 'mouse-bottom-right', 'screen-center', 'target' or 'last-selected-hint'");
         };
     }
 }

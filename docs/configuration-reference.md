@@ -73,7 +73,7 @@ Combos are sequences of key presses and releases that trigger commands in mousem
 normal-mode.to.hint-mode=_{leftctrl} +e
 
 # Press and release leftshift
-normal-mode.move-selection-to.grid-center=+leftshift -leftshift
+normal-mode.move-target-to.grid-center=+leftshift -leftshift
 
 # Multiple combos for one command
 normal-mode.to.idle-mode=+q | +leftctrl +e
@@ -458,22 +458,22 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
 #### Position
 
 - **`position`**: `mouse` (default), `mouse-top-left`, `mouse-top-right`, `mouse-bottom-left`,
-  `mouse-bottom-right`, `screen-center`, `selection` or `last-selected-hint`. `mouse` centers the
+  `mouse-bottom-right`, `screen-center`, `target` or `last-selected-hint`. `mouse` centers the
   layer behind the cursor, best with a low opacity so the cursor stays visible. Near a screen
   edge, a corner position moves to the other side of the cursor, and a layer with a text moves
-  inward instead of being cut. `selection` and `last-selected-hint` center the layer on those
-  points of the overlay (see `mouse-follows-selection`), and the layer moves with them, not with
-  the cursor. While the mouse follows the selection, the selection is the mouse, and a layer on it
+  inward instead of being cut. `target` and `last-selected-hint` center the layer on those
+  points of the overlay (see `mouse-follows-target`), and the layer moves with them, not with
+  the cursor. While the mouse follows the target, the target is the mouse, and a layer on it
   is drawn again at each mouse move: to draw at the cursor, use `mouse`.
 
   With two positions, the layer runs from the first to the second: their distance is its width,
   and `rotation` turns it from their direction. `aspect-ratio` still sets its height, and `size`
-  cannot be set. A line from the last selected hint to the selection, with a dot at the
-  selection:
+  cannot be set. A line from the last selected hint to the target, with a dot at the
+  target:
   ```properties
   grid-mode.line-indicator.shape=line
-  grid-mode.line-indicator.position=last-selected-hint selection
-  grid-mode.dot-indicator.position=selection
+  grid-mode.line-indicator.position=last-selected-hint target
+  grid-mode.dot-indicator.position=target
   ```
 - **`follow-mouse`**: Whether the layer moves with the cursor (default `true`). With `false`, the
   layer stays where it was when it was enabled, or when its keyframes started over.
@@ -682,7 +682,7 @@ ui-hint-mode.overlay.area=active-screen
 ui-hint-mode.overlay.selection-keys=selectionkey
 ui-hint-mode.overlay.select=+selectionkey
 ui-hint-mode.overlay.deselect=backspace
-ui-hint-mode.overlay.mouse-follows-selection=true
+ui-hint-mode.overlay.mouse-follows-target=true
 ui-hint-mode.overlay.font-size=10
 ui-hint-mode.overlay.font-weight=bold
 ui-hint-mode.overlay.font-color=#FFFFFF
@@ -983,7 +983,7 @@ hint-mode.overlay.selection-keys=selectionkey
 hint-mode.overlay.select=+selectionkey
 hint-mode.overlay.deselect=backspace
 hint-mode.to.normal-mode=+selectionkey
-hint-mode.overlay.mouse-follows-selection=true
+hint-mode.overlay.mouse-follows-target=true
 hint-mode.overlay.eat-unused-selection-keys=true
 hint-mode.overlay.label-override=plus
 ```
@@ -996,20 +996,20 @@ hint-mode.overlay.label-override=plus
 - **`select`**: Combo that triggers hint selection. For example, if you want to be able to hold leftshift while pressing a hint selection key, then use `hint-mode.overlay.select=_{none | leftshift} +selectionkey`
 - **`deselect`**: Combo that deselects the last selection key
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
-- **`mouse-follows-selection`**: Whether the mouse follows the selection (default `true`). The
-  selection is a position that follows the mouse. Selecting a hint and the grid commands move it
-  to the center of the hint, the edge a `snap-selection` goes to or the center of the grid, and
-  the mouse goes there. When it becomes `false`, the selection stops where it is: only those
+- **`mouse-follows-target`**: Whether the mouse follows the target (default `true`). The
+  target is a position that follows the mouse. Selecting a hint and the grid commands move it
+  to the center of the hint, the edge a `snap-target` goes to or the center of the grid, and
+  the mouse goes there. When it becomes `false`, the target stops where it is: only those
   commands move it, and the mouse stays. Use `false` when the next mode will be another hint
   grid.
-- **`selection-follows-overlay-center`**: Whether the selection goes to the center of the overlay
+- **`target-follows-overlay-center`**: Whether the target goes to the center of the overlay
   when the overlay shows, and when a selection key or `deselect` changes its hints (default
-  `false`). The mouse goes there too, unless `mouse-follows-selection=false`.
+  `false`). The mouse goes there too, unless `mouse-follows-target=false`.
 - **`move-to.last-selected-hint`**: Like `to.<mode-name>`, a command of the mode, not an overlay
   property. It moves the mouse to the last selected hint, for example after
-  `mouse-follows-selection=false` left the mouse where it was:
+  `mouse-follows-target=false` left the mouse where it was:
   `normal-mode.move-to.last-selected-hint=+m`
-- **`move-to.selection`**: The same, to the selection: `grid-mode.move-to.selection=+space`
+- **`move-to.target`**: The same, to the target: `grid-mode.move-to.target=+space`
 - **`eat-unused-selection-keys`**: If `false`, selection keys not used in the current hint display can be used in combos
 - **`label-override`**: Draws a fixed marker in every hint cell instead of each hint's own keys — visual only, you still press the real keys to select. The value is a key sequence rendered as the label: `plus` shows `+`, `plus plus` shows `++`. Useful for positional grids (e.g. a 3×3 recursive grid) where the per-cell letters are just clutter. Default: unset (each hint shows its own key sequence).
 
@@ -1248,7 +1248,7 @@ hint1-mode.overlay.area=active-screen
 hint1-mode.overlay.selection-keys=selectionkey
 hint1-mode.to.hint2-mode=+selectionkey
 # Don't move mouse after first selection
-hint1-mode.overlay.mouse-follows-selection=false
+hint1-mode.overlay.mouse-follows-target=false
 
 # Second level hint mode
 hint2-mode.overlay.area=active-screen
@@ -1264,7 +1264,7 @@ hint2-mode.overlay.font-size=7
 hint2-mode.overlay.selection-keys=selectionkey
 hint2-mode.to.normal-mode=+selectionkey
 # Move mouse after second selection
-hint2-mode.overlay.mouse-follows-selection=true
+hint2-mode.overlay.mouse-follows-target=true
 ```
 
 ### Grid commands
@@ -1278,7 +1278,7 @@ grid-mode.to.normal-mode=+esc
 grid-mode.overlay.grid-cell-sizing=fit
 grid-mode.overlay.grid-max-row-count=2
 grid-mode.overlay.grid-max-column-count=2
-grid-mode.overlay.selection-follows-overlay-center=true
+grid-mode.overlay.target-follows-overlay-center=true
 grid-mode.overlay.box-color=#FF0000
 grid-mode.overlay.box-opacity=0.1
 grid-mode.overlay.box-border-color=#FF0000
@@ -1296,33 +1296,33 @@ grid-mode.move-grid.down=_{leftshift} +downarrow
 grid-mode.move-grid.left=_{leftshift} +leftarrow
 grid-mode.move-grid.right=_{leftshift} +rightarrow
 
-# Snap the selection to the next cell edge
-grid-mode.snap-selection.up=_{leftctrl} +uparrow
-grid-mode.snap-selection.down=_{leftctrl} +downarrow
-grid-mode.snap-selection.left=_{leftctrl} +leftarrow
-grid-mode.snap-selection.right=_{leftctrl} +rightarrow
+# Snap the target to the next cell edge
+grid-mode.snap-target.up=_{leftctrl} +uparrow
+grid-mode.snap-target.down=_{leftctrl} +downarrow
+grid-mode.snap-target.left=_{leftctrl} +leftarrow
+grid-mode.snap-target.right=_{leftctrl} +rightarrow
 
-# Move the selection to the grid center
-grid-mode.move-selection-to.grid-center=+space
+# Move the target to the grid center
+grid-mode.move-target-to.grid-center=+space
 ```
 
 - **`shrink-grid.<direction>`**: Halves the grid, keeping the half on that side, whatever its
   number of cells.
 - **`move-grid.<direction>`**: Moves the grid by its own width or height. The center of the grid
   stays on a screen.
-- **`snap-selection.<direction>`**: Moves the selection to the next cell edge in the direction. At
+- **`snap-target.<direction>`**: Moves the target to the next cell edge in the direction. At
   the right or bottom edge of the grid, it stops on the last pixel of the grid.
-- **`move-selection-to.grid-center`**: Moves the selection to the center of the grid.
+- **`move-target-to.grid-center`**: Moves the target to the center of the grid.
 
-A command name says what it moves: `snap-selection` and `move-selection-to` move the selection,
+A command name says what it moves: `snap-target` and `move-target-to` move the target,
 `move-grid` and `shrink-grid` the grid. A name that says nothing, such as `start-move` or
 `move-to`, moves the mouse. `<verb>-to.<point>` jumps to a point, and `start-move` and
 `stop-move` are the only continuous movement.
 
 A mode with the same `overlay.type`, area and layout keeps the grid where the commands left it. With
 `area-center=mouse`, a command first centers the grid on the mouse. With
-`selection-follows-overlay-center=true`, the selection goes to the center of the grid after each
-change. The mouse follows the selection, unless `mouse-follows-selection=false`: then it stays
+`target-follows-overlay-center=true`, the target goes to the center of the grid after each
+change. The mouse follows the target, unless `mouse-follows-target=false`: then it stays
 where it is.
 
 ## App aliases
@@ -1359,7 +1359,7 @@ In this example:
 
 ## Position history
 
-Position history allows you to save positions of the selection (see `mouse-follows-selection`) and quickly return to them later. Unless the mode has `mouse-follows-selection=false`, the selection follows the mouse, so these are mouse positions. This feature can be used for frequently accessed UI elements or for creating custom navigation patterns.
+Position history allows you to save positions of the target (see `mouse-follows-target`) and quickly return to them later. Unless the mode has `mouse-follows-target=false`, the target follows the mouse, so these are mouse positions. This feature can be used for frequently accessed UI elements or for creating custom navigation patterns.
 
 ### Basic configuration
 
@@ -1367,7 +1367,7 @@ Position history allows you to save positions of the selection (see `mouse-follo
 # Set the maximum number of positions to remember
 position-history.max-size=16
 
-# Define a key to save the position of the selection
+# Define a key to save the position of the target
 normal-mode.position-history.save-position=+f1
 
 # Define a key to clear all saved positions
@@ -1375,10 +1375,10 @@ normal-mode.position-history.clear=+f2
 ```
 
 - **`max-size`**: Maximum number of positions that can be stored, 1-100 (older positions are removed when this limit is reached). Default 16.
-- **`save-position`**: Command to save the position of the selection to history
-- **`unsave-position`**: Command to remove the saved position the selection is on
+- **`save-position`**: Command to save the position of the target to history
+- **`unsave-position`**: Command to remove the saved position the target is on
 - **`clear`**: Command to clear all saved positions
-- **`cycle-next`** / **`cycle-previous`**: Commands to move the selection to the next or previous saved position, continuing from the one it is on. The mouse follows, unless the mode has `mouse-follows-selection=false`
+- **`cycle-next`** / **`cycle-previous`**: Commands to move the target to the next or previous saved position, continuing from the one it is on. The mouse follows, unless the mode has `mouse-follows-target=false`
 
 While a history holds a position, it reads as a pressed key named without its hyphens, like an
 animation: `_{dragpositionhistory}` matches while `drag-position-history` holds a position, and
@@ -1444,7 +1444,7 @@ position-hint-mode.overlay.type=position-history | _{browserapp} -> browser-posi
 When you enter a position history hint mode:
 1. One hint box will be displayed for each saved position
 2. Selecting a hint moves the mouse to that saved position
-3. If no positions are saved, the selection is saved first, so its hint is displayed
+3. If no positions are saved, the target is saved first, so its hint is displayed
 
 ### Saved hints
 

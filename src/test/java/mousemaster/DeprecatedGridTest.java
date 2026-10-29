@@ -31,8 +31,8 @@ class DeprecatedGridTest {
                 "grid-mode.grid.area=active-window");
         assertTrue(hint.enabled());
         assertFalse(hint.visible());
-        assertFalse(hint.mouseFollowsSelection());
-        assertFalse(hint.selectionFollowsOverlayCenter());
+        assertFalse(hint.mouseFollowsTarget());
+        assertFalse(hint.targetFollowsOverlayCenter());
         assertEquals(HintGridAreaSizeSource.ACTIVE_WINDOW,
                 ((HintMeshType.GridHintMesh) hint.type()).area().size().source());
         assertInstanceOf(HintCellSizing.FitToArea.class, layout(hint).cellSizing());
@@ -56,8 +56,8 @@ class DeprecatedGridTest {
                 "grid-mode.grid.background-opacity=0",
                 "grid-mode.grid.synchronization=mouse-follows-grid-center");
         assertTrue(hint.visible());
-        assertTrue(hint.mouseFollowsSelection());
-        assertTrue(hint.selectionFollowsOverlayCenter());
+        assertTrue(hint.mouseFollowsTarget());
+        assertTrue(hint.targetFollowsOverlayCenter());
         assertEquals(1, layout(hint).maxRowCount());
         assertEquals(3, layout(hint).maxColumnCount());
         assertEquals(Color.parse("#00FF00"), style(hint).boxBorderColor());

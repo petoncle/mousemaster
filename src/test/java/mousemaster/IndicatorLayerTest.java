@@ -190,17 +190,17 @@ class IndicatorLayerTest {
 
     @Test
     void aLayerWithTwoPositionsTakesItsSizeFromThem() {
-        Mode mode = parse("idle-mode.indicator.position=last-selected-hint selection")
+        Mode mode = parse("idle-mode.indicator.position=last-selected-hint target")
                 .modeMap().get(Mode.IDLE_MODE_NAME);
-        assertEquals(List.of(IndicatorPosition.LAST_SELECTED_HINT, IndicatorPosition.SELECTION),
+        assertEquals(List.of(IndicatorPosition.LAST_SELECTED_HINT, IndicatorPosition.TARGET),
                 layer(mode, "indicator").positions());
         assertFalse(layer(mode, "indicator").followMouse());
         assertThrows(IllegalArgumentException.class,
-                () -> parse("idle-mode.indicator.position=mouse selection",
+                () -> parse("idle-mode.indicator.position=mouse target",
                         "idle-mode.indicator.size=10"));
-        parse("idle-mode.indicator.position=mouse selection", "idle-mode.indicator.rotation=90");
+        parse("idle-mode.indicator.position=mouse target", "idle-mode.indicator.rotation=90");
         assertThrows(IllegalArgumentException.class,
-                () -> parse("idle-mode.indicator.position=mouse selection screen-center"));
+                () -> parse("idle-mode.indicator.position=mouse target screen-center"));
     }
 
     @Test

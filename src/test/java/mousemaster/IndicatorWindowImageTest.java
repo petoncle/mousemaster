@@ -115,10 +115,10 @@ class IndicatorWindowImageTest {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         Map<IndicatorPosition, Point> pointByPosition =
                 Map.of(IndicatorPosition.LAST_SELECTED_HINT, new Point(500, 500),
-                        IndicatorPosition.SELECTION, new Point(700, 600));
+                        IndicatorPosition.TARGET, new Point(700, 600));
         WindowImage line = new IndicatorRenderer().renderWindowImage(indicator(
                         "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=line",
-                        "idle-mode.indicator.position=last-selected-hint selection"),
+                        "idle-mode.indicator.position=last-selected-hint target"),
                 Set.of("indicator"), pointByPosition, new Rectangle(100, 100, 32, 32),
                 new Point(4, 4), SCREEN, null, "#000000");
         Rectangle lineInk = inkBox(line);
@@ -128,10 +128,10 @@ class IndicatorWindowImageTest {
         assertEquals(600, lineInk.y() + lineInk.height(), 1);
         WindowImage circle = new IndicatorRenderer().renderWindowImage(indicator(
                         "idle-mode.indicator.enabled=true",
-                        "idle-mode.indicator.position=last-selected-hint selection",
+                        "idle-mode.indicator.position=last-selected-hint target",
                         "idle-mode.indicator.fill-opacity=1"),
                 Set.of("indicator"), Map.of(IndicatorPosition.LAST_SELECTED_HINT,
-                        new Point(500, 500), IndicatorPosition.SELECTION, new Point(600, 500)),
+                        new Point(500, 500), IndicatorPosition.TARGET, new Point(600, 500)),
                 new Rectangle(100, 100, 32, 32), new Point(4, 4), SCREEN, null, "#000000");
         Rectangle circleInk = inkBox(circle);
         assertEquals(500, circleInk.x(), 1);
@@ -145,10 +145,10 @@ class IndicatorWindowImageTest {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         WindowImage line = new IndicatorRenderer().renderWindowImage(indicator(
                         "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=line",
-                        "idle-mode.indicator.position=last-selected-hint selection",
+                        "idle-mode.indicator.position=last-selected-hint target",
                         "idle-mode.indicator.rotation=90"),
                 Set.of("indicator"), Map.of(IndicatorPosition.LAST_SELECTED_HINT,
-                        new Point(500, 500), IndicatorPosition.SELECTION, new Point(700, 500)),
+                        new Point(500, 500), IndicatorPosition.TARGET, new Point(700, 500)),
                 new Rectangle(100, 100, 32, 32), new Point(4, 4), SCREEN, null, "#000000");
         Rectangle lineInk = inkBox(line);
         assertEquals(600, lineInk.x() + lineInk.width() / 2.0, 1);
