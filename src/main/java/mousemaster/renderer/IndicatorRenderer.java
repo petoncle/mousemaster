@@ -46,6 +46,7 @@ public final class IndicatorRenderer {
     private IndicatorConfiguration windowImageIndicator;
     private List<Point> windowImageOffsets;
     private double windowImageScale;
+    private String windowImageLastSelectedHintBoxHexColor;
     private boolean showing;
     private boolean cleared;
 
@@ -574,6 +575,7 @@ public final class IndicatorRenderer {
             offsets.add(new Point(topLeft.x() - x, topLeft.y() - y));
         if (indicatorWithPositions.equals(windowImageIndicator) &&
             offsets.equals(windowImageOffsets) && screenScale == windowImageScale &&
+            lastSelectedHintBoxHexColor.equals(windowImageLastSelectedHintBoxHexColor) &&
             looksTheSameAnywhere(indicator))
             return new WindowImage(windowImage, x, y);
         int width = layersRectangle.width() + 2 * shadowPadding;
@@ -589,6 +591,7 @@ public final class IndicatorRenderer {
         windowImageIndicator = indicatorWithPositions;
         windowImageOffsets = offsets;
         windowImageScale = screenScale;
+        windowImageLastSelectedHintBoxHexColor = lastSelectedHintBoxHexColor;
         return new WindowImage(windowImage, x, y);
     }
 

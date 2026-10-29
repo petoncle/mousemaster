@@ -316,4 +316,19 @@ class IndicatorWindowImageTest {
         assertTrue((left >> 16 & 0xFF) > 0xE0 && (left & 0xFF) < 0x20, Integer.toHexString(left));
         assertTrue((right & 0xFF) > 0xE0 && (right >> 16 & 0xFF) < 0x20, Integer.toHexString(right));
     }
+
+    @Test
+    void theLastSelectedHintBoxColorIsDrawnAgainWhenItChanges() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        IndicatorConfiguration indicator = indicator(
+                "idle-mode.indicator.fill-color=last-selected-hint-box-color",
+                "idle-mode.indicator.fill-opacity=1");
+        IndicatorRenderer renderer = new IndicatorRenderer();
+        int red = centerArgb(renderer.renderWindowImage(indicator, Set.of("indicator"), Map.of(),
+                new Rectangle(500, 500, 32, 32), new Point(4, 4), SCREEN, null, "#FF0000"));
+        int blue = centerArgb(renderer.renderWindowImage(indicator, Set.of(), Map.of(),
+                new Rectangle(500, 500, 32, 32), new Point(4, 4), SCREEN, null, "#0000FF"));
+        assertTrue((red >> 16 & 0xFF) > 0xE0 && (red & 0xFF) < 0x20, Integer.toHexString(red));
+        assertTrue((blue & 0xFF) > 0xE0 && (blue >> 16 & 0xFF) < 0x20, Integer.toHexString(blue));
+    }
 }
