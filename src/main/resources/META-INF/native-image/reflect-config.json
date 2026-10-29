@@ -800,7 +800,7 @@
 {
   "name":"mousemaster.HintMeshConfiguration",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["boolean","boolean","mousemaster.HintMouseMovement","mousemaster.HintMeshType","mousemaster.ScreenFilterMap","mousemaster.ScreenFilterMap","java.lang.String","boolean","java.util.List","java.util.List"] }, {"name":"deselectCombos","parameterTypes":[] }, {"name":"eatUnusedSelectionKeys","parameterTypes":[] }, {"name":"enabled","parameterTypes":[] }, {"name":"keysByFilter","parameterTypes":[] }, {"name":"modeAfterSelection","parameterTypes":[] }, {"name":"mouseMovement","parameterTypes":[] }, {"name":"selectCombos","parameterTypes":[] }, {"name":"styleByFilter","parameterTypes":[] }, {"name":"type","parameterTypes":[] }, {"name":"visible","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["boolean","boolean","boolean","boolean","mousemaster.HintMeshType","mousemaster.ScreenFilterMap","mousemaster.ScreenFilterMap","java.lang.String","boolean","java.util.List","java.util.List"] }, {"name":"deselectCombos","parameterTypes":[] }, {"name":"eatUnusedSelectionKeys","parameterTypes":[] }, {"name":"enabled","parameterTypes":[] }, {"name":"keysByFilter","parameterTypes":[] }, {"name":"modeAfterSelection","parameterTypes":[] }, {"name":"mouseFollowsSelection","parameterTypes":[] }, {"name":"selectCombos","parameterTypes":[] }, {"name":"selectionFollowsOverlayCenter","parameterTypes":[] }, {"name":"styleByFilter","parameterTypes":[] }, {"name":"type","parameterTypes":[] }, {"name":"visible","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.HintMeshKeys",

@@ -65,7 +65,8 @@ public class ConfigurationParser {
         // The deprecated grid's defaults.
         HintMeshConfigurationBuilder gridHintMesh = defaultHintMesh();
         gridHintMesh.visible(false)
-                    .mouseMovement(HintMouseMovement.NO_MOVEMENT);
+                    .mouseFollowsSelection(false)
+                    .selectionFollowsOverlayCenter(false);
         gridHintMesh.type().gridLayout(AnyScreenFilter.ANY_SCREEN_FILTER)
                     .cellSizingType(HintCellSizing.HintCellSizingType.FIT)
                     .maxRowCount(2)
@@ -181,7 +182,8 @@ public class ConfigurationParser {
                 new HintMeshConfigurationBuilder();
         hintMesh.enabled(false)
                 .visible(true)
-                .mouseMovement(HintMouseMovement.MOUSE_FOLLOWS_SELECTED_HINT);
+                .mouseFollowsSelection(true)
+                .selectionFollowsOverlayCenter(false);
         hintMesh.keys(AnyScreenFilter.ANY_SCREEN_FILTER)
                 .selectionKeys(List.of())
                 .rowKeyOffset(0);
@@ -325,7 +327,7 @@ public class ConfigurationParser {
     public static Configuration parse(List<String> properties,
                                       KeyboardLayout platformActiveKeyboardLayout) {
         properties = desugarIndicatorStates(properties);
-        properties = desugarGrid(properties);
+        properties = desugarMouseMovement(desugarGrid(properties));
         ForcedActiveAndConfigurationKeyboardLayouts
                 forcedActiveAndConfigurationKeyboardLayouts = parseForcedAndConfigurationLayouts(properties);
         KeyboardLayout activeKeyboardLayout =
@@ -914,6 +916,42 @@ public class ConfigurationParser {
         return desugared;
     }
 
+    private static final Pattern mouseMovementPattern = Pattern.compile(
+            "(?<![\\w-])(no-movement|mouse-follows-selected-hint|mouse-follows-overlay-center|" +
+            "mouse-follows-hint-grid-center)(?![\\w-])");
+
+    /**
+     * Rewrites the former mouse-movement as mouse-follows-selection and
+     * selection-follows-overlay-center, in each branch of a mutation:
+     * a-mode.overlay.mouse-movement=no-movement becomes
+     * a-mode.overlay.mouse-follows-selection=false and
+     * a-mode.overlay.selection-follows-overlay-center=false.
+     */
+    private static List<String> desugarMouseMovement(List<String> properties) {
+        List<String> desugared = new ArrayList<>(properties.size());
+        for (String property : properties) {
+            Matcher lineMatcher = propertyLinePattern.matcher(property);
+            Matcher keyMatcher = modeKeyPattern.matcher(
+                    lineMatcher.matches() ? lineMatcher.group(1).strip() : "");
+            if (!keyMatcher.matches() || !"mouse-movement".equals(keyMatcher.group(5)) ||
+                keyMatcher.group(7) != null ||
+                !List.of("overlay", "hint", "grid").contains(keyMatcher.group(3))) {
+                desugared.add(property);
+                continue;
+            }
+            String overlayKey = keyMatcher.group(1) + "." + keyMatcher.group(3);
+            String value = lineMatcher.group(2).strip();
+            desugared.add(overlayKey + ".mouse-follows-selection=" +
+                          mouseMovementPattern.matcher(value).replaceAll(
+                                  movement -> String.valueOf(
+                                          !movement.group().equals("no-movement"))));
+            desugared.add(overlayKey + ".selection-follows-overlay-center=" +
+                          mouseMovementPattern.matcher(value).replaceAll(
+                                  movement -> String.valueOf(movement.group().endsWith("-center"))));
+        }
+        return desugared;
+    }
+
     /** A name prefixed with + is pressed from the start; - or no prefix is not pressed. */
     private record DeclaredVirtualKeyNames(Set<String> names, Set<String> initiallyPressed) {
     }
@@ -1263,16 +1301,10 @@ public class ConfigurationParser {
                             boolean moveMouse = Boolean.parseBoolean(propertyValue);
                             logger.warn(
                                     "hint.move-mouse has been deprecated: use " +
-                                    modeName +
-                                    ".overlay.mouse-movement=" +
-                                    (moveMouse ? "mouse-follows-selected-hint" :
-                                            "no-movement") + " instead");
-                            if (hintMesh.builder.mouseMovement() == null) {
-                                hintMesh.builder.mouseMovement(
-                                        moveMouse ?
-                                                HintMouseMovement.MOUSE_FOLLOWS_SELECTED_HINT :
-                                                HintMouseMovement.NO_MOVEMENT);
-                            }
+                                    modeName + ".overlay.mouse-follows-selection=" +
+                                    moveMouse + " instead");
+                            if (hintMesh.builder.mouseFollowsSelection() == null)
+                                hintMesh.builder.mouseFollowsSelection(moveMouse);
                         }
                         case "mode-after-selection" -> {
                             String modeAfterSelection = propertyValue;
@@ -1839,19 +1871,6 @@ public class ConfigurationParser {
                 }
             }
         }
-    }
-
-    private static HintMouseMovement parseHintMouseMovement(String propertyKey, String propertyValue) {
-        return switch (propertyValue) {
-            case "no-movement" -> HintMouseMovement.NO_MOVEMENT;
-            case "mouse-follows-selected-hint" -> HintMouseMovement.MOUSE_FOLLOWS_SELECTED_HINT;
-            case "mouse-follows-overlay-center", "mouse-follows-hint-grid-center" -> HintMouseMovement.MOUSE_FOLLOWS_OVERLAY_CENTER;
-            default -> throw new IllegalArgumentException(
-                    "Invalid property value in " + propertyKey + "=" + propertyValue +
-                    ": mouse-movement should be one of " +
-                    List.of("no-movement", "mouse-follows-selected-hint",
-                            "mouse-follows-overlay-center"));
-        };
     }
 
     private static ScreenFilter parseScreenFilter(String string) {
@@ -2844,7 +2863,8 @@ public class ConfigurationParser {
             // Top-level properties
             case "enabled" -> ModePropertyHandler.of(prefix.append("enabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.enabled(v));
             case "visible" -> ModePropertyHandler.of(prefix.append("visible"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.visible(v));
-            case "mouse-movement" -> ModePropertyHandler.of(prefix.append("mouseMovement"), v -> parseHintMouseMovement("overlay.mouse-movement", v), v -> hintMeshBuilder.mouseMovement(v));
+            case "mouse-follows-selection" -> ModePropertyHandler.of(prefix.append("mouseFollowsSelection"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.mouseFollowsSelection(v));
+            case "selection-follows-overlay-center" -> ModePropertyHandler.of(prefix.append("selectionFollowsOverlayCenter"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.selectionFollowsOverlayCenter(v));
             case "eat-unused-selection-keys" -> ModePropertyHandler.of(prefix.append("eatUnusedSelectionKeys"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.eatUnusedSelectionKeys(v));
             // Type property (sealed variant): uses Function for GRID because it
             // needs the current area/gridLayout at mutation time, not parse time.
@@ -3790,8 +3810,10 @@ public class ConfigurationParser {
                     builder.enabled(parent.enabled());
                 if (builder.visible() == null)
                     builder.visible(parent.visible());
-                if (builder.mouseMovement() == null)
-                    builder.mouseMovement(parent.mouseMovement());
+                if (builder.mouseFollowsSelection() == null)
+                    builder.mouseFollowsSelection(parent.mouseFollowsSelection());
+                if (builder.selectionFollowsOverlayCenter() == null)
+                    builder.selectionFollowsOverlayCenter(parent.selectionFollowsOverlayCenter());
                 if (builder.type().type() == null)
                     builder.type().type(parent.type().type());
                 if (builder.type().area().source() == null)

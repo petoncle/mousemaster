@@ -380,28 +380,32 @@ branches all describe the dots look.
 
 ### Drilling does not move the pointer
 
-`isnomove` is pressed on entry. Whether the pointer follows is a four-branch mutation:
+`isnomove` is pressed on entry. Whether and where the pointer follows is two mutations:
 
 ```properties
-_recursive-hint-mode.overlay.mouse-movement=mouse-follows-overlay-center \
-  | ^{recursivehintwheel} _{isnomove rightalt} -> mouse-follows-selected-hint \
-  | _{isnomove islclick | isnomove ismclick | isnomove isrclick} ^{islongpresshintkey isnohintclick rightalt} -> mouse-follows-selected-hint \
-  | _{isnomove} ^{islclick ismclick isrclick islongpresshintkey rightalt} -> no-movement
+_recursive-hint-mode.overlay.mouse-follows-selection=true \
+  | _{isnomove} ^{islclick ismclick isrclick islongpresshintkey rightalt} -> false
+_recursive-hint-mode.overlay.selection-follows-overlay-center=true \
+  | ^{recursivehintwheel} _{isnomove rightalt} -> false \
+  | _{isnomove islclick | isnomove ismclick | isnomove isrclick} ^{islongpresshintkey isnohintclick rightalt} -> false \
+  | _{isnomove} ^{islclick ismclick isrclick islongpresshintkey rightalt} -> false
 ```
 
-The three values differ in *when* they move:
+The three combinations differ in *when* they move:
 
-| Value | On arriving at a level | On the final cell pick |
-|---|---|---|
-| `mouse-follows-overlay-center` | yes, to the region's center | yes, to the cell |
-| `mouse-follows-selected-hint` | no | yes, to the cell |
-| `no-movement` | no | no |
+| `mouse-follows-selection` | `selection-follows-overlay-center` | On arriving at a level | On the final cell pick |
+|---|---|---|---|
+| `true` | `true` | yes, to the region's center | yes, to the cell |
+| `true` | `false` | no | yes, to the cell |
+| `false` | `false` | no | no |
 
-Rightmost matching branch wins and the four are mutually exclusive, so it reads as a decision table:
+Rightmost matching branch wins and the branches are mutually exclusive, so it reads as a decision
+table:
 
-- **plain drilling** → `no-movement`, so hover states and tooltips survive the narrowing.
-- **a click armed** → `mouse-follows-selected-hint`: no movement while drilling, the final pick lands on
-  the cell.
+- **plain drilling** → `mouse-follows-selection=false`, so hover states and tooltips survive the
+  narrowing.
+- **a click armed** → `selection-follows-overlay-center=false`: no movement while drilling, the final
+  pick lands on the cell.
 - **`rightalt` held** → the same, since `rightalt` + a pick means "move there without clicking".
 - **anything else** — `isnomove` toggled off, a wheel key held, `islongpresshintkey` or `isnohintclick`
   set — falls through to grid-center. Those last two are commits carrying *no* cell pick, and the
@@ -444,7 +448,7 @@ with no cell pick would land. From there:
 1. **Tap `space`** (third branch) → a click at the region center. `#{recursivehintkey}` ignores hint-key
    events inside the window so the combo survives a keypress handled elsewhere.
 2. **`space` then a hint key** (first branch) → the hint-key press clears `isnohintclick`, flipping
-   movement back to `mouse-follows-selected-hint`; a virtual key pressed at the start of a macro's
+   `selection-follows-overlay-center` back to `false`; a virtual key pressed at the start of a macro's
    output takes effect before the combo's other commands, so the pick already sees the new value.
    `space` must still be down and the key must arrive within 250 ms, or the long-press branch has fired.
 3. **Long-press `space`** (second branch) → at 250 ms the commit fires at the region center with no cell
@@ -614,7 +618,7 @@ moving in the same instant, with no gap.
 
 Snap mode is the same region as a 1×1 grid: only the outer boundary exists, so a direction key throws
 the pointer to that edge or corner. Screen snap keeps the pointer where it is; window snap recenters
-it (`mouse-follows-overlay-center`), which makes `rightalt`+`;` the shortest way to say "put the pointer in this window".
+it (`selection-follows-overlay-center=true`), which makes `rightalt`+`;` the shortest way to say "put the pointer in this window".
 
 `window-snap-mode.overlay.area-top-inset=15` keeps snapping up on the **title bar** rather than the
 invisible resize border above it. With a held `space` that is the whole window-drag workflow:
@@ -644,7 +648,7 @@ center-mouse-mode.overlay.visible=false
 center-mouse-mode.overlay.grid-cell-sizing=fit
 center-mouse-mode.overlay.grid-max-row-count=1
 center-mouse-mode.overlay.grid-max-column-count=1
-center-mouse-mode.overlay.mouse-movement=mouse-follows-overlay-center
+center-mouse-mode.overlay.selection-follows-overlay-center=true
 center-mouse-mode.to.previous-mode-from-history-stack=_{isidling} wait-0
 idle-mode.to.center-mouse-mode=^{nonexistingapp.exe}
 ```

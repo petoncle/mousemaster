@@ -41,11 +41,15 @@ class OverlayTest {
     }
 
     @Test
-    void mouseFollowsHintGridCenterIsMouseFollowsOverlayCenter() {
-        assertEquals(HintMouseMovement.MOUSE_FOLLOWS_OVERLAY_CENTER,
-                overlay("grid-mode", "idle-mode.to.grid-mode=+g",
-                        "grid-mode.overlay.mouse-movement=mouse-follows-hint-grid-center")
-                        .mouseMovement());
+    void mouseMovementIsMouseFollowsSelectionAndSelectionFollowsOverlayCenter() {
+        assertEquals(
+                ConfigurationParser.parse(List.of("idle-mode.to.grid-mode=+g",
+                        "grid-mode.overlay.mouse-follows-selection=true | _{leftctrl} -> false",
+                        "grid-mode.overlay.selection-follows-overlay-center=true | _{leftctrl} -> false"),
+                        KeyboardLayout.keyboardLayout("00000409", null)).modeMap().get("grid-mode"),
+                ConfigurationParser.parse(List.of("idle-mode.to.grid-mode=+g",
+                        "grid-mode.overlay.mouse-movement=mouse-follows-hint-grid-center | _{leftctrl} -> no-movement"),
+                        KeyboardLayout.keyboardLayout("00000409", null)).modeMap().get("grid-mode"));
     }
 
 }

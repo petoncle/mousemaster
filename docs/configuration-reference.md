@@ -462,9 +462,9 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
   layer behind the cursor, best with a low opacity so the cursor stays visible. Near a screen
   edge, a corner position moves to the other side of the cursor, and a layer with a text moves
   inward instead of being cut. `selection` and `last-selected-hint` center the layer on those
-  points of the overlay (see `mouse-movement`), and the layer moves with them, not with the
-  cursor. Without `no-movement`, the selection follows the mouse, and a layer on it is drawn
-  again at each mouse move: to draw at the cursor, use `mouse`.
+  points of the overlay (see `mouse-follows-selection`), and the layer moves with them, not with
+  the cursor. While the mouse follows the selection, the selection is the mouse, and a layer on it
+  is drawn again at each mouse move: to draw at the cursor, use `mouse`.
 
   With two positions, the layer runs from the first to the second: their distance is its width,
   and `rotation` turns it from their direction. `aspect-ratio` still sets its height, and `size`
@@ -682,7 +682,7 @@ ui-hint-mode.overlay.area=active-screen
 ui-hint-mode.overlay.selection-keys=selectionkey
 ui-hint-mode.overlay.select=+selectionkey
 ui-hint-mode.overlay.deselect=backspace
-ui-hint-mode.overlay.mouse-movement=mouse-follows-selected-hint
+ui-hint-mode.overlay.mouse-follows-selection=true
 ui-hint-mode.overlay.font-size=10
 ui-hint-mode.overlay.font-weight=bold
 ui-hint-mode.overlay.font-color=#FFFFFF
@@ -983,7 +983,7 @@ hint-mode.overlay.selection-keys=selectionkey
 hint-mode.overlay.select=+selectionkey
 hint-mode.overlay.deselect=backspace
 hint-mode.to.normal-mode=+selectionkey
-hint-mode.overlay.mouse-movement=mouse-follows-selected-hint
+hint-mode.overlay.mouse-follows-selection=true
 hint-mode.overlay.eat-unused-selection-keys=true
 hint-mode.overlay.label-override=plus
 ```
@@ -996,18 +996,21 @@ hint-mode.overlay.label-override=plus
 - **`select`**: Combo that triggers hint selection. For example, if you want to be able to hold leftshift while pressing a hint selection key, then use `hint-mode.overlay.select=_{none | leftshift} +selectionkey`
 - **`deselect`** (formerly `undo`): Combo that deselects the last selection key
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
-- **`mouse-movement`**: Controls how the mouse moves when interacting with hints. The selection
-  is a position that follows the mouse. Selecting a hint and the grid commands move it to the
-  center of the hint, the edge a `snap-selection` goes to or the center of the grid, and the
-  mouse goes there. When `no-movement` starts, the selection stops where it is: only those
-  commands move it, and the mouse stays.
-  - `no-movement`: Mouse stays in its current position
-  - `mouse-follows-selected-hint`: Mouse moves to the selected hint (default behavior)
-  - `mouse-follows-overlay-center` (formerly `mouse-follows-hint-grid-center`): Mouse moves to the center of the overlay
-  - Use `no-movement` when the next mode will be another hint grid
+- **`mouse-follows-selection`**: Whether the mouse follows the selection (default `true`). The
+  selection is a position that follows the mouse. Selecting a hint and the grid commands move it
+  to the center of the hint, the edge a `snap-selection` goes to or the center of the grid, and
+  the mouse goes there. When it becomes `false`, the selection stops where it is: only those
+  commands move it, and the mouse stays. Use `false` when the next mode will be another hint
+  grid.
+- **`selection-follows-overlay-center`**: Whether the selection goes to the center of the overlay
+  when the overlay shows, and when a selection key or `deselect` changes its hints (default
+  `false`). The mouse goes there too, unless `mouse-follows-selection=false`.
+- **`mouse-movement`** (former property): it sets both. `no-movement` is `false` and `false`,
+  `mouse-follows-selected-hint` is `true` and `false`, and `mouse-follows-overlay-center`
+  (formerly `mouse-follows-hint-grid-center`) is `true` and `true`.
 - **`move-to.last-selected-hint`** (formerly `move-to-last-selected-hint`): Like
   `to.<mode-name>`, a command of the mode, not an overlay property. It moves the mouse to the last
-  selected hint, for example after `no-movement` left the mouse where it was:
+  selected hint, for example after `mouse-follows-selection=false` left the mouse where it was:
   `normal-mode.move-to.last-selected-hint=+m`
 - **`move-to.selection`**: The same, to the selection: `grid-mode.move-to.selection=+space`
 - **`eat-unused-selection-keys`**: If `false`, selection keys not used in the current hint display can be used in combos
@@ -1241,7 +1244,7 @@ hint1-mode.overlay.area=active-screen
 hint1-mode.overlay.selection-keys=selectionkey
 hint1-mode.to.hint2-mode=+selectionkey
 # Don't move mouse after first selection
-hint1-mode.overlay.mouse-movement=no-movement
+hint1-mode.overlay.mouse-follows-selection=false
 
 # Second level hint mode
 hint2-mode.overlay.area=active-screen
@@ -1257,7 +1260,7 @@ hint2-mode.overlay.font-size=7
 hint2-mode.overlay.selection-keys=selectionkey
 hint2-mode.to.normal-mode=+selectionkey
 # Move mouse after second selection
-hint2-mode.overlay.mouse-movement=mouse-follows-selected-hint
+hint2-mode.overlay.mouse-follows-selection=true
 ```
 
 ### Grid commands
@@ -1271,7 +1274,7 @@ grid-mode.to.normal-mode=+esc
 grid-mode.overlay.grid-cell-sizing=fit
 grid-mode.overlay.grid-max-row-count=2
 grid-mode.overlay.grid-max-column-count=2
-grid-mode.overlay.mouse-movement=mouse-follows-overlay-center
+grid-mode.overlay.selection-follows-overlay-center=true
 grid-mode.overlay.box-color=#FF0000
 grid-mode.overlay.box-opacity=0.1
 grid-mode.overlay.box-border-color=#FF0000
@@ -1316,8 +1319,8 @@ A command name says what it moves: `snap-selection` and `move-selection-to` move
 
 A mode with the same `overlay.type`, area and layout keeps the grid where the commands left it. With
 `area-center=mouse`, a command first centers the grid on the mouse. With
-`mouse-movement=mouse-follows-overlay-center`, the mouse goes to the center of the grid after
-each change. The mouse follows the selection, unless `mouse-movement=no-movement`: then it stays
+`selection-follows-overlay-center=true`, the selection goes to the center of the grid after each
+change. The mouse follows the selection, unless `mouse-follows-selection=false`: then it stays
 where it is.
 
 Earlier versions had a separate `grid`. Its properties still work, as overlay properties:
@@ -1325,7 +1328,8 @@ Earlier versions had a separate `grid`. Its properties still work, as overlay pr
 `grid.line-visible` is `visible`, `grid.line-color`, `grid.line-thickness` and `grid.line-opacity`
 are `box-border-color`, `box-border-thickness` and `box-border-opacity`, `grid.background-color` and
 `grid.background-opacity` are `box-color` and `box-opacity`, and `grid.synchronization` is
-`mouse-movement` (`grid-center-follows-mouse` is `area-center=mouse`). A mode that uses them, or a
+`mouse-movement` (`grid-center-follows-mouse` is `area-center=mouse`), itself now
+`mouse-follows-selection` and `selection-follows-overlay-center`. A mode that uses them, or a
 grid command, without an overlay property gets the old grid: an invisible `fit` 2x2 grid with red boxes.
 
 ## App aliases
@@ -1362,7 +1366,7 @@ In this example:
 
 ## Position history
 
-Position history allows you to save positions of the selection (see `mouse-movement`) and quickly return to them later. Unless the mode has `no-movement`, the selection follows the mouse, so these are mouse positions. This feature can be used for frequently accessed UI elements or for creating custom navigation patterns.
+Position history allows you to save positions of the selection (see `mouse-follows-selection`) and quickly return to them later. Unless the mode has `mouse-follows-selection=false`, the selection follows the mouse, so these are mouse positions. This feature can be used for frequently accessed UI elements or for creating custom navigation patterns.
 
 ### Basic configuration
 
@@ -1381,7 +1385,7 @@ normal-mode.position-history.clear=+f2
 - **`save-position`**: Command to save the position of the selection to history
 - **`unsave-position`**: Command to remove the saved position the selection is on
 - **`clear`**: Command to clear all saved positions
-- **`cycle-next`** / **`cycle-previous`**: Commands to move the selection to the next or previous saved position, continuing from the one it is on. The mouse follows, unless the mode has `no-movement`
+- **`cycle-next`** / **`cycle-previous`**: Commands to move the selection to the next or previous saved position, continuing from the one it is on. The mouse follows, unless the mode has `mouse-follows-selection=false`
 
 ### Several position histories
 

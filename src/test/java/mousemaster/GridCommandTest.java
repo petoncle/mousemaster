@@ -279,6 +279,20 @@ class GridCommandTest {
     }
 
     @Test
+    void theSelectionCanFollowTheOverlayCenterWithoutTheMouse() throws IOException {
+        start("""
+                grid-mode.hint.grid-max-row-count=2
+                grid-mode.hint.grid-max-column-count=2
+                grid-mode.hint.mouse-follows-selection=false
+                grid-mode.hint.selection-follows-overlay-center=true
+                """);
+        hintManager.mouseMoved(100, 100);
+        switchMode("grid-mode");
+        assertEquals(new Point(960, 540), hintManager.selectionPoint());
+        assertEquals(List.of(), mousePositions);
+    }
+
+    @Test
     void theSelectionFollowsTheMouseUntilNoMovementStopsIt() throws IOException {
         start("""
                 grid-mode.to.still-mode=+s

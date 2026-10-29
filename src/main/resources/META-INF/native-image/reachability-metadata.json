@@ -6451,7 +6451,8 @@
           "parameterTypes": [
             "boolean",
             "boolean",
-            "mousemaster.HintMouseMovement",
+            "boolean",
+            "boolean",
             "mousemaster.HintMeshType",
             "mousemaster.ScreenFilterMap",
             "mousemaster.ScreenFilterMap",
@@ -6482,11 +6483,15 @@
           "parameterTypes": []
         },
         {
-          "name": "mouseMovement",
+          "name": "mouseFollowsSelection",
           "parameterTypes": []
         },
         {
           "name": "selectCombos",
+          "parameterTypes": []
+        },
+        {
+          "name": "selectionFollowsOverlayCenter",
           "parameterTypes": []
         },
         {
