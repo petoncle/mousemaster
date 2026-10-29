@@ -65,32 +65,43 @@ public class KeyboardManager {
             reset();
         }
         else {
-            releaseKeyTheOsStoppedRepeating();
-            ComboWatcherUpdateResult watcherUpdateResult = comboWatcher.update(delta);
-            if (!watcherUpdateResult.completedCombos().isEmpty()) {
-                markOtherKeysOfTheseCombosAsCompleted(
-                        watcherUpdateResult.completedCombos(),
-                        watcherUpdateResult.hasComboPreparationBreaker());
-                clearFullyCompletedEatenKeys();
+            updateCombos(delta);
+            runEntryCombos();
+        }
+    }
+
+    /** The entry combos of a mode switched to run at once, before the indicator is drawn. */
+    private void runEntryCombos() {
+        if (comboWatcher.entryCombosPending())
+            updateCombos(0);
+    }
+
+    private void updateCombos(double delta) {
+        releaseKeyTheOsStoppedRepeating();
+        ComboWatcherUpdateResult watcherUpdateResult = comboWatcher.update(delta);
+        if (!watcherUpdateResult.completedCombos().isEmpty()) {
+            markOtherKeysOfTheseCombosAsCompleted(
+                    watcherUpdateResult.completedCombos(),
+                    watcherUpdateResult.hasComboPreparationBreaker());
+            clearFullyCompletedEatenKeys();
+        }
+        if (!watcherUpdateResult.expiredCombos().isEmpty()) {
+            List<Regurgitate> deadComboRegurgitates =
+                    handleDeadEatingCombos(watcherUpdateResult.expiredCombos(), null);
+            for (Regurgitate regurgitate : deadComboRegurgitates) {
+                keyRegurgitator.regurgitate(regurgitate, !regurgitate.alsoRelease());
             }
-            if (!watcherUpdateResult.expiredCombos().isEmpty()) {
-                List<Regurgitate> deadComboRegurgitates =
-                        handleDeadEatingCombos(watcherUpdateResult.expiredCombos(), null);
-                for (Regurgitate regurgitate : deadComboRegurgitates) {
-                    keyRegurgitator.regurgitate(regurgitate, !regurgitate.alsoRelease());
-                }
-            }
-            if (watcherUpdateResult.preparationIsNotPrefixAnymore()) {
-                regurgitatePressedKeys();
-            }
-            if (watcherUpdateResult.hasComboPreparationBreaker()) {
-                regurgitatePressedKeys();
-                if (!watcherUpdateResult.comboPreparationAlreadyBroken()) {
-                    if (watcherUpdateResult.comboPreparationBreakerKey() != null)
-                        comboWatcher.reset(watcherUpdateResult.comboPreparationBreakerKey());
-                    else
-                        comboWatcher.breakComboPreparation();
-                }
+        }
+        if (watcherUpdateResult.preparationIsNotPrefixAnymore()) {
+            regurgitatePressedKeys();
+        }
+        if (watcherUpdateResult.hasComboPreparationBreaker()) {
+            regurgitatePressedKeys();
+            if (!watcherUpdateResult.comboPreparationAlreadyBroken()) {
+                if (watcherUpdateResult.comboPreparationBreakerKey() != null)
+                    comboWatcher.reset(watcherUpdateResult.comboPreparationBreakerKey());
+                else
+                    comboWatcher.breakComboPreparation();
             }
         }
     }
@@ -157,6 +168,7 @@ public class KeyboardManager {
                    lastKeyEvents.getFirst().event().time().isBefore(cutoff))
                 lastKeyEvents.removeFirst();
         }
+        runEntryCombos();
         return eatAndRegurgitates;
     }
 

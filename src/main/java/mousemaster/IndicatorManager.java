@@ -16,6 +16,7 @@ public class IndicatorManager implements ModeListener {
     private final AnimationPlayer animationPlayer;
     private final HintManager hintManager;
     private Mode currentMode;
+    private boolean entryCombosPending;
     private IndicatorConfiguration resolvedIndicator;
     private final Map<ModePropertyPath, Timeline> timelineByPropertyPath = new HashMap<>();
     private final Map<ModePropertyPath, Double> elapsedByPropertyPath = new HashMap<>();
@@ -51,12 +52,25 @@ public class IndicatorManager implements ModeListener {
 
     /** The mode being left is resolved too: a state that lasts less than a frame is what
      *  current is taken from when a branch takes over from it. A hidden indicator keeps the
-     *  last state it was shown in. */
+     *  last state it was shown in. The indicator is drawn before the overlay is painted, so
+     *  that the two change in the same frame. After a switch, it is drawn once the entry combos
+     *  have run, so that what they start is in its first frame. */
     @Override
     public void modeChanged(Mode newMode) {
+        if (currentMode != null && !newMode.name().equals(currentMode.name()))
+            entryCombosPending = true;
         if (currentMode != null)
             resolve();
         currentMode = newMode;
+        if (!entryCombosPending && !hintManager.waitingForUiElements())
+            update();
+    }
+
+    @Override
+    public void entryCombosRan() {
+        entryCombosPending = false;
+        if (!hintManager.waitingForUiElements())
+            update();
     }
 
     private IndicatorConfiguration resolve() {

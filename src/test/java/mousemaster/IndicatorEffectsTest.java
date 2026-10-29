@@ -77,7 +77,7 @@ class IndicatorEffectsTest {
         animationPlayer = new AnimationPlayer(configuration.animationConfigurationByName());
         commandRunner.setAnimationPlayer(animationPlayer);
         indicatorManager = new IndicatorManager(overlay, animationPlayer, hintManager);
-        comboWatcher.setModeListeners(List.of(indicatorManager, hintManager));
+        comboWatcher.setModeListeners(List.of(hintManager, indicatorManager));
         comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
     }
 
@@ -107,6 +107,14 @@ class IndicatorEffectsTest {
                     }
                 }, animationPlayer);
         indicatorManager.update();
+    }
+
+    /** The layers the draws since the last call anchored. */
+    private Set<String> newlyAnchored() {
+        Set<String> layerNames = new HashSet<>();
+        anchored.forEach(layerNames::addAll);
+        anchored.clear();
+        return layerNames;
     }
 
     @SuppressWarnings("unchecked")
@@ -153,7 +161,7 @@ class IndicatorEffectsTest {
         tick(0);
         assertEquals(10, drawn("ring1-indicator").size(), 1e-9);
         assertEquals(Set.of("ring1-indicator", "ring2-indicator", "ring3-indicator"),
-                anchored.getLast());
+                newlyAnchored());
         tick(0.2);
         assertEquals(35, drawn("ring1-indicator").size(), 1e-9);
         assertEquals(10 + 50 * (0.5 - 0.1) / 0.9, drawn("ring2-indicator").size(), 1e-6);
@@ -176,7 +184,7 @@ class IndicatorEffectsTest {
         tick(0);
         assertEquals(10, drawn("ring1-indicator").size(), 1e-9);
         assertEquals(Set.of("ring1-indicator", "ring2-indicator", "ring3-indicator"),
-                anchored.getLast());
+                newlyAnchored());
     }
 
     @Test

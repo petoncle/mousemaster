@@ -78,6 +78,7 @@ public class ComboWatcher {
     private boolean mutatedModeNotificationSuspended;
     private boolean mutatedModeNotificationPending;
     private boolean modeJustTimedOut;
+    private boolean entryCombosPending;
     private ComboPreparation comboPreparation;
     private PressKeyEventProcessingSet lastProcessingSet;
     private ComboMoveDuration previousComboMoveDuration;
@@ -266,6 +267,10 @@ public class ComboWatcher {
         return mutatedMode;
     }
 
+    public boolean entryCombosPending() {
+        return entryCombosPending;
+    }
+
     /** Presses the built-in keys that follow the mouse, keyboard and hint state. The listeners
      *  are notified once all of them are set, so a click that grows the indicator and colors it
      *  through two different keys is not rendered half applied. */
@@ -344,6 +349,8 @@ public class ComboWatcher {
     }
 
     public ComboWatcherUpdateResult update(double delta) {
+        boolean runningEntryCombos = entryCombosPending;
+        entryCombosPending = false;
         List<ComboAndCommands> completedComboAndCommands = new ArrayList<>();
         updateScreenFilterKeys();
         App activeApp = activeAppFinder.activeApp();
@@ -551,6 +558,9 @@ public class ComboWatcher {
             completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
         }
         refreshPreconditionOnlyMutations(activeApp);
+        if (runningEntryCombos && !entryCombosPending)
+            for (ModeListener listener : modeListeners)
+                listener.entryCombosRan();
         return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore, hasComboPreparationBreaker, comboPreparationAlreadyBroken, comboPreparationBreakerKey, expiredCombos);
     }
 
@@ -1721,6 +1731,7 @@ public class ComboWatcher {
 
     public void modeChanged(Mode newMode) {
         App activeApp = activeAppFinder.activeApp();
+        entryCombosPending = true;
         baseMode = newMode;
         mutatedMode = newMode;
         activeMutations.clear();

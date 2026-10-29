@@ -91,16 +91,12 @@ public class Mousemaster {
             timeBeforeOp = System.nanoTime();
             pumpEventsNanos += timeBeforeOp - timeAfterOp;
             animationPlayer.update(delta);
-            Mode modeBeforeKeyboardUpdate = modeController.currentMode();
             keyboardManager.update(delta);
             timeAfterOp = System.nanoTime();
             long keyboardManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();
             timeBeforeOp = System.nanoTime();
             pumpEventsNanos += timeBeforeOp - timeAfterOp;
-            // A mode switched to runs its entry combos before it is rendered.
-            if (modeController.currentMode() != modeBeforeKeyboardUpdate)
-                keyboardManager.update(0);
             modeController.updateBuiltInVirtualKeys();
             if (!hintManager.waitingForUiElements())
                 indicatorManager.update();
@@ -270,10 +266,11 @@ public class Mousemaster {
         // ComboWatcher is the sole broadcaster to ModeListeners: it broadcasts
         // on mode switch (delegated from ModeController) and on mode mutation.
         // ZoomManager must be notified after HintManager because it calls
-        // lastSelectedHintPoint() which is updated by HintManager#modeChanged.
+        // lastSelectedHintPoint() which is updated by HintManager#modeChanged. IndicatorManager
+        // draws with the state of both.
         comboWatcher.setModeListeners(
-                List.of(platform, mouseManager, indicatorManager, hintManager,
-                        zoomManager));
+                List.of(platform, mouseManager, hintManager, zoomManager,
+                        indicatorManager));
         modeController =
                 new ModeController(configuration.modeMap(), mouseManager, mouseState,
                         keyboardState,

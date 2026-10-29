@@ -70,7 +70,7 @@ class AnimationTest {
         animationPlayer = new AnimationPlayer(configuration.animationConfigurationByName());
         commandRunner.setAnimationPlayer(animationPlayer);
         indicatorManager = new IndicatorManager(overlay, animationPlayer, hintManager);
-        comboWatcher.setModeListeners(List.of(indicatorManager, hintManager));
+        comboWatcher.setModeListeners(List.of(hintManager, indicatorManager));
         comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
     }
 
@@ -93,6 +93,14 @@ class AnimationTest {
                     }
                 }, animationPlayer);
         indicatorManager.update();
+    }
+
+    /** The layers the draws since the last call anchored. */
+    private Set<String> newlyAnchored() {
+        Set<String> layerNames = new HashSet<>();
+        anchored.forEach(layerNames::addAll);
+        anchored.clear();
+        return layerNames;
     }
 
     @SuppressWarnings("unchecked")
@@ -164,17 +172,17 @@ class AnimationTest {
                 "idle-mode.ripple-indicator.follow-mouse=false",
                 "idle-mode.ripple-indicator.size=10 | _{rippleanimation} -> 0% 10; 100% 40");
         tick(0);
-        assertEquals(Set.of("ripple-indicator"), anchored.getLast());
+        assertEquals(Set.of("ripple-indicator"), newlyAnchored());
         tick(0.01);
-        assertEquals(Set.of(), anchored.getLast());
+        assertEquals(Set.of(), newlyAnchored());
         tap("a");
         tick(0.01);
-        assertEquals(Set.of("ripple-indicator"), anchored.getLast());
+        assertEquals(Set.of("ripple-indicator"), newlyAnchored());
         tick(0.05);
-        assertEquals(Set.of(), anchored.getLast());
+        assertEquals(Set.of(), newlyAnchored());
         tap("a");
         tick(0.01);
-        assertEquals(Set.of("ripple-indicator"), anchored.getLast());
+        assertEquals(Set.of("ripple-indicator"), newlyAnchored());
     }
 
     @Test
@@ -182,12 +190,12 @@ class AnimationTest {
         load("idle-mode.indicator.enabled=true",
                 "idle-mode.indicator.follow-mouse=true | _{a} -> false");
         tick(0);
-        assertEquals(Set.of(), anchored.getLast());
+        assertEquals(Set.of(), newlyAnchored());
         comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, Key.ofName("a")));
         tick(0.01);
-        assertEquals(Set.of("indicator"), anchored.getLast());
+        assertEquals(Set.of("indicator"), newlyAnchored());
         tick(0.01);
-        assertEquals(Set.of(), anchored.getLast());
+        assertEquals(Set.of(), newlyAnchored());
     }
 
     @Test
@@ -509,6 +517,44 @@ class AnimationTest {
         indicatorManager.update();
         tick(0);
         assertEquals(Color.parse("#00FFFF"), drawn.getLast().fillColor());
+    }
+
+    @Test
+    void theIndicatorIsDrawnOnceTheEntryCombosOfAModeSwitchedToHaveRun() {
+        load("pop-in-animation.duration-millis=100",
+                "pop-out-animation.duration-millis=100",
+                "idle-mode.to.normal-mode=+x",
+                "idle-mode.to.other-mode=+y",
+                "normal-mode.pop-in-animation.start=#{*}-0",
+                "idle-mode.pop-out-animation.start=#{*}-0",
+                "idle-mode.indicator=normal-mode.indicator",
+                "idle-mode.indicator.enabled=false | _{popoutanimation} -> true",
+                "normal-mode.indicator.size=26 | _{popinanimation} -> 0% 4; 100% 26 | _{popoutanimation} -> 0% current; 100% 2",
+                "other-mode.indicator.enabled=true",
+                "other-mode.indicator.size=10 | _{a} -> 12");
+        tick(0);
+        tick(0.1);
+        tick(0);
+        drawn.clear();
+        comboWatcher.modeChanged(modeMap.get("normal-mode"));
+        assertEquals(List.of(), drawn);
+        comboWatcher.update(0);
+        assertEquals(4, drawn.getFirst().size(), 1e-9);
+        tick(0.1);
+        tick(0);
+        drawn.clear();
+        comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
+        assertEquals(List.of(), drawn);
+        comboWatcher.update(0);
+        assertEquals(26, drawn.getFirst().size(), 1e-9);
+        tick(0.1);
+        tick(0);
+        drawn.clear();
+        comboWatcher.modeChanged(modeMap.get("other-mode"));
+        comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, Key.ofName("a")));
+        assertEquals(List.of(), drawn);
+        comboWatcher.update(0);
+        assertEquals(12, drawn.getFirst().size(), 1e-9);
     }
 
     @Test
