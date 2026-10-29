@@ -50,6 +50,9 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             Duration fadeAnimationDuration,
                             Color backgroundColor,
                             double backgroundOpacity,
+                            double backgroundBorderThickness,
+                            Color backgroundBorderColor,
+                            double backgroundBorderOpacity,
                             double backgroundBorderRadius,
                             List<Key> labelOverride) {
 
@@ -132,6 +135,9 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Duration fadeAnimationDuration;
         private Color backgroundColor;
         private Double backgroundOpacity;
+        private Double backgroundBorderThickness;
+        private Color backgroundBorderColor;
+        private Double backgroundBorderOpacity;
         private Double backgroundBorderRadius;
         private List<Key> labelOverride;
 
@@ -188,6 +194,9 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.fadeAnimationDuration = style.fadeAnimationDuration;
             this.backgroundColor = style.backgroundColor;
             this.backgroundOpacity = style.backgroundOpacity;
+            this.backgroundBorderThickness = style.backgroundBorderThickness;
+            this.backgroundBorderColor = style.backgroundBorderColor;
+            this.backgroundBorderOpacity = style.backgroundBorderOpacity;
             this.backgroundBorderRadius = style.backgroundBorderRadius;
             this.labelOverride = style.labelOverride;
         }
@@ -411,6 +420,21 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
+        public HintMeshStyleBuilder backgroundBorderThickness(Double backgroundBorderThickness) {
+            this.backgroundBorderThickness = backgroundBorderThickness;
+            return this;
+        }
+
+        public HintMeshStyleBuilder backgroundBorderColor(Color backgroundBorderColor) {
+            this.backgroundBorderColor = backgroundBorderColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder backgroundBorderOpacity(Double backgroundBorderOpacity) {
+            this.backgroundBorderOpacity = backgroundBorderOpacity;
+            return this;
+        }
+
         public HintMeshStyleBuilder backgroundBorderRadius(Double backgroundBorderRadius) {
             this.backgroundBorderRadius = backgroundBorderRadius;
             return this;
@@ -611,6 +635,18 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return backgroundOpacity;
         }
 
+        public Double backgroundBorderThickness() {
+            return backgroundBorderThickness;
+        }
+
+        public Color backgroundBorderColor() {
+            return backgroundBorderColor;
+        }
+
+        public Double backgroundBorderOpacity() {
+            return backgroundBorderOpacity;
+        }
+
         public Double backgroundBorderRadius() {
             return backgroundBorderRadius;
         }
@@ -674,6 +710,9 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     fadeAnimationDuration == null ? defaultStyle.fadeAnimationDuration : fadeAnimationDuration,
                     backgroundColor == null ? defaultStyle.backgroundColor : backgroundColor,
                     backgroundOpacity == null ? defaultStyle.backgroundOpacity : backgroundOpacity,
+                    backgroundBorderThickness == null ? defaultStyle.backgroundBorderThickness : backgroundBorderThickness,
+                    backgroundBorderColor == null ? defaultStyle.backgroundBorderColor : backgroundBorderColor,
+                    backgroundBorderOpacity == null ? defaultStyle.backgroundBorderOpacity : backgroundBorderOpacity,
                     backgroundBorderRadius == null ? defaultStyle.backgroundBorderRadius : backgroundBorderRadius,
                     labelOverride == null ? defaultStyle.labelOverride : labelOverride
             );

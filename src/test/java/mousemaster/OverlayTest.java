@@ -41,6 +41,26 @@ class OverlayTest {
     }
 
     @Test
+    void theBorderOfTheBackgroundIsOffUntilItHasAnOpacity() {
+        Mode mode = ConfigurationParser.parse(List.of("idle-mode.to.grid-mode=+g",
+                        "grid-mode.overlay.background-border-thickness=3",
+                        "grid-mode.overlay.background-border-opacity=0 | _{isidling} -> 1"),
+                KeyboardLayout.keyboardLayout("00000409", null)).modeMap().get("grid-mode");
+        HintMeshStyle style = mode.hintMesh().styleByFilter().map().values().iterator().next();
+        assertEquals(3, style.backgroundBorderThickness());
+        assertEquals(Color.parse("#FFFFFF"), style.backgroundBorderColor());
+        assertEquals(0, style.backgroundBorderOpacity());
+        Command.MutateMode mutateMode = mode.comboMap().commandsByCombo().values().stream()
+                                            .flatMap(List::stream)
+                                            .filter(Command.MutateMode.class::isInstance)
+                                            .map(Command.MutateMode.class::cast)
+                                            .findFirst().orElseThrow();
+        mode = mode.mutate(mutateMode.propertyPath(), mutateMode.newPropertyValue());
+        assertEquals(1, mode.hintMesh().styleByFilter().map().values().iterator().next()
+                            .backgroundBorderOpacity());
+    }
+
+    @Test
     void mouseMovementIsMouseFollowsTargetAndTargetFollowsOverlayCenter() {
         assertEquals(
                 ConfigurationParser.parse(List.of("idle-mode.to.grid-mode=+g",

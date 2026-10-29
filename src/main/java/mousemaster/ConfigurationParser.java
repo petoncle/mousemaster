@@ -264,6 +264,9 @@ public class ConfigurationParser {
                 .fadeAnimationDuration(Duration.ofMillis(100))
                 .backgroundColor(Color.parse("#000000"))
                 .backgroundOpacity(0d)
+                .backgroundBorderThickness(1d)
+                .backgroundBorderColor(Color.parse("#FFFFFF"))
+                .backgroundBorderOpacity(0d)
                 .backgroundBorderRadius(8d)
                 .labelOverride(List.of());
         // Decoration defaults: index 0 = whole-area decoration, 1 = subdecoration,
@@ -3268,6 +3271,9 @@ public class ConfigurationParser {
             case "fade-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fadeAnimationDuration"), v -> parseDuration(v), v -> hintMeshBuilder.style(screenFilter).fadeAnimationDuration(v));
             case "background-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundColor"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).backgroundColor(v));
             case "background-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).backgroundOpacity(v));
+            case "background-border-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundBorderThickness"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(screenFilter).backgroundBorderThickness(v));
+            case "background-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundBorderColor"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).backgroundBorderColor(v));
+            case "background-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).backgroundBorderOpacity(v));
             case "background-border-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundBorderRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).backgroundBorderRadius(v));
             // @formatter:on
             default -> null;
@@ -4336,6 +4342,21 @@ public class ConfigurationParser {
                             childStyleByFilter, filter))
                         childStyle.backgroundOpacity(
                                 parentStyle.backgroundOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::backgroundBorderThickness,
+                            childStyleByFilter, filter))
+                        childStyle.backgroundBorderThickness(
+                                parentStyle.backgroundBorderThickness());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::backgroundBorderColor,
+                            childStyleByFilter, filter))
+                        childStyle.backgroundBorderColor(
+                                parentStyle.backgroundBorderColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::backgroundBorderOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.backgroundBorderOpacity(
+                                parentStyle.backgroundBorderOpacity());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::backgroundBorderRadius,
                             childStyleByFilter, filter))

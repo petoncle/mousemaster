@@ -2,10 +2,12 @@ package mousemaster.qt;
 
 import io.qt.core.QObject;
 import io.qt.core.QRect;
+import io.qt.core.QRectF;
 import io.qt.core.Qt;
 import io.qt.gui.QColor;
 import io.qt.gui.QPaintEvent;
 import io.qt.gui.QPainter;
+import io.qt.gui.QPen;
 import io.qt.gui.QGuiApplication;
 import io.qt.gui.QScreen;
 import io.qt.widgets.QWidget;
@@ -18,6 +20,8 @@ public class TransparentWindow extends QWidget {
     private QColor backgroundColor;
     private QRect backgroundRect;
     private int backgroundRadius;
+    private QColor backgroundBorderColor;
+    private int backgroundBorderThickness;
     private double pointsPerPixel = 1;
 
     public TransparentWindow() {
@@ -26,12 +30,32 @@ public class TransparentWindow extends QWidget {
         setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground);
     }
 
-    public void setBackground(QColor color, QRect rect, int radius) {
+    public void setBackground(QColor color, QRect rect, int radius, QColor borderColor,
+                              int borderThickness) {
         if (this.backgroundRect != null)
             this.backgroundRect.dispose();
         this.backgroundColor = color;
         this.backgroundRect = rect;
         this.backgroundRadius = radius;
+        this.backgroundBorderColor = borderColor;
+        this.backgroundBorderThickness = borderThickness;
+    }
+
+    /** Inside the edge of the background, so that a background the size of the screen shows all
+     *  of it. */
+    public static void paintBorder(QPainter painter, QColor color, int thickness, int x, int y,
+                                   int width, int height, int radius) {
+        if (color.alpha() == 0 || thickness == 0)
+            return;
+        QPen pen = new QPen(color);
+        pen.setWidth(thickness);
+        painter.setPen(pen);
+        painter.setBrush(Qt.BrushStyle.NoBrush);
+        double inset = thickness / 2.0;
+        QRectF rect = new QRectF(x + inset, y + inset, width - thickness, height - thickness);
+        painter.drawRoundedRect(rect, Math.max(0, radius - inset), Math.max(0, radius - inset));
+        rect.dispose();
+        pen.dispose();
     }
 
     /**
@@ -92,7 +116,7 @@ public class TransparentWindow extends QWidget {
 
     @Override
     protected void paintEvent(QPaintEvent event) {
-        if (backgroundColor != null) {
+        if (backgroundRect != null) {
             QPainter painter = new QPainter(this);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, backgroundRadius > 0);
             painter.setPen(Qt.PenStyle.NoPen);
@@ -100,6 +124,9 @@ public class TransparentWindow extends QWidget {
             painter.drawRoundedRect(backgroundRect.x(), backgroundRect.y(),
                     backgroundRect.width(), backgroundRect.height(), backgroundRadius,
                     backgroundRadius);
+            paintBorder(painter, backgroundBorderColor, backgroundBorderThickness,
+                    backgroundRect.x(), backgroundRect.y(), backgroundRect.width(),
+                    backgroundRect.height(), backgroundRadius);
             painter.end();
             painter.dispose();
         }

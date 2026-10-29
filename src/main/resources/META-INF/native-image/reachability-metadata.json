@@ -6581,6 +6581,9 @@
             "mousemaster.Color",
             "double",
             "double",
+            "mousemaster.Color",
+            "double",
+            "double",
             "java.util.List"
           ]
         },
@@ -6674,6 +6677,18 @@
         },
         {
           "name": "backgroundBorderRadius",
+          "parameterTypes": []
+        },
+        {
+          "name": "backgroundBorderThickness",
+          "parameterTypes": []
+        },
+        {
+          "name": "backgroundBorderColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "backgroundBorderOpacity",
           "parameterTypes": []
         },
         {
