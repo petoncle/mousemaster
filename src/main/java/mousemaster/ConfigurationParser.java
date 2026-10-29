@@ -150,12 +150,11 @@ public class ConfigurationParser {
                 new Property<>("toggle", Map.of()),
                 new Property<>("start-wheel", Map.of()),
                 new Property<>("stop-wheel", Map.of()),
-                new Property<>("snap", Map.of()),
+                new Property<>("snap-selection", Map.of()),
                 new Property<>("shrink-grid", Map.of()),
                 new Property<>("move-grid", Map.of()),
-                new Property<>("move-to-grid-center", Map.of()),
-                new Property<>("move-to-last-selected-hint", Map.of()),
-                new Property<>("move-to-selection", Map.of()),
+                new Property<>("move-selection-to", Map.of()),
+                new Property<>("move-to", Map.of()),
                 new Property<>("save-position", Map.of()),
                 new Property<>("unsave-position", Map.of()),
                 new Property<>("clear", Map.of()),
@@ -880,10 +879,10 @@ public class ConfigurationParser {
             "grid-center-follows-mouse", "area-center=mouse");
 
     private static boolean usesGridCommands(ModeBuilder mode) {
-        return !mode.comboMap.snap.builder.isEmpty() ||
+        return !mode.comboMap.snapSelection.builder.isEmpty() ||
                !mode.comboMap.shrinkGrid.builder.isEmpty() ||
                !mode.comboMap.moveGrid.builder.isEmpty() ||
-               !mode.comboMap.moveToGridCenter.builder.isEmpty();
+               !mode.comboMap.moveSelectionTo.builder.isEmpty();
     }
 
     /**
@@ -1580,21 +1579,24 @@ public class ConfigurationParser {
                     }
                 }
             }
-            case "snap" -> {
+            case "snap-selection", "snap" -> {
                 if (keyMatcher.group(group3) == null)
-                    mode.comboMap.snap.parsePropertyReference(propertyKey, propertyValue,
+                    // snap is the former name of snap-selection.
+                    mode.comboMap.snapSelection.parsePropertyReference(
+                            propertyKey.replaceFirst("\\.snap$", ".snap-selection"),
+                            propertyValue.replaceFirst("\\.snap$", ".snap-selection"),
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
                 else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
-                            "Invalid snap property key");
+                            "Invalid snap-selection property key");
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "up" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "down" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "left" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "right" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "up" -> setCommand(mode.comboMap.snapSelection.builder,  propertyValue, new SnapSelectionUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.snapSelection.builder,  propertyValue, new SnapSelectionDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.snapSelection.builder,  propertyValue, new SnapSelectionLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.snapSelection.builder,  propertyValue, new SnapSelectionRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
@@ -1639,20 +1641,55 @@ public class ConfigurationParser {
                     }
                 }
             }
+            case "move-selection-to" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.comboMap.moveSelectionTo.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid move-selection-to property key");
+                else {
+                    switch (keyMatcher.group(group4)) {
+                        // @formatter:off
+                        case "grid-center" -> setCommand(mode.comboMap.moveSelectionTo.builder,  propertyValue, new MoveSelectionToGridCenter(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "move-to" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.comboMap.moveTo.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid move-to property key");
+                else {
+                    switch (keyMatcher.group(group4)) {
+                        // @formatter:off
+                        case "selection" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToSelection(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "last-selected-hint" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToLastSelectedHint(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        // @formatter:on
+                    }
+                }
+            }
+            // move-to-grid-center and move-to-last-selected-hint are the former names of
+            // move-selection-to.grid-center and move-to.last-selected-hint.
             // @formatter:off
             case "move-to-grid-center" -> {
-                mode.comboMap.moveToGridCenter.parseReferenceOr(propertyKey, propertyValue,
-                        commandsByCombo -> setCommand(mode.comboMap.moveToGridCenter.builder,  propertyValue, new MoveToGridCenter(), propertyKey, finalDefaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                mode.comboMap.moveSelectionTo.parseReferenceOr(
+                        propertyKey.replaceFirst("\\.move-to-grid-center$", ".move-selection-to"),
+                        propertyValue.replaceFirst("\\.move-to-grid-center$", ".move-selection-to"),
+                        commandsByCombo -> setCommand(mode.comboMap.moveSelectionTo.builder,  propertyValue, new MoveSelectionToGridCenter(), propertyKey, finalDefaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
             case "move-to-last-selected-hint" -> {
-                mode.comboMap.moveToLastSelectedHint.parseReferenceOr(propertyKey, propertyValue,
-                        commandsByCombo -> setCommand(mode.comboMap.moveToLastSelectedHint.builder,  propertyValue, new MoveToLastSelectedHint(), propertyKey, finalDefaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
-                        childPropertiesByParentProperty, nonRootPropertyKeys);
-            }
-            case "move-to-selection" -> {
-                mode.comboMap.moveToSelection.parseReferenceOr(propertyKey, propertyValue,
-                        commandsByCombo -> setCommand(mode.comboMap.moveToSelection.builder,  propertyValue, new MoveToSelection(), propertyKey, finalDefaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                mode.comboMap.moveTo.parseReferenceOr(
+                        propertyKey.replaceFirst("\\.move-to-last-selected-hint$", ".move-to"),
+                        propertyValue.replaceFirst("\\.move-to-last-selected-hint$", ".move-to"),
+                        commandsByCombo -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToLastSelectedHint(), propertyKey, finalDefaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
             case "break-combo-preparation" -> mode.comboMap.breakComboPreparation.parseReferenceOr(propertyKey, propertyValue,
@@ -4259,12 +4296,11 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> toggle;
         Property<Map<Combo, List<Command>>> startWheel;
         Property<Map<Combo, List<Command>>> stopWheel;
-        Property<Map<Combo, List<Command>>> snap;
+        Property<Map<Combo, List<Command>>> snapSelection;
         Property<Map<Combo, List<Command>>> shrinkGrid;
         Property<Map<Combo, List<Command>>> moveGrid;
-        Property<Map<Combo, List<Command>>> moveToGridCenter;
-        Property<Map<Combo, List<Command>>> moveToLastSelectedHint;
-        Property<Map<Combo, List<Command>>> moveToSelection;
+        Property<Map<Combo, List<Command>>> moveSelectionTo;
+        Property<Map<Combo, List<Command>>> moveTo;
         Property<Map<Combo, List<Command>>> savePosition;
         Property<Map<Combo, List<Command>>> unsavePosition;
         Property<Map<Combo, List<Command>>> clearPositionHistory;
@@ -4296,12 +4332,11 @@ public class ConfigurationParser {
             toggle = new ComboMapProperty("toggle", modeName, propertyByKey);
             startWheel = new ComboMapProperty("start-wheel", modeName, propertyByKey);
             stopWheel = new ComboMapProperty("stop-wheel", modeName, propertyByKey);
-            snap = new ComboMapProperty("snap", modeName, propertyByKey);
+            snapSelection = new ComboMapProperty("snap-selection", modeName, propertyByKey);
             shrinkGrid = new ComboMapProperty("shrink-grid", modeName, propertyByKey);
             moveGrid = new ComboMapProperty("move-grid", modeName, propertyByKey);
-            moveToGridCenter = new ComboMapProperty("move-to-grid-center", modeName, propertyByKey);
-            moveToLastSelectedHint = new ComboMapProperty("move-to-last-selected-hint", modeName, propertyByKey);
-            moveToSelection = new ComboMapProperty("move-to-selection", modeName, propertyByKey);
+            moveSelectionTo = new ComboMapProperty("move-selection-to", modeName, propertyByKey);
+            moveTo = new ComboMapProperty("move-to", modeName, propertyByKey);
             savePosition = new ComboMapProperty("save-position", modeName, propertyByKey);
             unsavePosition = new ComboMapProperty("unsave-position", modeName, propertyByKey);
             clearPositionHistory = new ComboMapProperty("clear", modeName, propertyByKey);
@@ -4385,12 +4420,11 @@ public class ConfigurationParser {
             add(commandsByCombo, to.builder);
             add(commandsByCombo, startMove.builder);
             add(commandsByCombo, stopMove.builder);
-            add(commandsByCombo, snap.builder);
+            add(commandsByCombo, snapSelection.builder);
             add(commandsByCombo, shrinkGrid.builder);
             add(commandsByCombo, moveGrid.builder);
-            add(commandsByCombo, moveToGridCenter.builder);
-            add(commandsByCombo, moveToLastSelectedHint.builder);
-            add(commandsByCombo, moveToSelection.builder);
+            add(commandsByCombo, moveSelectionTo.builder);
+            add(commandsByCombo, moveTo.builder);
             add(commandsByCombo, press.builder);
             add(commandsByCombo, release.builder);
             add(commandsByCombo, toggle.builder);

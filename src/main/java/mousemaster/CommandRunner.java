@@ -71,10 +71,10 @@ public class CommandRunner {
             case StopWheelLeft stopWheelLeft -> mouseManager.stopWheelLeft();
             case StopWheelRight stopWheelRight -> mouseManager.stopWheelRight();
 
-            case SnapUp snapUp -> hintManager.snapUp();
-            case SnapDown snapDown -> hintManager.snapDown();
-            case SnapLeft snapLeft -> hintManager.snapLeft();
-            case SnapRight snapRight -> hintManager.snapRight();
+            case SnapSelectionUp snapSelectionUp -> hintManager.snapSelectionUp();
+            case SnapSelectionDown snapSelectionDown -> hintManager.snapSelectionDown();
+            case SnapSelectionLeft snapSelectionLeft -> hintManager.snapSelectionLeft();
+            case SnapSelectionRight snapSelectionRight -> hintManager.snapSelectionRight();
 
             case ShrinkGridUp shrinkGridUp -> hintManager.shrinkGridUp();
             case ShrinkGridDown shrinkGridDown -> hintManager.shrinkGridDown();
@@ -86,7 +86,7 @@ public class CommandRunner {
             case MoveGridLeft moveGridLeft -> hintManager.moveGridLeft();
             case MoveGridRight moveGridRight -> hintManager.moveGridRight();
 
-            case MoveToGridCenter moveToGridCenter -> hintManager.moveToGridCenter();
+            case MoveSelectionToGridCenter moveSelectionToGridCenter -> hintManager.moveSelectionToGridCenter();
 
             case MoveToLastSelectedHint moveToLastSelectedHint -> hintManager.moveToLastSelectedHint();
 

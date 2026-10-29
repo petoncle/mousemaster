@@ -73,7 +73,7 @@ Combos are sequences of key presses and releases that trigger commands in mousem
 normal-mode.to.hint-mode=_{leftctrl} +e
 
 # Press and release leftshift
-normal-mode.move-to-grid-center=+leftshift -leftshift
+normal-mode.move-selection-to.grid-center=+leftshift -leftshift
 
 # Multiple combos for one command
 normal-mode.to.idle-mode=+q | +leftctrl +e
@@ -998,17 +998,18 @@ hint-mode.overlay.label-override=plus
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
 - **`mouse-movement`**: Controls how the mouse moves when interacting with hints. The selection
   is a position that follows the mouse. Selecting a hint and the grid commands move it to the
-  center of the hint, the edge a `snap` goes to or the center of the grid, and the mouse goes
-  there. When `no-movement` starts, the selection stops where it is: only those commands move it,
-  and the mouse stays.
+  center of the hint, the edge a `snap-selection` goes to or the center of the grid, and the
+  mouse goes there. When `no-movement` starts, the selection stops where it is: only those
+  commands move it, and the mouse stays.
   - `no-movement`: Mouse stays in its current position
   - `mouse-follows-selected-hint`: Mouse moves to the selected hint (default behavior)
   - `mouse-follows-overlay-center` (formerly `mouse-follows-hint-grid-center`): Mouse moves to the center of the overlay
   - Use `no-movement` when the next mode will be another hint grid
-- **`move-to-last-selected-hint`**: Like `to.<mode-name>`, a command of the mode, not a hint
-  property. It moves the mouse to the last selected hint, for example after `no-movement` left
-  the mouse where it was: `normal-mode.move-to-last-selected-hint=+m`
-- **`move-to-selection`**: The same, to the selection: `grid-mode.move-to-selection=+space`
+- **`move-to.last-selected-hint`** (formerly `move-to-last-selected-hint`): Like
+  `to.<mode-name>`, a command of the mode, not an overlay property. It moves the mouse to the last
+  selected hint, for example after `no-movement` left the mouse where it was:
+  `normal-mode.move-to.last-selected-hint=+m`
+- **`move-to.selection`**: The same, to the selection: `grid-mode.move-to.selection=+space`
 - **`eat-unused-selection-keys`**: If `false`, selection keys not used in the current hint display can be used in combos
 - **`label-override`**: Draws a fixed marker in every hint cell instead of each hint's own keys — visual only, you still press the real keys to select. The value is a key sequence rendered as the label: `plus` shows `+`, `plus plus` shows `++`. Useful for positional grids (e.g. a 3×3 recursive grid) where the per-cell letters are just clutter. Default: unset (each hint shows its own key sequence).
 
@@ -1288,29 +1289,36 @@ grid-mode.move-grid.down=_{leftshift} +downarrow
 grid-mode.move-grid.left=_{leftshift} +leftarrow
 grid-mode.move-grid.right=_{leftshift} +rightarrow
 
-# Move the mouse to the next cell edge
-grid-mode.snap.up=_{leftctrl} +uparrow
-grid-mode.snap.down=_{leftctrl} +downarrow
-grid-mode.snap.left=_{leftctrl} +leftarrow
-grid-mode.snap.right=_{leftctrl} +rightarrow
+# Snap the selection to the next cell edge
+grid-mode.snap-selection.up=_{leftctrl} +uparrow
+grid-mode.snap-selection.down=_{leftctrl} +downarrow
+grid-mode.snap-selection.left=_{leftctrl} +leftarrow
+grid-mode.snap-selection.right=_{leftctrl} +rightarrow
 
-# Move the mouse to the grid center
-grid-mode.move-to-grid-center=+space
+# Move the selection to the grid center
+grid-mode.move-selection-to.grid-center=+space
 ```
 
 - **`shrink-grid.<direction>`**: Halves the grid, keeping the half on that side, whatever its
   number of cells.
 - **`move-grid.<direction>`**: Moves the grid by its own width or height. The center of the grid
   stays on a screen.
-- **`snap.<direction>`**: Moves the mouse to the next cell edge in the direction. At the right or
-  bottom edge of the grid, the mouse stops on the last pixel of the grid.
-- **`move-to-grid-center`**: Moves the mouse to the center of the grid.
+- **`snap-selection.<direction>`** (formerly `snap`): Moves the selection to the next cell edge
+  in the direction. At the right or bottom edge of the grid, it stops on the last pixel of the
+  grid.
+- **`move-selection-to.grid-center`** (formerly `move-to-grid-center`): Moves the selection to the
+  center of the grid.
+
+A command name says what it moves: `snap-selection` and `move-selection-to` move the selection,
+`move-grid` and `shrink-grid` the grid. A name that says nothing, such as `start-move` or
+`move-to`, moves the mouse. `<verb>-to.<point>` jumps to a point, and `start-move` and
+`stop-move` are the only continuous movement.
 
 A mode with the same `overlay.type`, area and layout keeps the grid where the commands left it. With
 `area-center=mouse`, a command first centers the grid on the mouse. With
 `mouse-movement=mouse-follows-overlay-center`, the mouse goes to the center of the grid after
-each change. With `mouse-movement=no-movement`, `snap` and `move-to-grid-center` move the
-selection, starting from it, and the mouse stays where it is.
+each change. The mouse follows the selection, unless `mouse-movement=no-movement`: then it stays
+where it is.
 
 Earlier versions had a separate `grid`. Its properties still work, as overlay properties:
 `grid.row-count` and `grid.column-count` are `grid-max-row-count` and `grid-max-column-count`,

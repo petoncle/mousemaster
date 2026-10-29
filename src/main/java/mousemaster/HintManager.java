@@ -343,31 +343,31 @@ public class HintManager implements ModeListener, MousePositionListener {
         modeChanged(currentMode);
     }
 
-    public void moveToGridCenter() {
+    public void moveSelectionToGridCenter() {
         List<Rectangle> cells = gridCells();
         if (cells == null)
             return;
         select(Rectangle.union(cells).center());
     }
 
-    public void snapUp() {
-        snap(false, false);
+    public void snapSelectionUp() {
+        snapSelection(false, false);
     }
 
-    public void snapDown() {
-        snap(false, true);
+    public void snapSelectionDown() {
+        snapSelection(false, true);
     }
 
-    public void snapLeft() {
-        snap(true, false);
+    public void snapSelectionLeft() {
+        snapSelection(true, false);
     }
 
-    public void snapRight() {
-        snap(true, true);
+    public void snapSelectionRight() {
+        snapSelection(true, true);
     }
 
-    /** Backward, a mouse 1 pixel past a cell edge snaps to the edge before it. */
-    private void snap(boolean horizontal, boolean forward) {
+    /** Backward, a selection 1 pixel past a cell edge snaps to the edge before it. */
+    private void snapSelection(boolean horizontal, boolean forward) {
         List<Rectangle> cells = gridCells();
         if (cells == null ||
             !noMovement(currentMode) && mouseManager.jumping(horizontal, forward))

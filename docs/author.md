@@ -595,8 +595,8 @@ works on the **screen** or the **active window**.
 ```properties
 screen-grid-mode.shrink-grid.up=^{leftshift leftctrl} +up
 screen-grid-mode.move-grid.up=_{leftshift} +up
-screen-grid-mode.snap.up=_{leftctrl} +up
-screen-grid-mode.move-to-grid-center=+leftshift -leftshift
+screen-grid-mode.snap-selection.up=_{leftctrl} +up
+screen-grid-mode.move-selection-to.grid-center=+leftshift -leftshift
 screen-grid-mode.overlay.box-border-thickness=1 | _{300%} -> 0.66667
 screen-grid-mode.start-move.up=_{up} -rightalt
 ```
