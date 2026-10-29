@@ -9,12 +9,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public class IndicatorManager implements ModeListener {
 
     private final Overlay overlay;
     private final AnimationPlayer animationPlayer;
     private final HintManager hintManager;
+    private final Supplier<App> activeApp;
     private Mode currentMode;
     private boolean entryCombosPending;
     private IndicatorConfiguration resolvedIndicator;
@@ -23,14 +25,15 @@ public class IndicatorManager implements ModeListener {
     private final Map<ModePropertyPath, Object> currentByPropertyPath = new HashMap<>();
     private final Set<String> anchoredLayerNames = new HashSet<>();
     private final Set<String> layerNamesToAnchor = new HashSet<>();
-    private Map<IndicatorPosition, Point> pointByPosition = Map.of();
+    private Map<IndicatorPosition, List<Point>> pointsByPosition = Map.of();
     private Map<HintGridArea, Rectangle> rectangleByArea = Map.of();
 
     public IndicatorManager(Overlay overlay, AnimationPlayer animationPlayer,
-                            HintManager hintManager) {
+                            HintManager hintManager, Supplier<App> activeApp) {
         this.overlay = overlay;
         this.animationPlayer = animationPlayer;
         this.hintManager = hintManager;
+        this.activeApp = activeApp;
     }
 
     public boolean animating() {
@@ -44,7 +47,7 @@ public class IndicatorManager implements ModeListener {
             layerNamesToAnchor.clear();
             return;
         }
-        overlay.setIndicator(indicator, Set.copyOf(layerNamesToAnchor), pointByPosition,
+        overlay.setIndicator(indicator, Set.copyOf(layerNamesToAnchor), pointsByPosition,
                 rectangleByArea, animating(),
                 !animationPlayer.animate(currentMode, "hideCursor").hideCursor().enabled());
         layerNamesToAnchor.clear();
@@ -88,11 +91,20 @@ public class IndicatorManager implements ModeListener {
             if (!previousAnchoredLayerNames.contains(entry.getKey()))
                 layerNamesToAnchor.add(entry.getKey());
         }
-        Map<IndicatorPosition, Point> newPointByPosition = new HashMap<>();
-        newPointByPosition.put(IndicatorPosition.TARGET, hintManager.targetPoint());
+        Map<IndicatorPosition, List<Point>> newPointsByPosition = new HashMap<>();
+        newPointsByPosition.put(IndicatorPosition.PointIndicatorPosition.TARGET,
+                List.of(hintManager.targetPoint()));
         if (hintManager.lastSelectedHintPoint() != null)
-            newPointByPosition.put(IndicatorPosition.LAST_SELECTED_HINT,
-                    hintManager.lastSelectedHintPoint());
+            newPointsByPosition.put(IndicatorPosition.PointIndicatorPosition.LAST_SELECTED_HINT,
+                    List.of(hintManager.lastSelectedHintPoint()));
+        for (IndicatorLayerConfiguration layer : indicator.layerByName().values())
+            for (IndicatorPosition position : layer.positions())
+                if (layer.enabled() && position instanceof
+                        IndicatorPosition.PositionHistoryIndicatorPosition(
+                                String positionHistoryName))
+                    newPointsByPosition.put(position, List.copyOf(
+                            hintManager.positionHistory(positionHistoryName, activeApp)
+                                       .positions()));
         Map<HintGridArea, Rectangle> newRectangleByArea = new HashMap<>();
         for (IndicatorLayerConfiguration layer : indicator.layerByName().values())
             if (layer.enabled() && layer.area() != null)
@@ -101,16 +113,32 @@ public class IndicatorManager implements ModeListener {
                                                                              .entrySet()) {
             IndicatorLayerConfiguration layer = entry.getValue();
             if (layer.enabled() && (layer.positions().stream().anyMatch(
-                    position -> !Objects.equals(newPointByPosition.get(position),
-                            pointByPosition.get(position))) ||
+                    position -> !Objects.equals(newPointsByPosition.get(position),
+                            pointsByPosition.get(position))) ||
                                     layer.area() != null &&
                                     !Objects.equals(newRectangleByArea.get(layer.area()),
                                             rectangleByArea.get(layer.area()))))
                 layerNamesToAnchor.add(entry.getKey());
         }
-        pointByPosition = newPointByPosition;
+        pointsByPosition = newPointsByPosition;
         rectangleByArea = newRectangleByArea;
-        return indicator;
+        Map<String, IndicatorLayerConfiguration> layerByName =
+                new LinkedHashMap<>(indicator.layerByName());
+        layerByName.replaceAll((layerName, layer) ->
+                layer.enabled() && IndicatorPosition.runThrough(layer.positions()) &&
+                pointCount(layer) < 2 ? layer.builder().enabled(false).build() : layer);
+        return new IndicatorConfiguration(indicator.renderAsCursor(),
+                indicator.excludeFromCapture(), layerByName);
+    }
+
+    /** A position the manager has no points for is the mouse, one point. */
+    private int pointCount(IndicatorLayerConfiguration layer) {
+        int pointCount = 0;
+        for (IndicatorPosition position : layer.positions()) {
+            List<Point> points = pointsByPosition.get(position);
+            pointCount += points == null ? 1 : points.size();
+        }
+        return pointCount;
     }
 
     private void updateTimelines() {

@@ -141,7 +141,7 @@ public class MacosOverlay implements Overlay {
 
     @Override
     public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
-                             Map<IndicatorPosition, Point> pointByPosition,
+                             Map<IndicatorPosition, List<Point>> pointsByPosition,
                              Map<HintGridArea, Rectangle> rectangleByArea,
                              boolean animating,
                              boolean includeOriginalCursor) {
@@ -159,12 +159,12 @@ public class MacosOverlay implements Overlay {
                 Map.of(), mousePosition);
         setIndicator(anchoredIndicatorRenderer,
                 IndicatorRenderer.followingMouse(indicator, false), layerNamesToAnchor,
-                pointByPosition, rectangleByArea, mousePosition);
+                pointsByPosition, rectangleByArea, mousePosition);
     }
 
     private void setIndicator(IndicatorRenderer indicatorRenderer,
                               IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
-                              Map<IndicatorPosition, Point> pointByPosition,
+                              Map<IndicatorPosition, List<Point>> pointsByPosition,
                               Map<HintGridArea, Rectangle> rectangleByArea,
                               QPoint mousePosition) {
         if (!indicator.enabled()) {
@@ -172,7 +172,7 @@ public class MacosOverlay implements Overlay {
             return;
         }
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
-        indicatorRenderer.setIndicator(indicator, layerNamesToAnchor, pointByPosition,
+        indicatorRenderer.setIndicator(indicator, layerNamesToAnchor, pointsByPosition,
                 rectangleByArea, cursorRectangle(mousePosition, activeScreen),
                 cursorVisualCenter(activeScreen), activeScreen, null,
                 hintMeshRenderer.lastSelectedHintBoxHexColor());

@@ -26,6 +26,7 @@ class IndicatorEffectsTest {
     private ModeMap modeMap;
     private AnimationPlayer animationPlayer;
     private IndicatorManager indicatorManager;
+    private HintManager hintManager;
     private IndicatorConfiguration drawnIndicator;
     private boolean hidden;
     private final List<Set<String>> anchored = new ArrayList<>();
@@ -58,7 +59,7 @@ class IndicatorEffectsTest {
                 });
         ScreenManager screenManager = new ScreenManager(
                 () -> Set.of(new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1)));
-        HintManager hintManager = new HintManager(
+        hintManager = new HintManager(
                 configuration.positionHistoryConfigurationByName(), screenManager,
                 new MouseManager(screenManager, proxy(MouseController.class)), overlay,
                 proxy(UiAutomation.class), () -> new App("test.exe"),
@@ -76,7 +77,8 @@ class IndicatorEffectsTest {
                 configuration.activeKeyboardLayout());
         animationPlayer = new AnimationPlayer(configuration.animationConfigurationByName());
         commandRunner.setAnimationPlayer(animationPlayer);
-        indicatorManager = new IndicatorManager(overlay, animationPlayer, hintManager);
+        indicatorManager = new IndicatorManager(overlay, animationPlayer, hintManager,
+                () -> new App("test.exe"));
         comboWatcher.setModeListeners(List.of(hintManager, indicatorManager));
         comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
     }
@@ -107,6 +109,20 @@ class IndicatorEffectsTest {
                     }
                 }, animationPlayer);
         indicatorManager.update();
+    }
+
+    @Test
+    void aLayerThroughAPositionHistoryIsDrawnFromItsSecondPosition() {
+        load("idle-mode.save.position-history=+f1",
+                "idle-mode.indicator.position=position-history");
+        hintManager.mouseMoved(100, 100);
+        hintManager.saveCurrentPosition("position-history");
+        tick(0);
+        assertTrue(hidden);
+        hintManager.mouseMoved(200, 100);
+        hintManager.saveCurrentPosition("position-history");
+        tick(0);
+        assertFalse(hidden);
     }
 
     /** The layers the draws since the last call anchored. */

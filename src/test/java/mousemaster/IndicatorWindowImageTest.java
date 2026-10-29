@@ -1,6 +1,8 @@
 package mousemaster;
 
 import io.qt.gui.QImage;
+import mousemaster.IndicatorPosition.PointIndicatorPosition;
+import mousemaster.IndicatorPosition.PositionHistoryIndicatorPosition;
 import mousemaster.renderer.IndicatorRenderer;
 import mousemaster.renderer.IndicatorRenderer.WindowImage;
 import org.junit.jupiter.api.BeforeAll;
@@ -48,6 +50,22 @@ class IndicatorWindowImageTest {
                                       Set<String> layerNamesToAnchor, int mouseX) {
         return renderer.renderWindowImage(indicator, layerNamesToAnchor, Map.of(), Map.of(),
                 new Rectangle(mouseX, 500, 32, 32), new Point(4, 4), SCREEN, null, "#000000");
+    }
+
+    private static WindowImage render(IndicatorConfiguration indicator,
+                                      Map<IndicatorPosition, List<Point>> pointsByPosition) {
+        return new IndicatorRenderer().renderWindowImage(indicator, Set.of("indicator"),
+                pointsByPosition, Map.of(), new Rectangle(100, 100, 32, 32), new Point(4, 4),
+                SCREEN, null, "#000000");
+    }
+
+    private static Map<IndicatorPosition, List<Point>> hintAndTarget(Point hint, Point target) {
+        return Map.of(PointIndicatorPosition.LAST_SELECTED_HINT, List.of(hint),
+                PointIndicatorPosition.TARGET, List.of(target));
+    }
+
+    private static boolean inked(WindowImage image, int x, int y) {
+        return image.image().argb()[(y - image.y()) * image.image().width() + x - image.x()] >>> 24 != 0;
     }
 
     @Test
@@ -113,46 +131,75 @@ class IndicatorWindowImageTest {
     @Test
     void aLayerWithTwoPositionsRunsFromTheFirstToTheSecond() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
-        Map<IndicatorPosition, Point> pointByPosition =
-                Map.of(IndicatorPosition.LAST_SELECTED_HINT, new Point(500, 500),
-                        IndicatorPosition.TARGET, new Point(700, 600));
-        WindowImage line = new IndicatorRenderer().renderWindowImage(indicator(
+        Rectangle lineInk = inkBox(render(indicator(
                         "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=line",
                         "idle-mode.indicator.position=last-selected-hint target"),
-                Set.of("indicator"), pointByPosition, Map.of(), new Rectangle(100, 100, 32, 32),
-                new Point(4, 4), SCREEN, null, "#000000");
-        Rectangle lineInk = inkBox(line);
+                hintAndTarget(new Point(500, 500), new Point(700, 600))));
         assertEquals(500, lineInk.x(), 1);
         assertEquals(500, lineInk.y(), 1);
         assertEquals(700, lineInk.x() + lineInk.width(), 1);
         assertEquals(600, lineInk.y() + lineInk.height(), 1);
-        WindowImage circle = new IndicatorRenderer().renderWindowImage(indicator(
+        Rectangle circleInk = inkBox(render(indicator(
                         "idle-mode.indicator.enabled=true",
                         "idle-mode.indicator.position=last-selected-hint target",
-                        "idle-mode.indicator.fill-opacity=1"),
-                Set.of("indicator"), Map.of(IndicatorPosition.LAST_SELECTED_HINT,
-                        new Point(500, 500), IndicatorPosition.TARGET, new Point(600, 500)),
-                Map.of(), new Rectangle(100, 100, 32, 32), new Point(4, 4), SCREEN, null,
-                "#000000");
-        Rectangle circleInk = inkBox(circle);
+                        "idle-mode.indicator.size=40", "idle-mode.indicator.fill-opacity=1"),
+                hintAndTarget(new Point(500, 500), new Point(600, 500))));
         assertEquals(500, circleInk.x(), 1);
-        assertEquals(450, circleInk.y(), 1);
+        assertEquals(480, circleInk.y(), 1);
         assertEquals(600, circleInk.x() + circleInk.width(), 1);
-        assertEquals(550, circleInk.y() + circleInk.height(), 1);
+        assertEquals(520, circleInk.y() + circleInk.height(), 1);
+    }
+
+    @Test
+    void anArrowEndsOnTheSecondPositionWithAHeadAsWideAsItsSize() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        IndicatorConfiguration arrow = indicator("idle-mode.indicator.enabled=true",
+                "idle-mode.indicator.shape=arrow", "idle-mode.indicator.size=20",
+                "idle-mode.indicator.position=last-selected-hint target");
+        for (int targetX : new int[]{700, 900}) {
+            WindowImage image = render(arrow,
+                    hintAndTarget(new Point(500, 500), new Point(targetX, 500)));
+            assertTrue(inked(image, 550, 502));
+            assertFalse(inked(image, 550, 505));
+            Rectangle ink = inkBox(image);
+            assertEquals(500, ink.x(), 1);
+            assertEquals(targetX, ink.x() + ink.width(), 1);
+            assertEquals(490, ink.y(), 1);
+            assertEquals(510, ink.y() + ink.height(), 1);
+        }
+        Rectangle bar = inkBox(render(arrow,
+                hintAndTarget(new Point(500, 500), new Point(500, 500))));
+        assertEquals(500, bar.x() + bar.width() / 2.0, 1);
+        assertEquals(490, bar.y(), 1);
+        assertEquals(510, bar.y() + bar.height(), 1);
+    }
+
+    @Test
+    void aLayerThroughSeveralPositionsRunsFromEachToTheNext() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        WindowImage lines = render(indicator("idle-mode.save.position-history=+f1",
+                        "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=line",
+                        "idle-mode.indicator.position=position-history"),
+                Map.of(new PositionHistoryIndicatorPosition("position-history"),
+                        List.of(new Point(500, 500), new Point(700, 500), new Point(700, 700))));
+        Rectangle ink = inkBox(lines);
+        assertEquals(500, ink.x(), 1);
+        assertEquals(700, ink.x() + ink.width(), 1);
+        assertEquals(500, ink.y(), 1);
+        assertEquals(700, ink.y() + ink.height(), 1);
+        assertTrue(inked(lines, 600, 500));
+        assertTrue(inked(lines, 700, 600));
+        assertFalse(inked(lines, 600, 600));
     }
 
     @Test
     void aRotationTurnsALayerWithTwoPositionsFromTheirDirection() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
-        WindowImage line = new IndicatorRenderer().renderWindowImage(indicator(
+        Rectangle lineInk = inkBox(render(indicator(
                         "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=line",
                         "idle-mode.indicator.position=last-selected-hint target",
                         "idle-mode.indicator.rotation=90"),
-                Set.of("indicator"), Map.of(IndicatorPosition.LAST_SELECTED_HINT,
-                        new Point(500, 500), IndicatorPosition.TARGET, new Point(700, 500)),
-                Map.of(), new Rectangle(100, 100, 32, 32), new Point(4, 4), SCREEN, null,
-                "#000000");
-        Rectangle lineInk = inkBox(line);
+                hintAndTarget(new Point(500, 500), new Point(700, 500))));
         assertEquals(600, lineInk.x() + lineInk.width() / 2.0, 1);
         assertEquals(400, lineInk.y(), 1);
         assertEquals(600, lineInk.y() + lineInk.height(), 1);

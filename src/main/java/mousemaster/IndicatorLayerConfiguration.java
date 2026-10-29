@@ -315,8 +315,11 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                     text, fontName, fontSize, fontWeight, textStyleSheet, positions,
                     area.source() == null ? null : area.build(),
                     followMouse && area.source() == null &&
-                    !positions.contains(IndicatorPosition.TARGET) &&
-                    !positions.contains(IndicatorPosition.LAST_SELECTED_HINT));
+                    !positions.contains(IndicatorPosition.PointIndicatorPosition.TARGET) &&
+                    !positions.contains(
+                            IndicatorPosition.PointIndicatorPosition.LAST_SELECTED_HINT) &&
+                    positions.stream().noneMatch(
+                            IndicatorPosition.PositionHistoryIndicatorPosition.class::isInstance));
         }
     }
 }

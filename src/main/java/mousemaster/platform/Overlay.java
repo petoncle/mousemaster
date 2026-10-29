@@ -11,6 +11,7 @@ import mousemaster.Rectangle;
 
 import mousemaster.Zoom;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -31,7 +32,7 @@ public interface Overlay {
     Rectangle activeWindowRectangle();
 
     void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
-                      Map<IndicatorPosition, Point> pointByPosition,
+                      Map<IndicatorPosition, List<Point>> pointsByPosition,
                       Map<HintGridArea, Rectangle> rectangleByArea, boolean animating,
                       boolean includeOriginalCursor);
 

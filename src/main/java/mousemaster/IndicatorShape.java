@@ -6,6 +6,7 @@ public enum IndicatorShape {
     RECTANGLE,
     STAR,
     LINE,
+    ARROW,
     CROSS,
     PATH,
     TEXT;
@@ -17,12 +18,13 @@ public enum IndicatorShape {
             case "rectangle" -> RECTANGLE;
             case "star" -> STAR;
             case "line" -> LINE;
+            case "arrow" -> ARROW;
             case "cross" -> CROSS;
             case "path" -> PATH;
             case "text" -> TEXT;
             default -> throw new IllegalArgumentException(
                     "Invalid shape: " + value + ", must be 'circle', 'triangle', 'rectangle'," +
-                    " 'star', 'line', 'cross', 'path' or 'text'");
+                    " 'star', 'line', 'arrow', 'cross', 'path' or 'text'");
         };
     }
 

@@ -271,6 +271,10 @@ public class ComboWatcher {
         return entryCombosPending;
     }
 
+    public App lastActiveApp() {
+        return lastActiveApp;
+    }
+
     /** Presses the built-in keys that follow the mouse, keyboard and hint state. The listeners
      *  are notified once all of them are set, so a click that grows the indicator and colors it
      *  through two different keys is not rendered half applied. */

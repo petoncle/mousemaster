@@ -360,12 +360,15 @@ normal-mode.indicator.border-radius=4
 normal-mode.indicator.rotation=45
 ```
 
-- **`shape`**: `circle` (default), `triangle`, `rectangle`, `star`, `line`, `cross`, `path` or `text`.
+- **`shape`**: `circle` (default), `triangle`, `rectangle`, `star`, `line`, `arrow`, `cross`, `path`
+  or `text`. An `arrow` has a head as wide as the box is tall and as long, on a shaft a
+  quarter as wide.
 - **`size`**: The largest side of the shape's box, in pixels (default `26`).
-- **`aspect-ratio`**: How much wider than tall the box is (default `1`). A triangle, a star and a
-  path keep the proportions of their points, which `aspect-ratio` then stretches.
-- **`border-radius`**: The radius of the corners of a rectangle, a triangle, a star or a path, in
-  pixels (default `0`).
+- **`aspect-ratio`**: How much wider than tall the box is (default `1`). On a layer with one
+  position, a triangle, a star and a path keep the proportions of their points, which
+  `aspect-ratio` then stretches.
+- **`border-radius`**: The radius of the corners of a rectangle, a triangle, a star, an arrow or
+  a path, in pixels (default `0`).
 - **`points`**: The points of a `path`, like `0,0 10,0 5,8`: at least three, spanning a width and
   a height, in any units, since they are scaled to the box.
 - **`x`** / **`y`**: An offset from the layer's position, in pixels (default `0`).
@@ -473,22 +476,26 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
 #### Position
 
 - **`position`**: `mouse` (default), `mouse-top-left`, `mouse-top-right`, `mouse-bottom-left`,
-  `mouse-bottom-right`, `screen-center`, `target` or `last-selected-hint`. `mouse` centers the
+  `mouse-bottom-right`, `screen-center`, `target`, `last-selected-hint`, or a position history
+  (`position-history` or any `<name>-position-history`). `mouse` centers the
   layer behind the cursor, best with a low opacity so the cursor stays visible. Near a screen
   edge, a corner position moves to the other side of the cursor, and a layer with a text moves
   inward instead of being cut. `target` and `last-selected-hint` center the layer on those
   points of the overlay (see `mouse-follows-target`), and the layer moves with them, not with
   the cursor. While the mouse follows the target, the target is the mouse, and a layer on it
-  is drawn again at each mouse move: to draw at the cursor, use `mouse`.
+  is drawn again at each mouse move: to draw at the cursor, use `mouse`. A position history
+  stands for the positions saved in it, in the order they were saved.
 
-  With two positions, the layer runs from the first to the second: their distance is its width,
-  and `rotation` turns it from their direction. `aspect-ratio` still sets its height, and `size`
-  cannot be set. A line from the last selected hint to the target, with a dot at the
-  target:
+  With several positions, or a position history, the layer runs from each point to the next.
+  Between two points, their distance is its length, `size` is its width, and `rotation` turns
+  it from their direction. `aspect-ratio` cannot be set. With fewer than two points, the layer
+  is not drawn. An arrow from the last selected hint to the target, and an arrow from each
+  saved position to the next:
   ```properties
-  grid-mode.line-indicator.shape=line
-  grid-mode.line-indicator.position=last-selected-hint target
-  grid-mode.dot-indicator.position=target
+  grid-mode.arrow-indicator.shape=arrow
+  grid-mode.arrow-indicator.position=last-selected-hint target
+  ui-hint-mode.arrow-indicator.shape=arrow
+  ui-hint-mode.arrow-indicator.position=click-position-history
   ```
 - **`follow-mouse`**: Whether the layer moves with the cursor (default `true`). With `false`, the
   layer stays where it was when it was enabled, or when its keyframes started over.

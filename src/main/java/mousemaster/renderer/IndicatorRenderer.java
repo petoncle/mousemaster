@@ -8,6 +8,7 @@ import io.qt.widgets.*;
 import mousemaster.*;
 import mousemaster.GradientColor.GradientArea;
 import mousemaster.GradientColor.GradientStep;
+import mousemaster.IndicatorPosition.PointIndicatorPosition;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -36,19 +37,15 @@ public final class IndicatorRenderer {
     private final List<ShadowCast> shadowCasts = new ArrayList<>();
     private double shadowScale;
     private IndicatorConfiguration currentIndicator;
-    private List<IndicatorLayerConfiguration> currentEnabledLayers;
+    private List<PositionedLayer> currentLayers;
     private Rectangle gradientArea;
     private Point gradientPoint;
-    private final List<Point> currentTopLefts = new ArrayList<>();
     private double pointsPerPixel;
     private final Map<String, LayerAnchor> anchorByLayerName = new HashMap<>();
     private final Map<TextKey, QPainterPath> outlineByText = new HashMap<>();
     private final Map<TextKey, QTextDocument> documentByText = new HashMap<>();
     private IndicatorImage windowImage;
-    private IndicatorConfiguration windowImageIndicator;
-    private List<Point> windowImageOffsets;
-    private double windowImageScale;
-    private String windowImageLastSelectedHintBoxHexColor;
+    private WindowImageKey windowImageKey;
     private boolean showing;
     private boolean cleared;
 
@@ -85,7 +82,7 @@ public final class IndicatorRenderer {
 
     private record LayerAnchor(Rectangle mouseRectangle, Point cursorVisualCenter,
                                Screen activeScreen,
-                               Map<IndicatorPosition, Point> pointByPosition,
+                               Map<IndicatorPosition, List<Point>> pointsByPosition,
                                Map<HintGridArea, Rectangle> rectangleByArea) {
     }
 
@@ -179,14 +176,19 @@ public final class IndicatorRenderer {
                            String textStyleSheet, double scale) {
     }
 
+    /** The layers are placed in the image, so that the image holds while they move together. */
+    private record WindowImageKey(List<PositionedLayer> layers, double scale,
+                                  String lastSelectedHintBoxHexColor) {
+    }
+
     private static TextKey textKey(IndicatorLayerConfiguration layer, double scale) {
         return new TextKey(layer.text(), layer.fontName(), layer.fontSize(), layer.fontWeight(),
                 layer.textStyleSheet(), scale);
     }
 
     private boolean drawn(TextKey key) {
-        for (IndicatorLayerConfiguration layer : currentEnabledLayers)
-            if (key.equals(textKey(layer, key.scale())))
+        for (PositionedLayer positionedLayer : currentLayers)
+            if (key.equals(textKey(positionedLayer.layer(), key.scale())))
                 return true;
         return false;
     }
@@ -247,6 +249,9 @@ public final class IndicatorRenderer {
             size.dispose();
             return aspectRatio;
         }
+        // The box of an area or of two points is given, whatever the points of the shape.
+        if (layer.area() != null || IndicatorPosition.runThrough(layer.positions()))
+            return layer.aspectRatio();
         return switch (layer.shape()) {
             case TRIANGLE, STAR, PATH -> {
                 List<Point> points = IndicatorLayerWidget.points(layer);
@@ -258,23 +263,35 @@ public final class IndicatorRenderer {
         };
     }
 
-    private int layerSizeWithStroke(IndicatorLayerConfiguration layer, double screenScale) {
-        // A rotated box reaches as far as its diagonal.
-        double layerSize = layer.rotation() % 360 == 0 ? layerSize(layer, screenScale) :
-                Math.hypot(layerSize(layer, screenScale), layerSize(layer, screenScale) /
-                        Math.max(aspectRatio(layer), 1 / aspectRatio(layer)));
-        // An odd size puts the center of a centered layer half a pixel off, so it would
-        // shift as the size changes parity. A miter reaches as far as the stroke is thick,
-        // Qt's default miter limit.
-        int size = (int) Math.ceil(layerSize +
-                2 * layer.stroke().thickness() * screenScale);
-        return size + size % 2;
+    private record LayerSize(int width, int height) {
     }
 
-    private static int shadowPadding(List<IndicatorLayerConfiguration> layers, double scale) {
+    /** The box turned by its rotation. A miter reaches as far as the stroke is thick, Qt's
+     *  default miter limit. */
+    private LayerSize layerSizeWithStroke(IndicatorLayerConfiguration layer,
+                                          double screenScale) {
+        double layerSize = layerSize(layer, screenScale);
+        double aspectRatio = aspectRatio(layer);
+        double boxWidth = aspectRatio >= 1 ? layerSize : layerSize * aspectRatio;
+        double boxHeight = aspectRatio >= 1 ? layerSize / aspectRatio : layerSize;
+        double cos = Math.abs(Math.cos(Math.toRadians(layer.rotation())));
+        double sin = Math.abs(Math.sin(Math.toRadians(layer.rotation())));
+        double stroke = 2 * layer.stroke().thickness() * screenScale;
+        return new LayerSize(even(boxWidth * cos + boxHeight * sin + stroke),
+                even(boxWidth * sin + boxHeight * cos + stroke));
+    }
+
+    /** An odd size puts the center of a centered layer half a pixel off, so it would shift as
+     *  the size changes parity. */
+    private static int even(double size) {
+        int ceiledSize = (int) Math.ceil(size);
+        return ceiledSize + ceiledSize % 2;
+    }
+
+    private static int shadowPadding(List<PositionedLayer> positionedLayers, double scale) {
         int shadowPadding = 0;
-        for (IndicatorLayerConfiguration layer : layers) {
-            Shadow shadow = layer.shadow();
+        for (PositionedLayer positionedLayer : positionedLayers) {
+            Shadow shadow = positionedLayer.layer().shadow();
             if (shadow.blurRadius() != 0)
                 shadowPadding = Math.max(shadowPadding, (int) Math.ceil((shadow.blurRadius() +
                         Math.max(Math.abs(shadow.horizontalOffset()),
@@ -288,12 +305,12 @@ public final class IndicatorRenderer {
      *  overlay supplies the cursor rectangle, its visual center, and the active screen and
      *  zoom. */
     public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
-                             Map<IndicatorPosition, Point> pointByPosition,
+                             Map<IndicatorPosition, List<Point>> pointsByPosition,
                              Map<HintGridArea, Rectangle> rectangleByArea,
                              Rectangle mouseRectangle, Point cursorVisualCenter,
                              Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
         setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
-        anchor(layerNamesToAnchor, pointByPosition, rectangleByArea, mouseRectangle,
+        anchor(layerNamesToAnchor, pointsByPosition, rectangleByArea, mouseRectangle,
                 cursorVisualCenter, activeScreen);
         if (showing && indicator.equals(currentIndicator) && layerNamesToAnchor.isEmpty())
             return;
@@ -312,13 +329,13 @@ public final class IndicatorRenderer {
     }
 
     private void anchor(Set<String> layerNamesToAnchor,
-                        Map<IndicatorPosition, Point> pointByPosition,
+                        Map<IndicatorPosition, List<Point>> pointsByPosition,
                         Map<HintGridArea, Rectangle> rectangleByArea,
                         Rectangle mouseRectangle, Point cursorVisualCenter,
                         Screen activeScreen) {
         for (String layerName : layerNamesToAnchor)
             anchorByLayerName.put(layerName, new LayerAnchor(mouseRectangle, cursorVisualCenter,
-                    activeScreen, pointByPosition, rectangleByArea));
+                    activeScreen, pointsByPosition, rectangleByArea));
     }
 
     private LayerAnchor anchor(String layerName, IndicatorLayerConfiguration layer,
@@ -342,68 +359,87 @@ public final class IndicatorRenderer {
                             zoomedY(area.y() + area.height(), zoom) -
                             size.bottomInset() * scale));
         }
-        return layer.positions()
-                    .stream()
-                    .map(position -> layerTopLeft(anchor, zoom, position, 0))
-                    .toList();
+        List<Point> points = new ArrayList<>();
+        for (IndicatorPosition position : layer.positions()) {
+            List<Point> positionPoints = anchor.pointsByPosition().get(position);
+            if (positionPoints == null)
+                points.add(layerTopLeft(anchor, zoom, position, new LayerSize(0, 0)));
+            else
+                for (Point point : positionPoints)
+                    points.add(new Point(zoomedX(point.x(), zoom), zoomedY(point.y(), zoom)));
+        }
+        return points;
     }
 
-    /** A layer with two positions runs from the first to the second: their distance is its
-     *  width, and its rotation turns it from their direction. A layer with an area covers it. */
-    private IndicatorConfiguration withPositions(IndicatorConfiguration indicator,
-                                                 LayerAnchor mouseAnchor, Zoom zoom) {
-        Map<String, IndicatorLayerConfiguration> layerByName =
-                new LinkedHashMap<>(indicator.layerByName());
-        layerByName.replaceAll((layerName, layer) -> {
-            if (!layer.enabled() || layer.area() == null && layer.positions().size() == 1)
-                return layer;
-            List<Point> points = positionPoints(anchor(layerName, layer, mouseAnchor), zoom,
-                    layer);
-            double deltaX = points.getLast().x() - points.getFirst().x();
-            double deltaY = points.getLast().y() - points.getFirst().y();
-            if (layer.area() != null)
-                return layer.builder()
-                            .size(Math.max(deltaX, deltaY) / mouseAnchor.activeScreen().scale())
-                            .aspectRatio(deltaX / deltaY)
-                            .build();
-            double width = Math.hypot(deltaX, deltaY) / mouseAnchor.activeScreen().scale();
-            double aspectRatio = aspectRatio(layer);
-            return layer.builder()
-                        .size(aspectRatio >= 1 ? width : width / aspectRatio)
-                        .rotation(layer.rotation() + Math.toDegrees(Math.atan2(deltaY, deltaX)))
-                        .build();
-        });
-        return new IndicatorConfiguration(indicator.renderAsCursor(),
-                indicator.excludeFromCapture(), layerByName);
+    private record PositionedLayer(IndicatorLayerConfiguration layer, Point topLeft) {
     }
 
-    private List<Point> layerTopLefts(IndicatorConfiguration indicator,
-                                      LayerAnchor mouseAnchor, Zoom zoom) {
+    /** The enabled layers and their top-lefts, in z order. A layer with an area covers it. A
+     *  layer through several positions is a layer for each two consecutive points, which runs
+     *  from the first to the second: their distance is its length, its size is its width, and
+     *  its rotation turns it from their direction. */
+    private List<PositionedLayer> positionedLayers(IndicatorConfiguration indicator,
+                                                   LayerAnchor mouseAnchor, Zoom zoom) {
         // Screen pixels: the configured size does not change with the zoom. Only the
         // position does, because the cursor it marks is a desktop point.
-        Screen activeScreen = mouseAnchor.activeScreen();
-        List<Point> topLefts = new ArrayList<>();
+        double scale = mouseAnchor.activeScreen().scale();
+        List<PositionedLayer> positionedLayers = new ArrayList<>();
         for (String layerName : enabledLayerNames(indicator)) {
             IndicatorLayerConfiguration layer = indicator.layerByName().get(layerName);
             LayerAnchor anchor = anchor(layerName, layer, mouseAnchor);
-            int layerSizeWithStroke = layerSizeWithStroke(layer, activeScreen.scale());
             List<Point> points = positionPoints(anchor, zoom, layer);
-            Point topLeft = layer.area() == null && layer.positions().size() == 1 ?
-                    layerTopLeft(anchor, zoom, layer.positions().getFirst(), layerSizeWithStroke) :
-                    new Point((points.getFirst().x() + points.getLast().x() -
-                               layerSizeWithStroke) / 2,
-                            (points.getFirst().y() + points.getLast().y() -
-                             layerSizeWithStroke) / 2);
-            Point offset = offset(layer, activeScreen.scale());
-            topLeft = new Point(topLeft.x() + offset.x(), topLeft.y() + offset.y());
-            if (!layer.text().isEmpty())
-                topLeft = keptOnScreen(topLeft, layerSizeWithStroke, layer,
-                        activeScreen.scale(), anchor.activeScreen());
-            // The stroke of an area goes on its edges, so the layer keeps its fraction of a pixel.
-            topLefts.add(layer.area() != null ? topLeft :
-                    new Point(Math.round(topLeft.x()), Math.round(topLeft.y())));
+            if (layer.area() != null) {
+                double deltaX = points.getLast().x() - points.getFirst().x();
+                double deltaY = points.getLast().y() - points.getFirst().y();
+                add(positionedLayers, layer.builder()
+                                           .size(Math.max(deltaX, deltaY) / scale)
+                                           .aspectRatio(deltaX / deltaY)
+                                           .build(),
+                        points.getFirst(), points.getLast(), anchor, scale);
+            }
+            else if (!IndicatorPosition.runThrough(layer.positions())) {
+                Point topLeft = layerTopLeft(anchor, zoom, layer.positions().getFirst(),
+                        layerSizeWithStroke(layer, scale));
+                add(positionedLayers, layer, topLeft, anchor, scale);
+            }
+            else {
+                for (int i = 1; i < points.size(); i++) {
+                    Point from = points.get(i - 1);
+                    Point to = points.get(i);
+                    double deltaX = to.x() - from.x();
+                    double deltaY = to.y() - from.y();
+                    double length = Math.hypot(deltaX, deltaY) / scale;
+                    add(positionedLayers, layer.builder()
+                                               .size(Math.max(length, layer.size()))
+                                               .aspectRatio(length / layer.size())
+                                               .rotation(layer.rotation() + Math.toDegrees(
+                                                       Math.atan2(deltaY, deltaX)))
+                                               .build(),
+                            from, to, anchor, scale);
+                }
+            }
         }
-        return topLefts;
+        return positionedLayers;
+    }
+
+    private void add(List<PositionedLayer> positionedLayers, IndicatorLayerConfiguration layer,
+                     Point from, Point to, LayerAnchor anchor, double scale) {
+        LayerSize layerSizeWithStroke = layerSizeWithStroke(layer, scale);
+        add(positionedLayers, layer,
+                new Point((from.x() + to.x() - layerSizeWithStroke.width()) / 2,
+                        (from.y() + to.y() - layerSizeWithStroke.height()) / 2), anchor, scale);
+    }
+
+    private void add(List<PositionedLayer> positionedLayers, IndicatorLayerConfiguration layer,
+                     Point topLeft, LayerAnchor anchor, double scale) {
+        Point offset = offset(layer, scale);
+        topLeft = new Point(topLeft.x() + offset.x(), topLeft.y() + offset.y());
+        if (!layer.text().isEmpty())
+            topLeft = keptOnScreen(topLeft, layerSizeWithStroke(layer, scale), layer, scale,
+                    anchor.activeScreen());
+        // The stroke of an area goes on its edges, so the layer keeps its fraction of a pixel.
+        positionedLayers.add(new PositionedLayer(layer, layer.area() != null ? topLeft :
+                new Point(Math.round(topLeft.x()), Math.round(topLeft.y()))));
     }
 
     private static Point offset(IndicatorLayerConfiguration layer, double scale) {
@@ -412,7 +448,7 @@ public final class IndicatorRenderer {
                 (layer.y() - layer.distance() * Math.cos(radians)) * scale);
     }
 
-    private Point keptOnScreen(Point topLeft, int layerSizeWithStroke,
+    private Point keptOnScreen(Point topLeft, LayerSize layerSizeWithStroke,
                                IndicatorLayerConfiguration layer, double scale, Screen screen) {
         double halfWidth, halfHeight;
         if (layer.rotation() % 360 == 0) {
@@ -422,18 +458,18 @@ public final class IndicatorRenderer {
             box.dispose();
         }
         else {
-            halfWidth = layerSizeWithStroke / 2.0;
-            halfHeight = layerSizeWithStroke / 2.0;
+            halfWidth = layerSizeWithStroke.width() / 2.0;
+            halfHeight = layerSizeWithStroke.height() / 2.0;
         }
         Rectangle rectangle = screen.rectangle();
         double centerX = Math.max(rectangle.x() + halfWidth, Math.min(
-                topLeft.x() + layerSizeWithStroke / 2.0,
+                topLeft.x() + layerSizeWithStroke.width() / 2.0,
                 rectangle.x() + rectangle.width() - halfWidth));
         double centerY = Math.max(rectangle.y() + halfHeight, Math.min(
-                topLeft.y() + layerSizeWithStroke / 2.0,
+                topLeft.y() + layerSizeWithStroke.height() / 2.0,
                 rectangle.y() + rectangle.height() - halfHeight));
-        return new Point(centerX - layerSizeWithStroke / 2.0,
-                centerY - layerSizeWithStroke / 2.0);
+        return new Point(centerX - layerSizeWithStroke.width() / 2.0,
+                centerY - layerSizeWithStroke.height() / 2.0);
     }
 
     private void reposition(IndicatorConfiguration indicator, Rectangle mouseRectangle,
@@ -442,57 +478,50 @@ public final class IndicatorRenderer {
         LayerAnchor mouseAnchor =
                 new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen, Map.of(),
                         Map.of());
-        IndicatorConfiguration indicatorWithPositions =
-                withPositions(indicator, mouseAnchor, zoom);
-        List<IndicatorLayerConfiguration> enabledLayers = enabledLayers(indicatorWithPositions);
-        List<Point> topLefts = layerTopLefts(indicatorWithPositions, mouseAnchor, zoom);
-        Rectangle layersRectangle = layersRectangle(enabledLayers, topLefts, screenScale);
+        List<PositionedLayer> positionedLayers = positionedLayers(indicator, mouseAnchor, zoom);
+        Rectangle layersRectangle = layersRectangle(positionedLayers, screenScale);
         // The window covers the screen and stays put: Qt moves a window at once but repaints
         // it later, so a layer that does not follow the mouse would shake inside a moving one.
         window.coverInPixels(activeScreen);
         Rectangle screen = activeScreen.rectangle();
-        placeLayers(enabledLayers, topLefts,
-                new Point(layersRectangle.x(), layersRectangle.y()),
+        placeLayers(positionedLayers, new Point(layersRectangle.x(), layersRectangle.y()),
                 layersRectangle.width(), layersRectangle.height(),
                 new Point(screen.x(), screen.y()), screenScale,
                 Os.macos ? activeScreen.scale() : 1);
     }
 
-    private Rectangle layersRectangle(List<IndicatorLayerConfiguration> layers,
-                                      List<Point> topLefts, double screenScale) {
+    private Rectangle layersRectangle(List<PositionedLayer> positionedLayers,
+                                      double screenScale) {
         int left = Integer.MAX_VALUE;
         int top = Integer.MAX_VALUE;
         int right = Integer.MIN_VALUE;
         int bottom = Integer.MIN_VALUE;
-        for (int i = 0; i < layers.size(); i++) {
-            int layerSizeWithStroke = layerSizeWithStroke(layers.get(i), screenScale);
-            int x = (int) Math.round(topLefts.get(i).x());
-            int y = (int) Math.round(topLefts.get(i).y());
+        for (PositionedLayer positionedLayer : positionedLayers) {
+            LayerSize layerSizeWithStroke =
+                    layerSizeWithStroke(positionedLayer.layer(), screenScale);
+            int x = (int) Math.round(positionedLayer.topLeft().x());
+            int y = (int) Math.round(positionedLayer.topLeft().y());
             left = Math.min(left, x);
             top = Math.min(top, y);
-            right = Math.max(right, x + layerSizeWithStroke);
-            bottom = Math.max(bottom, y + layerSizeWithStroke);
+            right = Math.max(right, x + layerSizeWithStroke.width());
+            bottom = Math.max(bottom, y + layerSizeWithStroke.height());
         }
         return new Rectangle(left, top, right - left, bottom - top);
     }
 
-    private void placeLayers(List<IndicatorLayerConfiguration> layers, List<Point> topLefts,
-                             Point layersTopLeft, int layersWidth, int layersHeight,
-                             Point windowTopLeft, double screenScale,
-                             double pointsPerPixel) {
+    private void placeLayers(List<PositionedLayer> positionedLayers, Point layersTopLeft,
+                             int layersWidth, int layersHeight, Point windowTopLeft,
+                             double screenScale, double pointsPerPixel) {
         layersWidget.move(points(layersTopLeft.x() - windowTopLeft.x(), pointsPerPixel),
                 points(layersTopLeft.y() - windowTopLeft.y(), pointsPerPixel));
         layersWidget.resize(points(layersWidth, pointsPerPixel),
                 points(layersHeight, pointsPerPixel));
-        currentEnabledLayers = layers;
-        currentTopLefts.clear();
-        currentTopLefts.addAll(topLefts);
+        currentLayers = positionedLayers;
         this.pointsPerPixel = pointsPerPixel;
-        for (int i = 0; i < layers.size(); i++) {
-            IndicatorLayerConfiguration layer = layers.get(i);
-            Point topLeft = topLefts.get(i);
-            int layerSizeWithStroke =
-                    points(layerSizeWithStroke(layer, screenScale), pointsPerPixel);
+        for (int i = 0; i < positionedLayers.size(); i++) {
+            IndicatorLayerConfiguration layer = positionedLayers.get(i).layer();
+            Point topLeft = positionedLayers.get(i).topLeft();
+            LayerSize layerSizeWithStroke = layerSizeWithStroke(layer, screenScale);
             IndicatorLayerWidget widget = widget(i);
             widget.setScale(screenScale / pointsPerPixel);
             widget.setLayerSize(layerSize(layer, screenScale) / pointsPerPixel);
@@ -501,7 +530,8 @@ public final class IndicatorRenderer {
             widget.move((int) Math.round(widgetX), (int) Math.round(widgetY));
             widget.setSubPixelOffset(new Point(widgetX - Math.round(widgetX),
                     widgetY - Math.round(widgetY)));
-            widget.resize(layerSizeWithStroke, layerSizeWithStroke);
+            widget.resize(points(layerSizeWithStroke.width(), pointsPerPixel),
+                    points(layerSizeWithStroke.height(), pointsPerPixel));
         }
     }
 
@@ -518,49 +548,50 @@ public final class IndicatorRenderer {
      * flipping to the opposite side when near the corresponding screen edge.
      */
     private Point layerTopLeft(LayerAnchor anchor, Zoom zoom, IndicatorPosition position,
-                               int layerSizeWithStroke) {
+                               LayerSize layerSizeWithStroke) {
         Rectangle mouseRectangle = anchor.mouseRectangle();
         Rectangle screen = anchor.activeScreen().rectangle();
-        if (position == IndicatorPosition.SCREEN_CENTER)
-            return new Point(screen.x() + (screen.width() - layerSizeWithStroke) / 2.0,
-                    screen.y() + (screen.height() - layerSizeWithStroke) / 2.0);
-        Point point = anchor.pointByPosition().get(position);
-        if (point != null)
-            return new Point(zoomedX(point.x(), zoom) - layerSizeWithStroke / 2.0,
-                    zoomedY(point.y(), zoom) - layerSizeWithStroke / 2.0);
-        if (position == IndicatorPosition.MOUSE || position == IndicatorPosition.TARGET ||
-            position == IndicatorPosition.LAST_SELECTED_HINT) {
+        if (position == PointIndicatorPosition.SCREEN_CENTER)
+            return new Point(screen.x() + (screen.width() - layerSizeWithStroke.width()) / 2.0,
+                    screen.y() + (screen.height() - layerSizeWithStroke.height()) / 2.0);
+        List<Point> points = anchor.pointsByPosition().get(position);
+        if (points != null)
+            return new Point(
+                    zoomedX(points.getFirst().x(), zoom) - layerSizeWithStroke.width() / 2.0,
+                    zoomedY(points.getFirst().y(), zoom) - layerSizeWithStroke.height() / 2.0);
+        if (position == PointIndicatorPosition.MOUSE || position == PointIndicatorPosition.TARGET ||
+            position == PointIndicatorPosition.LAST_SELECTED_HINT) {
             double centerX = mouseRectangle.x() + anchor.cursorVisualCenter().x();
             double centerY = mouseRectangle.y() + anchor.cursorVisualCenter().y();
             centerX = Math.max(screen.x(), Math.min(centerX,
                     screen.x() + screen.width()));
             centerY = Math.max(screen.y(), Math.min(centerY,
                     screen.y() + screen.height()));
-            return new Point(zoomedX(centerX, zoom) - layerSizeWithStroke / 2.0,
-                    zoomedY(centerY, zoom) - layerSizeWithStroke / 2.0);
+            return new Point(zoomedX(centerX, zoom) - layerSizeWithStroke.width() / 2.0,
+                    zoomedY(centerY, zoom) - layerSizeWithStroke.height() / 2.0);
         }
         int mouseX = Math.max(screen.x(), Math.min(mouseRectangle.x(),
                 screen.x() + screen.width()));
         int mouseY = Math.max(screen.y(), Math.min(mouseRectangle.y(),
                 screen.y() + screen.height()));
-        boolean defaultRight = position == IndicatorPosition.MOUSE_BOTTOM_RIGHT ||
-                               position == IndicatorPosition.MOUSE_TOP_RIGHT;
-        boolean defaultBottom = position == IndicatorPosition.MOUSE_BOTTOM_RIGHT ||
-                                position == IndicatorPosition.MOUSE_BOTTOM_LEFT;
+        boolean defaultRight = position == PointIndicatorPosition.MOUSE_BOTTOM_RIGHT ||
+                               position == PointIndicatorPosition.MOUSE_TOP_RIGHT;
+        boolean defaultBottom = position == PointIndicatorPosition.MOUSE_BOTTOM_RIGHT ||
+                                position == PointIndicatorPosition.MOUSE_BOTTOM_LEFT;
         boolean nearRightEdge = mouseX >=
                 screen.x() + screen.width() - layerEdgeThreshold;
         boolean nearLeftEdge = mouseX <=
                 screen.x() + layerEdgeThreshold;
         boolean placeRight = defaultRight ? !nearRightEdge : nearLeftEdge;
         int layerX = placeRight ?
-                mouseX + mouseRectangle.width() / 2 : mouseX - layerSizeWithStroke;
+                mouseX + mouseRectangle.width() / 2 : mouseX - layerSizeWithStroke.width();
         boolean nearBottomEdge = mouseY >=
                 screen.y() + screen.height() - layerEdgeThreshold;
         boolean nearTopEdge = mouseY <=
                 screen.y() + layerEdgeThreshold;
         boolean placeBottom = defaultBottom ? !nearBottomEdge : nearTopEdge;
         int layerY = placeBottom ?
-                mouseY + mouseRectangle.height() / 2 : mouseY - layerSizeWithStroke;
+                mouseY + mouseRectangle.height() / 2 : mouseY - layerSizeWithStroke.height();
         return new Point(zoomedX(layerX, zoom), zoomedY(layerY, zoom));
     }
 
@@ -584,48 +615,42 @@ public final class IndicatorRenderer {
      *  returned with its new screen position instead. */
     public WindowImage renderWindowImage(IndicatorConfiguration indicator,
                                          Set<String> layerNamesToAnchor,
-                                         Map<IndicatorPosition, Point> pointByPosition,
+                                         Map<IndicatorPosition, List<Point>> pointsByPosition,
                                          Map<HintGridArea, Rectangle> rectangleByArea,
                                          Rectangle mouseRectangle, Point cursorVisualCenter,
                                          Screen activeScreen, Zoom zoom,
                                          String lastSelectedHintBoxHexColor) {
         setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
-        anchor(layerNamesToAnchor, pointByPosition, rectangleByArea, mouseRectangle,
+        anchor(layerNamesToAnchor, pointsByPosition, rectangleByArea, mouseRectangle,
                 cursorVisualCenter, activeScreen);
         double screenScale = activeScreen.scale();
         LayerAnchor mouseAnchor =
                 new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen, Map.of(),
                         Map.of());
-        IndicatorConfiguration indicatorWithPositions =
-                withPositions(indicator, mouseAnchor, zoom);
-        List<IndicatorLayerConfiguration> enabledLayers = enabledLayers(indicatorWithPositions);
-        List<Point> topLefts = layerTopLefts(indicatorWithPositions, mouseAnchor, zoom);
-        Rectangle layersRectangle = layersRectangle(enabledLayers, topLefts, screenScale);
-        int shadowPadding = shadowPadding(enabledLayers, screenScale);
+        List<PositionedLayer> positionedLayers = positionedLayers(indicator, mouseAnchor, zoom);
+        Rectangle layersRectangle = layersRectangle(positionedLayers, screenScale);
+        int shadowPadding = shadowPadding(positionedLayers, screenScale);
         int x = layersRectangle.x() - shadowPadding;
         int y = layersRectangle.y() - shadowPadding;
-        List<Point> offsets = new ArrayList<>();
-        for (Point topLeft : topLefts)
-            offsets.add(new Point(topLeft.x() - x, topLeft.y() - y));
-        if (indicatorWithPositions.equals(windowImageIndicator) &&
-            offsets.equals(windowImageOffsets) && screenScale == windowImageScale &&
-            lastSelectedHintBoxHexColor.equals(windowImageLastSelectedHintBoxHexColor) &&
-            looksTheSameAnywhere(indicator))
+        List<PositionedLayer> imageLayers = new ArrayList<>();
+        for (PositionedLayer positionedLayer : positionedLayers)
+            imageLayers.add(new PositionedLayer(positionedLayer.layer(),
+                    new Point(positionedLayer.topLeft().x() - x,
+                            positionedLayer.topLeft().y() - y)));
+        WindowImageKey key =
+                new WindowImageKey(imageLayers, screenScale, lastSelectedHintBoxHexColor);
+        if (key.equals(windowImageKey) && looksTheSameAnywhere(indicator))
             return new WindowImage(windowImage, x, y);
         int width = layersRectangle.width() + 2 * shadowPadding;
         int height = layersRectangle.height() + 2 * shadowPadding;
         window();
         window.resize(width, height);
-        placeLayers(enabledLayers, topLefts,
-                new Point(layersRectangle.x(), layersRectangle.y()),
+        placeLayers(positionedLayers, new Point(layersRectangle.x(), layersRectangle.y()),
                 layersRectangle.width(), layersRectangle.height(), new Point(x, y),
                 screenScale, 1);
         applyIndicator(indicator, screenScale, lastSelectedHintBoxHexColor);
         windowImage = render(width, height, screenScale);
-        windowImageIndicator = indicatorWithPositions;
-        windowImageOffsets = offsets;
-        windowImageScale = screenScale;
-        windowImageLastSelectedHintBoxHexColor = lastSelectedHintBoxHexColor;
+        windowImageKey = key;
         return new WindowImage(windowImage, x, y);
     }
 
@@ -658,24 +683,25 @@ public final class IndicatorRenderer {
         // farthest layer does on one.
         int layersSize = 0;
         for (IndicatorLayerConfiguration layer : enabledLayers)
-            layersSize = Math.max(layersSize, layerSizeWithStroke(layer, scale) + 2 * (int)
+            layersSize = Math.max(layersSize, Math.max(layerSizeWithStroke(layer, scale).width(),
+                    layerSizeWithStroke(layer, scale).height()) + 2 * (int)
                     Math.round((Math.max(Math.abs(layer.x()), Math.abs(layer.y())) +
                                 Math.abs(layer.distance())) * scale));
-        int shadowPadding = shadowPadding(enabledLayers, scale);
-        int imageSize = layersSize + 2 * shadowPadding;
-        List<Point> topLefts = new ArrayList<>();
+        List<PositionedLayer> positionedLayers = new ArrayList<>();
         for (IndicatorLayerConfiguration layer : enabledLayers) {
-            int layerSizeWithStroke = layerSizeWithStroke(layer, scale);
+            LayerSize layerSizeWithStroke = layerSizeWithStroke(layer, scale);
             Point offset = offset(layer, scale);
-            topLefts.add(new Point(
-                    gradientPoint.x() - layerSizeWithStroke / 2.0 + Math.round(offset.x()),
-                    gradientPoint.y() - layerSizeWithStroke / 2.0 + Math.round(offset.y())));
+            positionedLayers.add(new PositionedLayer(layer, new Point(
+                    gradientPoint.x() - layerSizeWithStroke.width() / 2.0 + Math.round(offset.x()),
+                    gradientPoint.y() - layerSizeWithStroke.height() / 2.0 + Math.round(offset.y()))));
         }
+        int shadowPadding = shadowPadding(positionedLayers, scale);
+        int imageSize = layersSize + 2 * shadowPadding;
         Point layersTopLeft = new Point(gradientPoint.x() - layersSize / 2.0,
                 gradientPoint.y() - layersSize / 2.0);
         window();
         window.resize(imageSize, imageSize);
-        placeLayers(enabledLayers, topLefts, layersTopLeft, layersSize, layersSize,
+        placeLayers(positionedLayers, layersTopLeft, layersSize, layersSize,
                 new Point(layersTopLeft.x() - shadowPadding, layersTopLeft.y() - shadowPadding),
                 scale, 1);
         applyIndicator(indicator, scale, lastSelectedHintBoxHexColor);
@@ -714,9 +740,9 @@ public final class IndicatorRenderer {
         cleared = false;
         applyShadowEffect(shadowScale, lastSelectedHintBoxHexColor);
         for (int i = 0; i < widgets.size(); i++) {
-            if (i < currentEnabledLayers.size())
-                applyLayer(currentEnabledLayers.get(i), widgets.get(i), currentTopLefts.get(i),
-                        lastSelectedHintBoxHexColor);
+            if (i < currentLayers.size())
+                applyLayer(currentLayers.get(i).layer(), widgets.get(i),
+                        currentLayers.get(i).topLeft(), lastSelectedHintBoxHexColor);
             else
                 widgets.get(i).hide();
         }
@@ -755,9 +781,10 @@ public final class IndicatorRenderer {
     }
 
     boolean indicatorHasTransparency() {
-        for (IndicatorLayerConfiguration layer : currentEnabledLayers)
-            if (layer.fillOpacity() < 1.0 ||
-                layer.stroke().thickness() > 0 && layer.stroke().opacity() < 1.0)
+        for (PositionedLayer positionedLayer : currentLayers)
+            if (positionedLayer.layer().fillOpacity() < 1.0 ||
+                positionedLayer.layer().stroke().thickness() > 0 &&
+                positionedLayer.layer().stroke().opacity() < 1.0)
                 return true;
         return false;
     }
@@ -773,8 +800,8 @@ public final class IndicatorRenderer {
         shadowCasts.clear();
         shadowScale = scale;
         Map<Shadow, List<IndicatorLayerWidget>> widgetsByShadow = new LinkedHashMap<>();
-        for (int i = 0; i < currentEnabledLayers.size(); i++) {
-            Shadow shadow = currentEnabledLayers.get(i).shadow();
+        for (int i = 0; i < currentLayers.size(); i++) {
+            Shadow shadow = currentLayers.get(i).layer().shadow();
             if (shadow.opacity() > 0 && shadow.blurRadius() > 0)
                 widgetsByShadow.computeIfAbsent(shadow, shadow_ -> new ArrayList<>())
                                .add(widgets.get(i));
@@ -822,9 +849,9 @@ public final class IndicatorRenderer {
     private Point layersTopLeft() {
         double x = Double.MAX_VALUE;
         double y = Double.MAX_VALUE;
-        for (Point topLeft : currentTopLefts) {
-            x = Math.min(x, topLeft.x());
-            y = Math.min(y, topLeft.y());
+        for (PositionedLayer positionedLayer : currentLayers) {
+            x = Math.min(x, positionedLayer.topLeft().x());
+            y = Math.min(y, positionedLayer.topLeft().y());
         }
         return new Point(x, y);
     }
@@ -930,8 +957,10 @@ public final class IndicatorRenderer {
                         layer.borderRadius() * scale, layer.borderRadius() * scale,
                         Qt.SizeMode.AbsoluteSize);
                 case TRIANGLE, STAR, PATH ->
-                        addPolygon(path, points(layer), left, top, boxWidth, boxHeight,
+                        addPolygon(path, corners(points(layer), left, top, boxWidth, boxHeight),
                                 layer.borderRadius() * scale);
+                case ARROW -> addPolygon(path, arrowCorners(left, top, boxWidth, boxHeight),
+                        layer.borderRadius() * scale);
                 case LINE -> {
                     path.moveTo(left, top + boxHeight / 2);
                     path.lineTo(left + boxWidth, top + boxHeight / 2);
@@ -952,15 +981,36 @@ public final class IndicatorRenderer {
 
         /** Moves and stretches the points so that the rectangle around them fills the shape's
          *  box: points can be written in any units. */
-        private static void addPolygon(QPainterPath path, List<Point> points, double left,
-                                       double top, double width, double height,
-                                       double borderRadius) {
+        private static List<Point> corners(List<Point> points, double left, double top,
+                                           double width, double height) {
             Point min = minPoint(points);
             Point max = maxPoint(points);
             List<Point> corners = new ArrayList<>();
             for (Point point : points)
                 corners.add(new Point(left + (point.x() - min.x()) / (max.x() - min.x()) * width,
                         top + (point.y() - min.y()) / (max.y() - min.y()) * height));
+            return corners;
+        }
+
+        /** A head as long as the box is tall, on a shaft a quarter as wide. An arrow that is
+         *  not longer than its head is its head. */
+        private static List<Point> arrowCorners(double left, double top, double width,
+                                                double height) {
+            double headLeft = left + Math.max(0, width - height);
+            double middle = top + height / 2;
+            if (headLeft == left)
+                return List.of(new Point(left, top), new Point(left + width, middle),
+                        new Point(left, top + height));
+            double shaftHalfHeight = height / 8;
+            return List.of(new Point(left, middle - shaftHalfHeight),
+                    new Point(headLeft, middle - shaftHalfHeight), new Point(headLeft, top),
+                    new Point(left + width, middle), new Point(headLeft, top + height),
+                    new Point(headLeft, middle + shaftHalfHeight),
+                    new Point(left, middle + shaftHalfHeight));
+        }
+
+        private static void addPolygon(QPainterPath path, List<Point> corners,
+                                       double borderRadius) {
             for (int i = 0; i < corners.size(); i++) {
                 Point previous = corners.get((i + corners.size() - 1) % corners.size());
                 Point corner = corners.get(i);
@@ -1321,7 +1371,7 @@ public final class IndicatorRenderer {
             painter.setWorldTransform(identity);
             for (ShadowCast shadowCast : renderer.shadowCasts) {
                 QPixmap castPixmap =
-                        shadowCast.widgets().size() == renderer.currentEnabledLayers.size() ?
+                        shadowCast.widgets().size() == renderer.currentLayers.size() ?
                                 sourcePixmap :
                                 castPixmap(sourcePixmap,
                                         (int) Math.round(savedTransform.dx()) - sourceOffset.x(),
@@ -1371,7 +1421,7 @@ public final class IndicatorRenderer {
                 return;
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             List<IndicatorLayerWidget> widgets =
-                    renderer.widgets.subList(0, renderer.currentEnabledLayers.size());
+                    renderer.widgets.subList(0, renderer.currentLayers.size());
             if (!transparencyOnly()) {
                 painter.setCompositionMode(
                         QPainter.CompositionMode.CompositionMode_DestinationOut);

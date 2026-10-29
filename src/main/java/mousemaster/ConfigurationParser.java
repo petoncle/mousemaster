@@ -95,7 +95,7 @@ public class ConfigurationParser {
              .rotation(0)
              .fillColor(Color.parse("#FF0000"))
              .fillOpacity(0.2)
-             .positions(List.of(IndicatorPosition.MOUSE))
+             .positions(List.of(IndicatorPosition.PointIndicatorPosition.MOUSE))
              .followMouse(true);
         layer.area()
              .widthPercent(1d)
@@ -609,12 +609,12 @@ public class ConfigurationParser {
         for (ModeBuilder mode : modeByName.values())
             for (Map.Entry<String, IndicatorLayerConfigurationBuilder> entry : mode.indicator.builder.layerByName().entrySet()) {
                 IndicatorLayerConfigurationBuilder layer = entry.getValue();
-                if (layer.positions() != null && layer.positions().size() == 2 &&
+                if (layer.positions() != null && IndicatorPosition.runThrough(layer.positions()) &&
                     mode.indicator.setPropertyPaths.contains(new ModePropertyPath(
-                            List.of("indicator", "layerByName", entry.getKey(), "size"))))
+                            List.of("indicator", "layerByName", entry.getKey(), "aspectRatio"))))
                     throw new IllegalArgumentException(
                             "Invalid definition of " + entry.getKey() + " for " + mode.modeName +
-                            ": a layer with two positions takes its size from them");
+                            ": a layer through several positions takes its aspect ratio from them");
                 if (layer.area().source() != null &&
                     List.of("positions", "size", "aspectRatio").stream().anyMatch(fieldName ->
                             mode.indicator.setPropertyPaths.contains(new ModePropertyPath(
@@ -2016,7 +2016,7 @@ public class ConfigurationParser {
                             mode.indicator.setPropertyPaths,
                             modeName, defaultComboMoveDuration,
                             keyAliases, appAliases, colorAliases, keyResolver,
-                            allVariableNames);
+                            allVariableNames, positionHistoryNames);
                     return;
                 }
                 throw new IllegalArgumentException("Invalid mode property key");
@@ -2774,11 +2774,13 @@ public class ConfigurationParser {
                                                 Map<String, AppAlias> appAliases,
                                                 Map<String, GradientColor> colorAliases,
                                                 KeyResolver keyResolver,
-                                                Set<String> allVariableNames) {
+                                                Set<String> allVariableNames,
+                                                Set<String> positionHistoryNames) {
         ModePropertyHandler handler = layerName.equals("indicator") ?
                 indicatorHandler(indicator, key, colorAliases) : null;
         if (handler == null)
-            handler = indicatorLayerHandler(indicator, layerName, key, colorAliases, keyAliases);
+            handler = indicatorLayerHandler(indicator, layerName, key, colorAliases, keyAliases,
+                    positionHistoryNames);
         if (handler == null)
             throw new IllegalArgumentException("Invalid indicator property key: " + key);
         if (!tryParseComboProperty(propertyValue, modeName, handler.propertyPath(),
@@ -2887,7 +2889,7 @@ public class ConfigurationParser {
     private static ModePropertyHandler indicatorLayerHandler(
             IndicatorConfigurationBuilder indicator, String layerName,
             String key, Map<String, GradientColor> colorAliases,
-            Map<String, KeyAlias> keyAliases) {
+            Map<String, KeyAlias> keyAliases, Set<String> positionHistoryNames) {
         ModePropertyPath prefix =
                 new ModePropertyPath(List.of("indicator", "layerByName", layerName));
         IndicatorLayerConfigurationBuilder layer = indicator.layer(layerName);
@@ -2933,7 +2935,7 @@ public class ConfigurationParser {
             case "font-size" -> ModePropertyHandler.of(prefix.append("fontSize"), v -> parseDouble(v, false, 0, 1000), v -> layer.fontSize(v));
             case "font-weight" -> ModePropertyHandler.of(prefix.append("fontWeight"), v -> FontWeight.of(v), v -> layer.fontWeight(v));
             case "text-style-sheet" -> ModePropertyHandler.of(prefix.append("textStyleSheet"), v -> v, v -> layer.textStyleSheet(v));
-            case "position" -> ModePropertyHandler.of(prefix.append("positions"), v -> parseIndicatorPositions(v), v -> layer.positions(v));
+            case "position" -> ModePropertyHandler.of(prefix.append("positions"), v -> parseIndicatorPositions(v, positionHistoryNames), v -> layer.positions(v));
             case "area" -> ModePropertyHandler.of(prefix.append("area", "size", "source"), v -> parseHintGridAreaSizeSource(layerName + ".area", v), v -> layer.area().source(v));
             case "area-width-percent" -> ModePropertyHandler.of(prefix.append("area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> layer.area().widthPercent(v));
             case "area-height-percent" -> ModePropertyHandler.of(prefix.append("area", "size", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> layer.area().heightPercent(v));
@@ -3607,14 +3609,11 @@ public class ConfigurationParser {
         return percent;
     }
 
-    private static List<IndicatorPosition> parseIndicatorPositions(String propertyValue) {
-        List<IndicatorPosition> positions = Arrays.stream(propertyValue.split("\\s+"))
-                                                  .map(IndicatorPosition::fromString)
-                                                  .toList();
-        if (positions.size() > 2)
-            throw new IllegalArgumentException(
-                    "Invalid indicator position: " + propertyValue + ", must be one or two positions");
-        return positions;
+    private static List<IndicatorPosition> parseIndicatorPositions(String propertyValue,
+                                                                   Set<String> positionHistoryNames) {
+        return Arrays.stream(propertyValue.split("\\s+"))
+                     .map(position -> IndicatorPosition.fromString(position, positionHistoryNames))
+                     .toList();
     }
 
     private static List<Key> parseKeyList(String propertyValue,
