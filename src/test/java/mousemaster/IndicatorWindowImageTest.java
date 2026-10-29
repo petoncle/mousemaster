@@ -69,6 +69,20 @@ class IndicatorWindowImageTest {
     }
 
     @Test
+    void aLayerSweptAcrossTheScreenIsDrawnAgainOnlyWhenItMoves() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        IndicatorConfiguration indicator = indicator("idle-mode.indicator.enabled=true",
+                "idle-mode.indicator.follow-mouse=false",
+                "idle-mode.indicator.fill-color=across-screen per-pixel center-to-edge" +
+                " #FF0000 #0000FF");
+        IndicatorRenderer renderer = new IndicatorRenderer();
+        WindowImage image = render(renderer, indicator, Set.of("indicator"), 500);
+        assertSame(image.image(), render(renderer, indicator, Set.of(), 600).image());
+        assertNotSame(image.image(),
+                render(renderer, indicator, Set.of("indicator"), 600).image());
+    }
+
+    @Test
     void layersThatFollowTheMouseOnlyMove() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         IndicatorConfiguration indicator = indicator("idle-mode.indicator.enabled=true",

@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 
 /**
  * Cross-platform Qt rendering of the mouse indicator: owns a widget per layer and the shadow
@@ -190,9 +191,12 @@ public final class IndicatorRenderer {
                            String textStyleSheet, double scale) {
     }
 
-    /** The layers are placed in the image, so that the image holds while they move together. */
+    /** The layers are placed in the image, so that the image holds while they move together,
+     *  or on the screen when a color is swept across it. The cursor matters only to a color
+     *  sampled at it. */
     private record WindowImageKey(List<PositionedLayer> layers, double scale,
-                                  String lastSelectedHintBoxHexColor) {
+                                  String lastSelectedHintBoxHexColor, Rectangle gradientArea,
+                                  Point gradientPoint) {
     }
 
     private static TextKey textKey(IndicatorLayerConfiguration layer, double scale) {
@@ -336,9 +340,14 @@ public final class IndicatorRenderer {
     /** Repositions the current indicator for the cursor, screen and zoom. */
     public void reposition(Rectangle mouseRectangle, Point cursorVisualCenter,
                            Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
+        List<PositionedLayer> previousLayers = currentLayers;
+        Rectangle previousGradientArea = gradientArea;
         setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
         reposition(currentIndicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
-        if (!looksTheSameAnywhere(currentIndicator))
+        if (anyColor(currentIndicator, IndicatorRenderer::sampledAtTheCursor) ||
+            anyColor(currentIndicator, IndicatorRenderer::sweptAcrossTheScreen) &&
+            (!currentLayers.equals(previousLayers) ||
+             !gradientArea.equals(previousGradientArea)))
             showIndicator(currentIndicator, activeScreen.scale(), lastSelectedHintBoxHexColor);
     }
 
@@ -651,9 +660,12 @@ public final class IndicatorRenderer {
             imageLayers.add(new PositionedLayer(positionedLayer.layer(),
                     new Point(positionedLayer.topLeft().x() - x,
                             positionedLayer.topLeft().y() - y)));
-        WindowImageKey key =
-                new WindowImageKey(imageLayers, screenScale, lastSelectedHintBoxHexColor);
-        if (key.equals(windowImageKey) && looksTheSameAnywhere(indicator))
+        WindowImageKey key = new WindowImageKey(
+                anyColor(indicator, IndicatorRenderer::sweptAcrossTheScreen) ?
+                        positionedLayers : imageLayers,
+                screenScale, lastSelectedHintBoxHexColor, gradientArea,
+                anyColor(indicator, IndicatorRenderer::sampledAtTheCursor) ? gradientPoint : null);
+        if (key.equals(windowImageKey))
             return new WindowImage(windowImage, x, y);
         int width = layersRectangle.width() + 2 * shadowPadding;
         int height = layersRectangle.height() + 2 * shadowPadding;
@@ -669,20 +681,29 @@ public final class IndicatorRenderer {
     }
 
     public static boolean looksTheSameAnywhere(IndicatorConfiguration indicator) {
+        return !anyColor(indicator, IndicatorRenderer::sweptAcrossTheScreen) &&
+               !anyColor(indicator, IndicatorRenderer::sampledAtTheCursor);
+    }
+
+    private static boolean anyColor(IndicatorConfiguration indicator,
+                                    Predicate<Color> predicate) {
         for (IndicatorLayerConfiguration layer : enabledLayers(indicator))
-            if (!looksTheSameAnywhere(layer.fillColor()) ||
-                !looksTheSameAnywhere(layer.stroke().color()) ||
-                !looksTheSameAnywhere(layer.shadow().color()))
-                return false;
-        return true;
+            if (predicate.test(layer.fillColor()) || predicate.test(layer.stroke().color()) ||
+                predicate.test(layer.shadow().color()))
+                return true;
+        return false;
     }
 
     /** A gradient is sampled at the cursor, or swept across the screen, unless it is swept
      *  across the element itself. */
-    private static boolean looksTheSameAnywhere(Color color) {
-        return !(color instanceof GradientColor gradientColor) || !gradientColor.gradient() ||
-               gradientColor.step() == GradientStep.PIXEL &&
-               gradientColor.area() == GradientArea.ELEMENT;
+    private static boolean sweptAcrossTheScreen(Color color) {
+        GradientColor sweep = sweep(color);
+        return sweep != null && sweep.area() != GradientArea.ELEMENT;
+    }
+
+    private static boolean sampledAtTheCursor(Color color) {
+        return sweep(color) == null && color instanceof GradientColor gradientColor &&
+               gradientColor.gradient();
     }
 
     /** Renders the indicator's widget tree into a premultiplied-ARGB image for use as the
