@@ -463,7 +463,8 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
   edge, a corner position moves to the other side of the cursor, and a layer with a text moves
   inward instead of being cut. `selection` and `last-selected-hint` center the layer on those
   points of the overlay (see `mouse-movement`), and the layer moves with them, not with the
-  cursor.
+  cursor. Without `no-movement`, the selection follows the mouse, and a layer on it is drawn
+  again at each mouse move: to draw at the cursor, use `mouse`.
 
   With two positions, the layer runs from the first to the second: their distance is its width,
   and `rotation` turns it from their direction. `aspect-ratio` still sets its height, and `size`
@@ -995,9 +996,11 @@ hint-mode.overlay.label-override=plus
 - **`select`**: Combo that triggers hint selection. For example, if you want to be able to hold leftshift while pressing a hint selection key, then use `hint-mode.overlay.select=_{none | leftshift} +selectionkey`
 - **`deselect`** (formerly `undo`): Combo that deselects the last selection key
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
-- **`mouse-movement`**: Controls how the mouse moves when interacting with hints. The overlay
-  selects a position: the center of a selected hint, the edge a `snap` goes to, the center of
-  the grid. This is the selection, and the mouse follows it unless `no-movement` is set.
+- **`mouse-movement`**: Controls how the mouse moves when interacting with hints. The selection
+  is a position that follows the mouse. Selecting a hint and the grid commands move it to the
+  center of the hint, the edge a `snap` goes to or the center of the grid, and the mouse goes
+  there. When `no-movement` starts, the selection stops where it is: only those commands move it,
+  and the mouse stays.
   - `no-movement`: Mouse stays in its current position
   - `mouse-follows-selected-hint`: Mouse moves to the selected hint (default behavior)
   - `mouse-follows-overlay-center` (formerly `mouse-follows-hint-grid-center`): Mouse moves to the center of the overlay

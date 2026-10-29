@@ -77,7 +77,7 @@ class IndicatorEffectsTest {
         animationPlayer = new AnimationPlayer(configuration.animationConfigurationByName());
         commandRunner.setAnimationPlayer(animationPlayer);
         indicatorManager = new IndicatorManager(overlay, animationPlayer, hintManager);
-        comboWatcher.setModeListeners(List.of(indicatorManager));
+        comboWatcher.setModeListeners(List.of(indicatorManager, hintManager));
         comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
     }
 

@@ -232,6 +232,39 @@ class GridCommandTest {
     }
 
     @Test
+    void theSelectionFollowsTheMouseUntilNoMovementStopsIt() throws IOException {
+        start("""
+                grid-mode.to.still-mode=+s
+                still-mode.to.idle-mode=+esc
+                still-mode.hint=grid-mode.hint
+                still-mode.hint.mouse-movement=no-movement
+                """);
+        switchMode("grid-mode");
+        hintManager.mouseMoved(100, 100);
+        assertEquals(new Point(100, 100), hintManager.selectionPoint());
+        switchMode("still-mode");
+        hintManager.mouseMoved(300, 300);
+        assertEquals(new Point(100, 100), hintManager.selectionPoint());
+    }
+
+    @Test
+    void theSelectionStaysWhereItIsFromOneNoMovementModeToAnother() throws IOException {
+        start("""
+                grid-mode.hint.grid-max-row-count=2
+                grid-mode.hint.grid-max-column-count=2
+                grid-mode.hint.mouse-movement=no-movement
+                grid-mode.to.other-grid-mode=+o
+                other-grid-mode.to.idle-mode=+esc
+                other-grid-mode.hint=grid-mode.hint
+                """);
+        hintManager.mouseMoved(100, 100);
+        switchMode("grid-mode");
+        hintManager.snapRight();
+        switchMode("other-grid-mode");
+        assertEquals(new Point(960, 100), hintManager.selectionPoint());
+    }
+
+    @Test
     void aGridOnTheLastOverlayAreaFillsTheShrunkGrid() throws IOException {
         start("""
                 grid-mode.to.hint-mode=+h
