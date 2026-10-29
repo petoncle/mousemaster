@@ -16,7 +16,9 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -1464,6 +1466,7 @@ public final class HintMeshRenderer {
                 QtHintFont.qtHintFontStyle(savedStyle.fontStyle(),
                         hasForegroundPrefixKeys ? savedStyle.prefixFontStyle() : null,
                         screenScale, lastSelectedHintBoxHexColor);
+        Map<GradientArea, Rectangle> textGradientAreaByArea = new HashMap<>();
         Rectangle savedBoxGradientArea =
                 gradientArea(savedStyle.boxColor().area(), hintMeshWindow, hintMesh);
         GradientColor savedBoxBorderColor = gradientColor(savedStyle.boxBorderColor());
@@ -1837,7 +1840,8 @@ public final class HintMeshRenderer {
                     boxBorderGradientArea, hintGroup, hintCenter,
                     isHintPartOfGrid ? windowPixelRectangle : hintBox.pixelRectangle(0, 0),
                     isHintPartOfGrid ? windowOrigin : sweepOrigin));
-            if (saved(hintBox.hint, savedPositions)) {
+            boolean hintSaved = saved(hintBox.hint, savedPositions);
+            if (hintSaved) {
                 hintBox.setColor(brush(savedStyle.boxColor(), savedStyle.boxOpacity(),
                         savedBoxGradientArea, hintGroup, hintCenter,
                         hintBox.pixelRectangle(0, 0), sweepOrigin));
@@ -1846,6 +1850,16 @@ public final class HintMeshRenderer {
                         hintCenter,
                         isHintPartOfGrid ? windowPixelRectangle : hintBox.pixelRectangle(0, 0),
                         isHintPartOfGrid ? windowOrigin : sweepOrigin));
+            }
+            HintMeshStyle hintStyle = hintSaved ? savedStyle : style;
+            if (sampledText(hintStyle, hasForegroundPrefixKeys)) {
+                Rectangle box = hintBox.pixelRectangle(0, 0);
+                hintLabel.labelFontStyle = sampledLabelFontStyle(
+                        hintLabel.labelFontStyle, hintStyle,
+                        color -> color.area() == GradientArea.ELEMENT ? box :
+                                textGradientAreaByArea.computeIfAbsent(color.area(),
+                                        area -> gradientArea(area, hintMeshWindow, hintMesh)),
+                        hintGroup, hintCenter);
             }
             setDecorationBorderColors(hintBox, hintBox.pixelRectangle(0, 0),
                     subDecorationStyles, 0, hintGroup, sweepOrigin);
@@ -2071,11 +2085,63 @@ public final class HintMeshRenderer {
 
     private static QBrush sampledBrush(GradientColor color, double opacity, Rectangle area,
                                        HintGroup hintGroup, Point center) {
+        return QtColorUtil.qBrush(color, opacity,
+                sampledPosition(color, area, hintGroup, center));
+    }
+
+    private static double sampledPosition(GradientColor color, Rectangle area,
+                                          HintGroup hintGroup, Point center) {
         Rectangle sampledArea = areaNarrowedToGroup(color, area, hintGroup);
         Point sampled = color.step() == GradientStep.GROUP && hintGroup != null ?
                 hintGroup.centerArea().center() : center;
-        return QtColorUtil.qBrush(color, opacity,
-                color.sweepPosition(sampledArea, sampled.x(), sampled.y()));
+        return color.sweepPosition(sampledArea, sampled.x(), sampled.y());
+    }
+
+    private static boolean sampledText(HintMeshStyle style, boolean prefix) {
+        return sampledText(style.fontStyle()) || prefix && sampledText(style.prefixFontStyle());
+    }
+
+    private static boolean sampledText(HintFontStyle fontStyle) {
+        return gradient(fontStyle.defaultFontStyle()) || gradient(fontStyle.selectedFontStyle()) ||
+               gradient(fontStyle.focusedFontStyle());
+    }
+
+    private static boolean gradient(FontStyle fontStyle) {
+        return fontStyle.color() instanceof GradientColor color && color.gradient();
+    }
+
+    /** A key's text is drawn in one color, so a gradient font color is sampled at the hint,
+     *  the way a box samples a gradient. */
+    private static QtHintFontStyle sampledLabelFontStyle(
+            QtHintFontStyle labelFontStyle, HintMeshStyle style,
+            Function<GradientColor, Rectangle> gradientArea, HintGroup hintGroup, Point center) {
+        BiFunction<QtFontStyle, FontStyle, QtFontStyle> sampled = (qtFontStyle, fontStyle) ->
+                sampledFontStyle(qtFontStyle, fontStyle, gradientArea, hintGroup, center);
+        HintFontStyle fontStyle = style.fontStyle();
+        HintFontStyle prefixFontStyle = style.prefixFontStyle();
+        boolean prefix = labelFontStyle.prefixDefaultStyle() != null;
+        return new QtHintFontStyle(
+                sampled.apply(labelFontStyle.defaultStyle(), fontStyle.defaultFontStyle()),
+                sampled.apply(labelFontStyle.selectedStyle(), fontStyle.selectedFontStyle()),
+                sampled.apply(labelFontStyle.focusedStyle(), fontStyle.focusedFontStyle()),
+                prefix ? sampled.apply(labelFontStyle.prefixDefaultStyle(),
+                        prefixFontStyle.defaultFontStyle()) : null,
+                prefix ? sampled.apply(labelFontStyle.prefixSelectedStyle(),
+                        prefixFontStyle.selectedFontStyle()) : null,
+                prefix ? sampled.apply(labelFontStyle.prefixFocusedStyle(),
+                        prefixFontStyle.focusedFontStyle()) : null,
+                labelFontStyle.perKeyFont(), labelFontStyle.perKeyShadow(),
+                labelFontStyle.fontSpacingPercent());
+    }
+
+    private static QtFontStyle sampledFontStyle(QtFontStyle qtFontStyle, FontStyle fontStyle,
+                                                Function<GradientColor, Rectangle> gradientArea,
+                                                HintGroup hintGroup, Point center) {
+        if (!gradient(fontStyle))
+            return qtFontStyle;
+        GradientColor color = (GradientColor) fontStyle.color();
+        return qtFontStyle.withColor(QtColorUtil.qColor(color, fontStyle.opacity(),
+                sampledPosition(color, gradientArea.apply(color), hintGroup, center)));
     }
 
     /** A saved hint stays when the selected keys hide the other hints. */
@@ -3053,7 +3119,7 @@ public final class HintMeshRenderer {
                     selectedKeyEndIndex, verticalAlignment, isHintPartOfTiledGrid,
                     qtScaleFactor);
             labelCache.put(key, built);
-            return built;
+            return new HintLabel(built);
         }
 
         /** A glyph and where it sits in the label it belongs to. */
@@ -3067,7 +3133,7 @@ public final class HintMeshRenderer {
         private record OutlineImage(QImage image, int x, int y) {
         }
 
-        private final QtHintFontStyle labelFontStyle;
+        private QtHintFontStyle labelFontStyle;
         private final List<HintKeyText> keyTexts;
         /** Only a non-grid hint's box is sized and placed to fit its label; a grid hint's box is its
          *  cell, so its left is left at 0. */

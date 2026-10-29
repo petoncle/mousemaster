@@ -1245,6 +1245,9 @@ Each state supports the following font properties:
 `font-spacing-percent` and `font-vertical-alignment` are the exceptions: there is one of each per
 category (`font-` and `prefix-font-`), shared across all 3 states.
 
+A font color can be a gradient, as for `box-color`. Each label takes the color of the gradient at
+its hint, the way a `per-hint` box does: the text does not ramp, even with `per-pixel`.
+
 The property naming pattern is:
 - Default: `overlay.font-*`
 - Selected: `overlay.selected-font-*`

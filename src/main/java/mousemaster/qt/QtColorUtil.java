@@ -160,11 +160,20 @@ public final class QtColorUtil {
     private static final Map<SweepKey, QBrush> brushBySweepStep = new HashMap<>();
 
     public static QBrush qBrush(GradientColor color, double opacity, double sweepPosition) {
-        int step = (int) Math.round(Math.clamp(sweepPosition, 0, 1) *
-                                   (GradientColor.rampSteps - 1));
+        int step = rampStep(sweepPosition);
         return brushBySweepStep.computeIfAbsent(new SweepKey(color, alpha(opacity), step),
                 key -> qBrush(rgba(color.rgbAt(
                         (double) step / (GradientColor.rampSteps - 1)), key.alpha())));
+    }
+
+    /** The color a sampled brush paints at sweepPosition. */
+    public static QColor qColor(GradientColor color, double opacity, double sweepPosition) {
+        return QColor.fromRgba(rgba(color.rgbAt(
+                (double) rampStep(sweepPosition) / (GradientColor.rampSteps - 1)), opacity));
+    }
+
+    private static int rampStep(double sweepPosition) {
+        return (int) Math.round(Math.clamp(sweepPosition, 0, 1) * (GradientColor.rampSteps - 1));
     }
 
     /** Dropped rather than freed outright: shown hint boxes hold these, so Qt frees each only once
