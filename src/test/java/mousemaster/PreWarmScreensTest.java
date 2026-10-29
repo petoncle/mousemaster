@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -51,7 +50,8 @@ class PreWarmScreensTest {
                     return null;
                 });
         HintManager hintManager =
-                new HintManager(Map.of(), screenManager, null, overlay, null, null,
+                new HintManager(configuration.positionHistoryConfigurationByName(),
+                        screenManager, null, overlay, null, () -> new App("test.exe"),
                         new KeyRedactor(KeyRedaction.NONE), null);
         hintManager.preWarmHintMeshes(configuration.modeMap());
         return preWarmed;

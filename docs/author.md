@@ -81,7 +81,8 @@ Only idle and normal mode are pushed onto the mode history stack, so every trans
 | `center-mouse-mode` | invisible; recenters the pointer on an application switch |
 | `recursive-hint1..4-mode` | the 3×3 drill-down hint grid |
 | `click-after-hint-mode` | the click a hint commit produces, or the held button when the key was held |
-| `ui-hint-mode` (+ `click-after-`) | hints on UI elements detected from the screen |
+| `ui-hint-mode` (+ `click-after-`, `save-after-`) | hints on UI elements detected from the screen |
+| `click-all-mode` | clicks the hints marked with `space`, one after the other |
 | `position-history-mode` | saved positions, shown while `m` is held |
 | `arrowbasekey-mode` | `i j k l` emit arrow keys |
 | `macro-hint-mode` | an invisible ~10 px hint grid macros use to click fixed pixels |
@@ -584,6 +585,11 @@ middle, **cyan** right, **white** while `rightalt` is held (move only).
 
 `rightalt` works as in the grid: hold it and pick to move there without clicking (`^{rightalt}` gates
 the commit so it yields, `noop.eatrightalt` keeps the press off the application).
+
+Hold **`space`** and pick hints to mark them: each is saved to `click-position-history` and shown with a
+white box, and the hints come back for the next one through `save-after-ui-hint-mode`. Releasing
+`space` clicks them all with the armed button, in the order they were picked (`click-all-mode`), then
+goes back where the hints were opened from. A `space` tap with no hint marked clicks at the pointer.
 
 Click or drag is the grid's rule too — `release.left` carries the same `-0-150` window, so a quick pick
 clicks and a key held past 150 ms stays pressed, with the indicator as the mid-drag cue.
