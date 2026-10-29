@@ -15,9 +15,14 @@ public class MacosMouseController implements MouseController {
 
     private final CoreGraphics coreGraphics = CoreGraphics.INSTANCE;
     private final Set<Integer> pressedButtons = new LinkedHashSet<>();
+    private QPoint movedTo;
+    private QPoint movedToPoint;
 
+    /** The pointer only goes to whole points, every other pixel of a 2x screen: while it stays
+     *  where mousemaster put it, it is on the pixel it was put on. */
     public QPoint findMousePosition() {
-        return MacosScreens.pixelPoint(QCursor.pos());
+        QPoint position = QCursor.pos();
+        return position.equals(movedToPoint) ? movedTo : MacosScreens.pixelPoint(position);
     }
 
     /**
@@ -65,7 +70,11 @@ public class MacosMouseController implements MouseController {
      * selection, so the matching move event is posted too.
      */
     private void moveTo(long x, long y) {
+        QPoint requested = new QPoint((int) x, (int) y);
         QPoint target = onScreen(x, y);
+        movedTo = target.equals(MacosScreens.logicalPoint(requested)) ? requested :
+                MacosScreens.pixelPoint(target);
+        movedToPoint = target;
         CoreGraphics.CGPoint.ByValue point =
                 new CoreGraphics.CGPoint.ByValue(target.x(), target.y());
         coreGraphics.CGWarpMouseCursorPosition(point);
