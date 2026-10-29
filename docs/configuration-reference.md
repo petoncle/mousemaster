@@ -650,7 +650,7 @@ normal-mode.stop-wheel.right=-wheelright
 The overlay is what a mode lays over the screen to pick a place: a grid, boxes on UI elements, or
 saved positions. Each box is a hint, and `selection-keys` labels the hints with the keys to type.
 The indicator and the zoom are configured on their own: `overlay.visible=false` hides the overlay
-only. Earlier versions called this block `hint`, and `hint.` still works.
+only.
 
 The hint system in mousemaster displays labels on the screen that you can select with keystrokes to move the mouse to specific locations. This is similar to the hint systems in browser extensions like Vimium, but works system-wide.
 
@@ -665,7 +665,7 @@ ui-hint-mode.overlay.type=ui-vision
 The **`type`** property determines what hints are displayed:
 - `grid` (default): Displays a grid of hints laid out across the screen
 - `position-history`, or any `<name>-position-history`: Displays discrete absolutely positioned hints at the positions saved in that history (see [Position history](#position-history))
-- `ui-accessibility` (formerly `ui`): Displays hints at interactive UI elements (see [Accessibility UI hints](#accessibility-ui-hints))
+- `ui-accessibility`: Displays hints at interactive UI elements (see [Accessibility UI hints](#accessibility-ui-hints))
 - `ui-vision`: Displays hints at elements detected on screen (see [Vision UI hints](#vision-ui-hints))
 
 ### Accessibility UI hints
@@ -743,9 +743,9 @@ ui-hint-mode.to.normal-mode=_{ishintmeshempty}
 ```
 
 Accessibility UI hints use the same appearance properties as other hint types (`box-*`,
-`font-*`, etc.). The `box-horizontal-padding` and `box-vertical-padding` properties (formerly
-`cell-horizontal-padding` and `cell-vertical-padding`) are particularly useful for UI hints
-since the hint boxes are sized to fit the label text rather than a fixed grid cell.
+`font-*`, etc.). The `box-horizontal-padding` and `box-vertical-padding` properties are
+particularly useful for UI hints since the hint boxes are sized to fit the label text rather than
+a fixed grid cell.
 
 The **`ui-element-box-*`** properties draw the box of each element, behind its hint box. They are
 the same as the `box-*` properties: `ui-element-box-color`, `ui-element-box-opacity`,
@@ -994,7 +994,7 @@ hint-mode.overlay.label-override=plus
   while a key is pressed: `grid-mode.overlay.selection-keys=none | _{labels} -> hintkey`.
   `select` then works with the keys of every branch.
 - **`select`**: Combo that triggers hint selection. For example, if you want to be able to hold leftshift while pressing a hint selection key, then use `hint-mode.overlay.select=_{none | leftshift} +selectionkey`
-- **`deselect`** (formerly `undo`): Combo that deselects the last selection key
+- **`deselect`**: Combo that deselects the last selection key
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
 - **`mouse-follows-selection`**: Whether the mouse follows the selection (default `true`). The
   selection is a position that follows the mouse. Selecting a hint and the grid commands move it
@@ -1005,12 +1005,9 @@ hint-mode.overlay.label-override=plus
 - **`selection-follows-overlay-center`**: Whether the selection goes to the center of the overlay
   when the overlay shows, and when a selection key or `deselect` changes its hints (default
   `false`). The mouse goes there too, unless `mouse-follows-selection=false`.
-- **`mouse-movement`** (former property): it sets both. `no-movement` is `false` and `false`,
-  `mouse-follows-selected-hint` is `true` and `false`, and `mouse-follows-overlay-center`
-  (formerly `mouse-follows-hint-grid-center`) is `true` and `true`.
-- **`move-to.last-selected-hint`** (formerly `move-to-last-selected-hint`): Like
-  `to.<mode-name>`, a command of the mode, not an overlay property. It moves the mouse to the last
-  selected hint, for example after `mouse-follows-selection=false` left the mouse where it was:
+- **`move-to.last-selected-hint`**: Like `to.<mode-name>`, a command of the mode, not an overlay
+  property. It moves the mouse to the last selected hint, for example after
+  `mouse-follows-selection=false` left the mouse where it was:
   `normal-mode.move-to.last-selected-hint=+m`
 - **`move-to.selection`**: The same, to the selection: `grid-mode.move-to.selection=+space`
 - **`eat-unused-selection-keys`**: If `false`, selection keys not used in the current hint display can be used in combos
@@ -1306,11 +1303,9 @@ grid-mode.move-selection-to.grid-center=+space
   number of cells.
 - **`move-grid.<direction>`**: Moves the grid by its own width or height. The center of the grid
   stays on a screen.
-- **`snap-selection.<direction>`** (formerly `snap`): Moves the selection to the next cell edge
-  in the direction. At the right or bottom edge of the grid, it stops on the last pixel of the
-  grid.
-- **`move-selection-to.grid-center`** (formerly `move-to-grid-center`): Moves the selection to the
-  center of the grid.
+- **`snap-selection.<direction>`**: Moves the selection to the next cell edge in the direction. At
+  the right or bottom edge of the grid, it stops on the last pixel of the grid.
+- **`move-selection-to.grid-center`**: Moves the selection to the center of the grid.
 
 A command name says what it moves: `snap-selection` and `move-selection-to` move the selection,
 `move-grid` and `shrink-grid` the grid. A name that says nothing, such as `start-move` or
@@ -1322,15 +1317,6 @@ A mode with the same `overlay.type`, area and layout keeps the grid where the co
 `selection-follows-overlay-center=true`, the selection goes to the center of the grid after each
 change. The mouse follows the selection, unless `mouse-follows-selection=false`: then it stays
 where it is.
-
-Earlier versions had a separate `grid`. Its properties still work, as overlay properties:
-`grid.row-count` and `grid.column-count` are `grid-max-row-count` and `grid-max-column-count`,
-`grid.line-visible` is `visible`, `grid.line-color`, `grid.line-thickness` and `grid.line-opacity`
-are `box-border-color`, `box-border-thickness` and `box-border-opacity`, `grid.background-color` and
-`grid.background-opacity` are `box-color` and `box-opacity`, and `grid.synchronization` is
-`mouse-movement` (`grid-center-follows-mouse` is `area-center=mouse`), itself now
-`mouse-follows-selection` and `selection-follows-overlay-center`. A mode that uses them, or a
-grid command, without an overlay property gets the old grid: an invisible `fit` 2x2 grid with red boxes.
 
 ## App aliases
 
