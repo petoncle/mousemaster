@@ -23,6 +23,7 @@ public class IndicatorManager implements ModeListener {
     private final Set<String> anchoredLayerNames = new HashSet<>();
     private final Set<String> layerNamesToAnchor = new HashSet<>();
     private Map<IndicatorPosition, Point> pointByPosition = Map.of();
+    private Map<HintGridArea, Rectangle> rectangleByArea = Map.of();
 
     public IndicatorManager(Overlay overlay, AnimationPlayer animationPlayer,
                             HintManager hintManager) {
@@ -43,7 +44,7 @@ public class IndicatorManager implements ModeListener {
             return;
         }
         overlay.setIndicator(indicator, Set.copyOf(layerNamesToAnchor), pointByPosition,
-                animating(),
+                rectangleByArea, animating(),
                 !animationPlayer.animate(currentMode, "hideCursor").hideCursor().enabled());
         layerNamesToAnchor.clear();
     }
@@ -78,13 +79,23 @@ public class IndicatorManager implements ModeListener {
         if (hintManager.lastSelectedHintPoint() != null)
             newPointByPosition.put(IndicatorPosition.LAST_SELECTED_HINT,
                     hintManager.lastSelectedHintPoint());
+        Map<HintGridArea, Rectangle> newRectangleByArea = new HashMap<>();
+        for (IndicatorLayerConfiguration layer : indicator.layerByName().values())
+            if (layer.enabled() && layer.area() != null)
+                newRectangleByArea.put(layer.area(), hintManager.indicatorArea(layer.area()));
         for (Map.Entry<String, IndicatorLayerConfiguration> entry : indicator.layerByName()
-                                                                             .entrySet())
-            if (entry.getValue().enabled() && entry.getValue().positions().stream().anyMatch(
+                                                                             .entrySet()) {
+            IndicatorLayerConfiguration layer = entry.getValue();
+            if (layer.enabled() && (layer.positions().stream().anyMatch(
                     position -> !Objects.equals(newPointByPosition.get(position),
-                            pointByPosition.get(position))))
+                            pointByPosition.get(position))) ||
+                                    layer.area() != null &&
+                                    !Objects.equals(newRectangleByArea.get(layer.area()),
+                                            rectangleByArea.get(layer.area()))))
                 layerNamesToAnchor.add(entry.getKey());
+        }
         pointByPosition = newPointByPosition;
+        rectangleByArea = newRectangleByArea;
         return indicator;
     }
 

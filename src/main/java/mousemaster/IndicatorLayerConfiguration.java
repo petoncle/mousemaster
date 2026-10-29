@@ -1,5 +1,6 @@
 package mousemaster;
 
+import mousemaster.HintGridArea.HintGridAreaBuilder;
 import mousemaster.IndicatorStroke.IndicatorStrokeBuilder;
 import mousemaster.Shadow.ShadowBuilder;
 
@@ -16,7 +17,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                                           String text, String fontName, double fontSize,
                                           FontWeight fontWeight, String textStyleSheet,
                                           List<IndicatorPosition> positions,
-                                          boolean followMouse) {
+                                          HintGridArea area, boolean followMouse) {
 
     public IndicatorLayerConfigurationBuilder builder() {
         return new IndicatorLayerConfigurationBuilder(this);
@@ -46,6 +47,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         private FontWeight fontWeight;
         private String textStyleSheet;
         private List<IndicatorPosition> positions;
+        private HintGridAreaBuilder area = new HintGridAreaBuilder();
         private Boolean followMouse;
 
         public IndicatorLayerConfigurationBuilder() {
@@ -74,6 +76,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             this.fontWeight = layer.fontWeight;
             this.textStyleSheet = layer.textStyleSheet;
             this.positions = layer.positions;
+            this.area = layer.area == null ? new HintGridAreaBuilder() : layer.area.builder();
             this.followMouse = layer.followMouse;
         }
 
@@ -265,6 +268,10 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             return positions;
         }
 
+        public HintGridAreaBuilder area() {
+            return area;
+        }
+
         public IndicatorLayerConfigurationBuilder followMouse(boolean followMouse) {
             this.followMouse = followMouse;
             return this;
@@ -297,6 +304,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             if (fontWeight == null) fontWeight = parent.fontWeight;
             if (textStyleSheet == null) textStyleSheet = parent.textStyleSheet;
             if (positions == null) positions = parent.positions;
+            area.extend(parent.area);
             if (followMouse == null) followMouse = parent.followMouse;
         }
 
@@ -305,7 +313,9 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                     borderRadius, points, x, y, distance, angle, rotation, fillColor, fillOpacity,
                     stroke.build(), shadow.build(),
                     text, fontName, fontSize, fontWeight, textStyleSheet, positions,
-                    followMouse && !positions.contains(IndicatorPosition.TARGET) &&
+                    area.source() == null ? null : area.build(),
+                    followMouse && area.source() == null &&
+                    !positions.contains(IndicatorPosition.TARGET) &&
                     !positions.contains(IndicatorPosition.LAST_SELECTED_HINT));
         }
     }

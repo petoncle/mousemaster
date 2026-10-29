@@ -10,10 +10,10 @@ public record HintGridArea(HintGridAreaSize size, HintGridAreaCenter center) {
         private HintGridAreaSizeSource source;
         private Double widthPercent;
         private Double heightPercent;
-        private Integer topInset;
-        private Integer bottomInset;
-        private Integer leftInset;
-        private Integer rightInset;
+        private Double topInset;
+        private Double bottomInset;
+        private Double leftInset;
+        private Double rightInset;
         private HintGridAreaCenter center;
 
         public HintGridAreaBuilder() {
@@ -46,22 +46,22 @@ public record HintGridArea(HintGridAreaSize size, HintGridAreaCenter center) {
             return this;
         }
 
-        public HintGridAreaBuilder topInset(Integer topInset) {
+        public HintGridAreaBuilder topInset(Double topInset) {
             this.topInset = topInset;
             return this;
         }
 
-        public HintGridAreaBuilder bottomInset(Integer bottomInset) {
+        public HintGridAreaBuilder bottomInset(Double bottomInset) {
             this.bottomInset = bottomInset;
             return this;
         }
 
-        public HintGridAreaBuilder leftInset(Integer leftInset) {
+        public HintGridAreaBuilder leftInset(Double leftInset) {
             this.leftInset = leftInset;
             return this;
         }
 
-        public HintGridAreaBuilder rightInset(Integer rightInset) {
+        public HintGridAreaBuilder rightInset(Double rightInset) {
             this.rightInset = rightInset;
             return this;
         }
@@ -83,24 +83,35 @@ public record HintGridArea(HintGridAreaSize size, HintGridAreaCenter center) {
             return heightPercent;
         }
 
-        public Integer topInset() {
+        public Double topInset() {
             return topInset;
         }
 
-        public Integer bottomInset() {
+        public Double bottomInset() {
             return bottomInset;
         }
 
-        public Integer leftInset() {
+        public Double leftInset() {
             return leftInset;
         }
 
-        public Integer rightInset() {
+        public Double rightInset() {
             return rightInset;
         }
 
         public HintGridAreaCenter center() {
             return center;
+        }
+
+        public void extend(HintGridAreaBuilder parent) {
+            if (source == null) source = parent.source;
+            if (widthPercent == null) widthPercent = parent.widthPercent;
+            if (heightPercent == null) heightPercent = parent.heightPercent;
+            if (topInset == null) topInset = parent.topInset;
+            if (bottomInset == null) bottomInset = parent.bottomInset;
+            if (leftInset == null) leftInset = parent.leftInset;
+            if (rightInset == null) rightInset = parent.rightInset;
+            if (center == null) center = parent.center;
         }
 
         public HintGridArea build() {

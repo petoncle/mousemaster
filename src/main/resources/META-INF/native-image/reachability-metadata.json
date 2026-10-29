@@ -6352,10 +6352,10 @@
             "mousemaster.HintGridAreaSizeSource",
             "double",
             "double",
-            "int",
-            "int",
-            "int",
-            "int"
+            "double",
+            "double",
+            "double",
+            "double"
           ]
         },
         {
@@ -7006,6 +7006,7 @@
             "mousemaster.FontWeight",
             "java.lang.String",
             "java.util.List",
+            "mousemaster.HintGridArea",
             "boolean"
           ]
         },
@@ -7099,6 +7100,10 @@
         },
         {
           "name": "z",
+          "parameterTypes": []
+        },
+        {
+          "name": "area",
           "parameterTypes": []
         }
       ]

@@ -725,7 +725,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             case HintMeshType.GridHintMesh gridHintMesh -> screenFilter(gridHintMesh.area());
             case HintMeshType.UiAccessibilityHintMesh uiAccessibilityHintMesh -> screenFilter(uiAccessibilityHintMesh.area());
             case HintMeshType.UiVisionHintMesh uiVisionHintMesh -> {
-                Point center = uiHintArea(uiVisionHintMesh.area()).center();
+                Point center = areaRectangle(uiVisionHintMesh.area()).center();
                 yield ScreenFilter.of(
                         screenManager.nearestScreenContaining(center.x(), center.y()));
             }
@@ -775,20 +775,29 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private Future<List<UiElement>> startUiElementQuery(HintMeshType type) {
         if (type instanceof HintMeshType.UiVisionHintMesh uiVisionHintMesh) {
-            uiElementQueryArea = uiHintArea(uiVisionHintMesh.area());
+            uiElementQueryArea = areaRectangle(uiVisionHintMesh.area());
             return vision.startFindElements(screenManager.screens(), uiElementQueryArea,
                     uiVisionHintMesh.density(), uiVisionHintMesh.minSize());
         }
         HintGridArea area = ((HintMeshType.UiAccessibilityHintMesh) type).area();
-        uiElementQueryArea = uiHintArea(area);
+        uiElementQueryArea = areaRectangle(area);
         return area.size().source() == HintGridAreaSizeSource.ACTIVE_WINDOW &&
                uiElementQueryArea.equals(overlay.activeWindowRectangle()) ?
                 uiAutomation.startFindActiveWindowUiElements() :
                 uiAutomation.startFindUiElementsInArea(uiElementQueryArea);
     }
 
-    /** The area the UI elements are looked for in, and the one the background covers. */
-    private Rectangle uiHintArea(HintGridArea area) {
+    /** The area an indicator layer covers, without its insets: the layer cuts them to a
+     *  fraction of a pixel. */
+    public Rectangle indicatorArea(HintGridArea area) {
+        HintGridAreaSize size = area.size();
+        return areaRectangle(new HintGridArea(new HintGridAreaSize(size.source(),
+                size.widthPercent(), size.heightPercent(), 0, 0, 0, 0), area.center()));
+    }
+
+    /** The area the UI elements are looked for in, the one the background covers, and the one
+     *  an indicator layer covers. */
+    private Rectangle areaRectangle(HintGridArea area) {
         if (area.size().source() == HintGridAreaSizeSource.ALL_SCREENS)
             return Rectangle.union(screenManager.screens().stream()
                     .map(screen -> scaledArea(screen.rectangle(), area.size(),

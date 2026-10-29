@@ -2,6 +2,7 @@ package mousemaster.platform.macos;
 
 import io.qt.core.QPoint;
 import mousemaster.Hint;
+import mousemaster.HintGridArea;
 import mousemaster.HintMesh;
 import mousemaster.HintMeshConfiguration;
 import mousemaster.IndicatorConfiguration;
@@ -141,6 +142,7 @@ public class MacosOverlay implements Overlay {
     @Override
     public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
                              Map<IndicatorPosition, Point> pointByPosition,
+                             Map<HintGridArea, Rectangle> rectangleByArea,
                              boolean animating,
                              boolean includeOriginalCursor) {
         if (followingIndicatorRenderer == null)
@@ -154,15 +156,16 @@ public class MacosOverlay implements Overlay {
         QPoint mousePosition = mouse.findMousePosition();
         setIndicator(followingIndicatorRenderer,
                 IndicatorRenderer.followingMouse(indicator, true), Set.of(), Map.of(),
-                mousePosition);
+                Map.of(), mousePosition);
         setIndicator(anchoredIndicatorRenderer,
                 IndicatorRenderer.followingMouse(indicator, false), layerNamesToAnchor,
-                pointByPosition, mousePosition);
+                pointByPosition, rectangleByArea, mousePosition);
     }
 
     private void setIndicator(IndicatorRenderer indicatorRenderer,
                               IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
                               Map<IndicatorPosition, Point> pointByPosition,
+                              Map<HintGridArea, Rectangle> rectangleByArea,
                               QPoint mousePosition) {
         if (!indicator.enabled()) {
             indicatorRenderer.hide();
@@ -170,7 +173,7 @@ public class MacosOverlay implements Overlay {
         }
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
         indicatorRenderer.setIndicator(indicator, layerNamesToAnchor, pointByPosition,
-                cursorRectangle(mousePosition, activeScreen),
+                rectangleByArea, cursorRectangle(mousePosition, activeScreen),
                 cursorVisualCenter(activeScreen), activeScreen, null,
                 hintMeshRenderer.lastSelectedHintBoxHexColor());
     }

@@ -477,6 +477,22 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
   ```
 - **`follow-mouse`**: Whether the layer moves with the cursor (default `true`). With `false`, the
   layer stays where it was when it was enabled, or when its keyframes started over.
+- **`area`**: The area the layer covers. It takes the values of the overlay's `area`, with
+  `area-width-percent`, `area-height-percent`, the `area-*-inset` and `area-center` (see
+  [Overlay area and layout](#overlay-area-and-layout)). The layer takes its position and its size
+  from the area, so `position`, `size` and `aspect-ratio` cannot be set, and it does not follow
+  the mouse. The stroke is centered on the edge of the area: an inset of minus half the stroke
+  thickness puts the stroke just outside it. A box around the element of the last selected UI
+  hint:
+  ```properties
+  grid-mode.element-indicator.shape=rectangle
+  grid-mode.element-indicator.area=last-selected-hint-cell
+  grid-mode.element-indicator.area-top-inset=-0.5
+  grid-mode.element-indicator.area-bottom-inset=-0.5
+  grid-mode.element-indicator.area-left-inset=-0.5
+  grid-mode.element-indicator.area-right-inset=-0.5
+  grid-mode.element-indicator.fill-opacity=0
+  ```
 
 #### Shadow
 
@@ -862,7 +878,8 @@ the point it is *centered* on. For UI hints it is the region the elements are lo
 
 - **`area-top-inset`** / **`area-bottom-inset`** / **`area-left-inset`** /
   **`area-right-inset`**: Margins cut from the scaled area, in pixels at 100% scaling (default
-  `0`). E.g. `area=active-window` + `area-top-inset=15` leaves out the window's title bar.
+  `0`). E.g. `area=active-window` + `area-top-inset=15` leaves out the window's title bar. A
+  negative inset grows the area.
 
 - **`area-center`** (point the area is centered on):
   - `screen-center`: Center of the screen

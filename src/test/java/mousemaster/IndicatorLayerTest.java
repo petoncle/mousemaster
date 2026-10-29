@@ -56,6 +56,22 @@ class IndicatorLayerTest {
     }
 
     @Test
+    void aLayerWithAnAreaTakesItsPositionAndSizeFromIt() {
+        IndicatorLayerConfiguration layer = layer(parse("idle-mode.indicator.area=active-window",
+                "idle-mode.indicator.area-top-inset=-0.5").modeMap().get(Mode.IDLE_MODE_NAME),
+                "indicator");
+        assertEquals(-0.5, layer.area().size().topInset());
+        assertEquals(HintGridAreaCenter.ACTIVE_WINDOW_CENTER, layer.area().center());
+        assertFalse(layer.followMouse());
+        assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.indicator.area=active-window",
+                        "idle-mode.indicator.size=40"));
+        assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.indicator.area=active-window",
+                        "idle-mode.indicator.position=target"));
+    }
+
+    @Test
     void aMutationReachesALayer() {
         Mode mode = parse("idle-mode.ripple-indicator.size=40 | _{isidling} -> 50")
                 .modeMap().get(Mode.IDLE_MODE_NAME);

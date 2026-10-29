@@ -202,6 +202,15 @@ class GridCommandTest {
     }
 
     @Test
+    void aNegativeInsetGrowsTheArea() throws IOException {
+        start("""
+                grid-mode.hint.area-top-inset=-10
+                """);
+        switchMode("grid-mode");
+        assertEquals(new Rectangle(0, -10, 1920, 1090), hintManager.hintMesh().area());
+    }
+
+    @Test
     void aSelectionDropsTheAreaOverride() throws IOException {
         start("""
                 grid-mode.to.other-grid-mode=+o

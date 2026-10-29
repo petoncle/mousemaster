@@ -1,6 +1,7 @@
 package mousemaster.platform;
 
 import mousemaster.Hint;
+import mousemaster.HintGridArea;
 import mousemaster.HintMesh;
 import mousemaster.HintMeshConfiguration;
 import mousemaster.IndicatorConfiguration;
@@ -30,7 +31,8 @@ public interface Overlay {
     Rectangle activeWindowRectangle();
 
     void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
-                      Map<IndicatorPosition, Point> pointByPosition, boolean animating,
+                      Map<IndicatorPosition, Point> pointByPosition,
+                      Map<HintGridArea, Rectangle> rectangleByArea, boolean animating,
                       boolean includeOriginalCursor);
 
     /** Captures the desktop inside bounds, excluding mousemaster's own windows. */

@@ -85,7 +85,8 @@ public final class IndicatorRenderer {
 
     private record LayerAnchor(Rectangle mouseRectangle, Point cursorVisualCenter,
                                Screen activeScreen,
-                               Map<IndicatorPosition, Point> pointByPosition) {
+                               Map<IndicatorPosition, Point> pointByPosition,
+                               Map<HintGridArea, Rectangle> rectangleByArea) {
     }
 
     private static List<String> enabledLayerNames(IndicatorConfiguration indicator) {
@@ -288,11 +289,12 @@ public final class IndicatorRenderer {
      *  zoom. */
     public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
                              Map<IndicatorPosition, Point> pointByPosition,
+                             Map<HintGridArea, Rectangle> rectangleByArea,
                              Rectangle mouseRectangle, Point cursorVisualCenter,
                              Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
         setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
-        anchor(layerNamesToAnchor, pointByPosition, mouseRectangle, cursorVisualCenter,
-                activeScreen);
+        anchor(layerNamesToAnchor, pointByPosition, rectangleByArea, mouseRectangle,
+                cursorVisualCenter, activeScreen);
         if (showing && indicator.equals(currentIndicator) && layerNamesToAnchor.isEmpty())
             return;
         // Position the (hidden) window before showIndicator shows it.
@@ -311,11 +313,12 @@ public final class IndicatorRenderer {
 
     private void anchor(Set<String> layerNamesToAnchor,
                         Map<IndicatorPosition, Point> pointByPosition,
+                        Map<HintGridArea, Rectangle> rectangleByArea,
                         Rectangle mouseRectangle, Point cursorVisualCenter,
                         Screen activeScreen) {
         for (String layerName : layerNamesToAnchor)
             anchorByLayerName.put(layerName, new LayerAnchor(mouseRectangle, cursorVisualCenter,
-                    activeScreen, pointByPosition));
+                    activeScreen, pointByPosition, rectangleByArea));
     }
 
     private LayerAnchor anchor(String layerName, IndicatorLayerConfiguration layer,
@@ -324,8 +327,21 @@ public final class IndicatorRenderer {
                 anchorByLayerName.computeIfAbsent(layerName, name -> mouseAnchor);
     }
 
+    /** The points a layer is laid out by: its positions, or the corners of its area, with the
+     *  insets cut to a fraction of a pixel. */
     private List<Point> positionPoints(LayerAnchor anchor, Zoom zoom,
                                        IndicatorLayerConfiguration layer) {
+        if (layer.area() != null) {
+            Rectangle area = anchor.rectangleByArea().get(layer.area());
+            HintGridAreaSize size = layer.area().size();
+            double scale = anchor.activeScreen().scale();
+            return List.of(new Point(zoomedX(area.x(), zoom) + size.leftInset() * scale,
+                            zoomedY(area.y(), zoom) + size.topInset() * scale),
+                    new Point(zoomedX(area.x() + area.width(), zoom) -
+                              size.rightInset() * scale,
+                            zoomedY(area.y() + area.height(), zoom) -
+                            size.bottomInset() * scale));
+        }
         return layer.positions()
                     .stream()
                     .map(position -> layerTopLeft(anchor, zoom, position, 0))
@@ -333,18 +349,23 @@ public final class IndicatorRenderer {
     }
 
     /** A layer with two positions runs from the first to the second: their distance is its
-     *  width, and its rotation turns it from their direction. */
+     *  width, and its rotation turns it from their direction. A layer with an area covers it. */
     private IndicatorConfiguration withPositions(IndicatorConfiguration indicator,
                                                  LayerAnchor mouseAnchor, Zoom zoom) {
         Map<String, IndicatorLayerConfiguration> layerByName =
                 new LinkedHashMap<>(indicator.layerByName());
         layerByName.replaceAll((layerName, layer) -> {
-            if (!layer.enabled() || layer.positions().size() == 1)
+            if (!layer.enabled() || layer.area() == null && layer.positions().size() == 1)
                 return layer;
             List<Point> points = positionPoints(anchor(layerName, layer, mouseAnchor), zoom,
                     layer);
             double deltaX = points.getLast().x() - points.getFirst().x();
             double deltaY = points.getLast().y() - points.getFirst().y();
+            if (layer.area() != null)
+                return layer.builder()
+                            .size(Math.max(deltaX, deltaY) / mouseAnchor.activeScreen().scale())
+                            .aspectRatio(deltaX / deltaY)
+                            .build();
             double width = Math.hypot(deltaX, deltaY) / mouseAnchor.activeScreen().scale();
             double aspectRatio = aspectRatio(layer);
             return layer.builder()
@@ -367,7 +388,7 @@ public final class IndicatorRenderer {
             LayerAnchor anchor = anchor(layerName, layer, mouseAnchor);
             int layerSizeWithStroke = layerSizeWithStroke(layer, activeScreen.scale());
             List<Point> points = positionPoints(anchor, zoom, layer);
-            Point topLeft = layer.positions().size() == 1 ?
+            Point topLeft = layer.area() == null && layer.positions().size() == 1 ?
                     layerTopLeft(anchor, zoom, layer.positions().getFirst(), layerSizeWithStroke) :
                     new Point((points.getFirst().x() + points.getLast().x() -
                                layerSizeWithStroke) / 2,
@@ -378,7 +399,9 @@ public final class IndicatorRenderer {
             if (!layer.text().isEmpty())
                 topLeft = keptOnScreen(topLeft, layerSizeWithStroke, layer,
                         activeScreen.scale(), anchor.activeScreen());
-            topLefts.add(new Point(Math.round(topLeft.x()), Math.round(topLeft.y())));
+            // The stroke of an area goes on its edges, so the layer keeps its fraction of a pixel.
+            topLefts.add(layer.area() != null ? topLeft :
+                    new Point(Math.round(topLeft.x()), Math.round(topLeft.y())));
         }
         return topLefts;
     }
@@ -417,7 +440,8 @@ public final class IndicatorRenderer {
                             Point cursorVisualCenter, Screen activeScreen, Zoom zoom) {
         double screenScale = activeScreen.scale();
         LayerAnchor mouseAnchor =
-                new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen, Map.of());
+                new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen, Map.of(),
+                        Map.of());
         IndicatorConfiguration indicatorWithPositions =
                 withPositions(indicator, mouseAnchor, zoom);
         List<IndicatorLayerConfiguration> enabledLayers = enabledLayers(indicatorWithPositions);
@@ -442,8 +466,8 @@ public final class IndicatorRenderer {
         int bottom = Integer.MIN_VALUE;
         for (int i = 0; i < layers.size(); i++) {
             int layerSizeWithStroke = layerSizeWithStroke(layers.get(i), screenScale);
-            int x = (int) topLefts.get(i).x();
-            int y = (int) topLefts.get(i).y();
+            int x = (int) Math.round(topLefts.get(i).x());
+            int y = (int) Math.round(topLefts.get(i).y());
             left = Math.min(left, x);
             top = Math.min(top, y);
             right = Math.max(right, x + layerSizeWithStroke);
@@ -472,8 +496,11 @@ public final class IndicatorRenderer {
             IndicatorLayerWidget widget = widget(i);
             widget.setScale(screenScale / pointsPerPixel);
             widget.setLayerSize(layerSize(layer, screenScale) / pointsPerPixel);
-            widget.move(points(topLeft.x() - layersTopLeft.x(), pointsPerPixel),
-                    points(topLeft.y() - layersTopLeft.y(), pointsPerPixel));
+            double widgetX = (topLeft.x() - layersTopLeft.x()) / pointsPerPixel;
+            double widgetY = (topLeft.y() - layersTopLeft.y()) / pointsPerPixel;
+            widget.move((int) Math.round(widgetX), (int) Math.round(widgetY));
+            widget.setSubPixelOffset(new Point(widgetX - Math.round(widgetX),
+                    widgetY - Math.round(widgetY)));
             widget.resize(layerSizeWithStroke, layerSizeWithStroke);
         }
     }
@@ -558,15 +585,17 @@ public final class IndicatorRenderer {
     public WindowImage renderWindowImage(IndicatorConfiguration indicator,
                                          Set<String> layerNamesToAnchor,
                                          Map<IndicatorPosition, Point> pointByPosition,
+                                         Map<HintGridArea, Rectangle> rectangleByArea,
                                          Rectangle mouseRectangle, Point cursorVisualCenter,
                                          Screen activeScreen, Zoom zoom,
                                          String lastSelectedHintBoxHexColor) {
         setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
-        anchor(layerNamesToAnchor, pointByPosition, mouseRectangle, cursorVisualCenter,
-                activeScreen);
+        anchor(layerNamesToAnchor, pointByPosition, rectangleByArea, mouseRectangle,
+                cursorVisualCenter, activeScreen);
         double screenScale = activeScreen.scale();
         LayerAnchor mouseAnchor =
-                new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen, Map.of());
+                new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen, Map.of(),
+                        Map.of());
         IndicatorConfiguration indicatorWithPositions =
                 withPositions(indicator, mouseAnchor, zoom);
         List<IndicatorLayerConfiguration> enabledLayers = enabledLayers(indicatorWithPositions);
@@ -821,11 +850,12 @@ public final class IndicatorRenderer {
         private GradientColor strokeSweep;
         private Rectangle sweepArea;
         private double scale;
+        private Point subPixelOffset;
         private final Map<ImageKey, QImage> imageByKey = new HashMap<>();
 
         private record ImageKey(IndicatorLayerConfiguration layer, double layerSize, double scale,
                                 int width, int height, double devicePixelRatio, int fillRgba,
-                                int strokeRgba) {
+                                int strokeRgba, Point subPixelOffset) {
         }
 
         IndicatorLayerWidget(QWidget parent) {
@@ -838,6 +868,10 @@ public final class IndicatorRenderer {
 
         void setScale(double scale) {
             this.scale = scale;
+        }
+
+        void setSubPixelOffset(Point subPixelOffset) {
+            this.subPixelOffset = subPixelOffset;
         }
 
         void setLayer(IndicatorLayerConfiguration layer) {
@@ -1100,6 +1134,7 @@ public final class IndicatorRenderer {
 
         private void drawShape(QPainter painter, QColor fillColor, QColor strokeColor) {
             painter.save();
+            painter.translate(subPixelOffset.x(), subPixelOffset.y());
             painter.translate(width() / 2.0, height() / 2.0);
             painter.rotate(layer.rotation());
             painter.translate(-width() / 2.0, -height() / 2.0);
@@ -1178,7 +1213,7 @@ public final class IndicatorRenderer {
             }
             double devicePixelRatio = painter.device().devicePixelRatioF();
             ImageKey key = new ImageKey(layer, layerSize, scale, width(), height(),
-                    devicePixelRatio, fillColor.rgba(), strokeColor.rgba());
+                    devicePixelRatio, fillColor.rgba(), strokeColor.rgba(), subPixelOffset);
             QImage image = imageByKey.get(key);
             if (image == null) {
                 imageByKey.entrySet().removeIf(entry -> {
