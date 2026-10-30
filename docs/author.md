@@ -24,9 +24,9 @@ Ctrl+Alt+Space.
    hint box magenta *and* rewrites which combo commits the click, with no mode switch — so the hint mesh
    is not rebuilt.
 
-Seventeen virtual keys are declared, each next to the macros that press it. Eleven hold state:
+Sixteen virtual keys are declared, each next to the macros that press it. Ten hold state:
 `islclick` `ismclick` `isrclick` `isnohintclick` `islongpresshintkey` `isnomove` `mouseanchored`
-`zooming` `autodrilling` `never`, and `showrecursivehintkeys`, the only one declared `pressed`. The
+`zooming` `autodrilling`, and `showrecursivehintkeys`, the only one declared `pressed`. The
 other six — `mousefill` `mouseburst` `mouseanimation` and `leftmouseanimation`/`middlemouseanimation`/
 `rightmouseanimation` — drive the indicator's click animation.
 
@@ -143,7 +143,7 @@ sentence would fire the task-view macro.
 ```properties
 idle-mode.to.typing-mode=_{none | modifierkey} ^{space middlebutton} #typingkeys
 typing-mode.to=idle-mode.to
-typing-mode.to.typing-mode=+never
+typing-mode.to.typing-mode=none
 typing-mode.to.idle-mode=#!typingkeysandspaceandoneshotkeys | ^{typingkeys} wait-500
 ```
 
@@ -215,7 +215,7 @@ normal-mode.press.middle=+middlebutton-0-150 -middlebutton
 normal-mode.release.middle=+middlebutton-0-150 -middlebutton-1
 normal-mode.break-combo-preparation=+middlebutton-0-150 -middlebutton-1
 normal-mode.to.surgical-mode=+;
-surgical-mode.press.middle=+never
+surgical-mode.press.middle=none
 ```
 
 The `;` press enters surgical mode at once, where middle click is disabled. Release within 150 ms and
@@ -273,7 +273,7 @@ without that line it would kick you out.
 normal-mode.to.normal-timeout4-mode=_{isidling} wait-1000
 _normal-timeout-mode=normal-mode
 _normal-timeout-mode.hide-cursor.enabled=true
-_normal-timeout-mode.to.normal-timeout4-mode=+never
+_normal-timeout-mode.to.normal-timeout4-mode=none
 _normal-timeout-mode.to.normal-mode=^{isidling}
 normal-timeout4-mode.to.normal-timeout3-mode=wait-1000
 ```
@@ -781,9 +781,8 @@ and `;`+`k`/`i` become F13, F15 and the wheel.
 
 ## Two conventions used everywhere
 
-**`+never` deletes an inherited combo.** `never` is declared with `virtual-key.never=released` and
-pressed by no macro, so a combo requiring it can never complete. Used wherever a mode inherits nearly
-everything from another but must not inherit one line.
+**`none` deletes an inherited combo.** Used wherever a mode inherits nearly everything from another
+but must not inherit one line.
 
 **No implicit combo timeout.** `default-combo-move-duration-millis` is left commented out, so moves have
 no maximum gap unless one is written down — every 150, 250, 500, 1000 and 2000 in the file is deliberate
