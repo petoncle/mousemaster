@@ -24,11 +24,13 @@ Ctrl+Alt+Space.
    hint box magenta *and* rewrites which combo commits the click, with no mode switch — so the hint mesh
    is not rebuilt.
 
-Sixteen virtual keys are declared, each next to the macros that press it. Ten hold state:
-`islclick` `ismclick` `isrclick` `isnohintclick` `islongpresshintkey` `isnomove` `mouseanchored`
-`zooming` `autodrilling`, and `showrecursivehintkeys`, the only one declared `pressed`. The
-other six — `mousefill` `mouseburst` `mouseanimation` and `leftmouseanimation`/`middlemouseanimation`/
-`rightmouseanimation` — drive the indicator's click animation.
+Fifteen virtual keys are declared, each next to the macros that press or release it. Ten hold click
+and hint state: `islclick` `ismclick` `isrclick` `isnohintclick` `islongpresshintkey` `isnomove`
+`mouseanchored` `zooming` `autodrilling`, and `showrecursivehintkeys`, the only one declared
+`pressed`. Four belong to `ui-hint-mode`: `isrefine` arms the refine grid, `issnapped` makes the
+direction keys move its target once the first one snapped it, and `isdensehints`/`issparsehints`
+cycle the hint density. `indicating` is pressed while the indicator shows, so the indicator pops in
+only when it appears and pops out only when idle-mode hides it.
 
 ## Key aliases
 
