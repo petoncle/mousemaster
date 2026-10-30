@@ -2334,7 +2334,10 @@ public final class HintMeshRenderer {
                                                     List<HintBox> boxes, List<Rectangle> enclosingInk) {
         long before = System.nanoTime();
         // When morphing, the boxes are not in the container, so this grabs labels/shadows only.
-        QPixmap pixmap = container.grab();
+        // Not grab(): the QRect it passes Qt can be garbage collected while Qt still reads it.
+        QRect containerRect = container.rect();
+        QPixmap pixmap = container.grab(containerRect);
+        containerRect.dispose();
         PixmapAndPosition pixmapAndPosition =
                 new PixmapAndPosition(pixmap, container.x(), container.y(), boxes, enclosingInk,
                         hintMesh, window.x(), window.y());

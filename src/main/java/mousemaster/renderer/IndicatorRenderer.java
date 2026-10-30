@@ -746,7 +746,13 @@ public final class IndicatorRenderer {
     private IndicatorImage render(int width, int height, double scale) {
         QImage image = new QImage(width, height, QImage.Format.Format_ARGB32_Premultiplied);
         image.fill(0);
-        window.render(image);
+        // Not render(image): the QPoint and QRegion it passes Qt can be garbage collected while
+        // Qt still reads them.
+        QPoint targetOffset = new QPoint();
+        QRegion sourceRegion = new QRegion();
+        window.render(image, targetOffset, sourceRegion);
+        targetOffset.dispose();
+        sourceRegion.dispose();
         int[] argb = new int[width * height];
         ByteBuffer buffer = image.bits();
         buffer.position(0);
