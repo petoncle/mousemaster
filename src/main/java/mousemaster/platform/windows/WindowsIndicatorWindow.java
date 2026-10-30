@@ -18,7 +18,7 @@ import mousemaster.renderer.IndicatorRenderer.IndicatorImage;
  */
 final class WindowsIndicatorWindow {
 
-    private final IndicatorRenderer renderer = new IndicatorRenderer();
+    private final IndicatorRenderer renderer;
     private final WinDef.HWND hwnd;
     // Kept in a field: the callback must outlive the registration.
     private final WinUser.WindowProc windowProc;
@@ -33,7 +33,8 @@ final class WindowsIndicatorWindow {
     private int y;
     private boolean showing;
 
-    WindowsIndicatorWindow() {
+    WindowsIndicatorWindow(IndicatorRenderer renderer) {
+        this.renderer = renderer;
         WinUser.WNDCLASSEX windowClass = new WinUser.WNDCLASSEX();
         windowProc = (hwnd, uMsg, wParam, lParam) ->
                 User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);

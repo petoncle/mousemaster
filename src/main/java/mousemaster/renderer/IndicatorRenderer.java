@@ -42,13 +42,21 @@ public final class IndicatorRenderer {
     private Rectangle gradientArea;
     private Point gradientPoint;
     private double pointsPerPixel;
-    private final Map<String, LayerAnchor> anchorByLayerName = new HashMap<>();
+    private final Map<String, LayerAnchor> anchorByLayerName;
     private final Map<TextKey, QPainterPath> outlineByText = new HashMap<>();
     private final Map<TextKey, QTextDocument> documentByText = new HashMap<>();
     private IndicatorImage windowImage;
     private WindowImageKey windowImageKey;
     private boolean showing;
     private boolean cleared;
+
+    public IndicatorRenderer() {
+        anchorByLayerName = new HashMap<>();
+    }
+
+    public IndicatorRenderer(IndicatorRenderer renderer) {
+        anchorByLayerName = renderer.anchorByLayerName;
+    }
 
     /** Lazily creates the window and its widgets; the host styles winId() afterwards. */
     public TransparentWindow window() {
@@ -107,19 +115,39 @@ public final class IndicatorRenderer {
         return layers;
     }
 
-    /** One indicator for each enabled layer that does not follow the mouse, in z order, so
-     *  that a layer that changes does not redraw the others. */
-    public static Map<String, IndicatorConfiguration> anchoredLayers(
-            IndicatorConfiguration indicator) {
-        Map<String, IndicatorConfiguration> indicatorByLayerName = new LinkedHashMap<>();
+    public static List<IndicatorConfiguration> anchoredLayers(
+            IndicatorConfiguration indicator, List<IndicatorConfiguration> currentIndicators,
+            Set<String> layerNamesToAnchor) {
+        List<Map<String, IndicatorLayerConfiguration>> layerByNames = new ArrayList<>();
+        boolean previousLayerChanged = false;
+        IndicatorConfiguration previousCurrentIndicator = null;
         for (String layerName : enabledLayerNames(indicator)) {
             IndicatorLayerConfiguration layer = indicator.layerByName().get(layerName);
-            if (!layer.followMouse())
-                indicatorByLayerName.put(layerName,
-                        new IndicatorConfiguration(indicator.renderAsCursor(),
-                                indicator.excludeFromCapture(), Map.of(layerName, layer)));
+            if (layer.followMouse())
+                continue;
+            IndicatorConfiguration currentIndicator =
+                    currentIndicators.stream()
+                                     .filter(current -> current.layerByName()
+                                                               .containsKey(layerName))
+                                     .findFirst()
+                                     .orElse(null);
+            boolean layerChanged = layerNamesToAnchor.contains(layerName) ||
+                                   currentIndicator == null ||
+                                   !layer.equals(currentIndicator.layerByName().get(layerName));
+            // A new window where changed and unchanged layers meet keeps the z order. Layers
+            // of different windows never share one, so that a window that split stays split.
+            if (layerByNames.isEmpty() || layerChanged != previousLayerChanged ||
+                currentIndicator != previousCurrentIndicator)
+                layerByNames.add(new LinkedHashMap<>());
+            layerByNames.getLast().put(layerName, layer);
+            previousLayerChanged = layerChanged;
+            previousCurrentIndicator = currentIndicator;
         }
-        return indicatorByLayerName;
+        return layerByNames.stream()
+                           .map(layerByName -> new IndicatorConfiguration(
+                                   indicator.renderAsCursor(), indicator.excludeFromCapture(),
+                                   layerByName))
+                           .toList();
     }
 
     public static IndicatorConfiguration followingMouse(IndicatorConfiguration indicator) {
@@ -362,6 +390,10 @@ public final class IndicatorRenderer {
         for (String layerName : layerNamesToAnchor)
             anchorByLayerName.put(layerName, new LayerAnchor(mouseRectangle, cursorVisualCenter,
                     activeScreen, pointsByPosition, rectangleByArea, hintRectanglesByPoint));
+    }
+
+    public void anchor(String layerName, IndicatorRenderer renderer) {
+        anchorByLayerName.put(layerName, renderer.anchorByLayerName.get(layerName));
     }
 
     private LayerAnchor anchor(String layerName, IndicatorLayerConfiguration layer,

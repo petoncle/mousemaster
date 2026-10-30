@@ -446,6 +446,21 @@ class IndicatorWindowImageTest {
         assertTrue(after.image().width() > before.image().width());
     }
 
+    @Test
+    void anAnchoredLayerKeepsItsAnchorInEveryRendererOfTheIndicatorAndInItsCopy() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        IndicatorConfiguration indicator = indicator("idle-mode.ripple-indicator.size=40",
+                "idle-mode.ripple-indicator.follow-mouse=false");
+        IndicatorRenderer renderer = new IndicatorRenderer();
+        WindowImage anchored = render(renderer, indicator, Set.of("ripple-indicator"), 500);
+        assertEquals(anchored.x(),
+                render(new IndicatorRenderer(renderer), indicator, Set.of(), 600).x());
+        IndicatorRenderer copyRenderer = new IndicatorRenderer();
+        copyRenderer.anchor("ripple-indicator", renderer);
+        render(renderer, indicator, Set.of("ripple-indicator"), 700);
+        assertEquals(anchored.x(), render(copyRenderer, indicator, Set.of(), 600).x());
+    }
+
     private static int centerArgb(WindowImage windowImage) {
         IndicatorRenderer.IndicatorImage image = windowImage.image();
         return image.argb()[image.height() / 2 * image.width() + image.width() / 2];

@@ -5,7 +5,9 @@ import mousemaster.IndicatorPosition.PositionHistoryIndicatorPosition;
 import mousemaster.renderer.IndicatorRenderer;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -251,12 +253,41 @@ class IndicatorLayerTest {
         IndicatorConfiguration indicator = parse("idle-mode.indicator.enabled=true",
                 "idle-mode.sheet-indicator.follow-mouse=false").modeMap().get(Mode.IDLE_MODE_NAME)
                                                               .indicator();
-        assertEquals(java.util.Set.of("indicator"),
+        assertEquals(Set.of("indicator"),
                 IndicatorRenderer.followingMouse(indicator).layerByName().keySet());
-        assertEquals(java.util.Set.of("sheet-indicator"),
-                IndicatorRenderer.anchoredLayers(indicator).keySet());
-        assertEquals(java.util.Set.of("sheet-indicator"),
-                IndicatorRenderer.anchoredLayers(indicator).get("sheet-indicator")
-                                 .layerByName().keySet());
+        assertEquals(List.of(Set.of("sheet-indicator")),
+                layerNames(IndicatorRenderer.anchoredLayers(indicator, List.of(), Set.of())));
+    }
+
+    @Test
+    void theLayersThatChangedAreDrawnApartFromTheOthersInZOrder() {
+        List<String> lines = List.of("idle-mode.a-indicator.follow-mouse=false",
+                "idle-mode.b-indicator.follow-mouse=false", "idle-mode.b-indicator.z=1",
+                "idle-mode.c-indicator.follow-mouse=false", "idle-mode.c-indicator.z=2");
+        IndicatorConfiguration indicator = parse(lines.toArray(String[]::new)).modeMap()
+                .get(Mode.IDLE_MODE_NAME).indicator();
+        List<IndicatorConfiguration> current =
+                IndicatorRenderer.anchoredLayers(indicator, List.of(), Set.of());
+        assertEquals(List.of(Set.of("a-indicator", "b-indicator", "c-indicator")),
+                layerNames(current));
+        assertEquals(List.of(Set.of("a-indicator", "b-indicator", "c-indicator")),
+                layerNames(IndicatorRenderer.anchoredLayers(indicator, current, Set.of())));
+        List<String> changedLines = new ArrayList<>(lines);
+        changedLines.add("idle-mode.b-indicator.size=40");
+        IndicatorConfiguration changed = parse(changedLines.toArray(String[]::new)).modeMap()
+                .get(Mode.IDLE_MODE_NAME).indicator();
+        List<IndicatorConfiguration> split =
+                IndicatorRenderer.anchoredLayers(changed, current, Set.of());
+        assertEquals(List.of(Set.of("a-indicator"), Set.of("b-indicator"), Set.of("c-indicator")),
+                layerNames(split));
+        assertEquals(List.of(Set.of("a-indicator"), Set.of("b-indicator"), Set.of("c-indicator")),
+                layerNames(IndicatorRenderer.anchoredLayers(changed, split, Set.of())));
+        assertEquals(List.of(Set.of("a-indicator", "b-indicator"), Set.of("c-indicator")),
+                layerNames(IndicatorRenderer.anchoredLayers(indicator, current,
+                        Set.of("a-indicator", "b-indicator"))));
+    }
+
+    private static List<Set<String>> layerNames(List<IndicatorConfiguration> indicators) {
+        return indicators.stream().map(indicator -> indicator.layerByName().keySet()).toList();
     }
 }
