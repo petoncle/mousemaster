@@ -5,6 +5,7 @@ import mousemaster.Hint;
 import mousemaster.HintGridArea;
 import mousemaster.HintMesh;
 import mousemaster.HintMeshConfiguration;
+import mousemaster.HintRectangles;
 import mousemaster.IndicatorConfiguration;
 import mousemaster.IndicatorPosition;
 import mousemaster.Point;
@@ -157,6 +158,7 @@ public class MacosOverlay implements Overlay {
     public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
                              Map<IndicatorPosition, List<Point>> pointsByPosition,
                              Map<HintGridArea, Rectangle> rectangleByArea,
+                             Map<Point, HintRectangles> hintRectanglesByPoint,
                              boolean animating,
                              boolean includeOriginalCursor) {
         if (followingIndicatorRenderer == null)
@@ -170,7 +172,7 @@ public class MacosOverlay implements Overlay {
         QPoint mousePosition = mouse.findMousePosition();
         setIndicator(followingIndicatorRenderer,
                 IndicatorRenderer.followingMouse(indicator), Set.of(), Map.of(),
-                Map.of(), mousePosition);
+                Map.of(), Map.of(), mousePosition);
         Map<String, IndicatorConfiguration> anchored = IndicatorRenderer.anchoredLayers(indicator);
         for (Map.Entry<String, IndicatorRenderer> entry :
                 anchoredIndicatorRendererByLayerName.entrySet())
@@ -178,7 +180,8 @@ public class MacosOverlay implements Overlay {
                 entry.getValue().hide();
         for (Map.Entry<String, IndicatorConfiguration> entry : anchored.entrySet())
             setIndicator(anchoredIndicatorRenderer(entry.getKey()), entry.getValue(),
-                    layerNamesToAnchor, pointsByPosition, rectangleByArea, mousePosition);
+                    layerNamesToAnchor, pointsByPosition, rectangleByArea, hintRectanglesByPoint,
+                    mousePosition);
         // The windows share a level: the one ordered front last is drawn on top.
         if (!anchoredLayerNames.equals(List.copyOf(anchored.keySet())))
             for (String layerName : anchored.keySet())
@@ -187,10 +190,16 @@ public class MacosOverlay implements Overlay {
         anchoredLayerNames = List.copyOf(anchored.keySet());
     }
 
+    @Override
+    public Rectangle hintBoxRectangle(Hint hint) {
+        return hintMeshRenderer.hintBoxRectangle(hint);
+    }
+
     private void setIndicator(IndicatorRenderer indicatorRenderer,
                               IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
                               Map<IndicatorPosition, List<Point>> pointsByPosition,
                               Map<HintGridArea, Rectangle> rectangleByArea,
+                              Map<Point, HintRectangles> hintRectanglesByPoint,
                               QPoint mousePosition) {
         if (!indicator.enabled()) {
             indicatorRenderer.hide();
@@ -198,7 +207,7 @@ public class MacosOverlay implements Overlay {
         }
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
         indicatorRenderer.setIndicator(indicator, layerNamesToAnchor, pointsByPosition,
-                rectangleByArea, cursorRectangle(mousePosition, activeScreen),
+                rectangleByArea, hintRectanglesByPoint, cursorRectangle(mousePosition, activeScreen),
                 cursorVisualCenter(activeScreen), activeScreen, null,
                 hintMeshRenderer.lastSelectedHintBoxHexColor());
     }

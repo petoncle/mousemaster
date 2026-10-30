@@ -4,6 +4,7 @@ import mousemaster.Hint;
 import mousemaster.HintGridArea;
 import mousemaster.HintMesh;
 import mousemaster.HintMeshConfiguration;
+import mousemaster.HintRectangles;
 import mousemaster.IndicatorConfiguration;
 import mousemaster.IndicatorPosition;
 import mousemaster.Point;
@@ -33,8 +34,12 @@ public interface Overlay {
 
     void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
                       Map<IndicatorPosition, List<Point>> pointsByPosition,
-                      Map<HintGridArea, Rectangle> rectangleByArea, boolean animating,
+                      Map<HintGridArea, Rectangle> rectangleByArea,
+                      Map<Point, HintRectangles> hintRectanglesByPoint, boolean animating,
                       boolean includeOriginalCursor);
+
+    /** The rectangle of the box drawn for the hint, in screen pixels, null when none is drawn. */
+    Rectangle hintBoxRectangle(Hint hint);
 
     /** Captures the desktop inside bounds, excluding mousemaster's own windows. */
     DesktopCapture captureDesktop(Rectangle bounds, int scaledWidth, int scaledHeight);

@@ -34,7 +34,8 @@ public final class HintMeshRenderer {
     private static final long SLOW_PAINT_MS = 5;
 
     private final Map<HintMesh, PixmapAndPosition> hintMeshPixmaps = new HashMap<>();
-    private final Map<HintMesh, Map<List<Key>, QRect>> hintBoxGeometriesByHintMeshKey = new HashMap<>();
+    private final Map<HintMesh, Map<List<Key>, Rectangle>> hintBoxRectanglesByHintMeshKey =
+            new HashMap<>();
     private boolean hintMeshEndAnimation;
     /**
      * Building the hint window is expensive and when it is done from the keyboard hook,
@@ -242,10 +243,7 @@ public final class HintMeshRenderer {
         for (PixmapAndPosition pixmapAndPosition : hintMeshPixmaps.values())
             pixmapAndPosition.pixmap().dispose();
         hintMeshPixmaps.clear();
-        for (Map<List<Key>, QRect> hintBoxGeometries : hintBoxGeometriesByHintMeshKey.values())
-            for (QRect hintBoxGeometry : hintBoxGeometries.values())
-                hintBoxGeometry.dispose();
-        hintBoxGeometriesByHintMeshKey.clear();
+        hintBoxRectanglesByHintMeshKey.clear();
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
             hintMeshWindow.lastHintMeshKeyReference().set(null);
         HintLabel.clearOutlineCache();
@@ -330,6 +328,31 @@ public final class HintMeshRenderer {
 
     public String lastSelectedHintBoxHexColor() {
         return lastSelectedHintBoxHexColor;
+    }
+
+    /** The rectangle of the box drawn for the hint, in screen pixels, null when none is drawn. */
+    public Rectangle hintBoxRectangle(Hint hint) {
+        if (!showingHintMesh)
+            return null;
+        for (Map.Entry<Screen, HintMeshWindow> entry : hintMeshWindows.entrySet()) {
+            HintMeshWindow hintMeshWindow = entry.getValue();
+            Map<List<Key>, Rectangle> hintBoxRectangles = hintBoxRectanglesByHintMeshKey.get(
+                    hintMeshWindow.lastHintMeshKeyReference().get());
+            Rectangle rectangle =
+                    hintBoxRectangles == null ? null : hintBoxRectangles.get(hint.keySequence());
+            List<QWidget> containers = containers(hintMeshWindow.window);
+            if (rectangle == null || containers.isEmpty())
+                continue;
+            double qtScaleFactor = qtScaleFactor(entry.getKey().scale());
+            QWidget container = containers.getLast();
+            int left = hintMeshWindow.window.x() + container.x() + rectangle.x();
+            int top = hintMeshWindow.window.y() + container.y() + rectangle.y();
+            return new Rectangle((int) Math.round(left * qtScaleFactor),
+                    (int) Math.round(top * qtScaleFactor),
+                    (int) Math.round(rectangle.width() * qtScaleFactor),
+                    (int) Math.round(rectangle.height() * qtScaleFactor));
+        }
+        return null;
     }
 
     public void hideHintMesh() {
@@ -1485,9 +1508,9 @@ public final class HintMeshRenderer {
         Rectangle boxGradientArea =
                 boxSweptPerHint ? gradientArea(boxColor.area(), hintMeshWindow, hintMesh) : null;
         QBrush boxBrush = boxSweptPerHint ? null : fillBrush(boxColor, style.boxOpacity());
-        List<Point> savedPositions = hintMesh.savedPositions();
+        List<Hint> savedHints = hintMesh.savedHints();
         HintMeshStyle savedStyle = style.saved();
-        QtHintFontStyle savedLabelFontStyle = savedPositions.isEmpty() ? null :
+        QtHintFontStyle savedLabelFontStyle = savedHints.isEmpty() ? null :
                 QtHintFont.qtHintFontStyle(savedStyle.fontStyle(),
                         hasForegroundPrefixKeys ? savedStyle.prefixFontStyle() : null,
                         screenScale, lastSelectedHintBoxHexColor);
@@ -1566,7 +1589,7 @@ public final class HintMeshRenderer {
         for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
             Hint hint = hints.get(hintIndex);
             boolean selectable = hint.startsWith(hintMesh.selectedKeySequence());
-            boolean hintSaved = saved(hint, savedPositions);
+            boolean hintSaved = savedHints.contains(hint);
             if (!selectable && !hintSaved)
                 continue;
             List<Key> labelKeys = labelOverridden ? labelOverride : hint.keySequence();
@@ -1847,7 +1870,7 @@ public final class HintMeshRenderer {
                 (hintMeshWindow.window.y() + offsetY) * qtScaleFactor);
         Point windowOrigin = new Point(hintMeshWindow.window.x() * qtScaleFactor,
                 hintMeshWindow.window.y() * qtScaleFactor);
-        Map<List<Key>, QRect> hintBoxGeometries = new HashMap<>();
+        Map<List<Key>, Rectangle> hintBoxRectangles = new HashMap<>();
         for (int hintIndex = 0; hintIndex < hintBoxes.size(); hintIndex++) {
             HintBox hintBox = hintBoxes.get(hintIndex);
             Rectangle windowPixelRectangle = hintBox.pixelRectangle(0, 0);
@@ -1865,7 +1888,7 @@ public final class HintMeshRenderer {
                     boxBorderGradientArea, hintGroup, hintCenter,
                     isHintPartOfGrid ? windowPixelRectangle : hintBox.pixelRectangle(0, 0),
                     isHintPartOfGrid ? windowOrigin : sweepOrigin));
-            boolean hintSaved = saved(hintBox.hint, savedPositions);
+            boolean hintSaved = savedHints.contains(hintBox.hint);
             if (hintSaved) {
                 hintBox.setColor(brush(savedStyle.boxColor(), savedStyle.boxOpacity(),
                         savedBoxGradientArea, hintGroup, hintCenter,
@@ -1888,9 +1911,8 @@ public final class HintMeshRenderer {
             }
             setDecorationBorderColors(hintBox, hintBox.pixelRectangle(0, 0),
                     subDecorationStyles, 0, hintGroup, sweepOrigin);
-            if (hintMesh.selectedKeySequence().size() == hints.getFirst().keySequence().size() - 1) {
-                hintBoxGeometries.put(hintBox.hint.keySequence(), hintBox.geometry());
-            }
+            hintBoxRectangles.put(hintBox.hint.keySequence(),
+                    new Rectangle(hintBox.x(), hintBox.y(), hintBox.width(), hintBox.height()));
         }
         for (HintBox elementBox : elementBoxes) {
             elementBox.move(elementBox.x() - offsetX, elementBox.y() - offsetY);
@@ -1904,7 +1926,7 @@ public final class HintMeshRenderer {
             elementBox.setBorderColor(brush(elementBoxBorderColor,
                     style.uiElementBoxBorderOpacity(), elementBoxBorderGradientArea, hintGroup,
                     hintCenter, pixelRectangle, sweepOrigin));
-            if (saved(elementBox.hint, savedPositions)) {
+            if (savedHints.contains(elementBox.hint)) {
                 elementBox.setColor(brush(savedStyle.uiElementBoxColor(),
                         savedStyle.uiElementBoxOpacity(), savedElementBoxGradientArea,
                         hintGroup, hintCenter, pixelRectangle, sweepOrigin));
@@ -2005,7 +2027,7 @@ public final class HintMeshRenderer {
                 style.fontStyle().defaultFontStyle().opacity() != 0 &&
                 !hints.getFirst().keySequence().isEmpty(),
                 subDecorationStyles, areaDecorationStyles);
-        hintBoxGeometriesByHintMeshKey.put(hintMeshKey, hintBoxGeometries);
+        hintBoxRectanglesByHintMeshKey.put(hintMeshKey, hintBoxRectangles);
         logger.debug(
                 "Built {} hint boxes: metrics {}ms, boxes {}ms, groups {}ms, layers {}ms",
                 hintBoxes.size(), (beforeBoxes - beforeMetrics) / 1_000_000,
@@ -2172,23 +2194,7 @@ public final class HintMeshRenderer {
     /** A saved hint stays when the selected keys hide the other hints. */
     static boolean visible(Hint hint, HintMesh hintMesh) {
         return hint.startsWith(hintMesh.selectedKeySequence()) ||
-               saved(hint, hintMesh.savedPositions());
-    }
-
-    /** A hint is saved when a saved position is in its element or its cell, or on its center
-     *  when it has neither. */
-    static boolean saved(Hint hint, List<Point> savedPositions) {
-        for (Point position : savedPositions) {
-            if (hint.elementRectangle() != null ?
-                    hint.elementRectangle().contains(position.x(), position.y()) :
-                    hint.cellWidth() > 0 ?
-                            Math.abs(position.x() - hint.centerX()) <= hint.cellWidth() / 2 &&
-                            Math.abs(position.y() - hint.centerY()) <= hint.cellHeight() / 2 :
-                            Math.round(position.x()) == Math.round(hint.centerX()) &&
-                            Math.round(position.y()) == Math.round(hint.centerY()))
-                return true;
-        }
-        return false;
+               hintMesh.savedHints().contains(hint);
     }
 
     /** box is in the pixels of the layer that paints it, whose top left is sweepOrigin. A border is
@@ -2385,11 +2391,7 @@ public final class HintMeshRenderer {
         double trimX = minHintCenterX, trimY = minHintCenterY;
         return new HintMesh.HintMeshBuilder(hintMesh)
                 .hints(trimmedHints(hints, hintMesh, trimX, trimY))
-                .savedPositions(hintMesh.savedPositions()
-                                        .stream()
-                                        .map(position -> new Point(position.x() - trimX,
-                                                position.y() - trimY))
-                                        .toList())
+                .savedHints(trimmedHints(hintMesh.savedHints(), hintMesh, trimX, trimY))
                 .build();
     }
 
@@ -2579,10 +2581,6 @@ public final class HintMeshRenderer {
         public int y() { return y; }
         public int width() { return width; }
         public int height() { return height; }
-
-        public QRect geometry() {
-            return new QRect(x, y, width, height);
-        }
 
         Rectangle rectangle() {
             return new Rectangle(x, y, width, height);
@@ -4126,12 +4124,12 @@ public final class HintMeshRenderer {
             // hideHintMesh() will be called by the switch mode command.
             return;
         hintMeshEndAnimation = true;
-        QRect hintBoxGeometry =
-                hintBoxGeometriesByHintMeshKey.get(lastHintMeshKey).get(hint.keySequence());
+        Rectangle hintBoxRectangle =
+                hintBoxRectanglesByHintMeshKey.get(lastHintMeshKey).get(hint.keySequence());
         QWidget container = containers(hintMeshWindow.window).getLast();
         QRect containerGeom = container.geometry();
-        int boxWindowX = containerGeom.x() + hintBoxGeometry.x();
-        int boxWindowY = containerGeom.y() + hintBoxGeometry.y();
+        int boxWindowX = containerGeom.x() + hintBoxRectangle.x();
+        int boxWindowY = containerGeom.y() + hintBoxRectangle.y();
         containerGeom.dispose();
         // Grab the box's fill and label from the container, not the composited window: the border
         // layer is clipped in lockstep by clipMatchCropBorderLayer, so grabbing borders here too
@@ -4141,9 +4139,9 @@ public final class HintMeshRenderer {
         int boxBorderThickness = (int) Math.round(
                 scaledLength(style.boxBorderThickness(), screen.scale()) /
                 qtScaleFactor(screen.scale()));
-        QRect containerBoxRect = new QRect(hintBoxGeometry.x(), hintBoxGeometry.y(),
-                hintBoxGeometry.width() + boxBorderThickness,
-                hintBoxGeometry.height() + boxBorderThickness);
+        QRect containerBoxRect = new QRect(hintBoxRectangle.x(), hintBoxRectangle.y(),
+                hintBoxRectangle.width() + boxBorderThickness,
+                hintBoxRectangle.height() + boxBorderThickness);
         QPixmap pixmap = container.grab(containerBoxRect); // Expensive.
         containerBoxRect.dispose();
         HintMesh hintMesh =

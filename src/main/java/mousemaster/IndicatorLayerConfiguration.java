@@ -17,6 +17,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                                           String text, String fontName, double fontSize,
                                           FontWeight fontWeight, String textStyleSheet,
                                           List<IndicatorPosition> positions,
+                                          PositionAnchor positionAnchor,
                                           HintGridArea area, boolean followMouse) {
 
     public IndicatorLayerConfigurationBuilder builder() {
@@ -47,6 +48,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         private FontWeight fontWeight;
         private String textStyleSheet;
         private List<IndicatorPosition> positions;
+        private PositionAnchor positionAnchor;
         private HintGridAreaBuilder area = new HintGridAreaBuilder();
         private Boolean followMouse;
 
@@ -76,6 +78,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             this.fontWeight = layer.fontWeight;
             this.textStyleSheet = layer.textStyleSheet;
             this.positions = layer.positions;
+            this.positionAnchor = layer.positionAnchor;
             this.area = layer.area == null ? new HintGridAreaBuilder() : layer.area.builder();
             this.followMouse = layer.followMouse;
         }
@@ -268,6 +271,15 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             return positions;
         }
 
+        public IndicatorLayerConfigurationBuilder positionAnchor(PositionAnchor positionAnchor) {
+            this.positionAnchor = positionAnchor;
+            return this;
+        }
+
+        public PositionAnchor positionAnchor() {
+            return positionAnchor;
+        }
+
         public HintGridAreaBuilder area() {
             return area;
         }
@@ -304,6 +316,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             if (fontWeight == null) fontWeight = parent.fontWeight;
             if (textStyleSheet == null) textStyleSheet = parent.textStyleSheet;
             if (positions == null) positions = parent.positions;
+            if (positionAnchor == null) positionAnchor = parent.positionAnchor;
             area.extend(parent.area);
             if (followMouse == null) followMouse = parent.followMouse;
         }
@@ -313,7 +326,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                     borderRadius, points, x, y, distance, angle, rotation, fillColor, fillOpacity,
                     stroke.build(), shadow.build(),
                     text, fontName, fontSize, fontWeight, textStyleSheet, positions,
-                    area.source() == null ? null : area.build(),
+                    positionAnchor, area.source() == null ? null : area.build(),
                     followMouse && area.source() == null &&
                     !positions.contains(IndicatorPosition.PointIndicatorPosition.TARGET) &&
                     !positions.contains(

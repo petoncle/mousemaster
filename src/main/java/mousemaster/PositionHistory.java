@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,10 @@ public class PositionHistory {
      * Used for deterministic hint key sequences.
      */
     private final Map<Point, Integer> idByPosition = new HashMap<>();
+    /**
+     * The cells of the hints the positions were saved at: see {@link HintRectangles}.
+     */
+    private final Map<Point, Rectangle> hintCellByPosition = new HashMap<>();
     private int cycleIndex = 0;
 
     public PositionHistory(PositionHistoryKey key, int maxSize) {
@@ -34,13 +39,26 @@ public class PositionHistory {
         return idByPosition.get(position);
     }
 
-    public void save(Point position) {
+    /**
+     * The cell of the hint the position was saved at, null if it was not saved at a hint.
+     */
+    public Rectangle hintCell(Point position) {
+        return hintCellByPosition.get(position);
+    }
+
+    public Collection<Rectangle> hintCells() {
+        return hintCellByPosition.values();
+    }
+
+    public void save(Point position, Rectangle hintCell) {
         if (positions.contains(position))
             return;
         if (positions.size() == maxSize)
             unsave(positions.getFirst());
         idByPosition.put(position, positions.size());
         positions.add(position);
+        if (hintCell != null)
+            hintCellByPosition.put(position, hintCell);
         cycleIndex = positions.size() - 1;
         logger.debug("Saved position (" + position.x() + ", " + position.y() + ") to " +
                      key);
@@ -50,6 +68,7 @@ public class PositionHistory {
         if (!positions.remove(position))
             return;
         int id = idByPosition.remove(position);
+        hintCellByPosition.remove(position);
         idByPosition.replaceAll(
                 (otherPosition, otherId) -> otherId < id ? otherId : otherId - 1);
         cycleIndex = positions.size() - 1;
@@ -58,6 +77,7 @@ public class PositionHistory {
     public void clear() {
         positions.clear();
         idByPosition.clear();
+        hintCellByPosition.clear();
         cycleIndex = 0;
         logger.debug("Reset " + key);
     }

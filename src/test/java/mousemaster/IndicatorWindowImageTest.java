@@ -49,14 +49,21 @@ class IndicatorWindowImageTest {
                                       IndicatorConfiguration indicator,
                                       Set<String> layerNamesToAnchor, int mouseX) {
         return renderer.renderWindowImage(indicator, layerNamesToAnchor, Map.of(), Map.of(),
-                new Rectangle(mouseX, 500, 32, 32), new Point(4, 4), SCREEN, null, "#000000");
+                Map.of(), new Rectangle(mouseX, 500, 32, 32), new Point(4, 4), SCREEN, null,
+                "#000000");
     }
 
     private static WindowImage render(IndicatorConfiguration indicator,
                                       Map<IndicatorPosition, List<Point>> pointsByPosition) {
+        return render(indicator, pointsByPosition, Map.of());
+    }
+
+    private static WindowImage render(IndicatorConfiguration indicator,
+                                      Map<IndicatorPosition, List<Point>> pointsByPosition,
+                                      Map<Point, HintRectangles> hintRectanglesByPoint) {
         return new IndicatorRenderer().renderWindowImage(indicator, Set.of("indicator"),
-                pointsByPosition, Map.of(), new Rectangle(100, 100, 32, 32), new Point(4, 4),
-                SCREEN, null, "#000000");
+                pointsByPosition, Map.of(), hintRectanglesByPoint, new Rectangle(100, 100, 32, 32),
+                new Point(4, 4), SCREEN, null, "#000000");
     }
 
     private static Map<IndicatorPosition, List<Point>> hintAndTarget(Point hint, Point target) {
@@ -107,8 +114,8 @@ class IndicatorWindowImageTest {
                     "idle-mode.indicator.fill-opacity=0",
                     "idle-mode.indicator.stroke-thickness=0");
             IndicatorRenderer.IndicatorImage image = new IndicatorRenderer().renderWindowImage(
-                    indicator, Set.of(), Map.of(), Map.of(), new Rectangle(500, 500, 32, 32),
-                    new Point(4, 4),
+                    indicator, Set.of(), Map.of(), Map.of(), Map.of(),
+                    new Rectangle(500, 500, 32, 32), new Point(4, 4),
                     new Screen(new Rectangle(0, 0, 3840, 2160), (int) (96 * scale), scale),
                     null, "#000000").image();
             boolean green = false, blue = false;
@@ -134,8 +141,8 @@ class IndicatorWindowImageTest {
         assertTrue(inkRight(render(new IndicatorRenderer(), indicator(rotatedLabel), Set.of(),
                 1910)) <= 1920);
         WindowImage zoomed = new IndicatorRenderer().renderWindowImage(indicator(label), Set.of(),
-                Map.of(), Map.of(), new Rectangle(1700, 500, 32, 32), new Point(4, 4), SCREEN,
-                new Zoom(3, new Point(1400, 540), SCREEN.rectangle()), "#000000");
+                Map.of(), Map.of(), Map.of(), new Rectangle(1700, 500, 32, 32), new Point(4, 4),
+                SCREEN, new Zoom(3, new Point(1400, 540), SCREEN.rectangle()), "#000000");
         assertTrue(inkRight(zoomed) <= 1920);
         assertTrue(inkRight(render(new IndicatorRenderer(), indicator(
                 "idle-mode.indicator.size=100", "idle-mode.indicator.fill-opacity=1"), Set.of(),
@@ -206,6 +213,55 @@ class IndicatorWindowImageTest {
         assertFalse(inked(lines, 600, 600));
     }
 
+    private static WindowImage renderThroughHints(String positionAnchor,
+                                                  Map<Point, HintRectangles> hintRectanglesByPoint) {
+        return render(indicator("idle-mode.save.position-history=+f1",
+                        "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=arrow",
+                        "idle-mode.indicator.size=8",
+                        "idle-mode.indicator.position=position-history",
+                        "idle-mode.indicator.position-anchor=" + positionAnchor),
+                Map.of(new PositionHistoryIndicatorPosition("position-history"),
+                        List.of(new Point(500, 500), new Point(500, 700), new Point(700, 700))),
+                hintRectanglesByPoint);
+    }
+
+    @Test
+    void anEdgeAnchorRunsALayerBetweenTheEdgesOfTheHintBoxes() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        WindowImage arrows = renderThroughHints("hint-box-edge", Map.of(
+                new Point(500, 500), new HintRectangles(new Rectangle(450, 450, 100, 100),
+                        new Rectangle(480, 490, 40, 20)),
+                new Point(500, 700), new HintRectangles(new Rectangle(450, 650, 100, 100),
+                        new Rectangle(480, 690, 40, 20)),
+                new Point(700, 700), new HintRectangles(new Rectangle(650, 650, 100, 100),
+                        new Rectangle(680, 690, 40, 20))));
+        assertFalse(inked(arrows, 500, 505));
+        assertTrue(inked(arrows, 500, 515));
+        assertTrue(inked(arrows, 500, 685));
+        assertFalse(inked(arrows, 500, 695));
+        assertFalse(inked(arrows, 515, 700));
+        assertTrue(inked(arrows, 525, 700));
+        assertTrue(inked(arrows, 675, 700));
+        assertFalse(inked(arrows, 685, 700));
+    }
+
+    @Test
+    void aBoxEdgeAnchorTakesTheCellWhenNoBoxIsDrawnAndAPointAnchorTakesThePoints() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        Map<Point, HintRectangles> cells = Map.of(
+                new Point(500, 500), new HintRectangles(new Rectangle(450, 450, 100, 100), null),
+                new Point(500, 700), new HintRectangles(new Rectangle(450, 650, 100, 100), null),
+                new Point(700, 700), new HintRectangles(new Rectangle(650, 650, 100, 100), null));
+        WindowImage cellEdges = renderThroughHints("hint-box-edge", cells);
+        assertFalse(inked(cellEdges, 500, 545));
+        assertTrue(inked(cellEdges, 500, 560));
+        assertFalse(inked(cellEdges, 545, 700));
+        assertTrue(inked(cellEdges, 560, 700));
+        WindowImage points = renderThroughHints("point", cells);
+        assertTrue(inked(points, 500, 545));
+        assertTrue(inked(points, 545, 700));
+    }
+
     @Test
     void aRotationTurnsALayerWithTwoPositionsFromTheirDirection() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
@@ -233,7 +289,8 @@ class IndicatorWindowImageTest {
                 Set.of("indicator"), Map.of(),
                 Map.of(indicator.layerByName().get("indicator").area(),
                         new Rectangle(500, 400, 101, 50)),
-                new Rectangle(100, 100, 32, 32), new Point(4, 4), SCREEN, null, "#000000");
+                Map.of(), new Rectangle(100, 100, 32, 32), new Point(4, 4), SCREEN, null,
+                "#000000");
         assertEquals(new Rectangle(499, 399, 103, 52), inkBox(box));
         assertEquals(255, alpha(box, 499, 420));
         assertEquals(0, alpha(box, 500, 420));
@@ -432,10 +489,11 @@ class IndicatorWindowImageTest {
                 "idle-mode.indicator.fill-opacity=1");
         IndicatorRenderer renderer = new IndicatorRenderer();
         int red = centerArgb(renderer.renderWindowImage(indicator, Set.of("indicator"), Map.of(),
-                Map.of(), new Rectangle(500, 500, 32, 32), new Point(4, 4), SCREEN, null,
-                "#FF0000"));
+                Map.of(), Map.of(), new Rectangle(500, 500, 32, 32), new Point(4, 4), SCREEN,
+                null, "#FF0000"));
         int blue = centerArgb(renderer.renderWindowImage(indicator, Set.of(), Map.of(), Map.of(),
-                new Rectangle(500, 500, 32, 32), new Point(4, 4), SCREEN, null, "#0000FF"));
+                Map.of(), new Rectangle(500, 500, 32, 32), new Point(4, 4), SCREEN, null,
+                "#0000FF"));
         assertTrue((red >> 16 & 0xFF) > 0xE0 && (red & 0xFF) < 0x20, Integer.toHexString(red));
         assertTrue((blue & 0xFF) > 0xE0 && (blue >> 16 & 0xFF) < 0x20, Integer.toHexString(blue));
     }

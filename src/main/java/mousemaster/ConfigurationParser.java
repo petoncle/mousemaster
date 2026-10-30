@@ -96,6 +96,7 @@ public class ConfigurationParser {
              .fillColor(Color.parse("#FF0000"))
              .fillOpacity(0.2)
              .positions(List.of(IndicatorPosition.PointIndicatorPosition.MOUSE))
+             .positionAnchor(PositionAnchor.POINT)
              .followMouse(true);
         layer.area()
              .widthPercent(1d)
@@ -2939,6 +2940,7 @@ public class ConfigurationParser {
             case "font-weight" -> ModePropertyHandler.of(prefix.append("fontWeight"), v -> FontWeight.of(v), v -> layer.fontWeight(v));
             case "text-style-sheet" -> ModePropertyHandler.of(prefix.append("textStyleSheet"), v -> v, v -> layer.textStyleSheet(v));
             case "position" -> ModePropertyHandler.of(prefix.append("positions"), v -> parseIndicatorPositions(v, positionHistoryNames), v -> layer.positions(v));
+            case "position-anchor" -> ModePropertyHandler.of(prefix.append("positionAnchor"), v -> PositionAnchor.fromString(v), v -> layer.positionAnchor(v));
             case "area" -> ModePropertyHandler.of(prefix.append("area", "size", "source"), v -> parseHintGridAreaSizeSource(layerName + ".area", v), v -> layer.area().source(v));
             case "area-width-percent" -> ModePropertyHandler.of(prefix.append("area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> layer.area().widthPercent(v));
             case "area-height-percent" -> ModePropertyHandler.of(prefix.append("area", "size", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> layer.area().heightPercent(v));
@@ -3045,7 +3047,7 @@ public class ConfigurationParser {
             case "visible" -> ModePropertyHandler.of(prefix.append("visible"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.visible(v));
             case "mouse-follows-target" -> ModePropertyHandler.of(prefix.append("mouseFollowsTarget"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.mouseFollowsTarget(v));
             case "target-follows-overlay-center" -> ModePropertyHandler.of(prefix.append("targetFollowsOverlayCenter"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.targetFollowsOverlayCenter(v));
-            case "saved-position-history" -> ModePropertyHandler.of(prefix.append("savedPositionHistory"), v -> positionHistoryName("overlay.saved-position-history", v, positionHistoryNames), v -> hintMeshBuilder.savedPositionHistory(v));
+            case "saved-hints" -> ModePropertyHandler.of(prefix.append("savedPositionHistory"), v -> positionHistoryName("overlay.saved-hints", v, positionHistoryNames), v -> hintMeshBuilder.savedPositionHistory(v));
             case "eat-unused-selection-keys" -> ModePropertyHandler.of(prefix.append("eatUnusedSelectionKeys"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.eatUnusedSelectionKeys(v));
             // Type property (sealed variant): uses Function for GRID because it
             // needs the current area/gridLayout at mutation time, not parse time.

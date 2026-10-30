@@ -252,7 +252,7 @@ public class WindowsOverlay implements Overlay {
             if (indicatorWindow.showing())
                 showIndicatorWindow(indicatorWindow,
                         indicatorWindow.renderer().currentIndicator(), Set.of(), Map.of(),
-                        Map.of(), mousePosition);
+                        Map.of(), Map.of(), mousePosition);
     }
 
     private void showIndicatorWindow(WindowsIndicatorWindow indicatorWindow,
@@ -260,10 +260,12 @@ public class WindowsOverlay implements Overlay {
                                      Set<String> layerNamesToAnchor,
                                      Map<IndicatorPosition, List<Point>> pointsByPosition,
                                      Map<HintGridArea, Rectangle> rectangleByArea,
+                                     Map<Point, HintRectangles> hintRectanglesByPoint,
                                      WinDef.POINT mousePosition) {
         IndicatorRenderer.WindowImage windowImage =
                 indicatorWindow.renderer().renderWindowImage(indicator, layerNamesToAnchor,
-                        pointsByPosition, rectangleByArea, mouseRectangle(mousePosition),
+                        pointsByPosition, rectangleByArea, hintRectanglesByPoint,
+                        mouseRectangle(mousePosition),
                         mouse.cursorVisualCenter(),
                         WindowsScreen.findActiveScreen(mousePosition), currentZoom,
                         hintMeshRenderer.lastSelectedHintBoxHexColor());
@@ -275,6 +277,7 @@ public class WindowsOverlay implements Overlay {
                                     Set<String> layerNamesToAnchor,
                                     Map<IndicatorPosition, List<Point>> pointsByPosition,
                                     Map<HintGridArea, Rectangle> rectangleByArea,
+                                    Map<Point, HintRectangles> hintRectanglesByPoint,
                                     WinDef.POINT mousePosition) {
         if (!indicator.enabled()) {
             indicatorWindow.hide();
@@ -282,7 +285,7 @@ public class WindowsOverlay implements Overlay {
         }
         boolean wasShowing = indicatorWindow.showing();
         showIndicatorWindow(indicatorWindow, indicator, layerNamesToAnchor, pointsByPosition,
-                rectangleByArea, mousePosition);
+                rectangleByArea, hintRectanglesByPoint, mousePosition);
         if (!wasShowing)
             setTopmost();
     }
@@ -425,6 +428,7 @@ public class WindowsOverlay implements Overlay {
     public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
                              Map<IndicatorPosition, List<Point>> pointsByPosition,
                              Map<HintGridArea, Rectangle> rectangleByArea,
+                             Map<Point, HintRectangles> hintRectanglesByPoint,
                              boolean animating,
                              boolean includeOriginalCursor) {
         Objects.requireNonNull(indicator);
@@ -455,7 +459,7 @@ public class WindowsOverlay implements Overlay {
             setIndicatorCursor(following, animating, includeOriginalCursor, mousePosition);
         else {
             setIndicatorWindow(followingIndicatorWindow, following, Set.of(), Map.of(),
-                    Map.of(), mousePosition);
+                    Map.of(), Map.of(), mousePosition);
             if (indicatorIsCursor) {
                 // The cursor changes on the next refresh, the window once it is composited.
                 Dwmapi.INSTANCE.DwmFlush();
@@ -475,7 +479,12 @@ public class WindowsOverlay implements Overlay {
         for (Map.Entry<String, IndicatorConfiguration> entry : anchored.entrySet())
             setIndicatorWindow(anchoredIndicatorWindowByLayerName.get(entry.getKey()),
                     entry.getValue(), layerNamesToAnchor, pointsByPosition, rectangleByArea,
-                    mousePosition);
+                    hintRectanglesByPoint, mousePosition);
+    }
+
+    @Override
+    public Rectangle hintBoxRectangle(Hint hint) {
+        return hintMeshRenderer.hintBoxRectangle(hint);
     }
 
     private void setIndicatorCursor(IndicatorConfiguration indicator, boolean animating,

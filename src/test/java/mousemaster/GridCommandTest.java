@@ -403,19 +403,27 @@ class GridCommandTest {
     }
 
     @Test
-    void anOverlayShowsTheSavedPositionsOfItsSavedPositionHistory() throws IOException {
+    void anOverlayShowsTheHintsThePositionsOfItsSavedPositionHistoryWereSavedAt()
+            throws IOException {
         start("""
-                grid-mode.hint.saved-position-history=position-history
+                grid-mode.hint.saved-hints=position-history
                 grid-mode.hint.saved-box-color=#FF0000
+                grid-mode.hint.selection-keys=a b c d
+                grid-mode.hint.grid-max-row-count=2
+                grid-mode.hint.grid-max-column-count=2
+                grid-mode.hint.mouse-movement=no-movement
                 grid-mode.save.position-history=+s
                 """);
         hintManager.mouseMoved(100, 100);
         switchMode("grid-mode");
-        assertEquals(List.of(), hintManager.hintMesh().savedPositions());
         hintManager.saveCurrentPosition("position-history");
-        assertEquals(List.of(new Point(100, 100)), hintManager.hintMesh().savedPositions());
-        hintManager.unsaveCurrentPosition("position-history");
-        assertEquals(List.of(), hintManager.hintMesh().savedPositions());
+        assertEquals(List.of(), hintManager.hintMesh().savedHints());
+        hintManager.selectHintKey(Key.ofName("a"));
+        hintManager.saveCurrentPosition("position-history");
+        switchMode("idle-mode");
+        switchMode("grid-mode");
+        assertEquals(List.of(List.of(Key.ofName("a"))), hintManager.hintMesh()
+                .savedHints().stream().map(Hint::keySequence).toList());
         assertEquals(GradientColor.parse("#FF0000"), modeMap.get("grid-mode").hintMesh()
                 .styleByFilter().get(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER).savedBoxColor());
     }
@@ -453,7 +461,7 @@ class GridCommandTest {
     @Test
     void aSavedPositionHistoryMustBeDefined() {
         assertThrows(IllegalArgumentException.class, () -> start("""
-                grid-mode.hint.saved-position-history=drag-position-history
+                grid-mode.hint.saved-hints=drag-position-history
                 """));
     }
 

@@ -84,7 +84,8 @@ public final class IndicatorRenderer {
     private record LayerAnchor(Rectangle mouseRectangle, Point cursorVisualCenter,
                                Screen activeScreen,
                                Map<IndicatorPosition, List<Point>> pointsByPosition,
-                               Map<HintGridArea, Rectangle> rectangleByArea) {
+                               Map<HintGridArea, Rectangle> rectangleByArea,
+                               Map<Point, HintRectangles> hintRectanglesByPoint) {
     }
 
     private static List<String> enabledLayerNames(IndicatorConfiguration indicator) {
@@ -325,11 +326,12 @@ public final class IndicatorRenderer {
     public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
                              Map<IndicatorPosition, List<Point>> pointsByPosition,
                              Map<HintGridArea, Rectangle> rectangleByArea,
+                             Map<Point, HintRectangles> hintRectanglesByPoint,
                              Rectangle mouseRectangle, Point cursorVisualCenter,
                              Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
         setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
-        anchor(layerNamesToAnchor, pointsByPosition, rectangleByArea, mouseRectangle,
-                cursorVisualCenter, activeScreen);
+        anchor(layerNamesToAnchor, pointsByPosition, rectangleByArea, hintRectanglesByPoint,
+                mouseRectangle, cursorVisualCenter, activeScreen);
         if (showing && indicator.equals(currentIndicator) && layerNamesToAnchor.isEmpty())
             return;
         // Position the (hidden) window before showIndicator shows it.
@@ -354,11 +356,12 @@ public final class IndicatorRenderer {
     private void anchor(Set<String> layerNamesToAnchor,
                         Map<IndicatorPosition, List<Point>> pointsByPosition,
                         Map<HintGridArea, Rectangle> rectangleByArea,
+                        Map<Point, HintRectangles> hintRectanglesByPoint,
                         Rectangle mouseRectangle, Point cursorVisualCenter,
                         Screen activeScreen) {
         for (String layerName : layerNamesToAnchor)
             anchorByLayerName.put(layerName, new LayerAnchor(mouseRectangle, cursorVisualCenter,
-                    activeScreen, pointsByPosition, rectangleByArea));
+                    activeScreen, pointsByPosition, rectangleByArea, hintRectanglesByPoint));
     }
 
     private LayerAnchor anchor(String layerName, IndicatorLayerConfiguration layer,
@@ -367,31 +370,51 @@ public final class IndicatorRenderer {
                 anchorByLayerName.computeIfAbsent(layerName, name -> mouseAnchor);
     }
 
+    /** A point a layer is laid out by, on the screen, and the hint box or cell it starts and
+     *  stops at, null when there is none. */
+    private record PositionPoint(Point point, Rectangle rectangle) {
+    }
+
     /** The points a layer is laid out by: its positions, or the corners of its area, with the
      *  insets cut to a fraction of a pixel. */
-    private List<Point> positionPoints(LayerAnchor anchor, Zoom zoom,
-                                       IndicatorLayerConfiguration layer) {
+    private List<PositionPoint> positionPoints(LayerAnchor anchor, Zoom zoom,
+                                               IndicatorLayerConfiguration layer) {
         if (layer.area() != null) {
             Rectangle area = anchor.rectangleByArea().get(layer.area());
             HintGridAreaSize size = layer.area().size();
             double scale = anchor.activeScreen().scale();
-            return List.of(new Point(zoomedX(area.x(), zoom) + size.leftInset() * scale,
-                            zoomedY(area.y(), zoom) + size.topInset() * scale),
-                    new Point(zoomedX(area.x() + area.width(), zoom) -
-                              size.rightInset() * scale,
+            return List.of(new PositionPoint(
+                            new Point(zoomedX(area.x(), zoom) + size.leftInset() * scale,
+                                    zoomedY(area.y(), zoom) + size.topInset() * scale), null),
+                    new PositionPoint(new Point(zoomedX(area.x() + area.width(), zoom) -
+                                                size.rightInset() * scale,
                             zoomedY(area.y() + area.height(), zoom) -
-                            size.bottomInset() * scale));
+                            size.bottomInset() * scale), null));
         }
-        List<Point> points = new ArrayList<>();
+        List<PositionPoint> points = new ArrayList<>();
         for (IndicatorPosition position : layer.positions()) {
             List<Point> positionPoints = anchor.pointsByPosition().get(position);
             if (positionPoints == null)
-                points.add(layerTopLeft(anchor, zoom, position, new LayerSize(0, 0)));
+                points.add(new PositionPoint(
+                        layerTopLeft(anchor, zoom, position, new LayerSize(0, 0)), null));
             else
                 for (Point point : positionPoints)
-                    points.add(new Point(zoomedX(point.x(), zoom), zoomedY(point.y(), zoom)));
+                    points.add(positionPoint(point, anchor, zoom, layer.positionAnchor()));
         }
         return points;
+    }
+
+    private static PositionPoint positionPoint(Point point, LayerAnchor anchor, Zoom zoom,
+                                               PositionAnchor positionAnchor) {
+        Point zoomedPoint = new Point(zoomedX(point.x(), zoom), zoomedY(point.y(), zoom));
+        HintRectangles hintRectangles = anchor.hintRectanglesByPoint().get(point);
+        if (positionAnchor == PositionAnchor.POINT || hintRectangles == null)
+            return new PositionPoint(zoomedPoint, null);
+        return new PositionPoint(zoomedPoint,
+                positionAnchor == PositionAnchor.HINT_BOX_EDGE && hintRectangles.box() != null ?
+                        hintRectangles.box() :
+                        zoom == null ? hintRectangles.cell() :
+                                zoom.zoomedRectangle(hintRectangles.cell()));
     }
 
     private record PositionedLayer(IndicatorLayerConfiguration layer, Point topLeft) {
@@ -399,8 +422,9 @@ public final class IndicatorRenderer {
 
     /** The enabled layers and their top-lefts, in z order. A layer with an area covers it. A
      *  layer through several positions is a layer for each two consecutive points, which runs
-     *  from the first to the second: their distance is its length, its size is its width, and
-     *  its rotation turns it from their direction. */
+     *  from the first to the second, or between the edges of their rectangles:
+     *  that distance is its length, its size is its width, and its rotation turns it from their
+     *  direction. */
     private List<PositionedLayer> positionedLayers(IndicatorConfiguration indicator,
                                                    LayerAnchor mouseAnchor, Zoom zoom) {
         // Screen pixels: the configured size does not change with the zoom. Only the
@@ -410,15 +434,17 @@ public final class IndicatorRenderer {
         for (String layerName : enabledLayerNames(indicator)) {
             IndicatorLayerConfiguration layer = indicator.layerByName().get(layerName);
             LayerAnchor anchor = anchor(layerName, layer, mouseAnchor);
-            List<Point> points = positionPoints(anchor, zoom, layer);
+            List<PositionPoint> points = positionPoints(anchor, zoom, layer);
             if (layer.area() != null) {
-                double deltaX = points.getLast().x() - points.getFirst().x();
-                double deltaY = points.getLast().y() - points.getFirst().y();
+                Point first = points.getFirst().point();
+                Point last = points.getLast().point();
+                double deltaX = last.x() - first.x();
+                double deltaY = last.y() - first.y();
                 add(positionedLayers, layer.builder()
                                            .size(Math.max(deltaX, deltaY) / scale)
                                            .aspectRatio(deltaX / deltaY)
                                            .build(),
-                        points.getFirst(), points.getLast(), anchor, scale);
+                        first, last, anchor, scale);
             }
             else if (!IndicatorPosition.runThrough(layer.positions())) {
                 Point topLeft = layerTopLeft(anchor, zoom, layer.positions().getFirst(),
@@ -427,22 +453,45 @@ public final class IndicatorRenderer {
             }
             else {
                 for (int i = 1; i < points.size(); i++) {
-                    Point from = points.get(i - 1);
-                    Point to = points.get(i);
+                    double fromExit = rectangleExit(points.get(i - 1), points.get(i));
+                    double toExit = rectangleExit(points.get(i), points.get(i - 1));
+                    if (fromExit + toExit >= 1)
+                        continue;
+                    Point from = points.get(i - 1).point();
+                    Point to = points.get(i).point();
                     double deltaX = to.x() - from.x();
                     double deltaY = to.y() - from.y();
-                    double length = Math.hypot(deltaX, deltaY) / scale;
+                    double length = (1 - fromExit - toExit) * Math.hypot(deltaX, deltaY) / scale;
                     add(positionedLayers, layer.builder()
                                                .size(Math.max(length, layer.size()))
                                                .aspectRatio(length / layer.size())
                                                .rotation(layer.rotation() + Math.toDegrees(
                                                        Math.atan2(deltaY, deltaX)))
                                                .build(),
-                            from, to, anchor, scale);
+                            new Point(from.x() + fromExit * deltaX, from.y() + fromExit * deltaY),
+                            new Point(to.x() - toExit * deltaX, to.y() - toExit * deltaY),
+                            anchor, scale);
                 }
             }
         }
         return positionedLayers;
+    }
+
+    /** The fraction of from-to after which the segment leaves the rectangle of from, 0 when it
+     *  has none. */
+    private static double rectangleExit(PositionPoint from, PositionPoint to) {
+        Rectangle rectangle = from.rectangle();
+        if (rectangle == null)
+            return 0;
+        double deltaX = to.point().x() - from.point().x();
+        double deltaY = to.point().y() - from.point().y();
+        double exitX = deltaX > 0 ? (rectangle.x() + rectangle.width() - from.point().x()) / deltaX :
+                deltaX < 0 ? (rectangle.x() - from.point().x()) / deltaX :
+                        Double.POSITIVE_INFINITY;
+        double exitY = deltaY > 0 ? (rectangle.y() + rectangle.height() - from.point().y()) / deltaY :
+                deltaY < 0 ? (rectangle.y() - from.point().y()) / deltaY :
+                        Double.POSITIVE_INFINITY;
+        return Math.min(exitX, exitY);
     }
 
     private void add(List<PositionedLayer> positionedLayers, IndicatorLayerConfiguration layer,
@@ -500,7 +549,7 @@ public final class IndicatorRenderer {
         double screenScale = activeScreen.scale();
         LayerAnchor mouseAnchor =
                 new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen, Map.of(),
-                        Map.of());
+                        Map.of(), Map.of());
         List<PositionedLayer> positionedLayers = positionedLayers(indicator, mouseAnchor, zoom);
         Rectangle layersRectangle = layersRectangle(positionedLayers, screenScale);
         // The window covers the screen and stays put: Qt moves a window at once but repaints
@@ -640,16 +689,17 @@ public final class IndicatorRenderer {
                                          Set<String> layerNamesToAnchor,
                                          Map<IndicatorPosition, List<Point>> pointsByPosition,
                                          Map<HintGridArea, Rectangle> rectangleByArea,
+                                         Map<Point, HintRectangles> hintRectanglesByPoint,
                                          Rectangle mouseRectangle, Point cursorVisualCenter,
                                          Screen activeScreen, Zoom zoom,
                                          String lastSelectedHintBoxHexColor) {
         setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
-        anchor(layerNamesToAnchor, pointsByPosition, rectangleByArea, mouseRectangle,
-                cursorVisualCenter, activeScreen);
+        anchor(layerNamesToAnchor, pointsByPosition, rectangleByArea, hintRectanglesByPoint,
+                mouseRectangle, cursorVisualCenter, activeScreen);
         double screenScale = activeScreen.scale();
         LayerAnchor mouseAnchor =
                 new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen, Map.of(),
-                        Map.of());
+                        Map.of(), Map.of());
         List<PositionedLayer> positionedLayers = positionedLayers(indicator, mouseAnchor, zoom);
         Rectangle layersRectangle = layersRectangle(positionedLayers, screenScale);
         int shadowPadding = shadowPadding(positionedLayers, screenScale);

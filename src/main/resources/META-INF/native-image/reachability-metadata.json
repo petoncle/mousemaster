@@ -7011,6 +7011,7 @@
             "mousemaster.FontWeight",
             "java.lang.String",
             "java.util.List",
+            "mousemaster.PositionAnchor",
             "mousemaster.HintGridArea",
             "boolean"
           ]
@@ -7065,6 +7066,10 @@
         },
         {
           "name": "positions",
+          "parameterTypes": []
+        },
+        {
+          "name": "positionAnchor",
           "parameterTypes": []
         },
         {

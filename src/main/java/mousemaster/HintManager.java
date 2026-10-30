@@ -521,7 +521,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             currentPositionHistory =
                     positionHistory(positionHistoryHintMesh.positionHistoryName());
             if (currentPositionHistory.positions().isEmpty())
-                currentPositionHistory.save(targetPoint(newMode));
+                savePosition(currentPositionHistory, targetPoint(newMode));
         }
         ScreenFilter newScreenFilter = screenFilter(hintMeshConfiguration);
         List<Key> selectionKeys =
@@ -919,23 +919,6 @@ public class HintManager implements ModeListener, MousePositionListener {
                 cellGridArea(level.cell(), size, center)));
     }
 
-    /** A desktop region as it appears on screen. */
-    private static Rectangle zoomedRectangle(Rectangle rectangle, Zoom zoom) {
-        int left = (int) Math.round(zoom.zoomedX(rectangle.x()));
-        int top = (int) Math.round(zoom.zoomedY(rectangle.y()));
-        return new Rectangle(left, top,
-                (int) Math.round(zoom.zoomedX(rectangle.x() + rectangle.width())) - left,
-                (int) Math.round(zoom.zoomedY(rectangle.y() + rectangle.height())) - top);
-    }
-
-    private static Rectangle unzoomedRectangle(Rectangle rectangle, Zoom zoom) {
-        int left = (int) Math.round(zoom.unzoomedX(rectangle.x()));
-        int top = (int) Math.round(zoom.unzoomedY(rectangle.y()));
-        return new Rectangle(left, top,
-                (int) Math.round(zoom.unzoomedX(rectangle.x() + rectangle.width())) - left,
-                (int) Math.round(zoom.unzoomedY(rectangle.y() + rectangle.height())) - top);
-    }
-
     private static Point zoomedPoint(Point point, Zoom zoom) {
         return new Point((int) Math.round(zoom.zoomedX(point.x())),
                 (int) Math.round(zoom.zoomedY(point.y())));
@@ -973,7 +956,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                                 .map(hint -> unzoomedHintCell(hint, currentZoom))
                                                 .toList();
         return hintMesh.selectedKeySequence().isEmpty() || selectedCells.isEmpty() ?
-                unzoomedRectangle(hintMesh.area(), currentZoom) : Rectangle.union(selectedCells);
+                currentZoom.unzoomedRectangle(hintMesh.area()) : Rectangle.union(selectedCells);
     }
 
     private Rectangle lastOverlayArea() {
@@ -1041,21 +1024,20 @@ public class HintManager implements ModeListener, MousePositionListener {
                             new Rectangle(mouseX - areaOverride.width() / 2,
                                     mouseY - areaOverride.height() / 2, areaOverride.width(),
                                     areaOverride.height()) : areaOverride;
-                    areaRectangle = zoomedRectangle(centeredAreaOverride, zoom);
+                    areaRectangle = zoom.zoomedRectangle(centeredAreaOverride);
                     gridCenter = areaRectangle.center();
                 }
                 else if (area.size().source() == HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL) {
                     areaRectangle = cellGridLevelStack.isEmpty() ?
                             activeScreen.rectangle() :
-                            zoomedRectangle(cellGridLevelStack.peek().area(), zoom);
+                            zoom.zoomedRectangle(cellGridLevelStack.peek().area());
                     gridCenter = areaRectangle.center();
                 }
                 else {
                     Rectangle sourceRectangle = switch (area.size().source()) {
                         case ACTIVE_SCREEN -> activeScreen.rectangle();
-                        case ACTIVE_WINDOW -> zoomedRectangle(
-                                overlay.activeWindowRectangle(), zoom);
-                        case LAST_OVERLAY_AREA -> zoomedRectangle(lastOverlayArea(), zoom);
+                        case ACTIVE_WINDOW -> zoom.zoomedRectangle(overlay.activeWindowRectangle());
+                        case LAST_OVERLAY_AREA -> zoom.zoomedRectangle(lastOverlayArea());
                         default -> throw new IllegalStateException();
                     };
                     gridCenter = switch (area.center()) {
@@ -1065,11 +1047,10 @@ public class HintManager implements ModeListener, MousePositionListener {
                         case LAST_SELECTED_HINT -> lastSelectedHintPoint == null ?
                                 activeScreen.rectangle().center() :
                                 zoomedPoint(lastSelectedHintPoint, zoom);
-                        case ACTIVE_WINDOW_CENTER -> zoomedRectangle(
-                                overlay.activeWindowRectangle(), zoom)
-                                .center();
+                        case ACTIVE_WINDOW_CENTER ->
+                                zoom.zoomedRectangle(overlay.activeWindowRectangle()).center();
                         case LAST_OVERLAY_AREA_CENTER ->
-                                zoomedRectangle(lastOverlayArea(), zoom).center();
+                                zoom.zoomedRectangle(lastOverlayArea()).center();
                     };
                     areaRectangle = scaledArea(sourceRectangle, area.size(), gridCenter,
                             activeScreen.scale());
@@ -1242,19 +1223,44 @@ public class HintManager implements ModeListener, MousePositionListener {
                         previousHintMeshState.hintMesh.selectedKeySequence());
             }
         }
-        return hintMesh.savedPositions(savedPositions(hintMeshConfiguration, zoom)).build();
+        return hintMesh.savedHints(savedHints(hintMeshConfiguration, hintMesh.hints(), zoom))
+                       .build();
     }
 
-    /** The positions of the overlay's saved-position-history, in the overlay's coordinates. */
-    private List<Point> savedPositions(HintMeshConfiguration hintMeshConfiguration, Zoom zoom) {
+    /** The hints that the positions of the overlay's saved-hints history were saved at. */
+    private List<Hint> savedHints(HintMeshConfiguration hintMeshConfiguration, List<Hint> hints,
+                                  Zoom zoom) {
         if (hintMeshConfiguration.savedPositionHistory() == null)
             return List.of();
-        return positionHistory(hintMeshConfiguration.savedPositionHistory())
-                .positions()
-                .stream()
-                .map(position -> new Point(zoom.zoomedX(position.x()),
-                        zoom.zoomedY(position.y())))
-                .toList();
+        Collection<Rectangle> hintCells =
+                positionHistory(hintMeshConfiguration.savedPositionHistory()).hintCells();
+        return hints.stream()
+                    .filter(hint -> hintCells.contains(unzoomedHintCell(hint, zoom)))
+                    .toList();
+    }
+
+    /** A position is saved at the last selected hint when it is that hint's point. */
+    private void savePosition(PositionHistory positionHistory, Point position) {
+        positionHistory.save(position, lastSelectedHintPoint != null &&
+                                       Math.round(position.x()) == lastSelectedHintPoint.x() &&
+                                       Math.round(position.y()) == lastSelectedHintPoint.y() ?
+                lastSelectedHintRectangles().cell() : null);
+    }
+
+    /** The rectangles of the last selected hint: see {@link HintRectangles}. */
+    public HintRectangles lastSelectedHintRectangles() {
+        return hintRectangles(lastSelectedHintCell != null ? lastSelectedHintCell :
+                new Rectangle((int) lastSelectedHintPoint.x(), (int) lastSelectedHintPoint.y(),
+                        0, 0));
+    }
+
+    /** The cell, and the rectangle of the box the overlay draws for the hint with that cell. */
+    public HintRectangles hintRectangles(Rectangle hintCell) {
+        if (hintMesh != null)
+            for (Hint hint : hintMesh.hints())
+                if (unzoomedHintCell(hint, currentZoom).equals(hintCell))
+                    return new HintRectangles(hintCell, overlay.hintBoxRectangle(hint));
+        return new HintRectangles(hintCell, null);
     }
 
     /** Shows a save, unsave or clear on the overlay that styles that history's positions. A
@@ -1266,7 +1272,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             !positionHistoryName.equals(hintMeshConfiguration.savedPositionHistory()))
             return;
         hintMesh = hintMesh.builder()
-                           .savedPositions(savedPositions(hintMeshConfiguration, currentZoom))
+                           .savedHints(savedHints(hintMeshConfiguration, hintMesh.hints(),
+                                   currentZoom))
                            .build();
         hintMeshStates.compute(new HintMeshKey(hintMeshConfiguration.type(),
                         hintMeshConfiguration.keysByFilter().get(screenFilter).selectionKeys(),
@@ -1591,11 +1598,12 @@ public class HintManager implements ModeListener, MousePositionListener {
                 cellWidth, cellHeight);
     }
 
-    /** The desktop region a hint's cell covers. A UI hint's cell is its element. */
+    /** The desktop region a hint's cell covers. A UI hint's cell is its element, and a hint
+     *  without a cell has an empty one on its center. */
     private static Rectangle unzoomedHintCell(Hint hint, Zoom zoom) {
-        double cellWidth = hint.elementRectangle() == null ? hint.cellWidth() :
+        double cellWidth = hint.elementRectangle() == null ? Math.max(0, hint.cellWidth()) :
                 hint.elementRectangle().width();
-        double cellHeight = hint.elementRectangle() == null ? hint.cellHeight() :
+        double cellHeight = hint.elementRectangle() == null ? Math.max(0, hint.cellHeight()) :
                 hint.elementRectangle().height();
         int left = (int) Math.round(zoom.unzoomedX(hint.centerX() - cellWidth / 2));
         int top = (int) Math.round(zoom.unzoomedY(hint.centerY() - cellHeight / 2));
@@ -1969,7 +1977,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public void saveCurrentPosition(String positionHistoryName) {
-        positionHistory(positionHistoryName).save(targetPoint());
+        savePosition(positionHistory(positionHistoryName), targetPoint());
         showSavedPositions(positionHistoryName);
     }
 

@@ -497,6 +497,22 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
   ui-hint-mode.arrow-indicator.shape=arrow
   ui-hint-mode.arrow-indicator.position=click-position-history
   ```
+- **`position-anchor`**: Each position is a point on the screen. Some positions also have a hint:
+  `last-selected-hint` always has one, and a saved position has one when the user saved it at the
+  point of the last selected hint. `position-anchor` sets where a layer between two positions
+  starts and stops:
+  - `point` (default): at the point. It does not use the hint.
+  - `hint-box-edge`: at the edge of the hint box.
+  - `hint-cell-edge`: at the edge of the hint cell.
+
+  At a position without a hint, the layer starts or stops at the point, whatever the value. The
+  hint box is the box the overlay draws for the hint: when the overlay does not draw it, the layer
+  uses the cell. The cell of a UI hint is its element. Arrows from the box of each saved hint to
+  the box of the next:
+  ```properties
+  ui-hint-mode.arrow-indicator.position=click-position-history
+  ui-hint-mode.arrow-indicator.position-anchor=hint-box-edge
+  ```
 - **`follow-mouse`**: Whether the layer moves with the cursor (default `true`). With `false`, the
   layer stays where it was when it was enabled, or when its keyframes started over.
 - **`area`**: The area the layer covers. It takes the values of the overlay's `area`, with
@@ -1429,7 +1445,7 @@ normal-mode.clear.position-history=+f2
 ```
 
 - **`max-size`**: Maximum number of positions that can be stored, 1-100 (older positions are removed when this limit is reached). Default 16.
-- **`save`**: Command to save the position of the target to history
+- **`save`**: Command to save the position of the target to history. When the target is on the point of the last selected hint, the history also keeps that hint (see [Saved hints](#saved-hints) and the indicator's `position-anchor`)
 - **`unsave`**: Command to remove the saved position the target is on
 - **`clear`**: Command to clear all saved positions
 - **`cycle-next`** / **`cycle-previous`**: Commands to move the target to the next or previous saved position, continuing from the one it is on. The mouse follows, unless the mode has `mouse-follows-target=false`
@@ -1502,19 +1518,21 @@ When you enter a position history hint mode:
 
 ### Saved hints
 
-An overlay can show which of its hints are at a saved position. `saved-position-history` names the
-history, and the `saved-` properties style those hints:
+An overlay can show which of its hints are saved. `saved-hints` names the position history that
+saves them, and the `saved-` properties style them:
 
 ```properties
-ui-hint-mode.overlay.saved-position-history=drag-position-history
+ui-hint-mode.overlay.saved-hints=drag-position-history
 ui-hint-mode.overlay.saved-box-color=#00FF00
 ui-hint-mode.overlay.saved-box-opacity=0.5
 ui-hint-mode.overlay.saved-ui-element-box-border-color=#00FF00
 ui-hint-mode.overlay.saved-font-color=#000000
 ```
 
-- A hint is saved when a saved position is in its element (UI hints) or its cell (grids), or on its
-  center when it has neither.
+- A hint is saved when a position of the history was saved at it: the user saved the position at
+  the point of the last selected hint. The overlay finds that hint again by its element (UI hints),
+  by its cell (grids), or by its center when it has neither. A position saved anywhere else marks
+  no hint.
 - `saved-box-color`, `saved-box-opacity`, `saved-box-border-color`, `saved-box-border-opacity`,
   `saved-ui-element-box-color`, `saved-ui-element-box-opacity`, `saved-ui-element-box-border-color`
   and `saved-ui-element-box-border-opacity` replace the values of the box for a saved hint. A value

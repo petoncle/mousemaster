@@ -18,4 +18,21 @@ public record Zoom(double percent, Point center, Rectangle screenRectangle) {
         return (zoomedY - screenRectangle.center().y()) / percent + center.y();
     }
 
+    /** A desktop region as it appears on screen. */
+    public Rectangle zoomedRectangle(Rectangle rectangle) {
+        int left = (int) Math.round(zoomedX(rectangle.x()));
+        int top = (int) Math.round(zoomedY(rectangle.y()));
+        return new Rectangle(left, top,
+                (int) Math.round(zoomedX(rectangle.x() + rectangle.width())) - left,
+                (int) Math.round(zoomedY(rectangle.y() + rectangle.height())) - top);
+    }
+
+    public Rectangle unzoomedRectangle(Rectangle rectangle) {
+        int left = (int) Math.round(unzoomedX(rectangle.x()));
+        int top = (int) Math.round(unzoomedY(rectangle.y()));
+        return new Rectangle(left, top,
+                (int) Math.round(unzoomedX(rectangle.x() + rectangle.width())) - left,
+                (int) Math.round(unzoomedY(rectangle.y() + rectangle.height())) - top);
+    }
+
 }

@@ -27,6 +27,7 @@ public class IndicatorManager implements ModeListener {
     private final Set<String> layerNamesToAnchor = new HashSet<>();
     private Map<IndicatorPosition, List<Point>> pointsByPosition = Map.of();
     private Map<HintGridArea, Rectangle> rectangleByArea = Map.of();
+    private Map<Point, HintRectangles> hintRectanglesByPoint = Map.of();
 
     public IndicatorManager(Overlay overlay, AnimationPlayer animationPlayer,
                             HintManager hintManager, Supplier<App> activeApp) {
@@ -48,7 +49,7 @@ public class IndicatorManager implements ModeListener {
             return;
         }
         overlay.setIndicator(indicator, Set.copyOf(layerNamesToAnchor), pointsByPosition,
-                rectangleByArea, animating(),
+                rectangleByArea, hintRectanglesByPoint, animating(),
                 !animationPlayer.animate(currentMode, "hideCursor").hideCursor().enabled());
         layerNamesToAnchor.clear();
     }
@@ -109,6 +110,27 @@ public class IndicatorManager implements ModeListener {
         for (IndicatorLayerConfiguration layer : indicator.layerByName().values())
             if (layer.enabled() && layer.area() != null)
                 newRectangleByArea.put(layer.area(), hintManager.indicatorArea(layer.area()));
+        Map<Point, HintRectangles> newHintRectanglesByPoint = new HashMap<>();
+        for (IndicatorLayerConfiguration layer : indicator.layerByName().values()) {
+            if (!layer.enabled() || layer.positionAnchor() == PositionAnchor.POINT)
+                continue;
+            for (IndicatorPosition position : layer.positions()) {
+                if (position == IndicatorPosition.PointIndicatorPosition.LAST_SELECTED_HINT &&
+                    hintManager.lastSelectedHintPoint() != null)
+                    newHintRectanglesByPoint.put(hintManager.lastSelectedHintPoint(),
+                            hintManager.lastSelectedHintRectangles());
+                else if (position instanceof IndicatorPosition.PositionHistoryIndicatorPosition(
+                        String positionHistoryName)) {
+                    PositionHistory positionHistory =
+                            hintManager.positionHistory(positionHistoryName, activeApp);
+                    for (Point point : positionHistory.positions()) {
+                        Rectangle hintCell = positionHistory.hintCell(point);
+                        if (hintCell != null)
+                            newHintRectanglesByPoint.put(point, hintManager.hintRectangles(hintCell));
+                    }
+                }
+            }
+        }
         for (Map.Entry<String, IndicatorLayerConfiguration> entry : indicator.layerByName()
                                                                              .entrySet()) {
             IndicatorLayerConfiguration layer = entry.getValue();
@@ -117,11 +139,14 @@ public class IndicatorManager implements ModeListener {
                             pointsByPosition.get(position))) ||
                                     layer.area() != null &&
                                     !Objects.equals(newRectangleByArea.get(layer.area()),
-                                            rectangleByArea.get(layer.area()))))
+                                            rectangleByArea.get(layer.area())) ||
+                                    layer.positionAnchor() != PositionAnchor.POINT &&
+                                    !newHintRectanglesByPoint.equals(hintRectanglesByPoint)))
                 layerNamesToAnchor.add(entry.getKey());
         }
         pointsByPosition = newPointsByPosition;
         rectangleByArea = newRectangleByArea;
+        hintRectanglesByPoint = newHintRectanglesByPoint;
         Map<String, IndicatorLayerConfiguration> layerByName =
                 new LinkedHashMap<>(indicator.layerByName());
         layerByName.replaceAll((layerName, layer) ->

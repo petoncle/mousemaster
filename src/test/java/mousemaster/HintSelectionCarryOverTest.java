@@ -127,7 +127,7 @@ class HintSelectionCarryOverTest {
                         ui-hint-mode.to.idle-mode=+esc
                         ui-hint-mode.overlay.selection-keys=a b
                         ui-hint-mode.overlay.type=ui-accessibility
-                        ui-hint-mode.overlay.saved-position-history=position-history
+                        ui-hint-mode.overlay.saved-hints=position-history
                         ui-hint-mode.clear.position-history=+c
                         """))), KeyboardLayout.keyboardLayoutByShortName.get("uk-qwerty"));
         ModeMap modeMap = configuration.modeMap();
