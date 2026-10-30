@@ -2233,28 +2233,36 @@ public class ConfigurationParser {
             String propertyValue = lineMatcher.group(2).strip();
             AnimationConfiguration animation = animationConfigurationByName.getOrDefault(
                     animationName,
-                    new AnimationConfiguration(null, 1, AnimationDirection.FORWARD));
+                    new AnimationConfiguration(null, 1, AnimationDirection.FORWARD, false));
             animationConfigurationByName.put(animationName,
                     switch (propertyKey.substring(dotIndex + 1)) {
                         case "duration-millis" -> new AnimationConfiguration(
                                 parseDuration(propertyValue), animation.repeatCount(),
-                                animation.direction());
+                                animation.direction(), animation.overlap());
                         case "repeat" -> new AnimationConfiguration(animation.duration(),
                                 propertyValue.equals("loop") ? null :
                                         parseUnsignedInteger(propertyValue, 1, 10000),
-                                animation.direction());
+                                animation.direction(), animation.overlap());
                         case "direction" -> new AnimationConfiguration(animation.duration(),
                                 animation.repeatCount(),
-                                parseAnimationDirection(propertyKey, propertyValue));
+                                parseAnimationDirection(propertyKey, propertyValue),
+                                animation.overlap());
+                        case "overlap" -> new AnimationConfiguration(animation.duration(),
+                                animation.repeatCount(), animation.direction(),
+                                Boolean.parseBoolean(propertyValue));
                         default -> throw new IllegalArgumentException(
                                 "Invalid animation property key " + propertyKey);
                     });
         }
         for (Map.Entry<String, AnimationConfiguration> entry :
-                animationConfigurationByName.entrySet())
+                animationConfigurationByName.entrySet()) {
             if (entry.getValue().duration() == null)
                 throw new IllegalArgumentException(
                         "Undefined animation " + entry.getKey() + ": missing duration-millis");
+            if (entry.getValue().overlap() && entry.getValue().repeatCount() == null)
+                throw new IllegalArgumentException(
+                        "Invalid animation " + entry.getKey() + ": a loop cannot overlap");
+        }
         return animationConfigurationByName;
     }
 

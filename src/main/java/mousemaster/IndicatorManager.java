@@ -20,9 +20,10 @@ public class IndicatorManager implements ModeListener {
     private Mode currentMode;
     private boolean entryCombosPending;
     private IndicatorConfiguration resolvedIndicator;
-    private final Map<ModePropertyPath, Timeline> timelineByPropertyPath = new HashMap<>();
-    private final Map<ModePropertyPath, Double> elapsedByPropertyPath = new HashMap<>();
-    private final Map<ModePropertyPath, Object> currentByPropertyPath = new HashMap<>();
+    private IndicatorConfiguration drawnIndicator;
+    private Map<ModePropertyPath, RunningTimeline> runningTimelineByPropertyPath = Map.of();
+    private final Map<IndicatorLayerCopyKey, IndicatorLayerCopy> copyByKey =
+            new LinkedHashMap<>();
     private final Set<String> anchoredLayerNames = new HashSet<>();
     private final Set<String> layerNamesToAnchor = new HashSet<>();
     private Map<IndicatorPosition, List<Point>> pointsByPosition = Map.of();
@@ -38,18 +39,23 @@ public class IndicatorManager implements ModeListener {
     }
 
     public boolean animating() {
-        return !timelineByPropertyPath.isEmpty();
+        return !runningTimelineByPropertyPath.isEmpty() || !copyByKey.isEmpty();
     }
 
-    public void update() {
-        IndicatorConfiguration indicator = resolve();
-        if (!indicator.enabled()) {
+    public void update(double delta) {
+        drawnIndicator = resolve(delta);
+        if (!drawnIndicator.enabled() && copyByKey.isEmpty()) {
             overlay.hideIndicator();
             layerNamesToAnchor.clear();
             return;
         }
-        overlay.setIndicator(indicator, Set.copyOf(layerNamesToAnchor), pointsByPosition,
-                rectangleByArea, hintRectanglesByPoint, animating(),
+        Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey =
+                new LinkedHashMap<>();
+        for (Map.Entry<IndicatorLayerCopyKey, IndicatorLayerCopy> entry : copyByKey.entrySet())
+            indicatorByCopyKey.put(entry.getKey(), withTimelines(entry.getValue().indicator(),
+                    entry.getValue().runningTimelineByPropertyPath()));
+        overlay.setIndicator(drawnIndicator, indicatorByCopyKey, Set.copyOf(layerNamesToAnchor),
+                pointsByPosition, rectangleByArea, hintRectanglesByPoint, animating(),
                 !animationPlayer.animate(currentMode, "hideCursor").hideCursor().enabled());
         layerNamesToAnchor.clear();
     }
@@ -64,22 +70,24 @@ public class IndicatorManager implements ModeListener {
         if (currentMode != null && !newMode.name().equals(currentMode.name()))
             entryCombosPending = true;
         if (currentMode != null)
-            resolve();
+            resolve(0);
         currentMode = newMode;
         if (!entryCombosPending && !hintManager.waitingForUiElements())
-            update();
+            update(0);
     }
 
     @Override
     public void entryCombosRan() {
         entryCombosPending = false;
         if (!hintManager.waitingForUiElements())
-            update();
+            update(0);
     }
 
-    private IndicatorConfiguration resolve() {
+    private IndicatorConfiguration resolve(double delta) {
+        updateCopies(delta);
         updateTimelines();
-        IndicatorConfiguration indicator = withTimelines(currentMode.indicator());
+        IndicatorConfiguration indicator = withTimelines(currentMode.indicator(),
+                runningTimelineByPropertyPath);
         if (indicator.enabled())
             resolvedIndicator = indicator;
         Set<String> previousAnchoredLayerNames = Set.copyOf(anchoredLayerNames);
@@ -166,44 +174,90 @@ public class IndicatorManager implements ModeListener {
         return pointCount;
     }
 
+    private record RunningTimeline(Timeline timeline, double elapsed, Object current) {
+    }
+
+    private record IndicatorLayerCopy(
+            IndicatorConfiguration indicator,
+            Map<ModePropertyPath, RunningTimeline> runningTimelineByPropertyPath) {
+    }
+
+    private void updateCopies(double delta) {
+        Map<String, IndicatorLayerCopy> copyByLayerName = new LinkedHashMap<>();
+        for (Map.Entry<ModePropertyPath, RunningTimeline> entry :
+                runningTimelineByPropertyPath.entrySet()) {
+            ModePropertyPath propertyPath = entry.getKey();
+            String animationName = entry.getValue().timeline().animationName();
+            if (!propertyPath.fieldNames().get(1).equals("layerByName") ||
+                !animationPlayer.overlap(animationName) ||
+                animationPlayer.elapsed(animationName) >= entry.getValue().elapsed())
+                continue;
+            String layerName = propertyPath.fieldNames().get(2);
+            IndicatorLayerCopy copy = copyByLayerName.computeIfAbsent(layerName,
+                    layerName_ -> new IndicatorLayerCopy(new IndicatorConfiguration(
+                            drawnIndicator.renderAsCursor(), drawnIndicator.excludeFromCapture(),
+                            Map.of(layerName, drawnIndicator.layerByName().get(layerName))),
+                            new HashMap<>()));
+            copy.runningTimelineByPropertyPath().put(propertyPath, entry.getValue());
+        }
+        for (Map.Entry<String, IndicatorLayerCopy> entry : copyByLayerName.entrySet()) {
+            int index = 0;
+            while (copyByKey.containsKey(new IndicatorLayerCopyKey(entry.getKey(), index)))
+                index++;
+            copyByKey.put(new IndicatorLayerCopyKey(entry.getKey(), index), entry.getValue());
+            layerNamesToAnchor.add(entry.getKey());
+        }
+        copyByKey.values().removeIf(copy -> copy.runningTimelineByPropertyPath().values().stream()
+                .allMatch(runningTimeline -> animationPlayer.ended(
+                        runningTimeline.timeline().animationName(), runningTimeline.elapsed())));
+        for (IndicatorLayerCopy copy : copyByKey.values())
+            copy.runningTimelineByPropertyPath().replaceAll((propertyPath, runningTimeline) ->
+                    new RunningTimeline(runningTimeline.timeline(),
+                            runningTimeline.elapsed() + delta, runningTimeline.current()));
+    }
+
     private void updateTimelines() {
-        Map<ModePropertyPath, Timeline> newTimelineByPropertyPath = new HashMap<>();
+        Map<ModePropertyPath, RunningTimeline> newRunningTimelineByPropertyPath = new HashMap<>();
         for (Map.Entry<ModePropertyPath, Timeline> entry : currentMode.timelineByPropertyPath()
                                                                      .entrySet()) {
-            if (entry.getKey().fieldNames().getFirst().equals("indicator"))
-                newTimelineByPropertyPath.put(entry.getKey(), entry.getValue());
-        }
-        timelineByPropertyPath.keySet().retainAll(newTimelineByPropertyPath.keySet());
-        elapsedByPropertyPath.keySet().retainAll(newTimelineByPropertyPath.keySet());
-        currentByPropertyPath.keySet().retainAll(newTimelineByPropertyPath.keySet());
-        for (Map.Entry<ModePropertyPath, Timeline> entry : newTimelineByPropertyPath.entrySet()) {
             ModePropertyPath propertyPath = entry.getKey();
             Timeline timeline = entry.getValue();
-            double elapsed = animationPlayer.elapsed(timeline.animationName());
-            Double previousElapsed = elapsedByPropertyPath.put(propertyPath, elapsed);
-            if (timeline.equals(timelineByPropertyPath.put(propertyPath, timeline)) &&
-                elapsed >= previousElapsed)
+            if (!propertyPath.fieldNames().getFirst().equals("indicator"))
                 continue;
+            double elapsed = animationPlayer.elapsed(timeline.animationName());
+            RunningTimeline runningTimeline = runningTimelineByPropertyPath.get(propertyPath);
+            if (runningTimeline != null && timeline.equals(runningTimeline.timeline()) &&
+                elapsed >= runningTimeline.elapsed()) {
+                newRunningTimelineByPropertyPath.put(propertyPath,
+                        new RunningTimeline(timeline, elapsed, runningTimeline.current()));
+                continue;
+            }
             Object current = ModePropertyMutator.getModeProperty(resolvedIndicator,
                     indicatorFieldNames(propertyPath));
-            currentByPropertyPath.put(propertyPath, current == null ?
+            newRunningTimelineByPropertyPath.put(propertyPath, new RunningTimeline(timeline,
+                    elapsed, current == null ?
                     ModePropertyMutator.getModeProperty(currentMode.indicator(),
-                            indicatorFieldNames(propertyPath)) : current);
+                            indicatorFieldNames(propertyPath)) : current));
             if (propertyPath.fieldNames().get(1).equals("layerByName"))
                 layerNamesToAnchor.add(propertyPath.fieldNames().get(2));
         }
+        runningTimelineByPropertyPath = newRunningTimelineByPropertyPath;
     }
 
-    private IndicatorConfiguration withTimelines(IndicatorConfiguration indicator) {
+    private IndicatorConfiguration withTimelines(
+            IndicatorConfiguration indicator,
+            Map<ModePropertyPath, RunningTimeline> runningTimelineByPropertyPath) {
         Map<String, IndicatorLayerConfiguration> layerByName =
                 new LinkedHashMap<>(indicator.layerByName());
-        for (Map.Entry<ModePropertyPath, Timeline> entry : timelineByPropertyPath.entrySet()) {
+        for (Map.Entry<ModePropertyPath, RunningTimeline> entry :
+                runningTimelineByPropertyPath.entrySet()) {
             ModePropertyPath propertyPath = entry.getKey();
-            Timeline timeline = entry.getValue();
+            Timeline timeline = entry.getValue().timeline();
             List<String> fieldNames = indicatorFieldNames(propertyPath);
-            Object value = timeline.valueAt(animationPlayer.progress(timeline.animationName()),
+            Object value = timeline.valueAt(animationPlayer.progress(timeline.animationName(),
+                            entry.getValue().elapsed()),
                     animationPlayer.duration(timeline.animationName()),
-                    currentByPropertyPath.get(propertyPath));
+                    entry.getValue().current());
             if (fieldNames.getFirst().equals("layerByName"))
                 layerByName.put(fieldNames.get(1),
                         (IndicatorLayerConfiguration) ModePropertyMutator.mutateModeProperty(

@@ -32,6 +32,9 @@ public class WindowsOverlay implements Overlay {
     private final Map<String, WindowsIndicatorWindow> anchoredIndicatorWindowByLayerName =
             new LinkedHashMap<>();
     private List<String> anchoredLayerNames = List.of();
+    private final Map<IndicatorLayerCopyKey, WindowsIndicatorWindow>
+            anchoredIndicatorWindowByCopyKey = new LinkedHashMap<>();
+    private List<IndicatorLayerCopyKey> copyKeys = List.of();
     private boolean indicatorIsCursor;
     private boolean indicatorExcludedFromCapture;
     private IndicatorConfiguration currentCursorIndicator;
@@ -179,6 +182,9 @@ public class WindowsOverlay implements Overlay {
         for (String layerName : anchoredLayerNames.reversed())
             if (anchoredIndicatorWindowByLayerName.get(layerName).showing())
                 hwnds.add(anchoredIndicatorWindowByLayerName.get(layerName).hwnd());
+        for (IndicatorLayerCopyKey copyKey : copyKeys.reversed())
+            if (anchoredIndicatorWindowByCopyKey.get(copyKey).showing())
+                hwnds.add(anchoredIndicatorWindowByCopyKey.get(copyKey).hwnd());
         for (TransparentWindow window : hintMeshRenderer.windows())
             (hintMeshRenderer.showing() ? hwnds : notTopmostHwnds).add(hwnd(window));
         if (followingIndicatorWindow != null && followingIndicatorWindow.showing())
@@ -303,17 +309,26 @@ public class WindowsOverlay implements Overlay {
         if (followingIndicatorWindow != null)
             indicatorWindows.add(followingIndicatorWindow);
         indicatorWindows.addAll(anchoredIndicatorWindowByLayerName.values());
+        indicatorWindows.addAll(anchoredIndicatorWindowByCopyKey.values());
         return indicatorWindows;
     }
 
     private WindowsIndicatorWindow anchoredIndicatorWindow(String layerName) {
-        return anchoredIndicatorWindowByLayerName.computeIfAbsent(layerName, layerName_ -> {
-            WindowsIndicatorWindow indicatorWindow = new WindowsIndicatorWindow();
-            applyOverlayExStyles(indicatorWindow.hwnd());
-            applyCaptureExclusion(indicatorWindow.hwnd(),
-                    currentZoom != null || indicatorExcludedFromCapture);
-            return indicatorWindow;
-        });
+        return anchoredIndicatorWindowByLayerName.computeIfAbsent(layerName,
+                layerName_ -> createAnchoredIndicatorWindow());
+    }
+
+    private WindowsIndicatorWindow anchoredIndicatorWindow(IndicatorLayerCopyKey copyKey) {
+        return anchoredIndicatorWindowByCopyKey.computeIfAbsent(copyKey,
+                copyKey_ -> createAnchoredIndicatorWindow());
+    }
+
+    private WindowsIndicatorWindow createAnchoredIndicatorWindow() {
+        WindowsIndicatorWindow indicatorWindow = new WindowsIndicatorWindow();
+        applyOverlayExStyles(indicatorWindow.hwnd());
+        applyCaptureExclusion(indicatorWindow.hwnd(),
+                currentZoom != null || indicatorExcludedFromCapture);
+        return indicatorWindow;
     }
 
     private boolean shows(Map<String, IndicatorConfiguration> anchored) {
@@ -425,7 +440,9 @@ public class WindowsOverlay implements Overlay {
     }
 
     @Override
-    public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
+    public void setIndicator(IndicatorConfiguration indicator,
+                             Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey,
+                             Set<String> layerNamesToAnchor,
                              Map<IndicatorPosition, List<Point>> pointsByPosition,
                              Map<HintGridArea, Rectangle> rectangleByArea,
                              Map<Point, HintRectangles> hintRectanglesByPoint,
@@ -445,7 +462,7 @@ public class WindowsOverlay implements Overlay {
         boolean renderAsCursor = following.renderAsCursor() && following.enabled();
         if (!renderAsCursor && !indicatorIsCursor &&
             shows(followingIndicatorWindow, following) && shows(anchored) &&
-            layerNamesToAnchor.isEmpty())
+            indicatorByCopyKey.isEmpty() && copyKeys.isEmpty() && layerNamesToAnchor.isEmpty())
             return;
         if (mouse.tryFindMousePosition() == null) {
             if (!mousePositionMissing)
@@ -469,13 +486,29 @@ public class WindowsOverlay implements Overlay {
             }
         }
         // Showing a window enforces the topmost order, which reads the window of every name.
+        for (IndicatorLayerCopyKey copyKey : indicatorByCopyKey.keySet())
+            if (!copyKeys.contains(copyKey)) {
+                WindowsIndicatorWindow layerWindow = anchoredIndicatorWindow(copyKey.layerName());
+                anchoredIndicatorWindowByLayerName.put(copyKey.layerName(),
+                        anchoredIndicatorWindow(copyKey));
+                anchoredIndicatorWindowByCopyKey.put(copyKey, layerWindow);
+            }
+        copyKeys = List.copyOf(indicatorByCopyKey.keySet());
         for (String layerName : anchored.keySet())
             anchoredIndicatorWindow(layerName);
         anchoredLayerNames = List.copyOf(anchored.keySet());
+        for (Map.Entry<IndicatorLayerCopyKey, WindowsIndicatorWindow> entry :
+                anchoredIndicatorWindowByCopyKey.entrySet())
+            if (!indicatorByCopyKey.containsKey(entry.getKey()))
+                entry.getValue().hide();
         for (Map.Entry<String, WindowsIndicatorWindow> entry :
                 anchoredIndicatorWindowByLayerName.entrySet())
             if (!anchored.containsKey(entry.getKey()))
                 entry.getValue().hide();
+        for (Map.Entry<IndicatorLayerCopyKey, IndicatorConfiguration> entry :
+                indicatorByCopyKey.entrySet())
+            setIndicatorWindow(anchoredIndicatorWindowByCopyKey.get(entry.getKey()),
+                    entry.getValue(), Set.of(), Map.of(), Map.of(), Map.of(), mousePosition);
         for (Map.Entry<String, IndicatorConfiguration> entry : anchored.entrySet())
             setIndicatorWindow(anchoredIndicatorWindowByLayerName.get(entry.getKey()),
                     entry.getValue(), layerNamesToAnchor, pointsByPosition, rectangleByArea,

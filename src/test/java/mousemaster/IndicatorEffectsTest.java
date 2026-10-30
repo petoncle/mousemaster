@@ -49,7 +49,7 @@ class IndicatorEffectsTest {
                     if (method.getName().equals("setIndicator")) {
                         drawnIndicator = (IndicatorConfiguration) args[0];
                         hidden = false;
-                        anchored.add((Set<String>) args[1]);
+                        anchored.add((Set<String>) args[2]);
                     }
                     else if (method.getName().equals("hideIndicator")) {
                         drawnIndicator = null;
@@ -108,7 +108,7 @@ class IndicatorEffectsTest {
                         return false;
                     }
                 }, animationPlayer);
-        indicatorManager.update();
+        indicatorManager.update(delta);
     }
 
     @Test

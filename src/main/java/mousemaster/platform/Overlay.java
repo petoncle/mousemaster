@@ -6,6 +6,7 @@ import mousemaster.HintMesh;
 import mousemaster.HintMeshConfiguration;
 import mousemaster.HintRectangles;
 import mousemaster.IndicatorConfiguration;
+import mousemaster.IndicatorLayerCopyKey;
 import mousemaster.IndicatorPosition;
 import mousemaster.Point;
 import mousemaster.Rectangle;
@@ -32,7 +33,9 @@ public interface Overlay {
 
     Rectangle activeWindowRectangle();
 
-    void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
+    void setIndicator(IndicatorConfiguration indicator,
+                      Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey,
+                      Set<String> layerNamesToAnchor,
                       Map<IndicatorPosition, List<Point>> pointsByPosition,
                       Map<HintGridArea, Rectangle> rectangleByArea,
                       Map<Point, HintRectangles> hintRectanglesByPoint, boolean animating,

@@ -7,6 +7,7 @@ import mousemaster.HintMesh;
 import mousemaster.HintMeshConfiguration;
 import mousemaster.HintRectangles;
 import mousemaster.IndicatorConfiguration;
+import mousemaster.IndicatorLayerCopyKey;
 import mousemaster.IndicatorPosition;
 import mousemaster.Point;
 import mousemaster.Rectangle;
@@ -42,6 +43,9 @@ public class MacosOverlay implements Overlay {
     private final Map<String, IndicatorRenderer> anchoredIndicatorRendererByLayerName =
             new LinkedHashMap<>();
     private List<String> anchoredLayerNames = List.of();
+    private final Map<IndicatorLayerCopyKey, IndicatorRenderer>
+            anchoredIndicatorRendererByCopyKey = new LinkedHashMap<>();
+    private List<IndicatorLayerCopyKey> copyKeys = List.of();
     private boolean indicatorExcludedFromCapture;
     private MacosZoomRenderer zoomRenderer;
     private Zoom currentZoom;
@@ -121,18 +125,27 @@ public class MacosOverlay implements Overlay {
         if (followingIndicatorRenderer != null)
             indicatorRenderers.add(followingIndicatorRenderer);
         indicatorRenderers.addAll(anchoredIndicatorRendererByLayerName.values());
+        indicatorRenderers.addAll(anchoredIndicatorRendererByCopyKey.values());
         return indicatorRenderers;
     }
 
     private IndicatorRenderer anchoredIndicatorRenderer(String layerName) {
-        return anchoredIndicatorRendererByLayerName.computeIfAbsent(layerName, layerName_ -> {
-            IndicatorRenderer indicatorRenderer = new IndicatorRenderer();
-            MacosWindow.applyOverlayProperties(indicatorRenderer.window(),
-                    MacosWindow.aboveOverlaysLevel);
-            MacosWindow.setExcludedFromCapture(indicatorRenderer.window(),
-                    indicatorExcludedFromCapture);
-            return indicatorRenderer;
-        });
+        return anchoredIndicatorRendererByLayerName.computeIfAbsent(layerName,
+                layerName_ -> createAnchoredIndicatorRenderer());
+    }
+
+    private IndicatorRenderer anchoredIndicatorRenderer(IndicatorLayerCopyKey copyKey) {
+        return anchoredIndicatorRendererByCopyKey.computeIfAbsent(copyKey,
+                copyKey_ -> createAnchoredIndicatorRenderer());
+    }
+
+    private IndicatorRenderer createAnchoredIndicatorRenderer() {
+        IndicatorRenderer indicatorRenderer = new IndicatorRenderer();
+        MacosWindow.applyOverlayProperties(indicatorRenderer.window(),
+                MacosWindow.aboveOverlaysLevel);
+        MacosWindow.setExcludedFromCapture(indicatorRenderer.window(),
+                indicatorExcludedFromCapture);
+        return indicatorRenderer;
     }
 
     private TransparentWindow createStyledHintMeshWindow() {
@@ -155,7 +168,9 @@ public class MacosOverlay implements Overlay {
     }
 
     @Override
-    public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
+    public void setIndicator(IndicatorConfiguration indicator,
+                             Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey,
+                             Set<String> layerNamesToAnchor,
                              Map<IndicatorPosition, List<Point>> pointsByPosition,
                              Map<HintGridArea, Rectangle> rectangleByArea,
                              Map<Point, HintRectangles> hintRectanglesByPoint,
@@ -173,6 +188,21 @@ public class MacosOverlay implements Overlay {
         setIndicator(followingIndicatorRenderer,
                 IndicatorRenderer.followingMouse(indicator), Set.of(), Map.of(),
                 Map.of(), Map.of(), mousePosition);
+        for (IndicatorLayerCopyKey copyKey : indicatorByCopyKey.keySet())
+            if (!copyKeys.contains(copyKey)) {
+                IndicatorRenderer layerRenderer = anchoredIndicatorRenderer(copyKey.layerName());
+                anchoredIndicatorRendererByLayerName.put(copyKey.layerName(),
+                        anchoredIndicatorRenderer(copyKey));
+                anchoredIndicatorRendererByCopyKey.put(copyKey, layerRenderer);
+            }
+        for (Map.Entry<IndicatorLayerCopyKey, IndicatorRenderer> entry :
+                anchoredIndicatorRendererByCopyKey.entrySet())
+            if (!indicatorByCopyKey.containsKey(entry.getKey()))
+                entry.getValue().hide();
+        for (Map.Entry<IndicatorLayerCopyKey, IndicatorConfiguration> entry :
+                indicatorByCopyKey.entrySet())
+            setIndicator(anchoredIndicatorRendererByCopyKey.get(entry.getKey()),
+                    entry.getValue(), Set.of(), Map.of(), Map.of(), Map.of(), mousePosition);
         Map<String, IndicatorConfiguration> anchored = IndicatorRenderer.anchoredLayers(indicator);
         for (Map.Entry<String, IndicatorRenderer> entry :
                 anchoredIndicatorRendererByLayerName.entrySet())
@@ -182,11 +212,19 @@ public class MacosOverlay implements Overlay {
             setIndicator(anchoredIndicatorRenderer(entry.getKey()), entry.getValue(),
                     layerNamesToAnchor, pointsByPosition, rectangleByArea, hintRectanglesByPoint,
                     mousePosition);
-        // The windows share a level: the one ordered front last is drawn on top.
-        if (!anchoredLayerNames.equals(List.copyOf(anchored.keySet())))
+        // The windows share a level: the one ordered front last is drawn on top. Ordering a
+        // hidden window front shows it.
+        if (!copyKeys.equals(List.copyOf(indicatorByCopyKey.keySet())) ||
+            !anchoredLayerNames.equals(List.copyOf(anchored.keySet()))) {
+            for (IndicatorLayerCopyKey copyKey : indicatorByCopyKey.keySet())
+                if (anchoredIndicatorRendererByCopyKey.get(copyKey).showing())
+                    MacosWindow.orderFront(
+                            anchoredIndicatorRendererByCopyKey.get(copyKey).window());
             for (String layerName : anchored.keySet())
                 MacosWindow.orderFront(
                         anchoredIndicatorRendererByLayerName.get(layerName).window());
+        }
+        copyKeys = List.copyOf(indicatorByCopyKey.keySet());
         anchoredLayerNames = List.copyOf(anchored.keySet());
     }
 

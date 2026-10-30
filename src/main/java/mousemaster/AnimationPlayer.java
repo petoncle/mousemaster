@@ -28,17 +28,16 @@ public class AnimationPlayer {
 
     public void update(double delta) {
         for (String animationName : List.copyOf(runningAnimationNames)) {
-            if (ended(animationName))
+            if (ended(animationName, elapsed(animationName)))
                 runningAnimationNames.remove(animationName);
             else
                 elapsedByAnimationName.merge(animationName, delta, Double::sum);
         }
     }
 
-    private boolean ended(String animationName) {
+    public boolean ended(String animationName, double elapsed) {
         Integer repeatCount = animationConfigurationByName.get(animationName).repeatCount();
-        return repeatCount != null &&
-               elapsed(animationName) >= repeatCount * cycleSeconds(animationName);
+        return repeatCount != null && elapsed >= repeatCount * cycleSeconds(animationName);
     }
 
     public Set<String> animationNames() {
@@ -53,10 +52,10 @@ public class AnimationPlayer {
         return elapsedByAnimationName.get(animationName);
     }
 
-    public double progress(String animationName) {
+    public double progress(String animationName, double elapsed) {
         AnimationConfiguration animation = animationConfigurationByName.get(animationName);
-        double cycles = elapsed(animationName) / cycleSeconds(animationName);
-        boolean ended = ended(animationName);
+        double cycles = elapsed / cycleSeconds(animationName);
+        boolean ended = ended(animationName, elapsed);
         long cycle = ended ? animation.repeatCount() - 1 : (long) cycles;
         double progress = ended ? 1 : cycles - cycle;
         boolean backward =
@@ -71,8 +70,8 @@ public class AnimationPlayer {
             if (!propertyPath.fieldNames().getFirst().equals(fieldName))
                 continue;
             String animationName = entry.getValue().animationName();
-            mode = mode.mutate(propertyPath, entry.getValue().valueAt(progress(animationName),
-                    duration(animationName),
+            mode = mode.mutate(propertyPath, entry.getValue().valueAt(
+                    progress(animationName, elapsed(animationName)), duration(animationName),
                     ModePropertyMutator.getModeProperty(mode, propertyPath.fieldNames())));
         }
         return mode;
@@ -80,6 +79,10 @@ public class AnimationPlayer {
 
     public Duration duration(String animationName) {
         return animationConfigurationByName.get(animationName).duration();
+    }
+
+    public boolean overlap(String animationName) {
+        return animationConfigurationByName.get(animationName).overlap();
     }
 
     private double cycleSeconds(String animationName) {

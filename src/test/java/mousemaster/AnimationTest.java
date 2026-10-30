@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,6 +24,7 @@ class AnimationTest {
     private IndicatorManager indicatorManager;
     private final List<IndicatorLayerConfiguration> drawn = new ArrayList<>();
     private IndicatorConfiguration drawnIndicator;
+    private Map<IndicatorLayerCopyKey, IndicatorConfiguration> drawnIndicatorByCopyKey;
     private final List<Set<String>> anchored = new ArrayList<>();
 
     @SuppressWarnings("unchecked")
@@ -42,8 +44,10 @@ class AnimationTest {
                 (proxy, method, args) -> {
                     if (method.getName().equals("setIndicator")) {
                         drawnIndicator = (IndicatorConfiguration) args[0];
+                        drawnIndicatorByCopyKey =
+                                (Map<IndicatorLayerCopyKey, IndicatorConfiguration>) args[1];
                         drawn.add(drawnIndicator.layerByName().get("indicator"));
-                        anchored.add((Set<String>) args[1]);
+                        anchored.add((Set<String>) args[2]);
                     }
                     else if (method.getName().equals("hideIndicator"))
                         drawn.add(null);
@@ -93,7 +97,7 @@ class AnimationTest {
                         return false;
                     }
                 }, animationPlayer);
-        indicatorManager.update();
+        indicatorManager.update(delta);
     }
 
     /** The layers the draws since the last call anchored. */
@@ -112,6 +116,12 @@ class AnimationTest {
 
     private double drawnSize() {
         return drawn.getLast().size();
+    }
+
+    private IndicatorLayerConfiguration copyLayer(int index) {
+        return drawnIndicatorByCopyKey.get(new IndicatorLayerCopyKey("indicator", index))
+                                      .layerByName()
+                                      .get("indicator");
     }
 
     private boolean hideCursorEnabled() {
@@ -228,6 +238,96 @@ class AnimationTest {
         assertEquals(42, size());
         tick(0);
         assertEquals(26, size());
+    }
+
+    @Test
+    void startingARunningOverlappingAnimationLeavesACopyThatPlaysToItsEnd() {
+        load("ripple-animation.duration-millis=100",
+                "ripple-animation.overlap=true",
+                "idle-mode.start.ripple-animation=+a",
+                "idle-mode.indicator.enabled=true",
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
+        tick(0);
+        tap("a");
+        tick(0.05);
+        tap("a");
+        tick(0.02);
+        assertEquals(24, copyLayer(0).size(), 1e-9);
+        assertEquals(14, drawnSize(), 1e-9);
+        tick(0.03);
+        assertEquals(30, copyLayer(0).size(), 1e-9);
+        tick(0);
+        assertEquals(Map.of(), drawnIndicatorByCopyKey);
+        assertEquals(20, drawnSize(), 1e-9);
+    }
+
+    @Test
+    void aCopyTakesTheFirstFreeIndex() {
+        load("ripple-animation.duration-millis=100",
+                "ripple-animation.overlap=true",
+                "idle-mode.start.ripple-animation=+a",
+                "idle-mode.indicator.enabled=true",
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
+        tick(0);
+        tap("a");
+        tick(0.05);
+        tap("a");
+        tick(0.03);
+        tap("a");
+        tick(0.02);
+        assertEquals(Set.of(new IndicatorLayerCopyKey("indicator", 0),
+                new IndicatorLayerCopyKey("indicator", 1)), drawnIndicatorByCopyKey.keySet());
+        tick(0.01);
+        tap("a");
+        tick(0.01);
+        assertEquals(Set.of(new IndicatorLayerCopyKey("indicator", 0),
+                new IndicatorLayerCopyKey("indicator", 1)), drawnIndicatorByCopyKey.keySet());
+        assertEquals(18, copyLayer(0).size(), 1e-9);
+    }
+
+    @Test
+    void aCopyKeepsWhatWasDrawn() {
+        load("ripple-animation.duration-millis=100",
+                "ripple-animation.overlap=true",
+                "idle-mode.start.ripple-animation=+a",
+                "idle-mode.indicator.enabled=true",
+                "idle-mode.indicator.fill-color=#FF0000 | _{b} -> #00FF00",
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
+        tick(0);
+        tap("a");
+        tick(0.05);
+        tap("a");
+        comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, Key.ofName("b")));
+        tick(0.02);
+        assertEquals(Color.parse("#FF0000"), copyLayer(0).fillColor());
+        assertEquals(Color.parse("#00FF00"), drawn.getLast().fillColor());
+    }
+
+    @Test
+    void aCopyIsNotAKey() {
+        load("ripple-animation.duration-millis=100",
+                "ripple-animation.overlap=true",
+                "idle-mode.start.ripple-animation=+a",
+                "idle-mode.stop.ripple-animation=+b",
+                "idle-mode.indicator.enabled=true",
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
+        tick(0);
+        tap("a");
+        tick(0.05);
+        tap("a");
+        tick(0.02);
+        tap("b");
+        tick(0);
+        assertEquals(26, size());
+        assertEquals(24, copyLayer(0).size(), 1e-9);
+    }
+
+    @Test
+    void aLoopCannotOverlap() {
+        assertThrows(IllegalArgumentException.class,
+                () -> load("ripple-animation.duration-millis=100",
+                        "ripple-animation.repeat=loop",
+                        "ripple-animation.overlap=true"));
     }
 
     @Test
@@ -528,7 +628,7 @@ class AnimationTest {
         tick(0);
         assertEquals(Color.parse("#00FFFF"), drawn.getLast().fillColor());
         comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
-        indicatorManager.update();
+        indicatorManager.update(0);
         tick(0);
         assertEquals(Color.parse("#00FFFF"), drawn.getLast().fillColor());
     }

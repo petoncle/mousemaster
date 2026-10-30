@@ -595,9 +595,14 @@ _indicator-mode.stop.click-burst-animation=_{clickburstanimation ismousepressing
 - **`<name>-animation.repeat`**: A number of cycles (default `1`) or `loop`.
 - **`<name>-animation.direction`**: `forward` (default) or `alternate`, which plays every other
   cycle backwards.
+- **`<name>-animation.overlap`**: `true` to let a running animation play to its end when it is
+  started again (default `false`). A loop cannot overlap.
 - **`<mode>.start.<name>-animation`** / **`stop`**: The combos that start and stop it in that
   mode.
-  Starting a running animation starts it over.
+  Starting a running animation starts it over. With `overlap=true`, the running one leaves a copy
+  of the layers it animates, drawn below them: the copy keeps what was drawn and plays its
+  keyframes to the end. A copy is not a key, so combos and `stop` see the restarted animation
+  only.
 
 While it runs, an animation reads as a pressed key named without its hyphens
 (`clickburstanimation`), so `_{clickburstanimation}` matches while it runs and
