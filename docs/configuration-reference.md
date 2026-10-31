@@ -484,23 +484,32 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
   points of the overlay (see `mouse-follows-target`), and the layer moves with them, not with
   the cursor. While the mouse follows the target, the target is the mouse, and a layer on it
   is drawn again at each mouse move: to draw at the cursor, use `mouse`. A position history
-  stands for the positions saved in it, in the order they were saved.
+  stands for the positions saved in it, in the order they were saved: the layer is drawn on
+  each of them, and not drawn while the history is empty.
+- **`end-position`**: The same values as `position`. With `end-position`, the layer starts at
+  `position` and stops at `end-position`. `size` is its width, and `rotation` turns it from the
+  line between the two points. `aspect-ratio` cannot be set.
+  - The layer runs from each point of `position` to each point of `end-position`.
+  - From a position to the same position, the layer runs from each point to the next.
+  - Without two points to run between, the layer is not drawn.
 
-  With several positions, or a position history, the layer runs from each point to the next.
-  Between two points, their distance is its length, `size` is its width, and `rotation` turns
-  it from their direction. `aspect-ratio` cannot be set. With fewer than two points, the layer
-  is not drawn. An arrow from the last selected hint to the target, and an arrow from each
-  saved position to the next:
+  An arrow from the last selected hint to the target, an arrow from each saved position to the
+  next, and a line from each saved position to the target:
   ```properties
   grid-mode.arrow-indicator.shape=arrow
-  grid-mode.arrow-indicator.position=last-selected-hint target
+  grid-mode.arrow-indicator.position=last-selected-hint
+  grid-mode.arrow-indicator.end-position=target
   ui-hint-mode.arrow-indicator.shape=arrow
   ui-hint-mode.arrow-indicator.position=click-position-history
+  ui-hint-mode.arrow-indicator.end-position=click-position-history
+  ui-hint-mode.line-indicator.shape=line
+  ui-hint-mode.line-indicator.position=click-position-history
+  ui-hint-mode.line-indicator.end-position=target
   ```
-- **`position-anchor`**: Each position is a point on the screen. Some positions also have a hint:
-  `last-selected-hint` always has one, and a saved position has one when the user saved it at the
-  point of the last selected hint. `position-anchor` sets where a layer between two positions
-  starts and stops:
+- **`position-anchor`** / **`end-position-anchor`**: Each position is a point on the screen. Some
+  positions also have a hint: `last-selected-hint` always has one, and a saved position has one
+  when the user saved it at the point of the last selected hint. `position-anchor` sets where a
+  layer with an `end-position` starts, and `end-position-anchor` sets where it stops:
   - `point` (default): at the point. It does not use the hint.
   - `hint-box-edge`: at the edge of the hint box.
   - `hint-cell-edge`: at the edge of the hint cell.
@@ -512,13 +521,15 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
   ```properties
   ui-hint-mode.arrow-indicator.position=click-position-history
   ui-hint-mode.arrow-indicator.position-anchor=hint-box-edge
+  ui-hint-mode.arrow-indicator.end-position=click-position-history
+  ui-hint-mode.arrow-indicator.end-position-anchor=hint-box-edge
   ```
 - **`follow-mouse`**: Whether the layer moves with the cursor (default `true`). With `false`, the
   layer stays where it was when it was enabled, or when its keyframes started over.
 - **`area`**: The area the layer covers. It takes the values of the overlay's `area`, with
   `area-width-percent`, `area-height-percent`, the `area-*-inset` and `area-center` (see
   [Overlay area and layout](#overlay-area-and-layout)). The layer takes its position and its size
-  from the area, so `position`, `size` and `aspect-ratio` cannot be set, and it does not follow
+  from the area, so `position`, `end-position`, `size` and `aspect-ratio` cannot be set, and it does not follow
   the mouse. The stroke is centered on the edge of the area: an inset of minus half the stroke
   thickness puts the stroke just outside it. A box around the element of the last selected UI
   hint:

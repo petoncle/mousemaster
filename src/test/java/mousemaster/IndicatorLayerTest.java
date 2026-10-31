@@ -209,31 +209,40 @@ class IndicatorLayerTest {
     }
 
     @Test
-    void aLayerThroughSeveralPositionsTakesItsAspectRatioFromThem() {
-        Mode mode = parse("idle-mode.indicator.position=last-selected-hint target")
+    void aLayerWithAnEndPositionTakesItsAspectRatioFromItsPositions() {
+        Mode mode = parse("idle-mode.indicator.position=last-selected-hint",
+                "idle-mode.indicator.end-position=target")
                 .modeMap().get(Mode.IDLE_MODE_NAME);
-        assertEquals(List.of(PointIndicatorPosition.LAST_SELECTED_HINT,
-                PointIndicatorPosition.TARGET), layer(mode, "indicator").positions());
+        assertEquals(PointIndicatorPosition.LAST_SELECTED_HINT,
+                layer(mode, "indicator").position());
+        assertEquals(PointIndicatorPosition.TARGET, layer(mode, "indicator").endPosition());
         assertFalse(layer(mode, "indicator").followMouse());
         assertThrows(IllegalArgumentException.class,
-                () -> parse("idle-mode.indicator.position=mouse target",
+                () -> parse("idle-mode.indicator.position=mouse",
+                        "idle-mode.indicator.end-position=target",
                         "idle-mode.indicator.aspect-ratio=2"));
-        parse("idle-mode.indicator.position=mouse target", "idle-mode.indicator.size=10",
-                "idle-mode.indicator.rotation=90");
-        parse("idle-mode.indicator.position=mouse target screen-center");
+        parse("idle-mode.indicator.position=mouse", "idle-mode.indicator.end-position=target",
+                "idle-mode.indicator.size=10", "idle-mode.indicator.rotation=90");
+        assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.indicator.position=mouse target"));
     }
 
     @Test
     void aPositionHistoryStandsForItsPositions() {
         Mode mode = parse("idle-mode.save.position-history=+f1",
-                "idle-mode.indicator.position=position-history target")
+                "idle-mode.indicator.position=position-history")
                 .modeMap().get(Mode.IDLE_MODE_NAME);
-        assertEquals(List.of(new PositionHistoryIndicatorPosition("position-history"),
-                PointIndicatorPosition.TARGET), layer(mode, "indicator").positions());
+        assertEquals(new PositionHistoryIndicatorPosition("position-history"),
+                layer(mode, "indicator").position());
+        assertNull(layer(mode, "indicator").endPosition());
         assertFalse(layer(mode, "indicator").followMouse());
+        parse("idle-mode.save.position-history=+f1",
+                "idle-mode.indicator.position=position-history",
+                "idle-mode.indicator.aspect-ratio=2");
         assertThrows(IllegalArgumentException.class,
                 () -> parse("idle-mode.save.position-history=+f1",
                         "idle-mode.indicator.position=position-history",
+                        "idle-mode.indicator.end-position=position-history",
                         "idle-mode.indicator.aspect-ratio=2"));
     }
 
@@ -241,8 +250,7 @@ class IndicatorLayerTest {
     void aPositionIsRelativeToTheMouseOrTheScreen() {
         Mode mode = parse("idle-mode.indicator.position=mouse-top-left").modeMap()
                                                                      .get(Mode.IDLE_MODE_NAME);
-        assertEquals(List.of(PointIndicatorPosition.MOUSE_TOP_LEFT),
-                layer(mode, "indicator").positions());
+        assertEquals(PointIndicatorPosition.MOUSE_TOP_LEFT, layer(mode, "indicator").position());
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
                 () -> parse("idle-mode.indicator.position=center"));
         assertTrue(e.getMessage().endsWith("renamed mouse"), e.getMessage());

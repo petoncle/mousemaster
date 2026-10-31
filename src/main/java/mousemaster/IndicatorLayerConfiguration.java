@@ -16,9 +16,15 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                                           IndicatorStroke stroke, Shadow shadow,
                                           String text, String fontName, double fontSize,
                                           FontWeight fontWeight, String textStyleSheet,
-                                          List<IndicatorPosition> positions,
+                                          IndicatorPosition position,
                                           PositionAnchor positionAnchor,
+                                          IndicatorPosition endPosition,
+                                          PositionAnchor endPositionAnchor,
                                           HintGridArea area, boolean followMouse) {
+
+    public List<IndicatorPosition> positions() {
+        return endPosition == null ? List.of(position) : List.of(position, endPosition);
+    }
 
     public IndicatorLayerConfigurationBuilder builder() {
         return new IndicatorLayerConfigurationBuilder(this);
@@ -47,8 +53,10 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         private Double fontSize;
         private FontWeight fontWeight;
         private String textStyleSheet;
-        private List<IndicatorPosition> positions;
+        private IndicatorPosition position;
         private PositionAnchor positionAnchor;
+        private IndicatorPosition endPosition;
+        private PositionAnchor endPositionAnchor;
         private HintGridAreaBuilder area = new HintGridAreaBuilder();
         private Boolean followMouse;
 
@@ -77,8 +85,10 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             this.fontSize = layer.fontSize;
             this.fontWeight = layer.fontWeight;
             this.textStyleSheet = layer.textStyleSheet;
-            this.positions = layer.positions;
+            this.position = layer.position;
             this.positionAnchor = layer.positionAnchor;
+            this.endPosition = layer.endPosition;
+            this.endPositionAnchor = layer.endPositionAnchor;
             this.area = layer.area == null ? new HintGridAreaBuilder() : layer.area.builder();
             this.followMouse = layer.followMouse;
         }
@@ -262,13 +272,13 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             return textStyleSheet;
         }
 
-        public IndicatorLayerConfigurationBuilder positions(List<IndicatorPosition> positions) {
-            this.positions = positions;
+        public IndicatorLayerConfigurationBuilder position(IndicatorPosition position) {
+            this.position = position;
             return this;
         }
 
-        public List<IndicatorPosition> positions() {
-            return positions;
+        public IndicatorPosition position() {
+            return position;
         }
 
         public IndicatorLayerConfigurationBuilder positionAnchor(PositionAnchor positionAnchor) {
@@ -278,6 +288,25 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
 
         public PositionAnchor positionAnchor() {
             return positionAnchor;
+        }
+
+        public IndicatorLayerConfigurationBuilder endPosition(IndicatorPosition endPosition) {
+            this.endPosition = endPosition;
+            return this;
+        }
+
+        public IndicatorPosition endPosition() {
+            return endPosition;
+        }
+
+        public IndicatorLayerConfigurationBuilder endPositionAnchor(
+                PositionAnchor endPositionAnchor) {
+            this.endPositionAnchor = endPositionAnchor;
+            return this;
+        }
+
+        public PositionAnchor endPositionAnchor() {
+            return endPositionAnchor;
         }
 
         public HintGridAreaBuilder area() {
@@ -315,18 +344,23 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             if (fontSize == null) fontSize = parent.fontSize;
             if (fontWeight == null) fontWeight = parent.fontWeight;
             if (textStyleSheet == null) textStyleSheet = parent.textStyleSheet;
-            if (positions == null) positions = parent.positions;
+            if (position == null) position = parent.position;
             if (positionAnchor == null) positionAnchor = parent.positionAnchor;
+            if (endPosition == null) endPosition = parent.endPosition;
+            if (endPositionAnchor == null) endPositionAnchor = parent.endPositionAnchor;
             area.extend(parent.area);
             if (followMouse == null) followMouse = parent.followMouse;
         }
 
         public IndicatorLayerConfiguration build() {
+            List<IndicatorPosition> positions =
+                    endPosition == null ? List.of(position) : List.of(position, endPosition);
             return new IndicatorLayerConfiguration(enabled, z, shape, size, aspectRatio,
                     borderRadius, points, x, y, distance, angle, rotation, fillColor, fillOpacity,
                     stroke.build(), shadow.build(),
-                    text, fontName, fontSize, fontWeight, textStyleSheet, positions,
-                    positionAnchor, area.source() == null ? null : area.build(),
+                    text, fontName, fontSize, fontWeight, textStyleSheet, position,
+                    positionAnchor, endPosition, endPositionAnchor,
+                    area.source() == null ? null : area.build(),
                     followMouse && area.source() == null &&
                     !positions.contains(IndicatorPosition.PointIndicatorPosition.TARGET) &&
                     !positions.contains(

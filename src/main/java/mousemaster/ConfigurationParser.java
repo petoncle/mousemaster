@@ -95,8 +95,9 @@ public class ConfigurationParser {
              .rotation(0)
              .fillColor(Color.parse("#FF0000"))
              .fillOpacity(0.2)
-             .positions(List.of(IndicatorPosition.PointIndicatorPosition.MOUSE))
+             .position(IndicatorPosition.PointIndicatorPosition.MOUSE)
              .positionAnchor(PositionAnchor.POINT)
+             .endPositionAnchor(PositionAnchor.POINT)
              .followMouse(true);
         layer.area()
              .widthPercent(1d)
@@ -615,14 +616,14 @@ public class ConfigurationParser {
         for (ModeBuilder mode : modeByName.values())
             for (Map.Entry<String, IndicatorLayerConfigurationBuilder> entry : mode.indicator.builder.layerByName().entrySet()) {
                 IndicatorLayerConfigurationBuilder layer = entry.getValue();
-                if (layer.positions() != null && IndicatorPosition.runThrough(layer.positions()) &&
+                if (layer.endPosition() != null &&
                     mode.indicator.setPropertyPaths.contains(new ModePropertyPath(
                             List.of("indicator", "layerByName", entry.getKey(), "aspectRatio"))))
                     throw new IllegalArgumentException(
                             "Invalid definition of " + entry.getKey() + " for " + mode.modeName +
-                            ": a layer through several positions takes its aspect ratio from them");
+                            ": a layer with an end position takes its aspect ratio from its positions");
                 if (layer.area().source() != null &&
-                    List.of("positions", "size", "aspectRatio").stream().anyMatch(fieldName ->
+                    List.of("position", "endPosition", "size", "aspectRatio").stream().anyMatch(fieldName ->
                             mode.indicator.setPropertyPaths.contains(new ModePropertyPath(
                                     List.of("indicator", "layerByName", entry.getKey(),
                                             fieldName)))))
@@ -3085,8 +3086,10 @@ public class ConfigurationParser {
             case "font-size" -> ModePropertyHandler.of(prefix.append("fontSize"), v -> parseDouble(v, false, 0, 1000), v -> layer.fontSize(v));
             case "font-weight" -> ModePropertyHandler.of(prefix.append("fontWeight"), v -> FontWeight.of(v), v -> layer.fontWeight(v));
             case "text-style-sheet" -> ModePropertyHandler.of(prefix.append("textStyleSheet"), v -> v, v -> layer.textStyleSheet(v));
-            case "position" -> ModePropertyHandler.of(prefix.append("positions"), v -> parseIndicatorPositions(v, positionHistoryNames), v -> layer.positions(v));
+            case "position" -> ModePropertyHandler.of(prefix.append("position"), v -> IndicatorPosition.fromString(v, positionHistoryNames), v -> layer.position(v));
             case "position-anchor" -> ModePropertyHandler.of(prefix.append("positionAnchor"), v -> PositionAnchor.fromString(v), v -> layer.positionAnchor(v));
+            case "end-position" -> ModePropertyHandler.of(prefix.append("endPosition"), v -> IndicatorPosition.fromString(v, positionHistoryNames), v -> layer.endPosition(v));
+            case "end-position-anchor" -> ModePropertyHandler.of(prefix.append("endPositionAnchor"), v -> PositionAnchor.fromString(v), v -> layer.endPositionAnchor(v));
             case "area" -> ModePropertyHandler.of(prefix.append("area", "size", "source"), v -> parseHintGridAreaSizeSource(layerName + ".area", v), v -> layer.area().source(v));
             case "area-width-percent" -> ModePropertyHandler.of(prefix.append("area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> layer.area().widthPercent(v));
             case "area-height-percent" -> ModePropertyHandler.of(prefix.append("area", "size", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> layer.area().heightPercent(v));
@@ -3750,13 +3753,6 @@ public class ConfigurationParser {
                     "Invalid property value " + percent +
                     ": must be less than or equal to " + max);
         return percent;
-    }
-
-    private static List<IndicatorPosition> parseIndicatorPositions(String propertyValue,
-                                                                   Set<String> positionHistoryNames) {
-        return Arrays.stream(propertyValue.split("\\s+"))
-                     .map(position -> IndicatorPosition.fromString(position, positionHistoryNames))
-                     .toList();
     }
 
     private static List<Key> parseKeyList(String propertyValue,

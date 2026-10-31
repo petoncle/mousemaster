@@ -120,7 +120,8 @@ public class IndicatorManager implements ModeListener {
                 newRectangleByArea.put(layer.area(), hintManager.indicatorArea(layer.area()));
         Map<Point, HintRectangles> newHintRectanglesByPoint = new HashMap<>();
         for (IndicatorLayerConfiguration layer : indicator.layerByName().values()) {
-            if (!layer.enabled() || layer.positionAnchor() == PositionAnchor.POINT)
+            if (!layer.enabled() || layer.positionAnchor() == PositionAnchor.POINT &&
+                                    layer.endPositionAnchor() == PositionAnchor.POINT)
                 continue;
             for (IndicatorPosition position : layer.positions()) {
                 if (position == IndicatorPosition.PointIndicatorPosition.LAST_SELECTED_HINT &&
@@ -148,7 +149,8 @@ public class IndicatorManager implements ModeListener {
                                     layer.area() != null &&
                                     !Objects.equals(newRectangleByArea.get(layer.area()),
                                             rectangleByArea.get(layer.area())) ||
-                                    layer.positionAnchor() != PositionAnchor.POINT &&
+                                    (layer.positionAnchor() != PositionAnchor.POINT ||
+                                     layer.endPositionAnchor() != PositionAnchor.POINT) &&
                                     !newHintRectanglesByPoint.equals(hintRectanglesByPoint)))
                 layerNamesToAnchor.add(entry.getKey());
         }
@@ -158,20 +160,24 @@ public class IndicatorManager implements ModeListener {
         Map<String, IndicatorLayerConfiguration> layerByName =
                 new LinkedHashMap<>(indicator.layerByName());
         layerByName.replaceAll((layerName, layer) ->
-                layer.enabled() && IndicatorPosition.runThrough(layer.positions()) &&
-                pointCount(layer) < 2 ? layer.builder().enabled(false).build() : layer);
+                layer.enabled() && shapeCount(layer) == 0 ?
+                        layer.builder().enabled(false).build() : layer);
         return new IndicatorConfiguration(indicator.renderAsCursor(),
                 indicator.excludeFromCapture(), layerByName);
     }
 
-    /** A position the manager has no points for is the mouse, one point. */
-    private int pointCount(IndicatorLayerConfiguration layer) {
-        int pointCount = 0;
-        for (IndicatorPosition position : layer.positions()) {
-            List<Point> points = pointsByPosition.get(position);
-            pointCount += points == null ? 1 : points.size();
-        }
-        return pointCount;
+    private int shapeCount(IndicatorLayerConfiguration layer) {
+        int pointCount = pointCount(layer.position());
+        if (layer.endPosition() == null)
+            return pointCount;
+        if (layer.endPosition().equals(layer.position()))
+            return Math.max(pointCount - 1, 0);
+        return pointCount * pointCount(layer.endPosition());
+    }
+
+    private int pointCount(IndicatorPosition position) {
+        List<Point> points = pointsByPosition.get(position);
+        return points == null ? 1 : points.size();
     }
 
     private record RunningTimeline(Timeline timeline, double elapsed, Object current) {

@@ -1,6 +1,5 @@
 package mousemaster;
 
-import java.util.List;
 import java.util.Set;
 
 public sealed interface IndicatorPosition {
@@ -19,12 +18,6 @@ public sealed interface IndicatorPosition {
     /** The positions saved in the history, in the order they were saved. */
     record PositionHistoryIndicatorPosition(String positionHistoryName)
             implements IndicatorPosition {
-    }
-
-    /** A layer runs through several positions, or through the positions of a history. */
-    static boolean runThrough(List<IndicatorPosition> positions) {
-        return positions.size() > 1 ||
-               positions.getFirst() instanceof PositionHistoryIndicatorPosition;
     }
 
     static IndicatorPosition fromString(String value, Set<String> positionHistoryNames) {

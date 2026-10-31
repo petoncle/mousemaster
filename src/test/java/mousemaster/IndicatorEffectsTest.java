@@ -112,14 +112,27 @@ class IndicatorEffectsTest {
     }
 
     @Test
-    void aLayerThroughAPositionHistoryIsDrawnFromItsSecondPosition() {
+    void aLayerFromAPositionHistoryToItselfIsDrawnFromItsSecondPosition() {
         load("idle-mode.save.position-history=+f1",
-                "idle-mode.indicator.position=position-history");
+                "idle-mode.indicator.position=position-history",
+                "idle-mode.indicator.end-position=position-history");
         hintManager.mouseMoved(100, 100);
         hintManager.saveCurrentPosition("position-history");
         tick(0);
         assertTrue(hidden);
         hintManager.mouseMoved(200, 100);
+        hintManager.saveCurrentPosition("position-history");
+        tick(0);
+        assertFalse(hidden);
+    }
+
+    @Test
+    void aLayerOnAPositionHistoryIsDrawnFromItsFirstPosition() {
+        load("idle-mode.save.position-history=+f1",
+                "idle-mode.indicator.position=position-history");
+        tick(0);
+        assertTrue(hidden);
+        hintManager.mouseMoved(100, 100);
         hintManager.saveCurrentPosition("position-history");
         tick(0);
         assertFalse(hidden);

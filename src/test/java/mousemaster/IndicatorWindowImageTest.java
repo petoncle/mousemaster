@@ -150,11 +150,12 @@ class IndicatorWindowImageTest {
     }
 
     @Test
-    void aLayerWithTwoPositionsRunsFromTheFirstToTheSecond() {
+    void aLayerWithAnEndPositionRunsFromItsPositionToItsEndPosition() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         Rectangle lineInk = inkBox(render(indicator(
                         "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=line",
-                        "idle-mode.indicator.position=last-selected-hint target"),
+                        "idle-mode.indicator.position=last-selected-hint",
+                        "idle-mode.indicator.end-position=target"),
                 hintAndTarget(new Point(500, 500), new Point(700, 600))));
         assertEquals(500, lineInk.x(), 1);
         assertEquals(500, lineInk.y(), 1);
@@ -162,7 +163,8 @@ class IndicatorWindowImageTest {
         assertEquals(600, lineInk.y() + lineInk.height(), 1);
         Rectangle circleInk = inkBox(render(indicator(
                         "idle-mode.indicator.enabled=true",
-                        "idle-mode.indicator.position=last-selected-hint target",
+                        "idle-mode.indicator.position=last-selected-hint",
+                        "idle-mode.indicator.end-position=target",
                         "idle-mode.indicator.size=40", "idle-mode.indicator.fill-opacity=1"),
                 hintAndTarget(new Point(500, 500), new Point(600, 500))));
         assertEquals(500, circleInk.x(), 1);
@@ -172,11 +174,12 @@ class IndicatorWindowImageTest {
     }
 
     @Test
-    void anArrowEndsOnTheSecondPositionWithAHeadAsWideAsItsSize() {
+    void anArrowEndsOnItsEndPositionWithAHeadAsWideAsItsSize() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         IndicatorConfiguration arrow = indicator("idle-mode.indicator.enabled=true",
                 "idle-mode.indicator.shape=arrow", "idle-mode.indicator.size=20",
-                "idle-mode.indicator.position=last-selected-hint target");
+                "idle-mode.indicator.position=last-selected-hint",
+                "idle-mode.indicator.end-position=target");
         for (int targetX : new int[]{700, 900}) {
             WindowImage image = render(arrow,
                     hintAndTarget(new Point(500, 500), new Point(targetX, 500)));
@@ -196,11 +199,12 @@ class IndicatorWindowImageTest {
     }
 
     @Test
-    void aLayerThroughSeveralPositionsRunsFromEachToTheNext() {
+    void aLayerFromAPositionHistoryToItselfRunsFromEachPointToTheNext() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         WindowImage lines = render(indicator("idle-mode.save.position-history=+f1",
                         "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=line",
-                        "idle-mode.indicator.position=position-history"),
+                        "idle-mode.indicator.position=position-history",
+                        "idle-mode.indicator.end-position=position-history"),
                 Map.of(new PositionHistoryIndicatorPosition("position-history"),
                         List.of(new Point(500, 500), new Point(700, 500), new Point(700, 700))));
         Rectangle ink = inkBox(lines);
@@ -213,13 +217,46 @@ class IndicatorWindowImageTest {
         assertFalse(inked(lines, 600, 600));
     }
 
+    @Test
+    void aLayerFromAPositionHistoryToAPositionRunsFromEachPointToIt() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        WindowImage lines = render(indicator("idle-mode.save.position-history=+f1",
+                        "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=line",
+                        "idle-mode.indicator.position=position-history",
+                        "idle-mode.indicator.end-position=target"),
+                Map.of(new PositionHistoryIndicatorPosition("position-history"),
+                        List.of(new Point(500, 500), new Point(500, 700)),
+                        PointIndicatorPosition.TARGET, List.of(new Point(700, 600))));
+        assertTrue(inked(lines, 600, 550));
+        assertTrue(inked(lines, 600, 650));
+        assertFalse(inked(lines, 600, 600));
+        assertFalse(inked(lines, 500, 600));
+    }
+
+    @Test
+    void aLayerWithoutAnEndPositionIsDrawnOnEachPointOfAPositionHistory() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        WindowImage circles = render(indicator("idle-mode.save.position-history=+f1",
+                        "idle-mode.indicator.enabled=true", "idle-mode.indicator.size=40",
+                        "idle-mode.indicator.fill-opacity=1",
+                        "idle-mode.indicator.position=position-history"),
+                Map.of(new PositionHistoryIndicatorPosition("position-history"),
+                        List.of(new Point(500, 500), new Point(700, 500))));
+        assertTrue(inked(circles, 500, 500));
+        assertTrue(inked(circles, 700, 500));
+        assertFalse(inked(circles, 600, 500));
+    }
+
     private static WindowImage renderThroughHints(String positionAnchor,
+                                                  String endPositionAnchor,
                                                   Map<Point, HintRectangles> hintRectanglesByPoint) {
         return render(indicator("idle-mode.save.position-history=+f1",
                         "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=arrow",
                         "idle-mode.indicator.size=8",
                         "idle-mode.indicator.position=position-history",
-                        "idle-mode.indicator.position-anchor=" + positionAnchor),
+                        "idle-mode.indicator.end-position=position-history",
+                        "idle-mode.indicator.position-anchor=" + positionAnchor,
+                        "idle-mode.indicator.end-position-anchor=" + endPositionAnchor),
                 Map.of(new PositionHistoryIndicatorPosition("position-history"),
                         List.of(new Point(500, 500), new Point(500, 700), new Point(700, 700))),
                 hintRectanglesByPoint);
@@ -228,13 +265,7 @@ class IndicatorWindowImageTest {
     @Test
     void anEdgeAnchorRunsALayerBetweenTheEdgesOfTheHintBoxes() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
-        WindowImage arrows = renderThroughHints("hint-box-edge", Map.of(
-                new Point(500, 500), new HintRectangles(new Rectangle(450, 450, 100, 100),
-                        new Rectangle(480, 490, 40, 20)),
-                new Point(500, 700), new HintRectangles(new Rectangle(450, 650, 100, 100),
-                        new Rectangle(480, 690, 40, 20)),
-                new Point(700, 700), new HintRectangles(new Rectangle(650, 650, 100, 100),
-                        new Rectangle(680, 690, 40, 20))));
+        WindowImage arrows = renderThroughHints("hint-box-edge", "hint-box-edge", boxes());
         assertFalse(inked(arrows, 500, 505));
         assertTrue(inked(arrows, 500, 515));
         assertTrue(inked(arrows, 500, 685));
@@ -246,28 +277,49 @@ class IndicatorWindowImageTest {
     }
 
     @Test
+    void anEndPositionAnchorSetsOnlyWhereTheLayerStops() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        WindowImage arrows = renderThroughHints("hint-box-edge", "point", boxes());
+        assertFalse(inked(arrows, 500, 505));
+        assertTrue(inked(arrows, 500, 695));
+        assertFalse(inked(arrows, 515, 700));
+        assertTrue(inked(arrows, 695, 700));
+    }
+
+    private static Map<Point, HintRectangles> boxes() {
+        return Map.of(
+                new Point(500, 500), new HintRectangles(new Rectangle(450, 450, 100, 100),
+                        new Rectangle(480, 490, 40, 20)),
+                new Point(500, 700), new HintRectangles(new Rectangle(450, 650, 100, 100),
+                        new Rectangle(480, 690, 40, 20)),
+                new Point(700, 700), new HintRectangles(new Rectangle(650, 650, 100, 100),
+                        new Rectangle(680, 690, 40, 20)));
+    }
+
+    @Test
     void aBoxEdgeAnchorTakesTheCellWhenNoBoxIsDrawnAndAPointAnchorTakesThePoints() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         Map<Point, HintRectangles> cells = Map.of(
                 new Point(500, 500), new HintRectangles(new Rectangle(450, 450, 100, 100), null),
                 new Point(500, 700), new HintRectangles(new Rectangle(450, 650, 100, 100), null),
                 new Point(700, 700), new HintRectangles(new Rectangle(650, 650, 100, 100), null));
-        WindowImage cellEdges = renderThroughHints("hint-box-edge", cells);
+        WindowImage cellEdges = renderThroughHints("hint-box-edge", "hint-box-edge", cells);
         assertFalse(inked(cellEdges, 500, 545));
         assertTrue(inked(cellEdges, 500, 560));
         assertFalse(inked(cellEdges, 545, 700));
         assertTrue(inked(cellEdges, 560, 700));
-        WindowImage points = renderThroughHints("point", cells);
+        WindowImage points = renderThroughHints("point", "point", cells);
         assertTrue(inked(points, 500, 545));
         assertTrue(inked(points, 545, 700));
     }
 
     @Test
-    void aRotationTurnsALayerWithTwoPositionsFromTheirDirection() {
+    void aRotationTurnsALayerWithAnEndPositionFromTheDirectionOfItsPositions() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         Rectangle lineInk = inkBox(render(indicator(
                         "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=line",
-                        "idle-mode.indicator.position=last-selected-hint target",
+                        "idle-mode.indicator.position=last-selected-hint",
+                        "idle-mode.indicator.end-position=target",
                         "idle-mode.indicator.rotation=90"),
                 hintAndTarget(new Point(500, 500), new Point(700, 500))));
         assertEquals(600, lineInk.x() + lineInk.width() / 2.0, 1);
