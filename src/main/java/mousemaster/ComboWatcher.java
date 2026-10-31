@@ -294,7 +294,7 @@ public class ComboWatcher {
                 mouseState.rightPressing());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_UNHANDLED_KEY_PRESSING,
                 keyboardState.pressingUnhandledKeyInCurrentMode());
-        setVirtualKeyPressed(BuiltInVirtualKey.IS_HINT_MESH_EMPTY,
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_OVERLAY_EMPTY,
                 hintManager.hintMeshEmpty());
         for (String positionHistoryName : hintManager.positionHistoryNames())
             setVirtualKeyPressed(BuiltInVirtualKey.positionHistoryKey(positionHistoryName),

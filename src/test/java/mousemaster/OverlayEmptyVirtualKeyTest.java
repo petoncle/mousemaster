@@ -21,15 +21,15 @@ import java.util.concurrent.Future;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** A ui hint query that finds nothing presses ishintmeshempty, which a to combo can read. */
-class HintMeshEmptyVirtualKeyTest {
+/** A ui hint query that finds nothing presses isoverlayempty, which a to combo can read. */
+class OverlayEmptyVirtualKeyTest {
 
     private static final String CONFIGURATION = """
             idle-mode.to.ui-hint-mode=+u
             ui-hint-mode.to.all-screens-ui-hint-mode=+g
             ui-hint-mode.hint.selection-keys=a b c d
             ui-hint-mode.hint.type=ui
-            ui-hint-mode.to.normal-mode=_{ishintmeshempty}
+            ui-hint-mode.to.normal-mode=_{isoverlayempty}
             all-screens-ui-hint-mode.hint.selection-keys=a b c d
             all-screens-ui-hint-mode.hint.type=ui
             all-screens-ui-hint-mode.hint.area=all-screens

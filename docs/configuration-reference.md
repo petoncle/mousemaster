@@ -799,10 +799,10 @@ ui-hint-mode.overlay.ui-order=left-to-right
 on another hint type is rejected.
 
 A scan that finds no element leaves the mode showing nothing. The built-in virtual key
-`ishintmeshempty` is pressed then, so a combo can leave the mode:
+`isoverlayempty` is pressed then, so a combo can leave the mode:
 
 ```properties
-ui-hint-mode.to.normal-mode=_{ishintmeshempty}
+ui-hint-mode.to.normal-mode=_{isoverlayempty}
 ```
 
 Accessibility UI hints use the same appearance properties as other hint types (`box-*`,
@@ -847,7 +847,7 @@ ui-hint-mode.overlay.vision-density=6
 
 Vision UI hints read the same **`area`** and **`ui-order`** as accessibility UI hints, and
 share every selection, click and appearance property with them. Detection runs off the keyboard
-hook, so mousemaster stays responsive while a scan is in progress, and `ishintmeshempty` is
+hook, so mousemaster stays responsive while a scan is in progress, and `isoverlayempty` is
 pressed when a scan finds nothing, exactly as for accessibility UI hints.
 
 - **`vision-density`**: How hard the detection looks, 1 to 8 (default 6). A higher value gives

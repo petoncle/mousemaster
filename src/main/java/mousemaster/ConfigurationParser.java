@@ -344,6 +344,7 @@ public class ConfigurationParser {
     public static Configuration parse(List<String> properties,
                                       KeyboardLayout platformActiveKeyboardLayout) {
         properties = desugarOverlayKeys(properties);
+        properties = desugarHintMeshEmpty(properties);
         properties = desugarIndicatorStates(properties);
         properties = desugarMouseMovement(desugarGrid(properties));
         properties = desugarPositionHistoryAndAnimationCommands(properties);
@@ -927,6 +928,30 @@ public class ConfigurationParser {
             "active-screen-grid-area-center", "area-center",
             "cell-horizontal-padding", "box-horizontal-padding",
             "cell-vertical-padding", "box-vertical-padding");
+
+    private static final Pattern hintMeshEmptyPattern =
+            Pattern.compile("(?<![\\w-])ishintmeshempty(?![\\w-])");
+
+    /**
+     * Rewrites the deprecated ishintmeshempty as isoverlayempty:
+     * a-mode.to.b-mode=_{ishintmeshempty} becomes a-mode.to.b-mode=_{isoverlayempty}.
+     */
+    private static List<String> desugarHintMeshEmpty(List<String> properties) {
+        List<String> desugared = new ArrayList<>(properties.size());
+        for (String property : properties) {
+            Matcher lineMatcher = propertyLinePattern.matcher(property);
+            if (!lineMatcher.matches() ||
+                !hintMeshEmptyPattern.matcher(lineMatcher.group(2)).find()) {
+                desugared.add(property);
+                continue;
+            }
+            logger.warn("ishintmeshempty in " + lineMatcher.group(1).strip() +
+                        " has been deprecated: use isoverlayempty instead");
+            desugared.add(lineMatcher.group(1).strip() + "=" + hintMeshEmptyPattern.matcher(
+                    lineMatcher.group(2).strip()).replaceAll("isoverlayempty"));
+        }
+        return desugared;
+    }
 
     /**
      * Rewrites the deprecated overlay keys: a-mode.hint.grid-area=active-window becomes

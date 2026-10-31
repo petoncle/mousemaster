@@ -16,7 +16,7 @@ class BuiltInVirtualKeyTest {
                     BuiltInVirtualKey.IS_MIDDLE_MOUSE_PRESSING,
                     BuiltInVirtualKey.IS_RIGHT_MOUSE_PRESSING,
                     BuiltInVirtualKey.IS_UNHANDLED_KEY_PRESSING,
-                    BuiltInVirtualKey.IS_HINT_MESH_EMPTY);
+                    BuiltInVirtualKey.IS_OVERLAY_EMPTY);
 
     private static Configuration parse(String... lines) {
         return ConfigurationParser.parse(List.of(lines),
@@ -32,6 +32,12 @@ class BuiltInVirtualKeyTest {
             assertFalse(configuration.initiallyPressedVirtualKeys().contains(key),
                     key.name());
         }
+    }
+
+    @Test
+    void ishintmeshemptyIsTheDeprecatedNameOfIsoverlayempty() {
+        assertTrue(parse("idle-mode.indicator.fill-color=#FF0000 | _{ishintmeshempty} -> #00FF00")
+                .virtualKeys().contains(BuiltInVirtualKey.IS_OVERLAY_EMPTY));
     }
 
     @Test
