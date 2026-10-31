@@ -1906,14 +1906,14 @@ public class ConfigurationParser {
                 }
             }
             // move-to-grid-center, move-to-last-selected-hint and snap are the deprecated names
-            // of move-target-to.overlay-center, move-to.last-selected-hint and
-            // move-target-to.cell-top, cell-bottom, cell-left and cell-right.
+            // of move-to.overlay-center, move-to.last-selected-hint and
+            // move-to.cell-top, cell-bottom, cell-left and cell-right.
             // @formatter:off
             case "move-to-grid-center" -> {
-                mode.comboMap.moveTargetTo.parseReferenceOr(
-                        propertyKey.replaceFirst("\\.move-to-grid-center$", ".move-target-to"),
-                        propertyValue.replaceFirst("\\.move-to-grid-center$", ".move-target-to"),
-                        commandsByCombo -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToOverlayCenter(), propertyKey, finalDefaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                mode.comboMap.moveTo.parseReferenceOr(
+                        propertyKey.replaceFirst("\\.move-to-grid-center$", ".move-to"),
+                        propertyValue.replaceFirst("\\.move-to-grid-center$", ".move-to"),
+                        commandsByCombo -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToOverlayCenter(), propertyKey, finalDefaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
             case "move-to-last-selected-hint" -> {
@@ -1925,9 +1925,9 @@ public class ConfigurationParser {
             }
             case "snap" -> {
                 if (keyMatcher.group(group3) == null)
-                    mode.comboMap.moveTargetTo.parsePropertyReference(
-                            propertyKey.replaceFirst("\\.snap$", ".move-target-to"),
-                            propertyValue.replaceFirst("\\.snap$", ".move-target-to"),
+                    mode.comboMap.moveTo.parsePropertyReference(
+                            propertyKey.replaceFirst("\\.snap$", ".move-to"),
+                            propertyValue.replaceFirst("\\.snap$", ".move-to"),
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
                 else if (keyMatcher.group(group4) == null)
@@ -1935,10 +1935,10 @@ public class ConfigurationParser {
                             "Invalid snap property key");
                 else {
                     switch (keyMatcher.group(group4)) {
-                        case "up" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellTop(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "down" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellBottom(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "left" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "right" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "up" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToCellTop(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToCellBottom(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToCellLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToCellRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                     }
                 }
             }

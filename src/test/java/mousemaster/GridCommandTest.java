@@ -462,8 +462,8 @@ class GridCommandTest {
                 other-grid-mode.move-to-grid-center=grid-mode.move-to-grid-center
                 other-grid-mode.move-to-last-selected-hint=grid-mode.move-to-last-selected-hint
                 """);
-        List<Command> commands = List.of(new Command.MoveTargetToCellTop(),
-                new Command.MoveOverlayToAreaAbove(), new Command.MoveTargetToOverlayCenter(),
+        List<Command> commands = List.of(new Command.MoveToCellTop(),
+                new Command.MoveOverlayToAreaAbove(), new Command.MoveToOverlayCenter(),
                 new Command.MoveToLastSelectedHint(), new Command.ShrinkOverlayUp());
         assertTrue(commands("grid-mode").containsAll(commands));
         assertTrue(commands("other-grid-mode").containsAll(commands));
