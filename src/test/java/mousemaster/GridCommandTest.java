@@ -2,6 +2,8 @@ package mousemaster;
 
 import mousemaster.platform.MouseController;
 import mousemaster.platform.Overlay;
+import mousemaster.platform.UiAutomation;
+import mousemaster.platform.UiAutomation.UiElement;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
@@ -12,6 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -23,6 +27,7 @@ class GridCommandTest {
     private final List<Object> mousePositions = new ArrayList<>();
     private final List<Object> mouseMoves = new ArrayList<>();
     private double screenScale = 1;
+    private List<UiElement> uiElements = List.of();
     private ModeMap modeMap;
     private MouseManager mouseManager;
     private HintManager hintManager;
@@ -54,7 +59,17 @@ class GridCommandTest {
                 screenManager, mouseManager,
                 (Overlay) Proxy.newProxyInstance(Overlay.class.getClassLoader(),
                         new Class<?>[] {Overlay.class}, (proxy, method, args) -> null),
-                null, () -> new App("test.exe"), new KeyRedactor(KeyRedaction.NONE), null);
+                new UiAutomation() {
+                    @Override
+                    public Future<List<UiElement>> startFindActiveWindowUiElements() {
+                        return CompletableFuture.completedFuture(uiElements);
+                    }
+
+                    @Override
+                    public Future<List<UiElement>> startFindUiElementsInArea(Rectangle area) {
+                        return CompletableFuture.completedFuture(uiElements);
+                    }
+                }, () -> new App("test.exe"), new KeyRedactor(KeyRedaction.NONE), null);
     }
 
     private void switchMode(String modeName) {
@@ -112,12 +127,12 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(100, 100);
         switchMode("grid-mode");
-        hintManager.moveTargetToCellRightEdge();
-        hintManager.moveTargetToCellRightEdge();
-        hintManager.moveTargetToCellLeftEdge();
+        hintManager.moveTargetToCellRight();
+        hintManager.moveTargetToCellRight();
+        hintManager.moveTargetToCellLeft();
         hintManager.mouseMoved(961, 100);
-        hintManager.moveTargetToCellLeftEdge();
-        assertEquals(List.of(960, 100, 1919, 100, 960, 100, 0, 100), mousePositions);
+        hintManager.moveTargetToCellLeft();
+        assertEquals(List.of(959, 100, 1919, 100, 960, 100, 0, 100), mousePositions);
     }
 
     @Test
@@ -130,10 +145,10 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(960, 540);
         switchMode("grid-mode");
-        hintManager.moveTargetToCellRightEdge();
-        hintManager.moveTargetToCellBottomEdge();
-        hintManager.moveTargetToCellLeftEdge();
-        hintManager.moveTargetToCellTopEdge();
+        hintManager.moveTargetToCellRight();
+        hintManager.moveTargetToCellBottom();
+        hintManager.moveTargetToCellLeft();
+        hintManager.moveTargetToCellTop();
         assertEquals(List.of(1439, 540, 1439, 809, 480, 809, 480, 270), mousePositions);
     }
 
@@ -150,22 +165,57 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(820, 400);
         switchMode("fixed-grid-mode");
-        hintManager.moveTargetToCellRightEdge();
-        assertEquals(List.of(910, 400), mousePositions);
+        hintManager.moveTargetToCellRight();
+        assertEquals(List.of(909, 400), mousePositions);
     }
 
     @Test
-    void outsideTheGridTheTargetGoesToItsNearestEdge() throws IOException {
+    void outsideTheGridTheTargetGoesToTheNearestPointOfTheEdge() throws IOException {
         start("""
                 grid-mode.hint.area-width-percent=0.5
                 grid-mode.hint.area-height-percent=0.5
                 grid-mode.hint.grid-max-row-count=1
                 grid-mode.hint.grid-max-column-count=1
                 """);
-        hintManager.mouseMoved(100, 400);
+        hintManager.mouseMoved(100, 100);
         switchMode("grid-mode");
-        hintManager.moveTargetToCellRightEdge();
-        assertEquals(List.of(480, 400), mousePositions);
+        hintManager.moveTargetToCellRight();
+        assertEquals(List.of(1439, 270), mousePositions);
+    }
+
+    @Test
+    void theTargetGoesToTheCenterOfTheNearestCell() throws IOException {
+        start("""
+                grid-mode.hint.area-width-percent=0.5
+                grid-mode.hint.area-height-percent=0.5
+                grid-mode.hint.grid-max-row-count=2
+                grid-mode.hint.grid-max-column-count=2
+                """);
+        hintManager.mouseMoved(100, 100);
+        switchMode("grid-mode");
+        hintManager.moveTargetToCellCenter();
+        hintManager.mouseMoved(1000, 600);
+        hintManager.moveTargetToCellCenter();
+        assertEquals(List.of(720, 405, 1200, 675), mousePositions);
+    }
+
+    @Test
+    void betweenUiHintsTheTargetGoesToTheNearestElement() throws IOException {
+        uiElements = List.of(new UiElement(new Rectangle(100, 100, 50, 20)),
+                new UiElement(new Rectangle(400, 100, 50, 20)));
+        start("""
+                idle-mode.to.ui-hint-mode=+u
+                ui-hint-mode.to.idle-mode=+esc
+                ui-hint-mode.mouse.smooth-jump-enabled=false
+                ui-hint-mode.overlay.type=ui-accessibility
+                ui-hint-mode.overlay.selection-keys=a b c d
+                """);
+        hintManager.mouseMoved(200, 300);
+        switchMode("ui-hint-mode");
+        hintManager.completePendingUiHintQuery();
+        hintManager.moveTargetToCellCenter();
+        hintManager.moveTargetToCellRight();
+        assertEquals(List.of(125, 110, 149, 110), mousePositions);
     }
 
     @Test
@@ -179,9 +229,9 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(700, 500);
         switchMode("grid-mode");
-        hintManager.moveTargetToCellTopEdge();
+        hintManager.moveTargetToCellTop();
         hintManager.mouseMoved(800, 600);
-        hintManager.moveTargetToCellTopEdge();
+        hintManager.moveTargetToCellTop();
         assertEquals(List.of(700, 230, 800, 330), mousePositions);
     }
 
@@ -240,8 +290,8 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(100, 100);
         switchMode("grid-mode");
-        hintManager.moveTargetToCellRightEdge();
-        hintManager.moveTargetToCellRightEdge();
+        hintManager.moveTargetToCellRight();
+        hintManager.moveTargetToCellRight();
         assertEquals(List.of(), mousePositions);
         assertEquals(new Point(1919, 100), hintManager.targetPoint());
         hintManager.moveToTarget();
@@ -257,9 +307,9 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(100, 100);
         switchMode("grid-mode");
-        hintManager.moveToCellRightEdge();
-        hintManager.moveToGridCenter();
-        assertEquals(List.of(960, 100, 960, 540), mousePositions);
+        hintManager.moveToCellRight();
+        hintManager.moveToOverlayCenter();
+        assertEquals(List.of(959, 100, 960, 540), mousePositions);
         assertEquals(new Point(100, 100), hintManager.targetPoint());
     }
 
@@ -412,8 +462,8 @@ class GridCommandTest {
                 other-grid-mode.move-to-grid-center=grid-mode.move-to-grid-center
                 other-grid-mode.move-to-last-selected-hint=grid-mode.move-to-last-selected-hint
                 """);
-        List<Command> commands = List.of(new Command.MoveTargetToCellTopEdge(),
-                new Command.MoveOverlayToAreaAbove(), new Command.MoveTargetToGridCenter(),
+        List<Command> commands = List.of(new Command.MoveTargetToCellTop(),
+                new Command.MoveOverlayToAreaAbove(), new Command.MoveTargetToOverlayCenter(),
                 new Command.MoveToLastSelectedHint(), new Command.ShrinkOverlayUp());
         assertTrue(commands("grid-mode").containsAll(commands));
         assertTrue(commands("other-grid-mode").containsAll(commands));
@@ -429,14 +479,14 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(100, 100);
         switchMode("grid-mode");
-        hintManager.moveTargetToCellRightEdge();
+        hintManager.moveTargetToCellRight();
         hintManager.saveCurrentPosition("position-history");
-        hintManager.moveTargetToCellRightEdge();
+        hintManager.moveTargetToCellRight();
         hintManager.saveCurrentPosition("position-history");
-        assertEquals(List.of(new Point(960, 100), new Point(1919, 100)),
+        assertEquals(List.of(new Point(959, 100), new Point(1919, 100)),
                 hintManager.positionHistory("position-history").positions());
         hintManager.cyclePosition("position-history", 1);
-        assertEquals(new Point(960, 100), hintManager.targetPoint());
+        assertEquals(new Point(959, 100), hintManager.targetPoint());
         assertEquals(List.of(), mousePositions);
     }
 
@@ -545,9 +595,9 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(100, 100);
         switchMode("grid-mode");
-        hintManager.moveTargetToCellRightEdge();
+        hintManager.moveTargetToCellRight();
         switchMode("other-grid-mode");
-        assertEquals(new Point(960, 100), hintManager.targetPoint());
+        assertEquals(new Point(959, 100), hintManager.targetPoint());
     }
 
     @Test
@@ -601,8 +651,8 @@ class GridCommandTest {
         switchMode("idle-mode");
         hintManager.shrinkOverlayUp();
         hintManager.moveOverlayToAreaAbove();
-        hintManager.moveTargetToGridCenter();
-        hintManager.moveTargetToCellTopEdge();
+        hintManager.moveTargetToOverlayCenter();
+        hintManager.moveTargetToCellTop();
         assertEquals(List.of(), mousePositions);
     }
 

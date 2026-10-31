@@ -93,19 +93,21 @@ public class CommandRunner {
 
             case MoveToTarget moveToTarget -> hintManager.moveToTarget();
             case MoveToLastSelectedHint moveToLastSelectedHint -> hintManager.moveToLastSelectedHint();
-            case MoveToGridCenter moveToGridCenter -> hintManager.moveToGridCenter();
-            case MoveToCellTopEdge moveToCellTopEdge -> hintManager.moveToCellTopEdge();
-            case MoveToCellBottomEdge moveToCellBottomEdge -> hintManager.moveToCellBottomEdge();
-            case MoveToCellLeftEdge moveToCellLeftEdge -> hintManager.moveToCellLeftEdge();
-            case MoveToCellRightEdge moveToCellRightEdge -> hintManager.moveToCellRightEdge();
+            case MoveToOverlayCenter moveToOverlayCenter -> hintManager.moveToOverlayCenter();
+            case MoveToCellCenter moveToCellCenter -> hintManager.moveToCellCenter();
+            case MoveToCellTop moveToCellTop -> hintManager.moveToCellTop();
+            case MoveToCellBottom moveToCellBottom -> hintManager.moveToCellBottom();
+            case MoveToCellLeft moveToCellLeft -> hintManager.moveToCellLeft();
+            case MoveToCellRight moveToCellRight -> hintManager.moveToCellRight();
 
             case MoveTargetToMouse moveTargetToMouse -> hintManager.moveTargetToMouse();
             case MoveTargetToLastSelectedHint moveTargetToLastSelectedHint -> hintManager.moveTargetToLastSelectedHint();
-            case MoveTargetToGridCenter moveTargetToGridCenter -> hintManager.moveTargetToGridCenter();
-            case MoveTargetToCellTopEdge moveTargetToCellTopEdge -> hintManager.moveTargetToCellTopEdge();
-            case MoveTargetToCellBottomEdge moveTargetToCellBottomEdge -> hintManager.moveTargetToCellBottomEdge();
-            case MoveTargetToCellLeftEdge moveTargetToCellLeftEdge -> hintManager.moveTargetToCellLeftEdge();
-            case MoveTargetToCellRightEdge moveTargetToCellRightEdge -> hintManager.moveTargetToCellRightEdge();
+            case MoveTargetToOverlayCenter moveTargetToOverlayCenter -> hintManager.moveTargetToOverlayCenter();
+            case MoveTargetToCellCenter moveTargetToCellCenter -> hintManager.moveTargetToCellCenter();
+            case MoveTargetToCellTop moveTargetToCellTop -> hintManager.moveTargetToCellTop();
+            case MoveTargetToCellBottom moveTargetToCellBottom -> hintManager.moveTargetToCellBottom();
+            case MoveTargetToCellLeft moveTargetToCellLeft -> hintManager.moveTargetToCellLeft();
+            case MoveTargetToCellRight moveTargetToCellRight -> hintManager.moveTargetToCellRight();
 
             case SavePosition(String positionHistoryName) -> hintManager.saveCurrentPosition(positionHistoryName);
             case UnsavePosition(String positionHistoryName) -> hintManager.unsaveCurrentPosition(positionHistoryName);

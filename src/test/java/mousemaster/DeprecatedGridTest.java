@@ -113,7 +113,7 @@ class DeprecatedGridTest {
     @Test
     void aJumpToAPointOutsideTheGridDoesNotAddTheDefaultGrid() {
         assertTrue(hint("normal-mode", "idle-mode.to.normal-mode=+n",
-                "normal-mode.move-to.grid-center=+m").enabled());
+                "normal-mode.move-to.overlay-center=+m").enabled());
         assertFalse(hint("normal-mode", "idle-mode.to.normal-mode=+n",
                 "normal-mode.move-target-to.last-selected-hint=+m").enabled());
     }

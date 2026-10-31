@@ -74,7 +74,7 @@ Combos are sequences of key presses and releases that trigger commands in mousem
 normal-mode.to.hint-mode=_{leftctrl} +e
 
 # Press and release leftshift
-normal-mode.move-target-to.grid-center=+leftshift -leftshift
+normal-mode.move-target-to.overlay-center=+leftshift -leftshift
 
 # Multiple combos for one command
 normal-mode.to.idle-mode=+q | +leftctrl +e
@@ -1065,11 +1065,22 @@ hint-mode.overlay.label-override=plus
 - **`target-follows-overlay-center`**: Whether the target goes to the center of the overlay
   when the overlay shows, and when a selection key or `deselect` changes its hints (default
   `false`). The mouse goes there too, unless `mouse-follows-target=false`.
-- **`move-to.<point>`**: Like `to.<mode-name>`, a command of the mode, not an overlay property.
-  It moves the mouse to a point: `target`, `last-selected-hint`, or a point of the grid (see
-  [Grid commands](#grid-commands)). For example, after `mouse-follows-target=false` left the
-  mouse where it was: `normal-mode.move-to.last-selected-hint=+m`
-- **`move-target-to.<point>`**: The same for the target, with `mouse` in place of `target`.
+- **`move-to.<point>`** / **`move-target-to.<point>`**: Like `to.<mode-name>`, commands of the
+  mode, not overlay properties. `move-to` moves the mouse to the point, and `move-target-to` the
+  target:
+  - `target` (`move-to` only) and `mouse` (`move-target-to` only).
+  - `last-selected-hint`: the center of the last selected hint.
+  - `overlay-center`: the center of the hints that the selection keys keep, the point that
+    `target-follows-overlay-center` uses.
+  - `cell-center`: the center of the cell that the point is in, or of the nearest cell. When the
+    point is in several cells, such as nested UI elements, the command uses the smallest one.
+  - `cell-top`, `cell-bottom`, `cell-left` and `cell-right`: the nearest point of a cell edge
+    on that side of the point that moves: a top edge above it, a bottom edge below it, a left
+    edge on its left and a right edge on its right. A right or bottom edge is the last pixel of
+    its cell, so the point lands in the cell.
+
+  For example, after `mouse-follows-target=false` left the mouse where it was:
+  `normal-mode.move-to.last-selected-hint=+m`
 - **`eat-unused-selection-keys`**: If `false`, selection keys not used in the current hint display can be used in combos
 - **`label-override`**: Draws a fixed marker in every hint cell instead of each hint's own keys — visual only, you still press the real keys to select. The value is a key sequence rendered as the label: `plus` shows `+`, `plus plus` shows `++`. Useful for positional grids (e.g. a 3×3 recursive grid) where the per-cell letters are just clutter. Default: unset (each hint shows its own key sequence).
 
@@ -1363,14 +1374,14 @@ grid-mode.move-overlay-to.area-below=_{leftshift} +downarrow
 grid-mode.move-overlay-to.area-left=_{leftshift} +leftarrow
 grid-mode.move-overlay-to.area-right=_{leftshift} +rightarrow
 
-# Move the target to the next cell edge on that side
-grid-mode.move-target-to.cell-top-edge=_{leftctrl} +uparrow
-grid-mode.move-target-to.cell-bottom-edge=_{leftctrl} +downarrow
-grid-mode.move-target-to.cell-left-edge=_{leftctrl} +leftarrow
-grid-mode.move-target-to.cell-right-edge=_{leftctrl} +rightarrow
+# Move the target to the nearest cell edge on that side
+grid-mode.move-target-to.cell-top=_{leftctrl} +uparrow
+grid-mode.move-target-to.cell-bottom=_{leftctrl} +downarrow
+grid-mode.move-target-to.cell-left=_{leftctrl} +leftarrow
+grid-mode.move-target-to.cell-right=_{leftctrl} +rightarrow
 
-# Move the target to the grid center
-grid-mode.move-target-to.grid-center=+space
+# Move the target to the overlay center
+grid-mode.move-target-to.overlay-center=+space
 
 # Move the target while the key is held
 grid-mode.start-move-target.up=_{leftalt} +uparrow
@@ -1383,11 +1394,8 @@ grid-mode.stop-move-target.up=-uparrow
   `area-right`: the area of the same size next to it on that side. The center of the grid stays
   on a screen.
 - **`move-target-to.<point>`** / **`move-to.<point>`**: Move the target or the mouse to a point
-  of the grid:
-  - `grid-center`: the center of the grid.
-  - `cell-top-edge`, `cell-bottom-edge`, `cell-left-edge` and `cell-right-edge`: the next cell
-    edge on that side of the target, or of the mouse. At the right or bottom edge of the grid,
-    it stops on the last pixel of the grid.
+  of the overlay, such as `overlay-center` or `cell-top` (see
+  [Hint selection and behavior](#hint-selection-and-behavior)).
 - **`start-move-target.<direction>`** / **`stop-move-target.<direction>`**: Start and stop a
   continuous move of the target, with the `target` properties. When the mouse follows the
   target, they move the mouse, with the `mouse` properties. A mode where the mouse follows the

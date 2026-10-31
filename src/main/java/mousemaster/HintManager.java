@@ -15,7 +15,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
-import java.util.stream.IntStream;
 
 public class HintManager implements ModeListener, MousePositionListener {
 
@@ -274,27 +273,31 @@ public class HintManager implements ModeListener, MousePositionListener {
         moveTo(lastSelectedHintPoint);
     }
 
-    public void moveToGridCenter() {
-        List<Rectangle> cells = gridCells();
-        if (cells == null)
+    public void moveToOverlayCenter() {
+        Point overlayCenter = overlayCenter();
+        if (overlayCenter == null)
             return;
-        moveTo(Rectangle.union(cells).center());
+        moveTo(overlayCenter);
     }
 
-    public void moveToCellTopEdge() {
-        moveToCellEdge(false, false);
+    public void moveToCellCenter() {
+        moveToNearestCell(nearestCellCenter(new Point(mouseX, mouseY)));
     }
 
-    public void moveToCellBottomEdge() {
-        moveToCellEdge(false, true);
+    public void moveToCellTop() {
+        moveToNearestCellEdge(false, false);
     }
 
-    public void moveToCellLeftEdge() {
-        moveToCellEdge(true, false);
+    public void moveToCellBottom() {
+        moveToNearestCellEdge(false, true);
     }
 
-    public void moveToCellRightEdge() {
-        moveToCellEdge(true, true);
+    public void moveToCellLeft() {
+        moveToNearestCellEdge(true, false);
+    }
+
+    public void moveToCellRight() {
+        moveToNearestCellEdge(true, true);
     }
 
     public void shrinkOverlayUp() {
@@ -314,8 +317,9 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private void shrinkOverlay(boolean horizontal, boolean forward) {
-        List<Rectangle> cells = gridCells();
+        List<Rectangle> cells = cells();
         if (cells == null ||
+            !(currentMode.hintMesh().type() instanceof HintMeshType.GridHintMesh) ||
             currentMode.hintMesh().targetFollowsOverlayCenter() &&
             mouseManager.jumping(horizontal, forward))
             return;
@@ -345,8 +349,9 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private void moveOverlayToArea(boolean horizontal, boolean forward) {
-        List<Rectangle> cells = gridCells();
+        List<Rectangle> cells = cells();
         if (cells == null ||
+            !(currentMode.hintMesh().type() instanceof HintMeshType.GridHintMesh) ||
             currentMode.hintMesh().targetFollowsOverlayCenter() &&
             mouseManager.jumping(horizontal, forward))
             return;
@@ -372,27 +377,31 @@ public class HintManager implements ModeListener, MousePositionListener {
         moveTargetTo(lastSelectedHintPoint);
     }
 
-    public void moveTargetToGridCenter() {
-        List<Rectangle> cells = gridCells();
-        if (cells == null)
+    public void moveTargetToOverlayCenter() {
+        Point overlayCenter = overlayCenter();
+        if (overlayCenter == null)
             return;
-        moveTargetTo(Rectangle.union(cells).center());
+        moveTargetTo(overlayCenter);
     }
 
-    public void moveTargetToCellTopEdge() {
-        moveTargetToCellEdge(false, false);
+    public void moveTargetToCellCenter() {
+        moveTargetToNearestCell(nearestCellCenter(targetPoint()));
     }
 
-    public void moveTargetToCellBottomEdge() {
-        moveTargetToCellEdge(false, true);
+    public void moveTargetToCellTop() {
+        moveTargetToNearestCellEdge(false, false);
     }
 
-    public void moveTargetToCellLeftEdge() {
-        moveTargetToCellEdge(true, false);
+    public void moveTargetToCellBottom() {
+        moveTargetToNearestCellEdge(false, true);
     }
 
-    public void moveTargetToCellRightEdge() {
-        moveTargetToCellEdge(true, true);
+    public void moveTargetToCellLeft() {
+        moveTargetToNearestCellEdge(true, false);
+    }
+
+    public void moveTargetToCellRight() {
+        moveTargetToNearestCellEdge(true, true);
     }
 
     public void startMoveTargetUp() {
@@ -462,64 +471,103 @@ public class HintManager implements ModeListener, MousePositionListener {
         targetPoint = screenManager.nearestScreenContaining(x, y).rectangle().nearestPoint(x, y);
     }
 
-    private void moveToCellEdge(boolean horizontal, boolean forward) {
+    private void moveToNearestCellEdge(boolean horizontal, boolean forward) {
         if (mouseManager.jumping(horizontal, forward))
             return;
-        Point cellEdge = cellEdge(new Point(mouseX, mouseY), horizontal, forward);
-        if (cellEdge == null)
-            return;
-        moveTo(cellEdge);
-        if (((HintMeshType.GridHintMesh) currentMode.hintMesh().type()).area().center() ==
-            HintGridAreaCenter.MOUSE)
-            modeChanged(currentMode);
+        moveToNearestCell(nearestCellEdge(new Point(mouseX, mouseY), horizontal, forward));
     }
 
-    private void moveTargetToCellEdge(boolean horizontal, boolean forward) {
+    private void moveTargetToNearestCellEdge(boolean horizontal, boolean forward) {
         if (currentMode.hintMesh().mouseFollowsTarget() &&
             mouseManager.jumping(horizontal, forward))
             return;
-        Point cellEdge = cellEdge(targetPoint(), horizontal, forward);
-        if (cellEdge == null)
+        moveTargetToNearestCell(nearestCellEdge(targetPoint(), horizontal, forward));
+    }
+
+    private void moveToNearestCell(Point point) {
+        if (point == null)
             return;
-        moveTargetTo(cellEdge);
-        if (((HintMeshType.GridHintMesh) currentMode.hintMesh().type()).area().center() ==
-            HintGridAreaCenter.MOUSE)
+        moveTo(point);
+        if (currentMode.hintMesh().type() instanceof HintMeshType.GridHintMesh gridHintMesh &&
+            gridHintMesh.area().center() == HintGridAreaCenter.MOUSE)
             modeChanged(currentMode);
     }
 
-    /** Backward, a point 1 pixel past a cell edge goes to the edge before it. */
-    private Point cellEdge(Point from, boolean horizontal, boolean forward) {
-        List<Rectangle> cells = gridCells();
-        if (cells == null)
+    private void moveTargetToNearestCell(Point point) {
+        if (point == null)
+            return;
+        moveTargetTo(point);
+        if (currentMode.hintMesh().type() instanceof HintMeshType.GridHintMesh gridHintMesh &&
+            gridHintMesh.area().center() == HintGridAreaCenter.MOUSE)
+            modeChanged(currentMode);
+    }
+
+    private Point overlayCenter() {
+        if (hintMesh == null || hintMesh.hints().isEmpty())
             return null;
-        int coordinate = (int) (horizontal ? from.x() : from.y());
-        Rectangle grid = Rectangle.union(cells);
-        int lastPixel = horizontal ? grid.x() + grid.width() - 1 : grid.y() + grid.height() - 1;
-        IntStream cellEdges = cells.stream().flatMapToInt(cell -> horizontal ?
-                IntStream.of(cell.x(), Math.min(cell.x() + cell.width(), lastPixel)) :
-                IntStream.of(cell.y(), Math.min(cell.y() + cell.height(), lastPixel)));
-        OptionalInt cellEdge = forward ? cellEdges.filter(edge -> edge > coordinate).min() :
-                cellEdges.filter(edge -> edge < coordinate - 1).max();
-        if (cellEdge.isEmpty())
+        return unzoomedPoint(hintMeshCenter(hintMesh.hints(), hintMesh.selectedKeySequence()));
+    }
+
+    private Point nearestCellCenter(Point from) {
+        List<Rectangle> cells = cells();
+        if (cells == null || cells.isEmpty())
             return null;
-        double x = horizontal ? cellEdge.getAsInt() : from.x();
-        double y = horizontal ? from.y() : cellEdge.getAsInt();
-        return screenManager.nearestScreenContaining(x, y).rectangle().nearestPoint(x, y);
+        return cells.stream()
+                    .min(Comparator.comparingDouble((Rectangle cell) -> {
+                                       Point nearestPoint = cell.nearestPoint(from.x(), from.y());
+                                       return Math.hypot(nearestPoint.x() - from.x(),
+                                               nearestPoint.y() - from.y());
+                                   })
+                                   .thenComparingLong(cell -> (long) cell.width() * cell.height()))
+                    .orElseThrow()
+                    .center();
     }
 
     /**
-     * The cells of the overlay grid, in desktop coordinates. A grid centered on the mouse is
-     * where the mouse is now, not where it was when the grid was built.
+     * The nearest point of a cell edge on that side of the point. Backward, a point 1 pixel past
+     * a cell edge goes to the edge before it.
      */
-    private List<Rectangle> gridCells() {
-        if (hintMesh == null ||
-            !(currentMode.hintMesh().type() instanceof HintMeshType.GridHintMesh gridHintMesh))
+    private Point nearestCellEdge(Point from, boolean horizontal, boolean forward) {
+        List<Rectangle> cells = cells();
+        if (cells == null || cells.isEmpty())
+            return null;
+        int coordinate = (int) (horizontal ? from.x() : from.y());
+        Point nearestCellEdge = null;
+        for (Rectangle cell : cells) {
+            int lastX = cell.x() + cell.width() - 1;
+            int lastY = cell.y() + cell.height() - 1;
+            int edge = horizontal ? forward ? lastX : cell.x() : forward ? lastY : cell.y();
+            if (forward ? edge <= coordinate : edge >= coordinate - 1)
+                continue;
+            Point cellEdge = horizontal ? new Point(edge, Math.clamp(from.y(), cell.y(), lastY)) :
+                    new Point(Math.clamp(from.x(), cell.x(), lastX), edge);
+            if (nearestCellEdge == null ||
+                Math.hypot(cellEdge.x() - from.x(), cellEdge.y() - from.y()) <
+                Math.hypot(nearestCellEdge.x() - from.x(), nearestCellEdge.y() - from.y()))
+                nearestCellEdge = cellEdge;
+        }
+        if (nearestCellEdge == null)
+            return null;
+        return screenManager.nearestScreenContaining(nearestCellEdge.x(), nearestCellEdge.y())
+                            .rectangle()
+                            .nearestPoint(nearestCellEdge.x(), nearestCellEdge.y());
+    }
+
+    /**
+     * The cells of the overlay, in desktop coordinates. A grid centered on the mouse is where
+     * the mouse is now, not where it was when the grid was built.
+     */
+    private List<Rectangle> cells() {
+        if (hintMesh == null)
             return null;
         List<Rectangle> cells = hintMesh.hints()
                                         .stream()
+                                        .filter(hint -> hint.cellWidth() > 0 ||
+                                                        hint.elementRectangle() != null)
                                         .map(hint -> unzoomedHintCell(hint, currentZoom))
                                         .toList();
-        if (gridHintMesh.area().center() != HintGridAreaCenter.MOUSE)
+        if (!(currentMode.hintMesh().type() instanceof HintMeshType.GridHintMesh gridHintMesh) ||
+            gridHintMesh.area().center() != HintGridAreaCenter.MOUSE)
             return cells;
         Point center = Rectangle.union(cells).center();
         int deltaX = mouseX - (int) center.x();
