@@ -144,10 +144,10 @@ public class PositionHistoryTest {
     }
 
     @Test
-    void aPositionHistoryReadsAsAPressedKeyWhileItHoldsAPosition() throws IOException {
+    void aPositionHistoryReadsAsAPressedKeyWhileItIsEmpty() throws IOException {
         Configuration configuration = parse("""
                 idle-mode.save.drag-position-history=+f1
-                idle-mode.indicator.size=10 | _{dragpositionhistory} -> 20
+                idle-mode.indicator.size=10 | _{isdragpositionhistoryempty} -> 20
                 """);
         App[] activeApp = {new App("notepad.exe")};
         HintManager hintManager = hintManager(configuration, activeApp);
@@ -175,14 +175,14 @@ public class PositionHistoryTest {
                     }, new AnimationPlayer(Map.of()));
         };
         tick.run();
-        assertEquals(10, size(comboWatcher));
+        assertEquals(20, size(comboWatcher));
         hintManager.mouseMoved(10, 10);
         hintManager.saveCurrentPosition("drag-position-history");
         tick.run();
-        assertEquals(20, size(comboWatcher));
+        assertEquals(10, size(comboWatcher));
         hintManager.unsaveCurrentPosition("drag-position-history");
         tick.run();
-        assertEquals(10, size(comboWatcher));
+        assertEquals(20, size(comboWatcher));
     }
 
     private static double size(ComboWatcher comboWatcher) {

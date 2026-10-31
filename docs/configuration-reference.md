@@ -1475,10 +1475,10 @@ normal-mode.clear.position-history=+f2
 - **`clear`**: Command to clear all saved positions
 - **`cycle-next`** / **`cycle-previous`**: Commands to move the target to the next or previous saved position, continuing from the one it is on. The mouse follows, unless the mode has `mouse-follows-target=false`
 
-While a history holds a position, it reads as a pressed key named without its hyphens, like an
-animation: `_{dragpositionhistory}` matches while `drag-position-history` holds a position, and
-`^{dragpositionhistory}` while it is empty. With `isolation=active-app`, it is the list of the
-active app.
+While a history holds no position, it reads as a pressed key: `is`, its name without the hyphens,
+then `empty`. `_{isdragpositionhistoryempty}` matches while `drag-position-history` is empty, and
+`^{isdragpositionhistoryempty}` while it holds a position. With `isolation=active-app`, it is the
+list of the active app.
 
 ### Several position histories
 

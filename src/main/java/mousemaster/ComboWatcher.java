@@ -298,7 +298,7 @@ public class ComboWatcher {
                 hintManager.hintMeshEmpty());
         for (String positionHistoryName : hintManager.positionHistoryNames())
             setVirtualKeyPressed(BuiltInVirtualKey.positionHistoryKey(positionHistoryName),
-                    !hintManager.positionHistory(positionHistoryName, () -> lastActiveApp)
+                    hintManager.positionHistory(positionHistoryName, () -> lastActiveApp)
                                 .positions().isEmpty());
         for (String animationName : animationPlayer.animationNames())
             setVirtualKeyPressed(new Key(animationName, null, null),
