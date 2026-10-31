@@ -1344,11 +1344,11 @@ hint2-mode.to.normal-mode=+selectionkey
 hint2-mode.overlay.mouse-follows-target=true
 ```
 
-### Grid commands
+### Overlay commands
 
-The grid commands act on the grid of the overlay. An overlay without `selection-keys` has no
-labels and selects nothing: it is a grid to shrink and to move, and the target moves to its cell
-edges.
+These commands act on the overlay of the mode, whatever its type. An overlay without
+`selection-keys` has no labels and selects nothing: it is a grid to shrink and to move, and the
+target moves to its cell edges.
 
 ```properties
 normal-mode.to.grid-mode=+g
@@ -1388,11 +1388,10 @@ grid-mode.start-move-target.up=_{leftalt} +uparrow
 grid-mode.stop-move-target.up=-uparrow
 ```
 
-- **`shrink-overlay.<direction>`**: Halves the grid, keeping the half on that side, whatever its
-  number of cells.
-- **`move-overlay-to.<area>`**: Moves the grid to `area-above`, `area-below`, `area-left` or
-  `area-right`: the area of the same size next to it on that side. The center of the grid stays
-  on a screen.
+- **`shrink-overlay.<direction>`**: Halves the overlay area, keeping the half on that side.
+- **`move-overlay-to.<area>`**: Moves the overlay area to `area-above`, `area-below`, `area-left`
+  or `area-right`: the area of the same size next to it on that side. The center of the area
+  stays on a screen.
 - **`move-target-to.<point>`** / **`move-to.<point>`**: Move the target or the mouse to a point
   of the overlay, such as `overlay-center` or `cell-top` (see
   [Hint selection and behavior](#hint-selection-and-behavior)).
@@ -1407,9 +1406,14 @@ such as `start-move` or `move-to`, moves the mouse. `move-to`, `move-target-to` 
 `move-overlay-to` jump to a destination, and `start-move` and `start-move-target` move until
 `stop-move` and `stop-move-target`.
 
-A mode with the same `overlay.type`, area and layout keeps the grid where the commands left it. With
-`area-center=mouse`, a command first centers the grid on the mouse. With
-`target-follows-overlay-center=true`, the target goes to the center of the grid after each
+The overlay area is the area of the overlay, or the cells that the typed selection keys keep. After
+`shrink-overlay` or `move-overlay-to`, the overlay shows what is in its new area: a grid lays its
+cells out in it, UI hints look for the elements in it with a new query, and saved positions show
+the positions in it.
+
+A mode with the same `overlay.type`, area and layout keeps the overlay area where the commands left it. With
+`area-center=mouse`, a command first centers a grid on the mouse. With
+`target-follows-overlay-center=true`, the target goes to the center of the overlay after each
 change. The mouse follows the target, unless `mouse-follows-target=false`: then it stays
 where it is.
 

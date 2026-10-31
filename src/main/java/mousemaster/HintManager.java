@@ -45,7 +45,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     // time so going back restores the view that step rendered.
     private final Deque<CellGridLevel> cellGridLevelStack = new ArrayDeque<>();
     private Rectangle pendingSelectedCell;
-    /** The area shrink-overlay and move-overlay-to gave the grid, in place of the configured one. */
+    /** The area shrink-overlay and move-overlay-to gave the overlay, in place of the configured one. */
     private Rectangle areaOverride;
     /** The area of the overlay the current mode was entered from, unzoomed. */
     private Rectangle lastOverlayArea;
@@ -317,18 +317,16 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private void shrinkOverlay(boolean horizontal, boolean forward) {
-        List<Rectangle> cells = cells();
-        if (cells == null ||
-            !(currentMode.hintMesh().type() instanceof HintMeshType.GridHintMesh) ||
+        Rectangle area = overlayArea();
+        if (area == null || pendingUiHintQuery != null ||
             currentMode.hintMesh().targetFollowsOverlayCenter() &&
             mouseManager.jumping(horizontal, forward))
             return;
-        Rectangle grid = Rectangle.union(cells);
         areaOverride = new Rectangle(
-                horizontal && forward ? grid.x() + grid.width() / 2 : grid.x(),
-                !horizontal && forward ? grid.y() + grid.height() / 2 : grid.y(),
-                horizontal ? grid.width() / 2 + grid.width() % 2 : grid.width(),
-                horizontal ? grid.height() : grid.height() / 2 + grid.height() % 2);
+                horizontal && forward ? area.x() + area.width() / 2 : area.x(),
+                !horizontal && forward ? area.y() + area.height() / 2 : area.y(),
+                horizontal ? area.width() / 2 + area.width() % 2 : area.width(),
+                horizontal ? area.height() : area.height() / 2 + area.height() % 2);
         modeChanged(currentMode);
     }
 
@@ -349,21 +347,19 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private void moveOverlayToArea(boolean horizontal, boolean forward) {
-        List<Rectangle> cells = cells();
-        if (cells == null ||
-            !(currentMode.hintMesh().type() instanceof HintMeshType.GridHintMesh) ||
+        Rectangle area = overlayArea();
+        if (area == null || pendingUiHintQuery != null ||
             currentMode.hintMesh().targetFollowsOverlayCenter() &&
             mouseManager.jumping(horizontal, forward))
             return;
-        Rectangle grid = Rectangle.union(cells);
         int direction = forward ? 1 : -1;
-        double centerX = grid.center().x() + (horizontal ? direction * grid.width() : 0);
-        double centerY = grid.center().y() + (horizontal ? 0 : direction * grid.height());
+        double centerX = area.center().x() + (horizontal ? direction * area.width() : 0);
+        double centerY = area.center().y() + (horizontal ? 0 : direction * area.height());
         Point center = screenManager.nearestScreenContaining(centerX, centerY)
                                     .rectangle()
                                     .nearestPoint(centerX, centerY);
-        areaOverride = new Rectangle((int) center.x() - grid.width() / 2,
-                (int) center.y() - grid.height() / 2, grid.width(), grid.height());
+        areaOverride = new Rectangle((int) center.x() - area.width() / 2,
+                (int) center.y() - area.height() / 2, area.width(), area.height());
         modeChanged(currentMode);
     }
 
@@ -606,10 +602,13 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (currentMode == null ||
             !hintMeshConfiguration.type().equals(currentMode.hintMesh().type()))
             areaOverride = null;
+        boolean sameUiElementQueryArea =
+                areaOverride == null || areaOverride.equals(uiElementQueryArea);
         boolean sameUiElementQuery = hintMeshConfiguration.enabled() &&
                                      currentMode != null &&
                                      sameUiElementQuery(hintMeshConfiguration.type(),
-                                             currentMode.hintMesh().type());
+                                             currentMode.hintMesh().type()) &&
+                                     sameUiElementQueryArea;
         if (pendingUiHintQuery != null && !sameUiElementQuery) {
             pendingUiHintQuery.future().cancel(false);
             pendingUiHintQuery = null;
@@ -728,7 +727,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             // back to the hints it showed with them.
             HintMeshState hintMeshState = sameUiElementQuery ? null : hintMeshStates.get(
                     new HintMeshKey(hintMeshConfiguration.type(), selectionKeys, newMode.zoom()));
-            boolean backToShownHints = hintMeshState != null &&
+            boolean backToShownHints = hintMeshState != null && sameUiElementQueryArea &&
                     buildHintMesh(hintMeshConfiguration, newMode.zoom(), newZoom,
                             newScreenFilter, lastUiElements, uiElementQueryArea,
                             uiElementQueryMousePoint, screenManager.activeScreen())
@@ -943,13 +942,12 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private Future<List<UiElement>> startUiElementQuery(HintMeshType type) {
-        if (type instanceof HintMeshType.UiVisionHintMesh uiVisionHintMesh) {
-            uiElementQueryArea = areaRectangle(uiVisionHintMesh.area());
+        HintGridArea area = type instanceof HintMeshType.UiVisionHintMesh uiVisionHintMesh ?
+                uiVisionHintMesh.area() : ((HintMeshType.UiAccessibilityHintMesh) type).area();
+        uiElementQueryArea = areaOverride != null ? areaOverride : areaRectangle(area);
+        if (type instanceof HintMeshType.UiVisionHintMesh uiVisionHintMesh)
             return vision.startFindElements(screenManager.screens(), uiElementQueryArea,
                     uiVisionHintMesh.density(), uiVisionHintMesh.minSize());
-        }
-        HintGridArea area = ((HintMeshType.UiAccessibilityHintMesh) type).area();
-        uiElementQueryArea = areaRectangle(area);
         return area.size().source() == HintGridAreaSizeSource.ACTIVE_WINDOW &&
                uiElementQueryArea.equals(overlay.activeWindowRectangle()) ?
                 uiAutomation.startFindActiveWindowUiElements() :
@@ -1043,13 +1041,14 @@ public class HintManager implements ModeListener, MousePositionListener {
         };
     }
 
-    /** The area of the overlay, narrowed to the cells its selected keys leave in a grid. */
+    /** The area of the overlay, narrowed to the cells its selected keys leave. */
     private Rectangle overlayArea() {
         if (hintMesh == null || hintMesh.area() == null)
             return null;
         List<Rectangle> selectedCells = hintMesh.hints()
                                                 .stream()
-                                                .filter(hint -> hint.cellWidth() > 0 &&
+                                                .filter(hint -> (hint.cellWidth() > 0 ||
+                                                                 hint.elementRectangle() != null) &&
                                                                 hint.startsWith(hintMesh.selectedKeySequence()))
                                                 .map(hint -> unzoomedHintCell(hint, currentZoom))
                                                 .toList();
@@ -1261,6 +1260,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             Set<Integer> prefixLengths = new HashSet<>();
             int rowKeyOffset = hintMeshKeys.rowKeyOffset();
             for (Point point : positions) {
+                if (areaOverride != null && !areaOverride.contains(point.x(), point.y()))
+                    continue;
                 List<Key> keySequence = hintKeySequence(
                         selectionKeys, rowKeyOffset, hintCount,
                         0, -1, currentPositionHistory.id(point),
@@ -1281,7 +1282,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                                                     .anyMatch(hint -> screenRectangle.contains(
                                                             hint.centerX(), hint.centerY())))
                     .toList();
-            if (!screensWithHint.isEmpty()) {
+            if (areaOverride != null)
+                hintMesh.area(areaOverride).backgroundArea(areaOverride);
+            else if (!screensWithHint.isEmpty()) {
                 Rectangle hintScreens = Rectangle.union(screensWithHint);
                 hintMesh.area(hintScreens).backgroundArea(hintScreens);
             }

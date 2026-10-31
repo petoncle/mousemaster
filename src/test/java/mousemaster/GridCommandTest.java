@@ -200,6 +200,27 @@ class GridCommandTest {
     }
 
     @Test
+    void shrinkingSavedPositionsKeepsThePositionsInTheHalf() throws IOException {
+        start("""
+                idle-mode.to.saved-mode=+s
+                idle-mode.save.position-history=+f1
+                saved-mode.to.idle-mode=+esc
+                saved-mode.overlay.type=position-history
+                saved-mode.overlay.selection-keys=a b c d
+                """);
+        switchMode("idle-mode");
+        hintManager.mouseMoved(100, 100);
+        hintManager.saveCurrentPosition("position-history");
+        hintManager.mouseMoved(1500, 100);
+        hintManager.saveCurrentPosition("position-history");
+        switchMode("saved-mode");
+        assertEquals(2, hintManager.hintMesh().hints().size());
+        hintManager.shrinkOverlayLeft();
+        assertEquals(List.of(100.0),
+                hintManager.hintMesh().hints().stream().map(Hint::centerX).toList());
+    }
+
+    @Test
     void betweenUiHintsTheTargetGoesToTheNearestElement() throws IOException {
         uiElements = List.of(new UiElement(new Rectangle(100, 100, 50, 20)),
                 new UiElement(new Rectangle(400, 100, 50, 20)));

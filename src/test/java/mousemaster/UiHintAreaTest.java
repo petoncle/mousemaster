@@ -131,6 +131,20 @@ public class UiHintAreaTest {
     }
 
     @Test
+    void shrinkingOrMovingTheOverlayLooksForTheElementsInTheNewArea() throws IOException {
+        Mode mode = parse(uiMode).modeMap().get("ui-hint-mode");
+        List<Rectangle> areas = new ArrayList<>();
+        HintManager hintManager = hintManager(areas);
+        hintManager.modeChanged(mode);
+        hintManager.completePendingUiHintQuery();
+        hintManager.shrinkOverlayUp();
+        hintManager.completePendingUiHintQuery();
+        hintManager.moveOverlayToAreaBelow();
+        assertEquals(List.of(new Rectangle(0, 0, 1920, 1080), new Rectangle(0, 0, 1920, 540),
+                new Rectangle(0, 540, 1920, 540)), areas);
+    }
+
+    @Test
     void theInsetsCutMarginsFromTheArea() throws IOException {
         ModeMap modeMap = parse(uiMode + """
                 ui-hint-mode.hint.area-top-inset=15
