@@ -6458,6 +6458,7 @@
             "boolean",
             "boolean",
             "boolean",
+            "boolean",
             "mousemaster.HintMeshType",
             "mousemaster.ScreenFilterMap",
             "mousemaster.ScreenFilterMap",
@@ -6472,6 +6473,10 @@
         },
         {
           "name": "enabled",
+          "parameterTypes": []
+        },
+        {
+          "name": "excludeFromCapture",
           "parameterTypes": []
         },
         {

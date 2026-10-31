@@ -15,6 +15,14 @@ class OverlayTest {
     }
 
     @Test
+    void anOverlayCanBeExcludedFromCapture() {
+        assertEquals(false, overlay("grid-mode", "idle-mode.to.grid-mode=+g",
+                "grid-mode.overlay.selection-keys=a b c d").excludeFromCapture());
+        assertEquals(true, overlay("grid-mode", "idle-mode.to.grid-mode=+g",
+                "grid-mode.overlay.exclude-from-capture=true").excludeFromCapture());
+    }
+
+    @Test
     void hintIsOverlay() {
         assertEquals(
                 overlay("grid-mode", "idle-mode.to.grid-mode=+g",

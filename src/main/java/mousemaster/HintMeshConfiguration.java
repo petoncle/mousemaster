@@ -7,6 +7,7 @@ import mousemaster.ScreenFilterMap.ScreenFilterMapBuilder;
 
 public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
+                                    boolean excludeFromCapture,
                                     boolean mouseFollowsTarget,
                                     boolean targetFollowsOverlayCenter,
                                     HintMeshType type,
@@ -19,6 +20,7 @@ public record HintMeshConfiguration(boolean enabled,
     public static class HintMeshConfigurationBuilder {
         private Boolean enabled;
         private Boolean visible;
+        private Boolean excludeFromCapture;
         private Boolean mouseFollowsTarget;
         private Boolean targetFollowsOverlayCenter;
         private final HintMeshTypeBuilder type = new HintMeshTypeBuilder();
@@ -37,6 +39,11 @@ public record HintMeshConfiguration(boolean enabled,
 
         public HintMeshConfigurationBuilder visible(boolean visible) {
             this.visible = visible;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder excludeFromCapture(boolean excludeFromCapture) {
+            this.excludeFromCapture = excludeFromCapture;
             return this;
         }
 
@@ -95,6 +102,10 @@ public record HintMeshConfiguration(boolean enabled,
             return visible;
         }
 
+        public Boolean excludeFromCapture() {
+            return excludeFromCapture;
+        }
+
         public Boolean mouseFollowsTarget() {
             return mouseFollowsTarget;
         }
@@ -120,8 +131,8 @@ public record HintMeshConfiguration(boolean enabled,
         }
 
         public HintMeshConfiguration build() {
-            return new HintMeshConfiguration(enabled, visible, mouseFollowsTarget,
-                    targetFollowsOverlayCenter,
+            return new HintMeshConfiguration(enabled, visible, excludeFromCapture,
+                    mouseFollowsTarget, targetFollowsOverlayCenter,
                     type.build(),
                     keysByFilter.build(HintMeshKeysBuilder::build),
                     styleByFilter.build(HintMeshStyleBuilder::build),

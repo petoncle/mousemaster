@@ -1084,6 +1084,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             Screen activeScreen) {
         HintMeshBuilder hintMesh = new HintMeshBuilder();
         hintMesh.visible(hintMeshConfiguration.visible())
+                .excludeFromCapture(hintMeshConfiguration.excludeFromCapture())
                 .styleByFilter(hintMeshConfiguration.styleByFilter());
         HintMeshType type = hintMeshConfiguration.type();
         if (type instanceof HintMeshType.GridHintMesh gridHintMesh) {
@@ -1791,7 +1792,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             childMesh = buildDecorationMesh(style, decorationCell, scale, zoom,
                     childDecoration, null);
         }
-        return new HintMesh(true, decorationHints, prefixLength, List.of(),
+        return new HintMesh(true, false, decorationHints, prefixLength, List.of(),
                 decorationStyleByFilter, area, area, null, childMesh, List.of());
     }
 

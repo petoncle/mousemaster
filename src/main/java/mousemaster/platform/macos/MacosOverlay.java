@@ -46,6 +46,7 @@ public class MacosOverlay implements Overlay {
             anchoredIndicatorRendererByCopyKey = new LinkedHashMap<>();
     private List<IndicatorLayerCopyKey> copyKeys = List.of();
     private boolean indicatorExcludedFromCapture;
+    private boolean hintMeshExcludedFromCapture;
     private MacosZoomRenderer zoomRenderer;
     private Zoom currentZoom;
     private long nextZoomFrameNanos;
@@ -145,6 +146,7 @@ public class MacosOverlay implements Overlay {
     private TransparentWindow createStyledHintMeshWindow() {
         TransparentWindow window = new TransparentWindow();
         MacosWindow.applyOverlayProperties(window);
+        MacosWindow.setExcludedFromCapture(window, hintMeshExcludedFromCapture);
         return window;
     }
 
@@ -281,6 +283,11 @@ public class MacosOverlay implements Overlay {
 
     @Override
     public void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch) {
+        if (hintMesh.excludeFromCapture() != hintMeshExcludedFromCapture) {
+            hintMeshExcludedFromCapture = hintMesh.excludeFromCapture();
+            for (TransparentWindow window : hintMeshRenderer.windows())
+                MacosWindow.setExcludedFromCapture(window, hintMeshExcludedFromCapture);
+        }
         hintMeshRenderer.setHintMesh(hintMesh, zoom, hintMatch, true,
                 MacosScreens.screens());
     }

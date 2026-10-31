@@ -195,6 +195,7 @@ public class ConfigurationParser {
                 new HintMeshConfigurationBuilder();
         hintMesh.enabled(false)
                 .visible(true)
+                .excludeFromCapture(false)
                 .mouseFollowsTarget(true)
                 .targetFollowsOverlayCenter(false);
         hintMesh.keys(AnyScreenFilter.ANY_SCREEN_FILTER)
@@ -3154,6 +3155,7 @@ public class ConfigurationParser {
             // Top-level properties
             case "enabled" -> ModePropertyHandler.of(prefix.append("enabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.enabled(v));
             case "visible" -> ModePropertyHandler.of(prefix.append("visible"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.visible(v));
+            case "exclude-from-capture" -> ModePropertyHandler.of(prefix.append("excludeFromCapture"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.excludeFromCapture(v));
             case "mouse-follows-target" -> ModePropertyHandler.of(prefix.append("mouseFollowsTarget"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.mouseFollowsTarget(v));
             case "target-follows-overlay-center" -> ModePropertyHandler.of(prefix.append("targetFollowsOverlayCenter"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.targetFollowsOverlayCenter(v));
             case "saved-hints" -> ModePropertyHandler.of(prefix.append("savedPositionHistory"), v -> positionHistoryName("overlay.saved-hints", v, positionHistoryNames), v -> hintMeshBuilder.savedPositionHistory(v));
@@ -4140,6 +4142,8 @@ public class ConfigurationParser {
                     builder.enabled(parent.enabled());
                 if (builder.visible() == null)
                     builder.visible(parent.visible());
+                if (builder.excludeFromCapture() == null)
+                    builder.excludeFromCapture(parent.excludeFromCapture());
                 if (builder.mouseFollowsTarget() == null)
                     builder.mouseFollowsTarget(parent.mouseFollowsTarget());
                 if (builder.targetFollowsOverlayCenter() == null)

@@ -36,6 +36,7 @@ public class WindowsOverlay implements Overlay {
     private List<IndicatorLayerCopyKey> copyKeys = List.of();
     private boolean indicatorIsCursor;
     private boolean indicatorExcludedFromCapture;
+    private boolean hintMeshExcludedFromCapture;
     private IndicatorConfiguration currentCursorIndicator;
     private double currentCursorScale;
     private boolean currentIncludeOriginalCursor;
@@ -356,6 +357,7 @@ public class WindowsOverlay implements Overlay {
     private TransparentWindow createStyledHintMeshWindow() {
         TransparentWindow window = new TransparentWindow();
         applyOverlayExStyles(hwnd(window));
+        applyCaptureExclusion(hwnd(window), currentZoom != null || hintMeshExcludedFromCapture);
         return window;
     }
 
@@ -609,7 +611,7 @@ public class WindowsOverlay implements Overlay {
             applyCaptureExclusion(indicatorWindow.hwnd(),
                     currentZoom != null || indicatorExcludedFromCapture);
         for (TransparentWindow window : hintMeshRenderer.windows())
-            applyCaptureExclusion(hwnd(window), currentZoom != null);
+            applyCaptureExclusion(hwnd(window), currentZoom != null || hintMeshExcludedFromCapture);
     }
 
     private WinDef.LRESULT zoomWindowCallback(WinDef.HWND hwnd, int uMsg,
@@ -661,6 +663,12 @@ public class WindowsOverlay implements Overlay {
 
     private void showHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch,
                               boolean allowFade) {
+        if (hintMesh.excludeFromCapture() != hintMeshExcludedFromCapture) {
+            hintMeshExcludedFromCapture = hintMesh.excludeFromCapture();
+            for (TransparentWindow window : hintMeshRenderer.windows())
+                applyCaptureExclusion(hwnd(window),
+                        currentZoom != null || hintMeshExcludedFromCapture);
+        }
         boolean wasShowing = hintMeshRenderer.showing();
         hintMeshRenderer.setHintMesh(hintMesh, zoom, hintMatch, allowFade,
                 WindowsScreen.findScreens());
@@ -746,7 +754,7 @@ public class WindowsOverlay implements Overlay {
     private void setOverlaysExcludedFromCapture(boolean excluded) {
         if (hintMeshRenderer.showing())
             for (TransparentWindow window : hintMeshRenderer.windows())
-                applyCaptureExclusion(hwnd(window), excluded);
+                applyCaptureExclusion(hwnd(window), excluded || hintMeshExcludedFromCapture);
         for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
             if (indicatorWindow.showing())
                 applyCaptureExclusion(indicatorWindow.hwnd(),

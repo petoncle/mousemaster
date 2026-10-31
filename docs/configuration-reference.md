@@ -712,6 +712,9 @@ saved positions. Each box is a hint, and `selection-keys` labels the hints with 
 The indicator and the zoom are configured on their own: `overlay.visible=false` hides the overlay
 only.
 
+`overlay.exclude-from-capture=true` keeps the overlay out of screenshots and screen recordings while
+it stays on screen (default false), as `indicator.exclude-from-capture` does for the indicator.
+
 The hint system in mousemaster displays labels on the screen that you can select with keystrokes to move the mouse to specific locations. This is similar to the hint systems in browser extensions like Vimium, but works system-wide.
 
 ### Overlay types

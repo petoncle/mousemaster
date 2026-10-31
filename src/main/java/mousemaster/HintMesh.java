@@ -9,8 +9,8 @@ import java.util.List;
  * subDecoration = the per-cell decoration tiled into each cell (its own
  * subDecoration is the next depth: subsubdecoration).
  */
-public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
-                       List<Key> selectedKeySequence,
+public record HintMesh(boolean visible, boolean excludeFromCapture, List<Hint> hints,
+                       int prefixLength, List<Key> selectedKeySequence,
                        ScreenFilterMap<HintMeshStyle> styleByFilter,
                        Rectangle area, Rectangle backgroundArea, HintMesh decoration,
                        HintMesh subDecoration, List<Hint> savedHints) {
@@ -21,6 +21,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
 
     public static class HintMeshBuilder {
         private boolean visible;
+        private boolean excludeFromCapture;
         private List<Hint> hints;
         private int prefixLength;
         private List<Key> selectedKeySequence = List.of();
@@ -36,6 +37,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
 
         public HintMeshBuilder(HintMesh hintMesh) {
             this.visible = hintMesh.visible;
+            this.excludeFromCapture = hintMesh.excludeFromCapture;
             this.hints = hintMesh.hints;
             this.prefixLength = hintMesh.prefixLength;
             this.selectedKeySequence = hintMesh.selectedKeySequence;
@@ -70,6 +72,11 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
 
         public HintMeshBuilder visible(boolean visible) {
             this.visible = visible;
+            return this;
+        }
+
+        public HintMeshBuilder excludeFromCapture(boolean excludeFromCapture) {
+            this.excludeFromCapture = excludeFromCapture;
             return this;
         }
 
@@ -136,9 +143,9 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
         }
 
         public HintMesh build() {
-            return new HintMesh(visible, hints, prefixLength, selectedKeySequence,
-                    styleByFilter, area, backgroundArea, decoration, subDecoration,
-                    savedHints);
+            return new HintMesh(visible, excludeFromCapture, hints, prefixLength,
+                    selectedKeySequence, styleByFilter, area, backgroundArea, decoration,
+                    subDecoration, savedHints);
         }
     }
 
