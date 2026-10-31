@@ -6,7 +6,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** hint is the deprecated name of overlay. */
 class OverlayTest {
 
     private static HintMeshConfiguration overlay(String modeName, String... lines) {
@@ -24,6 +23,23 @@ class OverlayTest {
                 overlay("grid-mode", "idle-mode.to.grid-mode=+g",
                         "grid-mode.hint.grid-max-row-count=3",
                         "grid-mode.hint.selection-keys=a b c d"));
+    }
+
+    @Test
+    void theDeprecatedOverlayKeysAreTheirNewKeys() {
+        assertEquals(
+                overlay("grid-mode", "idle-mode.to.grid-mode=+g",
+                        "grid-mode.overlay.area=active-window",
+                        "grid-mode.overlay.area-center=mouse",
+                        "grid-mode.overlay.box-horizontal-padding=4",
+                        "grid-mode.overlay.subdecoration-box-border-color=#FF0000",
+                        "grid-mode.overlay.subdecoration-box-framed=true"),
+                overlay("grid-mode", "idle-mode.to.grid-mode=+g",
+                        "grid-mode.overlay.grid-area=active-window",
+                        "grid-mode.overlay.active-screen-grid-area-center=mouse",
+                        "grid-mode.overlay.cell-horizontal-padding=4",
+                        "grid-mode.overlay.subgrid-border-color=#FF0000",
+                        "grid-mode.overlay.subgrid-closed=true"));
     }
 
     @Test

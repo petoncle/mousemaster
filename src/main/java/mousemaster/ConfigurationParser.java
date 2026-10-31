@@ -342,6 +342,7 @@ public class ConfigurationParser {
 
     public static Configuration parse(List<String> properties,
                                       KeyboardLayout platformActiveKeyboardLayout) {
+        properties = desugarOverlayKeys(properties);
         properties = desugarIndicatorStates(properties);
         properties = desugarMouseMovement(desugarGrid(properties));
         properties = desugarPositionHistoryAndAnimationCommands(properties);
@@ -916,6 +917,60 @@ public class ConfigurationParser {
                                             command instanceof MoveTargetToLastSelectedHint));
     }
 
+    private static final Map<String, String> OVERLAY_KEY_BY_DEPRECATED_KEY = Map.of(
+            "grid-area", "area",
+            "ui-area", "area",
+            "grid-area-width-percent", "area-width-percent",
+            "grid-area-height-percent", "area-height-percent",
+            "grid-area-center", "area-center",
+            "active-screen-grid-area-center", "area-center",
+            "cell-horizontal-padding", "box-horizontal-padding",
+            "cell-vertical-padding", "box-vertical-padding");
+
+    /**
+     * Rewrites the deprecated overlay keys: a-mode.hint.grid-area=active-window becomes
+     * a-mode.overlay.area=active-window, and a-mode.overlay.subgrid-closed=true becomes
+     * a-mode.overlay.subdecoration-box-framed=true.
+     */
+    private static List<String> desugarOverlayKeys(List<String> properties) {
+        List<String> desugared = new ArrayList<>(properties.size());
+        for (String property : properties) {
+            Matcher lineMatcher = propertyLinePattern.matcher(property);
+            Matcher keyMatcher = modeKeyPattern.matcher(
+                    lineMatcher.matches() ? lineMatcher.group(1).strip() : "");
+            if (!keyMatcher.matches() || keyMatcher.group(3) == null ||
+                !List.of("overlay", "hint").contains(keyMatcher.group(3))) {
+                desugared.add(property);
+                continue;
+            }
+            String key = keyMatcher.group(5);
+            if (key != null && key.startsWith("subgrid-")) {
+                String suffix = key.substring("subgrid-".length());
+                key = "subdecoration-" + (suffix.startsWith("border-") ? "box-" + suffix :
+                        suffix.equals("closed") ? "box-framed" :
+                        suffix.equals("selection-keys") ? "label-keys" : suffix);
+            }
+            else if (key != null)
+                key = OVERLAY_KEY_BY_DEPRECATED_KEY.getOrDefault(key, key);
+            String propertyKey = keyMatcher.group(1) + ".overlay" +
+                                 (key == null ? "" : "." + key) +
+                                 (keyMatcher.group(7) == null ? "" : "." + keyMatcher.group(7));
+            String value = lineMatcher.group(2).strip();
+            String overlayValue = key == null ? value.replaceFirst("\\.hint$", ".overlay") : value;
+            if (!propertyKey.equals(lineMatcher.group(1).strip()))
+                logger.warn(lineMatcher.group(1).strip() + " has been deprecated: use " +
+                            propertyKey + " instead");
+            else if (!overlayValue.equals(value))
+                logger.warn(value + " has been deprecated: use " + overlayValue + " instead");
+            else {
+                desugared.add(property);
+                continue;
+            }
+            desugared.add(propertyKey + "=" + overlayValue);
+        }
+        return desugared;
+    }
+
     /**
      * Rewrites the deprecated grid properties with the names of the hint properties:
      * a-mode.grid.row-count=1 becomes a-mode.grid.grid-max-row-count=1.
@@ -926,8 +981,12 @@ public class ConfigurationParser {
             Matcher lineMatcher = propertyLinePattern.matcher(property);
             Matcher keyMatcher = modeKeyPattern.matcher(
                     lineMatcher.matches() ? lineMatcher.group(1).strip() : "");
-            if (!keyMatcher.matches() || !"grid".equals(keyMatcher.group(3)) ||
-                keyMatcher.group(5) == null || keyMatcher.group(7) != null) {
+            if (!keyMatcher.matches() || !"grid".equals(keyMatcher.group(3))) {
+                desugared.add(property);
+                continue;
+            }
+            logger.warn(lineMatcher.group(1).strip() + " has been deprecated: use overlay instead");
+            if (keyMatcher.group(5) == null || keyMatcher.group(7) != null) {
                 desugared.add(property);
                 continue;
             }
@@ -950,7 +1009,7 @@ public class ConfigurationParser {
             "mouse-follows-hint-grid-center)(?![\\w-])");
 
     /**
-     * Rewrites the former mouse-movement as mouse-follows-target and
+     * Rewrites the deprecated mouse-movement as mouse-follows-target and
      * target-follows-overlay-center, in each branch of a mutation:
      * a-mode.overlay.mouse-movement=no-movement becomes
      * a-mode.overlay.mouse-follows-target=false and
@@ -964,10 +1023,13 @@ public class ConfigurationParser {
                     lineMatcher.matches() ? lineMatcher.group(1).strip() : "");
             if (!keyMatcher.matches() || !"mouse-movement".equals(keyMatcher.group(5)) ||
                 keyMatcher.group(7) != null ||
-                !List.of("overlay", "hint", "grid").contains(keyMatcher.group(3))) {
+                !List.of("overlay", "grid").contains(keyMatcher.group(3))) {
                 desugared.add(property);
                 continue;
             }
+            if (keyMatcher.group(3).equals("overlay"))
+                logger.warn(lineMatcher.group(1).strip() + " has been deprecated: use " +
+                            "mouse-follows-target and target-follows-overlay-center instead");
             String overlayKey = keyMatcher.group(1) + "." + keyMatcher.group(3);
             String value = lineMatcher.group(2).strip();
             desugared.add(overlayKey + ".mouse-follows-target=" +
@@ -981,7 +1043,7 @@ public class ConfigurationParser {
         return desugared;
     }
 
-    private static final Map<String, String> POSITION_HISTORY_COMMAND_BY_FORMER_NAME = Map.of(
+    private static final Map<String, String> POSITION_HISTORY_COMMAND_BY_DEPRECATED_NAME = Map.of(
             "save-position", "save",
             "unsave-position", "unsave",
             "clear", "clear",
@@ -989,7 +1051,7 @@ public class ConfigurationParser {
             "cycle-previous", "cycle-previous");
 
     /**
-     * Rewrites the former position history and animation commands with the command first:
+     * Rewrites the deprecated position history and animation commands with the command first:
      * a-mode.position-history.clear=+x becomes a-mode.clear.position-history=+x, and
      * a-mode.pop-in-animation.start=+x becomes a-mode.start.pop-in-animation=+x.
      */
@@ -1010,17 +1072,28 @@ public class ConfigurationParser {
             String command = keyMatcher.group(5);
             String value = lineMatcher.group(2).strip();
             if (name.equals("position-history") && command == null) {
-                for (String positionHistoryCommand : POSITION_HISTORY_COMMAND_BY_FORMER_NAME.values())
+                logger.warn(lineMatcher.group(1).strip() + " has been deprecated: use " +
+                            "save, unsave, clear, cycle-next and cycle-previous instead");
+                for (String positionHistoryCommand : POSITION_HISTORY_COMMAND_BY_DEPRECATED_NAME.values())
                     desugared.add(modeName + "." + positionHistoryCommand + "=" +
                                   value.replaceFirst("\\.position-history$",
                                           "." + positionHistoryCommand));
             }
             else if (command != null && isPositionHistoryName(name) &&
-                     POSITION_HISTORY_COMMAND_BY_FORMER_NAME.containsKey(command))
-                desugared.add(modeName + "." + POSITION_HISTORY_COMMAND_BY_FORMER_NAME.get(command) +
-                              "." + name + "=" + value);
-            else if (isAnimationName(name) && ("start".equals(command) || "stop".equals(command)))
-                desugared.add(modeName + "." + command + "." + name + "=" + value);
+                     POSITION_HISTORY_COMMAND_BY_DEPRECATED_NAME.containsKey(command)) {
+                String propertyKey = modeName + "." +
+                                     POSITION_HISTORY_COMMAND_BY_DEPRECATED_NAME.get(command) +
+                                     "." + name;
+                logger.warn(lineMatcher.group(1).strip() + " has been deprecated: use " +
+                            propertyKey + " instead");
+                desugared.add(propertyKey + "=" + value);
+            }
+            else if (isAnimationName(name) && ("start".equals(command) || "stop".equals(command))) {
+                String propertyKey = modeName + "." + command + "." + name;
+                logger.warn(lineMatcher.group(1).strip() + " has been deprecated: use " +
+                            propertyKey + " instead");
+                desugared.add(propertyKey + "=" + value);
+            }
             else
                 desugared.add(property);
         }
@@ -1028,12 +1101,12 @@ public class ConfigurationParser {
     }
 
     private static final Pattern overlaySelectKeyPattern =
-            Pattern.compile("([^.]+-mode)\\.(?:overlay|hint|grid)\\.(select|deselect|undo)");
+            Pattern.compile("([^.]+-mode)\\.(?:overlay|grid)\\.(select|deselect|undo)");
     private static final Pattern overlayKeyPattern =
-            Pattern.compile("([^.]+-mode)\\.(?:overlay|hint|grid)");
+            Pattern.compile("([^.]+-mode)\\.(?:overlay|grid)");
 
     /**
-     * Rewrites the former overlay.select and overlay.deselect as select and deselect:
+     * Rewrites the deprecated overlay.select and overlay.deselect as select and deselect:
      * a-mode.overlay.select=+x becomes a-mode.select=+x. An overlay reference copied them, so
      * b-mode.overlay=a-mode.overlay also gets b-mode.select=a-mode.select.
      */
@@ -1051,6 +1124,8 @@ public class ConfigurationParser {
             if (keyMatcher.matches()) {
                 String command = keyMatcher.group(2).equals("undo") ? "deselect" :
                         keyMatcher.group(2);
+                logger.warn(lineMatcher.group(1).strip() + " has been deprecated: use " +
+                            keyMatcher.group(1) + "." + command + " instead");
                 commands.add(command);
                 propertyKeys.add(keyMatcher.group(1) + "." + command);
                 desugared.add(keyMatcher.group(1) + "." + command + "=" +
@@ -1411,14 +1486,11 @@ public class ConfigurationParser {
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
-            case "overlay", "hint", "grid" -> {
+            case "overlay", "grid" -> {
                 Property<HintMeshConfigurationBuilder> hintMesh =
                         group2.equals("grid") ? mode.grid : mode.hintMesh;
                 if (keyMatcher.group(group3) == null)
-                    // hint is the deprecated name of overlay.
-                    hintMesh.parsePropertyReference(
-                            propertyKey.replaceFirst("\\.hint$", ".overlay"),
-                            propertyValue.replaceFirst("\\.hint$", ".overlay"),
+                    hintMesh.parsePropertyReference(propertyKey, propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
                 else if (keyMatcher.group(group4) == null)
@@ -1795,8 +1867,9 @@ public class ConfigurationParser {
                 }
             }
             case "shrink-overlay", "shrink-grid" -> {
+                if (group2.equals("shrink-grid"))
+                    logger.warn(propertyKey + " has been deprecated: use shrink-overlay instead");
                 if (keyMatcher.group(group3) == null)
-                    // shrink-grid is the deprecated name of shrink-overlay.
                     mode.comboMap.shrinkOverlay.parsePropertyReference(
                             propertyKey.replaceFirst("\\.shrink-grid$", ".shrink-overlay"),
                             propertyValue.replaceFirst("\\.shrink-grid$", ".shrink-overlay"),
@@ -1837,8 +1910,8 @@ public class ConfigurationParser {
                 }
             }
             case "move-grid" -> {
+                logger.warn(propertyKey + " has been deprecated: use move-overlay-to.area-above, area-below, area-left or area-right instead");
                 if (keyMatcher.group(group3) == null)
-                    // move-grid is the deprecated name of move-overlay-to.
                     mode.comboMap.moveOverlayTo.parsePropertyReference(
                             propertyKey.replaceFirst("\\.move-grid$", ".move-overlay-to"),
                             propertyValue.replaceFirst("\\.move-grid$", ".move-overlay-to"),
@@ -1905,11 +1978,9 @@ public class ConfigurationParser {
                     }
                 }
             }
-            // move-to-grid-center, move-to-last-selected-hint and snap are the deprecated names
-            // of move-to.overlay-center, move-to.last-selected-hint and
-            // move-to.cell-top, cell-bottom, cell-left and cell-right.
             // @formatter:off
             case "move-to-grid-center" -> {
+                logger.warn(propertyKey + " has been deprecated: use move-to.overlay-center instead");
                 mode.comboMap.moveTo.parseReferenceOr(
                         propertyKey.replaceFirst("\\.move-to-grid-center$", ".move-to"),
                         propertyValue.replaceFirst("\\.move-to-grid-center$", ".move-to"),
@@ -1917,6 +1988,7 @@ public class ConfigurationParser {
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
             case "move-to-last-selected-hint" -> {
+                logger.warn(propertyKey + " has been deprecated: use move-to.last-selected-hint instead");
                 mode.comboMap.moveTo.parseReferenceOr(
                         propertyKey.replaceFirst("\\.move-to-last-selected-hint$", ".move-to"),
                         propertyValue.replaceFirst("\\.move-to-last-selected-hint$", ".move-to"),
@@ -1924,6 +1996,7 @@ public class ConfigurationParser {
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
             case "snap" -> {
+                logger.warn(propertyKey + " has been deprecated: use move-to.cell-top, cell-bottom, cell-left or cell-right instead");
                 if (keyMatcher.group(group3) == null)
                     mode.comboMap.moveTo.parsePropertyReference(
                             propertyKey.replaceFirst("\\.snap$", ".move-to"),
@@ -2241,7 +2314,7 @@ public class ConfigurationParser {
      */
     static Set<String> parsePositionHistoryNames(List<String> properties) {
         Pattern commandPattern = Pattern.compile("[^.]+-mode\\.(?:" +
-                String.join("|", POSITION_HISTORY_COMMAND_BY_FORMER_NAME.values()) +
+                String.join("|", POSITION_HISTORY_COMMAND_BY_DEPRECATED_NAME.values()) +
                 ")\\.([^.]+)");
         Set<String> positionHistoryNames = new HashSet<>();
         for (String line : properties) {
@@ -3024,17 +3097,6 @@ public class ConfigurationParser {
             index = 0;
             suffix = key.substring("decoration-".length());
         }
-        else if (key.startsWith("subgrid-")) {
-            // Deprecated (should use subdecoration instead).
-            index = 1;
-            suffix = key.substring("subgrid-".length());
-            if (suffix.startsWith("border-"))
-                suffix = "box-" + suffix;
-            else if (suffix.equals("closed"))
-                suffix = "box-framed";
-            else if (suffix.equals("selection-keys"))
-                suffix = "label-keys";
-        }
         else
             return null;
         ModePropertyPath p = prefix.append("styleByFilter", "decoration" + index);
@@ -3136,15 +3198,14 @@ public class ConfigurationParser {
             case "vision-min-size" -> ModePropertyHandler.of(prefix.append("type", "minSize"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.type().visionMinSize(v));
             // Area = size + center. Mutations set the record component directly
             // (the mutator keeps the sibling component), so no Function is needed.
-            // grid-area*, ui-area and active-screen-grid-area-center are deprecated aliases.
-            case "area", "grid-area", "ui-area" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "source"), v -> parseHintGridAreaSizeSource("overlay.area", v), v -> hintMeshBuilder.type().area().source(v));
-            case "area-width-percent", "grid-area-width-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().area().widthPercent(v));
-            case "area-height-percent", "grid-area-height-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().area().heightPercent(v));
+            case "area" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "source"), v -> parseHintGridAreaSizeSource("overlay.area", v), v -> hintMeshBuilder.type().area().source(v));
+            case "area-width-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().area().widthPercent(v));
+            case "area-height-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().area().heightPercent(v));
             case "area-top-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "topInset"), v -> parseDouble(v, true, -10_000, 10_000), v -> hintMeshBuilder.type().area().topInset(v));
             case "area-bottom-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "bottomInset"), v -> parseDouble(v, true, -10_000, 10_000), v -> hintMeshBuilder.type().area().bottomInset(v));
             case "area-left-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "leftInset"), v -> parseDouble(v, true, -10_000, 10_000), v -> hintMeshBuilder.type().area().leftInset(v));
             case "area-right-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "rightInset"), v -> parseDouble(v, true, -10_000, 10_000), v -> hintMeshBuilder.type().area().rightInset(v));
-            case "area-center", "grid-area-center", "active-screen-grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseHintGridAreaCenter("overlay.area-center", v), v -> hintMeshBuilder.type().area().center(v));
+            case "area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseHintGridAreaCenter("overlay.area-center", v), v -> hintMeshBuilder.type().area().center(v));
             // Grid layout properties (screen-filtered)
             case "grid-max-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxRowCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(screenFilter).maxRowCount(v));
             case "grid-max-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxColumnCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(screenFilter).maxColumnCount(v));
@@ -3310,8 +3371,8 @@ public class ConfigurationParser {
             // Style: box dimensions
             case "box-width-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxWidthPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).boxWidthPercent(v));
             case "box-height-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxHeightPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).boxHeightPercent(v));
-            case "box-horizontal-padding", "cell-horizontal-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxHorizontalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).boxHorizontalPadding(v));
-            case "box-vertical-padding", "cell-vertical-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxVerticalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).boxVerticalPadding(v));
+            case "box-horizontal-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxHorizontalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).boxHorizontalPadding(v));
+            case "box-vertical-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxVerticalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).boxVerticalPadding(v));
             case "label-override" -> ModePropertyHandler.of(prefix.append("styleByFilter", "labelOverride"), v -> parseKeyList(v, keyAliases, keyResolver), v -> hintMeshBuilder.style(screenFilter).labelOverride(v));
             // Style: animation & background
             case "transition-animation-enabled" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transitionAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(screenFilter).transitionAnimationEnabled(v));
