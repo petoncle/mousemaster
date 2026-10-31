@@ -223,6 +223,17 @@ public class PositionHistoryTest {
     }
 
     @Test
+    void anActiveAppIsolatedPositionHistorySavesWhileNoActiveAppIsFound() throws IOException {
+        Configuration configuration = parse(twoHistories + browserHints +
+                                            "browser-position-history.isolation=active-app\n");
+        HintManager hintManager = hintManager(configuration, new App[] {null});
+        hintManager.mouseMoved(10, 10);
+        hintManager.saveCurrentPosition("browser-position-history");
+        assertEquals(List.of(new Point(10, 10)),
+                hintManager.positionHistory("browser-position-history").positions());
+    }
+
+    @Test
     void theDefaultPositionHistoryCanBeActiveAppIsolated() throws IOException {
         Configuration configuration = parse(twoHistories + browserHints +
                                             "position-history.isolation=active-app\n");

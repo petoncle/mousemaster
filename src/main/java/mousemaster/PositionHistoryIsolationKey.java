@@ -10,7 +10,7 @@ public sealed interface PositionHistoryIsolationKey {
             implements PositionHistoryIsolationKey {
         @Override
         public String toString() {
-            return activeApp.executableName();
+            return activeApp == null ? "null" : activeApp.executableName();
         }
     }
 
