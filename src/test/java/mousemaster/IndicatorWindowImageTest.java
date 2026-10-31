@@ -174,28 +174,18 @@ class IndicatorWindowImageTest {
     }
 
     @Test
-    void anArrowEndsOnItsEndPositionWithAHeadAsWideAsItsSize() {
+    void aLineEndsOnItsEndPosition() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
-        IndicatorConfiguration arrow = indicator("idle-mode.indicator.enabled=true",
-                "idle-mode.indicator.shape=arrow", "idle-mode.indicator.size=20",
+        IndicatorConfiguration line = indicator("idle-mode.indicator.enabled=true",
+                "idle-mode.indicator.shape=line",
                 "idle-mode.indicator.position=last-selected-hint",
                 "idle-mode.indicator.end-position=target");
         for (int targetX : new int[]{700, 900}) {
-            WindowImage image = render(arrow,
-                    hintAndTarget(new Point(500, 500), new Point(targetX, 500)));
-            assertTrue(inked(image, 550, 502));
-            assertFalse(inked(image, 550, 505));
-            Rectangle ink = inkBox(image);
+            Rectangle ink = inkBox(render(line,
+                    hintAndTarget(new Point(500, 500), new Point(targetX, 500))));
             assertEquals(500, ink.x(), 1);
             assertEquals(targetX, ink.x() + ink.width(), 1);
-            assertEquals(490, ink.y(), 1);
-            assertEquals(510, ink.y() + ink.height(), 1);
         }
-        Rectangle bar = inkBox(render(arrow,
-                hintAndTarget(new Point(500, 500), new Point(500, 500))));
-        assertEquals(500, bar.x() + bar.width() / 2.0, 1);
-        assertEquals(490, bar.y(), 1);
-        assertEquals(510, bar.y() + bar.height(), 1);
     }
 
     @Test
@@ -251,8 +241,7 @@ class IndicatorWindowImageTest {
                                                   String endPositionAnchor,
                                                   Map<Point, HintRectangles> hintRectanglesByPoint) {
         return render(indicator("idle-mode.save.position-history=+f1",
-                        "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=arrow",
-                        "idle-mode.indicator.size=8",
+                        "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=line",
                         "idle-mode.indicator.position=position-history",
                         "idle-mode.indicator.end-position=position-history",
                         "idle-mode.indicator.position-anchor=" + positionAnchor,
@@ -265,25 +254,25 @@ class IndicatorWindowImageTest {
     @Test
     void anEdgeAnchorRunsALayerBetweenTheEdgesOfTheHintBoxes() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
-        WindowImage arrows = renderThroughHints("hint-box-edge", "hint-box-edge", boxes());
-        assertFalse(inked(arrows, 500, 505));
-        assertTrue(inked(arrows, 500, 515));
-        assertTrue(inked(arrows, 500, 685));
-        assertFalse(inked(arrows, 500, 695));
-        assertFalse(inked(arrows, 515, 700));
-        assertTrue(inked(arrows, 525, 700));
-        assertTrue(inked(arrows, 675, 700));
-        assertFalse(inked(arrows, 685, 700));
+        WindowImage lines = renderThroughHints("hint-box-edge", "hint-box-edge", boxes());
+        assertFalse(inked(lines, 500, 505));
+        assertTrue(inked(lines, 500, 515));
+        assertTrue(inked(lines, 500, 685));
+        assertFalse(inked(lines, 500, 695));
+        assertFalse(inked(lines, 515, 700));
+        assertTrue(inked(lines, 525, 700));
+        assertTrue(inked(lines, 675, 700));
+        assertFalse(inked(lines, 685, 700));
     }
 
     @Test
     void anEndPositionAnchorSetsOnlyWhereTheLayerStops() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
-        WindowImage arrows = renderThroughHints("hint-box-edge", "point", boxes());
-        assertFalse(inked(arrows, 500, 505));
-        assertTrue(inked(arrows, 500, 695));
-        assertFalse(inked(arrows, 515, 700));
-        assertTrue(inked(arrows, 695, 700));
+        WindowImage lines = renderThroughHints("hint-box-edge", "point", boxes());
+        assertFalse(inked(lines, 500, 505));
+        assertTrue(inked(lines, 500, 695));
+        assertFalse(inked(lines, 515, 700));
+        assertTrue(inked(lines, 695, 700));
     }
 
     private static Map<Point, HintRectangles> boxes() {

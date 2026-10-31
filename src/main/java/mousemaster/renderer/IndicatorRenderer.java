@@ -1093,8 +1093,6 @@ public final class IndicatorRenderer {
                 case TRIANGLE, STAR, PATH ->
                         addPolygon(path, corners(points(layer), left, top, boxWidth, boxHeight),
                                 layer.borderRadius() * scale);
-                case ARROW -> addPolygon(path, arrowCorners(left, top, boxWidth, boxHeight),
-                        layer.borderRadius() * scale);
                 case LINE -> {
                     path.moveTo(left, top + boxHeight / 2);
                     path.lineTo(left + boxWidth, top + boxHeight / 2);
@@ -1124,23 +1122,6 @@ public final class IndicatorRenderer {
                 corners.add(new Point(left + (point.x() - min.x()) / (max.x() - min.x()) * width,
                         top + (point.y() - min.y()) / (max.y() - min.y()) * height));
             return corners;
-        }
-
-        /** A head as long as the box is tall, on a shaft a quarter as wide. An arrow that is
-         *  not longer than its head is its head. */
-        private static List<Point> arrowCorners(double left, double top, double width,
-                                                double height) {
-            double headLeft = left + Math.max(0, width - height);
-            double middle = top + height / 2;
-            if (headLeft == left)
-                return List.of(new Point(left, top), new Point(left + width, middle),
-                        new Point(left, top + height));
-            double shaftHalfHeight = height / 8;
-            return List.of(new Point(left, middle - shaftHalfHeight),
-                    new Point(headLeft, middle - shaftHalfHeight), new Point(headLeft, top),
-                    new Point(left + width, middle), new Point(headLeft, top + height),
-                    new Point(headLeft, middle + shaftHalfHeight),
-                    new Point(left, middle + shaftHalfHeight));
         }
 
         private static void addPolygon(QPainterPath path, List<Point> corners,

@@ -360,15 +360,14 @@ normal-mode.indicator.border-radius=4
 normal-mode.indicator.rotation=45
 ```
 
-- **`shape`**: `circle` (default), `triangle`, `rectangle`, `star`, `line`, `arrow`, `cross`, `path`
-  or `text`. An `arrow` has a head as wide as the box is tall and as long, on a shaft a
-  quarter as wide.
+- **`shape`**: `circle` (default), `triangle`, `rectangle`, `star`, `line`, `cross`, `path` or
+  `text`.
 - **`size`**: The largest side of the shape's box, in pixels (default `26`).
 - **`aspect-ratio`**: How much wider than tall the box is (default `1`). On a layer with one
   position, a triangle, a star and a path keep the proportions of their points, which
   `aspect-ratio` then stretches.
-- **`border-radius`**: The radius of the corners of a rectangle, a triangle, a star, an arrow or
-  a path, in pixels (default `0`).
+- **`border-radius`**: The radius of the corners of a rectangle, a triangle, a star or a path, in
+  pixels (default `0`).
 - **`points`**: The points of a `path`, like `0,0 10,0 5,8`: at least three, spanning a width and
   a height, in any units, since they are scaled to the box.
 - **`x`** / **`y`**: An offset from the layer's position, in pixels (default `0`).
@@ -493,18 +492,18 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
   - From a position to the same position, the layer runs from each point to the next.
   - Without two points to run between, the layer is not drawn.
 
-  An arrow from the last selected hint to the target, an arrow from each saved position to the
+  A line from the last selected hint to the target, a line from each saved position to the
   next, and a line from each saved position to the target:
   ```properties
-  grid-mode.arrow-indicator.shape=arrow
-  grid-mode.arrow-indicator.position=last-selected-hint
-  grid-mode.arrow-indicator.end-position=target
-  ui-hint-mode.arrow-indicator.shape=arrow
-  ui-hint-mode.arrow-indicator.position=click-position-history
-  ui-hint-mode.arrow-indicator.end-position=click-position-history
+  grid-mode.line-indicator.shape=line
+  grid-mode.line-indicator.position=last-selected-hint
+  grid-mode.line-indicator.end-position=target
   ui-hint-mode.line-indicator.shape=line
   ui-hint-mode.line-indicator.position=click-position-history
-  ui-hint-mode.line-indicator.end-position=target
+  ui-hint-mode.line-indicator.end-position=click-position-history
+  ui-hint-mode.target-line-indicator.shape=line
+  ui-hint-mode.target-line-indicator.position=click-position-history
+  ui-hint-mode.target-line-indicator.end-position=target
   ```
 - **`position-anchor`** / **`end-position-anchor`**: Each position is a point on the screen. Some
   positions also have a hint: `last-selected-hint` always has one, and a saved position has one
@@ -516,13 +515,13 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
 
   At a position without a hint, the layer starts or stops at the point, whatever the value. The
   hint box is the box the overlay draws for the hint: when the overlay does not draw it, the layer
-  uses the cell. The cell of a UI hint is its element. Arrows from the box of each saved hint to
+  uses the cell. The cell of a UI hint is its element. Lines from the box of each saved hint to
   the box of the next:
   ```properties
-  ui-hint-mode.arrow-indicator.position=click-position-history
-  ui-hint-mode.arrow-indicator.position-anchor=hint-box-edge
-  ui-hint-mode.arrow-indicator.end-position=click-position-history
-  ui-hint-mode.arrow-indicator.end-position-anchor=hint-box-edge
+  ui-hint-mode.line-indicator.position=click-position-history
+  ui-hint-mode.line-indicator.position-anchor=hint-box-edge
+  ui-hint-mode.line-indicator.end-position=click-position-history
+  ui-hint-mode.line-indicator.end-position-anchor=hint-box-edge
   ```
 - **`follow-mouse`**: Whether the layer moves with the cursor (default `true`). With `false`, the
   layer stays where it was when it was enabled, or when its keyframes started over.
