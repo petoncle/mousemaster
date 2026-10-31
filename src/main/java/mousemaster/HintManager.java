@@ -46,7 +46,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     // time so going back restores the view that step rendered.
     private final Deque<CellGridLevel> cellGridLevelStack = new ArrayDeque<>();
     private Rectangle pendingSelectedCell;
-    /** The area shrink-grid and move-grid gave the grid, in place of the configured one. */
+    /** The area shrink-overlay and move-overlay-to gave the grid, in place of the configured one. */
     private Rectangle areaOverride;
     /** The area of the overlay the current mode was entered from, unzoomed. */
     private Rectangle lastOverlayArea;
@@ -276,23 +276,23 @@ public class HintManager implements ModeListener, MousePositionListener {
         mouseManager.moveTo((int) target.x(), (int) target.y());
     }
 
-    public void shrinkGridUp() {
-        shrinkGrid(false, false);
+    public void shrinkOverlayUp() {
+        shrinkOverlay(false, false);
     }
 
-    public void shrinkGridDown() {
-        shrinkGrid(false, true);
+    public void shrinkOverlayDown() {
+        shrinkOverlay(false, true);
     }
 
-    public void shrinkGridLeft() {
-        shrinkGrid(true, false);
+    public void shrinkOverlayLeft() {
+        shrinkOverlay(true, false);
     }
 
-    public void shrinkGridRight() {
-        shrinkGrid(true, true);
+    public void shrinkOverlayRight() {
+        shrinkOverlay(true, true);
     }
 
-    private void shrinkGrid(boolean horizontal, boolean forward) {
+    private void shrinkOverlay(boolean horizontal, boolean forward) {
         List<Rectangle> cells = gridCells();
         if (cells == null ||
             currentMode.hintMesh().targetFollowsOverlayCenter() &&
@@ -307,23 +307,23 @@ public class HintManager implements ModeListener, MousePositionListener {
         modeChanged(currentMode);
     }
 
-    public void moveGridUp() {
-        moveGrid(false, false);
+    public void moveOverlayToAreaAbove() {
+        moveOverlayToArea(false, false);
     }
 
-    public void moveGridDown() {
-        moveGrid(false, true);
+    public void moveOverlayToAreaBelow() {
+        moveOverlayToArea(false, true);
     }
 
-    public void moveGridLeft() {
-        moveGrid(true, false);
+    public void moveOverlayToAreaLeft() {
+        moveOverlayToArea(true, false);
     }
 
-    public void moveGridRight() {
-        moveGrid(true, true);
+    public void moveOverlayToAreaRight() {
+        moveOverlayToArea(true, true);
     }
 
-    private void moveGrid(boolean horizontal, boolean forward) {
+    private void moveOverlayToArea(boolean horizontal, boolean forward) {
         List<Rectangle> cells = gridCells();
         if (cells == null ||
             currentMode.hintMesh().targetFollowsOverlayCenter() &&
@@ -348,20 +348,20 @@ public class HintManager implements ModeListener, MousePositionListener {
         moveTargetTo(Rectangle.union(cells).center());
     }
 
-    public void snapTargetUp() {
-        snapTarget(false, false);
+    public void moveTargetToCellTopEdge() {
+        moveTargetToCellEdge(false, false);
     }
 
-    public void snapTargetDown() {
-        snapTarget(false, true);
+    public void moveTargetToCellBottomEdge() {
+        moveTargetToCellEdge(false, true);
     }
 
-    public void snapTargetLeft() {
-        snapTarget(true, false);
+    public void moveTargetToCellLeftEdge() {
+        moveTargetToCellEdge(true, false);
     }
 
-    public void snapTargetRight() {
-        snapTarget(true, true);
+    public void moveTargetToCellRightEdge() {
+        moveTargetToCellEdge(true, true);
     }
 
     public void startMoveTargetUp() {
@@ -431,8 +431,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         targetPoint = screenManager.nearestScreenContaining(x, y).rectangle().nearestPoint(x, y);
     }
 
-    /** Backward, a target 1 pixel past a cell edge snaps to the edge before it. */
-    private void snapTarget(boolean horizontal, boolean forward) {
+    /** Backward, a target 1 pixel past a cell edge goes to the edge before it. */
+    private void moveTargetToCellEdge(boolean horizontal, boolean forward) {
         List<Rectangle> cells = gridCells();
         if (cells == null ||
             currentMode.hintMesh().mouseFollowsTarget() &&

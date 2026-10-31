@@ -606,9 +606,9 @@ Four modes on two axes: **snap** throws the pointer at the edges of a region, **
 works on the **screen** or the **active window**.
 
 ```properties
-screen-grid-mode.shrink-grid.up=^{leftshift leftctrl} +up
-screen-grid-mode.move-grid.up=_{leftshift} +up
-screen-grid-mode.snap-target.up=_{leftctrl} +up
+screen-grid-mode.shrink-overlay.up=^{leftshift leftctrl} +up
+screen-grid-mode.move-overlay-to.area-above=_{leftshift} +up
+screen-grid-mode.move-target-to.cell-top-edge=_{leftctrl} +up
 screen-grid-mode.move-target-to.grid-center=+leftshift -leftshift
 screen-grid-mode.overlay.box-border-thickness=1 | _{300%} -> 0.66667
 screen-grid-mode.start-move.up=_{up} -rightalt

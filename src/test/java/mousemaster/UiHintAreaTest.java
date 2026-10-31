@@ -125,7 +125,7 @@ public class UiHintAreaTest {
         List<Rectangle> areas = new ArrayList<>();
         HintManager hintManager = hintManager(areas);
         hintManager.modeChanged(modeMap.get("grid-mode"));
-        hintManager.shrinkGridLeft();
+        hintManager.shrinkOverlayLeft();
         hintManager.modeChanged(modeMap.get("ui-hint-mode"));
         assertEquals(List.of(new Rectangle(0, 0, 960, 1080)), areas);
     }

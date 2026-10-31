@@ -163,9 +163,8 @@ public class ConfigurationParser {
                 new Property<>("toggle", Map.of()),
                 new Property<>("start-wheel", Map.of()),
                 new Property<>("stop-wheel", Map.of()),
-                new Property<>("snap-target", Map.of()),
-                new Property<>("shrink-grid", Map.of()),
-                new Property<>("move-grid", Map.of()),
+                new Property<>("shrink-overlay", Map.of()),
+                new Property<>("move-overlay-to", Map.of()),
                 new Property<>("move-target-to", Map.of()),
                 new Property<>("move-to", Map.of()),
                 new Property<>("save", Map.of()),
@@ -906,9 +905,8 @@ public class ConfigurationParser {
             "grid-center-follows-mouse", "area-center=mouse");
 
     private static boolean usesGridCommands(ModeBuilder mode) {
-        return !mode.comboMap.snapTarget.builder.isEmpty() ||
-               !mode.comboMap.shrinkGrid.builder.isEmpty() ||
-               !mode.comboMap.moveGrid.builder.isEmpty() ||
+        return !mode.comboMap.shrinkOverlay.builder.isEmpty() ||
+               !mode.comboMap.moveOverlayTo.builder.isEmpty() ||
                !mode.comboMap.moveTargetTo.builder.isEmpty();
     }
 
@@ -1411,7 +1409,7 @@ public class ConfigurationParser {
                 Property<HintMeshConfigurationBuilder> hintMesh =
                         group2.equals("grid") ? mode.grid : mode.hintMesh;
                 if (keyMatcher.group(group3) == null)
-                    // hint is the former name of overlay.
+                    // hint is the deprecated name of overlay.
                     hintMesh.parsePropertyReference(
                             propertyKey.replaceFirst("\\.hint$", ".overlay"),
                             propertyValue.replaceFirst("\\.hint$", ".overlay"),
@@ -1790,52 +1788,54 @@ public class ConfigurationParser {
                     }
                 }
             }
-            case "snap-target", "snap" -> {
+            case "shrink-overlay", "shrink-grid" -> {
                 if (keyMatcher.group(group3) == null)
-                    // snap is the former name of snap-target.
-                    mode.comboMap.snapTarget.parsePropertyReference(
-                            propertyKey.replaceFirst("\\.snap$", ".snap-target"),
-                            propertyValue.replaceFirst("\\.snap$", ".snap-target"),
+                    // shrink-grid is the deprecated name of shrink-overlay.
+                    mode.comboMap.shrinkOverlay.parsePropertyReference(
+                            propertyKey.replaceFirst("\\.shrink-grid$", ".shrink-overlay"),
+                            propertyValue.replaceFirst("\\.shrink-grid$", ".shrink-overlay"),
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
                 else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
-                            "Invalid snap-target property key");
+                            "Invalid shrink-overlay property key");
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "up" -> setCommand(mode.comboMap.snapTarget.builder,  propertyValue, new SnapTargetUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "down" -> setCommand(mode.comboMap.snapTarget.builder,  propertyValue, new SnapTargetDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "left" -> setCommand(mode.comboMap.snapTarget.builder,  propertyValue, new SnapTargetLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "right" -> setCommand(mode.comboMap.snapTarget.builder,  propertyValue, new SnapTargetRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "up" -> setCommand(mode.comboMap.shrinkOverlay.builder,  propertyValue, new ShrinkOverlayUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.shrinkOverlay.builder,  propertyValue, new ShrinkOverlayDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.shrinkOverlay.builder,  propertyValue, new ShrinkOverlayLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.shrinkOverlay.builder,  propertyValue, new ShrinkOverlayRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
             }
-            case "shrink-grid" -> {
+            case "move-overlay-to" -> {
                 if (keyMatcher.group(group3) == null)
-                    mode.comboMap.shrinkGrid.parsePropertyReference(propertyKey,
+                    mode.comboMap.moveOverlayTo.parsePropertyReference(propertyKey,
                             propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
                 else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
-                            "Invalid shrink-grid property key");
+                            "Invalid move-overlay-to property key");
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "up" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "down" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "left" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "right" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "area-above" -> setCommand(mode.comboMap.moveOverlayTo.builder,  propertyValue, new MoveOverlayToAreaAbove(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "area-below" -> setCommand(mode.comboMap.moveOverlayTo.builder,  propertyValue, new MoveOverlayToAreaBelow(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "area-left" -> setCommand(mode.comboMap.moveOverlayTo.builder,  propertyValue, new MoveOverlayToAreaLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "area-right" -> setCommand(mode.comboMap.moveOverlayTo.builder,  propertyValue, new MoveOverlayToAreaRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
             }
             case "move-grid" -> {
                 if (keyMatcher.group(group3) == null)
-                    mode.comboMap.moveGrid.parsePropertyReference(propertyKey,
-                            propertyValue,
+                    // move-grid is the deprecated name of move-overlay-to.
+                    mode.comboMap.moveOverlayTo.parsePropertyReference(
+                            propertyKey.replaceFirst("\\.move-grid$", ".move-overlay-to"),
+                            propertyValue.replaceFirst("\\.move-grid$", ".move-overlay-to"),
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
                 else if (keyMatcher.group(group4) == null)
@@ -1844,10 +1844,10 @@ public class ConfigurationParser {
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "up" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "down" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "left" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "right" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "up" -> setCommand(mode.comboMap.moveOverlayTo.builder,  propertyValue, new MoveOverlayToAreaAbove(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.moveOverlayTo.builder,  propertyValue, new MoveOverlayToAreaBelow(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.moveOverlayTo.builder,  propertyValue, new MoveOverlayToAreaLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.moveOverlayTo.builder,  propertyValue, new MoveOverlayToAreaRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
@@ -1865,6 +1865,10 @@ public class ConfigurationParser {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
                         case "grid-center" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToGridCenter(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "cell-top-edge" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellTopEdge(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "cell-bottom-edge" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellBottomEdge(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "cell-left-edge" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellLeftEdge(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "cell-right-edge" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellRightEdge(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
@@ -1886,8 +1890,8 @@ public class ConfigurationParser {
                     }
                 }
             }
-            // move-to-grid-center and move-to-last-selected-hint are the former names of
-            // move-target-to.grid-center and move-to.last-selected-hint.
+            // move-to-grid-center, move-to-last-selected-hint and snap are the deprecated names of
+            // move-target-to.grid-center, move-to.last-selected-hint and the move-target-to cell edges.
             // @formatter:off
             case "move-to-grid-center" -> {
                 mode.comboMap.moveTargetTo.parseReferenceOr(
@@ -1902,6 +1906,25 @@ public class ConfigurationParser {
                         propertyValue.replaceFirst("\\.move-to-last-selected-hint$", ".move-to"),
                         commandsByCombo -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToLastSelectedHint(), propertyKey, finalDefaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                         childPropertiesByParentProperty, nonRootPropertyKeys);
+            }
+            case "snap" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.comboMap.moveTargetTo.parsePropertyReference(
+                            propertyKey.replaceFirst("\\.snap$", ".move-target-to"),
+                            propertyValue.replaceFirst("\\.snap$", ".move-target-to"),
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid snap property key");
+                else {
+                    switch (keyMatcher.group(group4)) {
+                        case "up" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellTopEdge(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellBottomEdge(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellLeftEdge(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellRightEdge(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                    }
+                }
             }
             case "save" -> mode.comboMap.savePosition.parseReferenceOr(propertyKey, propertyValue,
                     commandsByCombo -> setCommand(mode.comboMap.savePosition.builder, propertyValue, new SavePosition(checkedPositionHistoryName(group2, keyMatcher.group(group4))), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
@@ -4601,9 +4624,8 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> toggle;
         Property<Map<Combo, List<Command>>> startWheel;
         Property<Map<Combo, List<Command>>> stopWheel;
-        Property<Map<Combo, List<Command>>> snapTarget;
-        Property<Map<Combo, List<Command>>> shrinkGrid;
-        Property<Map<Combo, List<Command>>> moveGrid;
+        Property<Map<Combo, List<Command>>> shrinkOverlay;
+        Property<Map<Combo, List<Command>>> moveOverlayTo;
         Property<Map<Combo, List<Command>>> moveTargetTo;
         Property<Map<Combo, List<Command>>> moveTo;
         Property<Map<Combo, List<Command>>> savePosition;
@@ -4638,9 +4660,8 @@ public class ConfigurationParser {
             toggle = new ComboMapProperty("toggle", modeName, propertyByKey);
             startWheel = new ComboMapProperty("start-wheel", modeName, propertyByKey);
             stopWheel = new ComboMapProperty("stop-wheel", modeName, propertyByKey);
-            snapTarget = new ComboMapProperty("snap-target", modeName, propertyByKey);
-            shrinkGrid = new ComboMapProperty("shrink-grid", modeName, propertyByKey);
-            moveGrid = new ComboMapProperty("move-grid", modeName, propertyByKey);
+            shrinkOverlay = new ComboMapProperty("shrink-overlay", modeName, propertyByKey);
+            moveOverlayTo = new ComboMapProperty("move-overlay-to", modeName, propertyByKey);
             moveTargetTo = new ComboMapProperty("move-target-to", modeName, propertyByKey);
             moveTo = new ComboMapProperty("move-to", modeName, propertyByKey);
             savePosition = new ComboMapProperty("save", modeName, propertyByKey);
@@ -4720,9 +4741,8 @@ public class ConfigurationParser {
             add(commandsByCombo, stopMove.builder);
             add(commandsByCombo, startMoveTarget.builder);
             add(commandsByCombo, stopMoveTarget.builder);
-            add(commandsByCombo, snapTarget.builder);
-            add(commandsByCombo, shrinkGrid.builder);
-            add(commandsByCombo, moveGrid.builder);
+            add(commandsByCombo, shrinkOverlay.builder);
+            add(commandsByCombo, moveOverlayTo.builder);
             add(commandsByCombo, moveTargetTo.builder);
             add(commandsByCombo, moveTo.builder);
             add(commandsByCombo, press.builder);

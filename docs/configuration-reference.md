@@ -760,7 +760,7 @@ windows the elements are looked for in:
 - `active-window`: The active window, and its popups (menus, dropdowns, dialogs). A popup
   is hinted even where it extends past the window.
 - `last-selected-hint-cell`: The cell of the last selected hint, the element of a UI hint
-- `last-overlay-area`: The area of the overlay before this mode, e.g. a grid shrunk by `shrink-grid`
+- `last-overlay-area`: The area of the overlay before this mode, e.g. a grid shrunk by `shrink-overlay`
 
 With the other regions, elements are cropped to the region, and elements
 covered by a window drawn over theirs are left out, so a hint is only shown where the
@@ -1058,9 +1058,9 @@ hint-mode.overlay.label-override=plus
 - **`deselect`**: Combo that deselects the last selection key
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
 - **`mouse-follows-target`**: Whether the mouse follows the target (default `true`). The
-  target is a position that follows the mouse. Selecting a hint and the grid commands move it
-  to the center of the hint, the edge a `snap-target` goes to or the center of the grid, and
-  the mouse goes there. When it becomes `false`, the target stops where it is: only those
+  target is a position that follows the mouse. Selecting a hint and `move-target-to` move it to
+  the center of the hint or to a point of the grid, and the mouse goes there. When it becomes
+  `false`, the target stops where it is: only those
   commands move it, and the mouse stays. Use `false` when the next mode will be another hint
   grid.
 - **`target-follows-overlay-center`**: Whether the target goes to the center of the overlay
@@ -1337,7 +1337,8 @@ hint2-mode.overlay.mouse-follows-target=true
 ### Grid commands
 
 The grid commands act on the grid of the overlay. An overlay without `selection-keys` has no
-labels and selects nothing: it is a grid to shrink, move and snap to.
+labels and selects nothing: it is a grid to shrink and to move, and the target moves to its cell
+edges.
 
 ```properties
 normal-mode.to.grid-mode=+g
@@ -1352,22 +1353,22 @@ grid-mode.overlay.box-border-color=#FF0000
 grid-mode.overlay.box-border-opacity=1
 
 # Halve the grid, keeping the half in the direction
-grid-mode.shrink-grid.up=+uparrow
-grid-mode.shrink-grid.down=+downarrow
-grid-mode.shrink-grid.left=+leftarrow
-grid-mode.shrink-grid.right=+rightarrow
+grid-mode.shrink-overlay.up=+uparrow
+grid-mode.shrink-overlay.down=+downarrow
+grid-mode.shrink-overlay.left=+leftarrow
+grid-mode.shrink-overlay.right=+rightarrow
 
-# Move the grid by its own size
-grid-mode.move-grid.up=_{leftshift} +uparrow
-grid-mode.move-grid.down=_{leftshift} +downarrow
-grid-mode.move-grid.left=_{leftshift} +leftarrow
-grid-mode.move-grid.right=_{leftshift} +rightarrow
+# Move the grid to the area of the same size next to it
+grid-mode.move-overlay-to.area-above=_{leftshift} +uparrow
+grid-mode.move-overlay-to.area-below=_{leftshift} +downarrow
+grid-mode.move-overlay-to.area-left=_{leftshift} +leftarrow
+grid-mode.move-overlay-to.area-right=_{leftshift} +rightarrow
 
-# Snap the target to the next cell edge
-grid-mode.snap-target.up=_{leftctrl} +uparrow
-grid-mode.snap-target.down=_{leftctrl} +downarrow
-grid-mode.snap-target.left=_{leftctrl} +leftarrow
-grid-mode.snap-target.right=_{leftctrl} +rightarrow
+# Move the target to the next cell edge on that side
+grid-mode.move-target-to.cell-top-edge=_{leftctrl} +uparrow
+grid-mode.move-target-to.cell-bottom-edge=_{leftctrl} +downarrow
+grid-mode.move-target-to.cell-left-edge=_{leftctrl} +leftarrow
+grid-mode.move-target-to.cell-right-edge=_{leftctrl} +rightarrow
 
 # Move the target to the grid center
 grid-mode.move-target-to.grid-center=+space
@@ -1377,22 +1378,26 @@ grid-mode.start-move-target.up=_{leftalt} +uparrow
 grid-mode.stop-move-target.up=-uparrow
 ```
 
-- **`shrink-grid.<direction>`**: Halves the grid, keeping the half on that side, whatever its
+- **`shrink-overlay.<direction>`**: Halves the grid, keeping the half on that side, whatever its
   number of cells.
-- **`move-grid.<direction>`**: Moves the grid by its own width or height. The center of the grid
-  stays on a screen.
-- **`snap-target.<direction>`**: Moves the target to the next cell edge in the direction. At
-  the right or bottom edge of the grid, it stops on the last pixel of the grid.
-- **`move-target-to.grid-center`**: Moves the target to the center of the grid.
+- **`move-overlay-to.<area>`**: Moves the grid to `area-above`, `area-below`, `area-left` or
+  `area-right`: the area of the same size next to it on that side. The center of the grid stays
+  on a screen.
+- **`move-target-to.<point>`**: Moves the target to a point of the grid:
+  - `grid-center`: the center of the grid.
+  - `cell-top-edge`, `cell-bottom-edge`, `cell-left-edge` and `cell-right-edge`: the next cell
+    edge on that side of the target. At the right or bottom edge of the grid, the target stops
+    on the last pixel of the grid.
 - **`start-move-target.<direction>`** / **`stop-move-target.<direction>`**: Start and stop a
   continuous move of the target, with the `target` properties. When the mouse follows the
   target, they move the mouse, with the `mouse` properties. A mode where the mouse follows the
   target stops a move of the target.
 
-A command name says what it moves: `snap-target`, `move-target-to` and `start-move-target` move
-the target, `move-grid` and `shrink-grid` the grid. A name that says nothing, such as
-`start-move` or `move-to`, moves the mouse. `<verb>-to.<point>` jumps to a point, and
-`start-move` and `start-move-target` move until `stop-move` and `stop-move-target`.
+A command name says what it acts on: `move-target-to` and `start-move-target` move the target,
+and `move-overlay-to` and `shrink-overlay` change the overlay area. A name that says nothing,
+such as `start-move` or `move-to`, moves the mouse. `move-to`, `move-target-to` and
+`move-overlay-to` jump to a destination, and `start-move` and `start-move-target` move until
+`stop-move` and `stop-move-target`.
 
 A mode with the same `overlay.type`, area and layout keeps the grid where the commands left it. With
 `area-center=mouse`, a command first centers the grid on the mouse. With

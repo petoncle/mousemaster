@@ -6,7 +6,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** hint is the former name of overlay. */
+/** hint is the deprecated name of overlay. */
 class OverlayTest {
 
     private static HintMeshConfiguration overlay(String modeName, String... lines) {

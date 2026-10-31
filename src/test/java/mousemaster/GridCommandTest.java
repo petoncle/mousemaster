@@ -71,8 +71,8 @@ class GridCommandTest {
                 grid-mode.hint.mouse-movement=mouse-follows-overlay-center
                 """);
         switchMode("grid-mode");
-        hintManager.shrinkGridUp();
-        hintManager.shrinkGridLeft();
+        hintManager.shrinkOverlayUp();
+        hintManager.shrinkOverlayLeft();
         assertEquals(List.of(960, 540, 960, 270, 480, 270), mousePositions);
     }
 
@@ -84,13 +84,13 @@ class GridCommandTest {
                 grid-mode.hint.mouse-movement=mouse-follows-overlay-center
                 """);
         switchMode("grid-mode");
-        hintManager.shrinkGridUp();
-        hintManager.shrinkGridLeft();
+        hintManager.shrinkOverlayUp();
+        hintManager.shrinkOverlayLeft();
         assertEquals(List.of(960, 540, 960, 270, 480, 270), mousePositions);
     }
 
     @Test
-    void movingStopsWhenTheGridCenterLeavesTheScreens() throws IOException {
+    void movingTheGridStopsWhenItsCenterLeavesTheScreens() throws IOException {
         start("""
                 grid-mode.hint.area-width-percent=0.5
                 grid-mode.hint.area-height-percent=0.5
@@ -99,29 +99,29 @@ class GridCommandTest {
                 grid-mode.hint.mouse-movement=mouse-follows-overlay-center
                 """);
         switchMode("grid-mode");
-        hintManager.moveGridRight();
-        hintManager.moveGridRight();
+        hintManager.moveOverlayToAreaRight();
+        hintManager.moveOverlayToAreaRight();
         assertEquals(List.of(960, 540, 1920, 540), mousePositions);
     }
 
     @Test
-    void snappingInsideTheGridGoesToTheNextCellEdge() throws IOException {
+    void theTargetGoesToTheNextCellEdgeInsideTheGrid() throws IOException {
         start("""
                 grid-mode.hint.grid-max-row-count=2
                 grid-mode.hint.grid-max-column-count=2
                 """);
         hintManager.mouseMoved(100, 100);
         switchMode("grid-mode");
-        hintManager.snapTargetRight();
-        hintManager.snapTargetRight();
-        hintManager.snapTargetLeft();
+        hintManager.moveTargetToCellRightEdge();
+        hintManager.moveTargetToCellRightEdge();
+        hintManager.moveTargetToCellLeftEdge();
         hintManager.mouseMoved(961, 100);
-        hintManager.snapTargetLeft();
+        hintManager.moveTargetToCellLeftEdge();
         assertEquals(List.of(960, 100, 1919, 100, 960, 100, 0, 100), mousePositions);
     }
 
     @Test
-    void snappingStopsOnTheLastPixelOfTheGrid() throws IOException {
+    void theTargetStopsOnTheLastPixelOfTheGrid() throws IOException {
         start("""
                 grid-mode.hint.area-width-percent=0.5
                 grid-mode.hint.area-height-percent=0.5
@@ -130,15 +130,15 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(960, 540);
         switchMode("grid-mode");
-        hintManager.snapTargetRight();
-        hintManager.snapTargetDown();
-        hintManager.snapTargetLeft();
-        hintManager.snapTargetUp();
+        hintManager.moveTargetToCellRightEdge();
+        hintManager.moveTargetToCellBottomEdge();
+        hintManager.moveTargetToCellLeftEdge();
+        hintManager.moveTargetToCellTopEdge();
         assertEquals(List.of(1439, 540, 1439, 809, 480, 809, 480, 270), mousePositions);
     }
 
     @Test
-    void snappingGoesToTheEdgesOfTheCellsTheGridShows() throws IOException {
+    void theTargetGoesToTheEdgesOfTheCellsTheGridShows() throws IOException {
         start("""
                 idle-mode.to.fixed-grid-mode=+f
                 fixed-grid-mode.to.idle-mode=+esc
@@ -150,12 +150,12 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(820, 400);
         switchMode("fixed-grid-mode");
-        hintManager.snapTargetRight();
+        hintManager.moveTargetToCellRightEdge();
         assertEquals(List.of(910, 400), mousePositions);
     }
 
     @Test
-    void snappingOutsideTheGridGoesToItsNearestEdge() throws IOException {
+    void outsideTheGridTheTargetGoesToItsNearestEdge() throws IOException {
         start("""
                 grid-mode.hint.area-width-percent=0.5
                 grid-mode.hint.area-height-percent=0.5
@@ -164,12 +164,12 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(100, 400);
         switchMode("grid-mode");
-        hintManager.snapTargetRight();
+        hintManager.moveTargetToCellRightEdge();
         assertEquals(List.of(480, 400), mousePositions);
     }
 
     @Test
-    void aGridCenteredOnTheMouseFollowsItBetweenSnaps() throws IOException {
+    void aGridCenteredOnTheMouseFollowsItBetweenTargetMoves() throws IOException {
         start("""
                 grid-mode.hint.area-width-percent=0.5
                 grid-mode.hint.area-height-percent=0.5
@@ -179,9 +179,9 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(700, 500);
         switchMode("grid-mode");
-        hintManager.snapTargetUp();
+        hintManager.moveTargetToCellTopEdge();
         hintManager.mouseMoved(800, 600);
-        hintManager.snapTargetUp();
+        hintManager.moveTargetToCellTopEdge();
         assertEquals(List.of(700, 230, 800, 330), mousePositions);
     }
 
@@ -198,7 +198,7 @@ class GridCommandTest {
                 other-grid-mode.hint.box-opacity=0.5
                 """);
         switchMode("grid-mode");
-        hintManager.shrinkGridUp();
+        hintManager.shrinkOverlayUp();
         switchMode("other-grid-mode");
         switchMode("idle-mode");
         switchMode("grid-mode");
@@ -225,14 +225,14 @@ class GridCommandTest {
                 other-grid-mode.hint=grid-mode.hint
                 """);
         switchMode("grid-mode");
-        hintManager.shrinkGridUp();
+        hintManager.shrinkOverlayUp();
         hintManager.selectHintKey(Key.ofName("a"));
         switchMode("other-grid-mode");
         assertEquals(new Rectangle(0, 0, 1920, 1080), hintManager.hintMesh().area());
     }
 
     @Test
-    void withNoMovementSnappingMovesTheTargetAndNotTheMouse() throws IOException {
+    void withNoMovementACellEdgeMovesTheTargetAndNotTheMouse() throws IOException {
         start("""
                 grid-mode.hint.grid-max-row-count=2
                 grid-mode.hint.grid-max-column-count=2
@@ -240,8 +240,8 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(100, 100);
         switchMode("grid-mode");
-        hintManager.snapTargetRight();
-        hintManager.snapTargetRight();
+        hintManager.moveTargetToCellRightEdge();
+        hintManager.moveTargetToCellRightEdge();
         assertEquals(List.of(), mousePositions);
         assertEquals(new Point(1919, 100), hintManager.targetPoint());
         hintManager.moveToTarget();
@@ -367,16 +367,21 @@ class GridCommandTest {
     void theFormerNamesOfTheGridCommandsStillWork() throws IOException {
         start("""
                 grid-mode.snap.up=+u
+                grid-mode.move-grid.up=+p
+                grid-mode.shrink-grid.up=+k
                 grid-mode.move-to-grid-center=+c
                 grid-mode.move-to-last-selected-hint=+m
                 grid-mode.to.other-grid-mode=+o
                 other-grid-mode.to.idle-mode=+esc
                 other-grid-mode.snap=grid-mode.snap
+                other-grid-mode.move-grid=grid-mode.move-grid
+                other-grid-mode.shrink-grid=grid-mode.shrink-grid
                 other-grid-mode.move-to-grid-center=grid-mode.move-to-grid-center
                 other-grid-mode.move-to-last-selected-hint=grid-mode.move-to-last-selected-hint
                 """);
-        List<Command> commands = List.of(new Command.SnapTargetUp(),
-                new Command.MoveTargetToGridCenter(), new Command.MoveToLastSelectedHint());
+        List<Command> commands = List.of(new Command.MoveTargetToCellTopEdge(),
+                new Command.MoveOverlayToAreaAbove(), new Command.MoveTargetToGridCenter(),
+                new Command.MoveToLastSelectedHint(), new Command.ShrinkOverlayUp());
         assertTrue(commands("grid-mode").containsAll(commands));
         assertTrue(commands("other-grid-mode").containsAll(commands));
     }
@@ -391,9 +396,9 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(100, 100);
         switchMode("grid-mode");
-        hintManager.snapTargetRight();
+        hintManager.moveTargetToCellRightEdge();
         hintManager.saveCurrentPosition("position-history");
-        hintManager.snapTargetRight();
+        hintManager.moveTargetToCellRightEdge();
         hintManager.saveCurrentPosition("position-history");
         assertEquals(List.of(new Point(960, 100), new Point(1919, 100)),
                 hintManager.positionHistory("position-history").positions());
@@ -507,7 +512,7 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(100, 100);
         switchMode("grid-mode");
-        hintManager.snapTargetRight();
+        hintManager.moveTargetToCellRightEdge();
         switchMode("other-grid-mode");
         assertEquals(new Point(960, 100), hintManager.targetPoint());
     }
@@ -526,7 +531,7 @@ class GridCommandTest {
                 hint-mode.hint.grid-max-column-count=4
                 """);
         switchMode("grid-mode");
-        hintManager.shrinkGridUp();
+        hintManager.shrinkOverlayUp();
         switchMode("hint-mode");
         assertEquals(new Rectangle(0, 0, 1920, 540), hintManager.hintMesh().area());
     }
@@ -561,10 +566,10 @@ class GridCommandTest {
     void aModeWithoutAHintGridIgnoresTheGridCommands() throws IOException {
         start("");
         switchMode("idle-mode");
-        hintManager.shrinkGridUp();
-        hintManager.moveGridUp();
+        hintManager.shrinkOverlayUp();
+        hintManager.moveOverlayToAreaAbove();
         hintManager.moveTargetToGridCenter();
-        hintManager.snapTargetUp();
+        hintManager.moveTargetToCellTopEdge();
         assertEquals(List.of(), mousePositions);
     }
 

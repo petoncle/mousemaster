@@ -46,22 +46,21 @@ public sealed interface Command {
     record StopWheelLeft() implements Command {}
     record StopWheelRight() implements Command {}
 
-    record SnapTargetUp() implements Command {}
-    record SnapTargetDown() implements Command {}
-    record SnapTargetLeft() implements Command {}
-    record SnapTargetRight() implements Command {}
+    record ShrinkOverlayUp() implements Command {}
+    record ShrinkOverlayDown() implements Command {}
+    record ShrinkOverlayLeft() implements Command {}
+    record ShrinkOverlayRight() implements Command {}
 
-    record ShrinkGridUp() implements Command {}
-    record ShrinkGridDown() implements Command {}
-    record ShrinkGridLeft() implements Command {}
-    record ShrinkGridRight() implements Command {}
-
-    record MoveGridUp() implements Command {}
-    record MoveGridDown() implements Command {}
-    record MoveGridLeft() implements Command {}
-    record MoveGridRight() implements Command {}
+    record MoveOverlayToAreaAbove() implements Command {}
+    record MoveOverlayToAreaBelow() implements Command {}
+    record MoveOverlayToAreaLeft() implements Command {}
+    record MoveOverlayToAreaRight() implements Command {}
 
     record MoveTargetToGridCenter() implements Command {}
+    record MoveTargetToCellTopEdge() implements Command {}
+    record MoveTargetToCellBottomEdge() implements Command {}
+    record MoveTargetToCellLeftEdge() implements Command {}
+    record MoveTargetToCellRightEdge() implements Command {}
 
     record MoveToLastSelectedHint() implements Command {}
 
