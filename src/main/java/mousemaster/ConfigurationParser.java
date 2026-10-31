@@ -907,7 +907,13 @@ public class ConfigurationParser {
     private static boolean usesGridCommands(ModeBuilder mode) {
         return !mode.comboMap.shrinkOverlay.builder.isEmpty() ||
                !mode.comboMap.moveOverlayTo.builder.isEmpty() ||
-               !mode.comboMap.moveTargetTo.builder.isEmpty();
+               Stream.of(mode.comboMap.moveTo.builder, mode.comboMap.moveTargetTo.builder)
+                     .flatMap(commandsByCombo -> commandsByCombo.values().stream())
+                     .flatMap(List::stream)
+                     .anyMatch(command -> !(command instanceof MoveToTarget ||
+                                            command instanceof MoveToLastSelectedHint ||
+                                            command instanceof MoveTargetToMouse ||
+                                            command instanceof MoveTargetToLastSelectedHint));
     }
 
     /**
@@ -1864,6 +1870,8 @@ public class ConfigurationParser {
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
+                        case "mouse" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToMouse(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "last-selected-hint" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToLastSelectedHint(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "grid-center" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToGridCenter(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "cell-top-edge" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellTopEdge(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "cell-bottom-edge" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellBottomEdge(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
@@ -1886,6 +1894,11 @@ public class ConfigurationParser {
                         // @formatter:off
                         case "target" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToTarget(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "last-selected-hint" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToLastSelectedHint(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "grid-center" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToGridCenter(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "cell-top-edge" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToCellTopEdge(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "cell-bottom-edge" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToCellBottomEdge(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "cell-left-edge" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToCellLeftEdge(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "cell-right-edge" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToCellRightEdge(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }

@@ -56,15 +56,21 @@ public sealed interface Command {
     record MoveOverlayToAreaLeft() implements Command {}
     record MoveOverlayToAreaRight() implements Command {}
 
+    record MoveToTarget() implements Command {}
+    record MoveToLastSelectedHint() implements Command {}
+    record MoveToGridCenter() implements Command {}
+    record MoveToCellTopEdge() implements Command {}
+    record MoveToCellBottomEdge() implements Command {}
+    record MoveToCellLeftEdge() implements Command {}
+    record MoveToCellRightEdge() implements Command {}
+
+    record MoveTargetToMouse() implements Command {}
+    record MoveTargetToLastSelectedHint() implements Command {}
     record MoveTargetToGridCenter() implements Command {}
     record MoveTargetToCellTopEdge() implements Command {}
     record MoveTargetToCellBottomEdge() implements Command {}
     record MoveTargetToCellLeftEdge() implements Command {}
     record MoveTargetToCellRightEdge() implements Command {}
-
-    record MoveToLastSelectedHint() implements Command {}
-
-    record MoveToTarget() implements Command {}
 
     record SavePosition(String positionHistoryName) implements Command {}
     record UnsavePosition(String positionHistoryName) implements Command {}

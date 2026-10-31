@@ -264,16 +264,37 @@ public class HintManager implements ModeListener, MousePositionListener {
         return lastSelectedHintCell;
     }
 
+    public void moveToTarget() {
+        moveTo(targetPoint());
+    }
+
     public void moveToLastSelectedHint() {
         if (lastSelectedHintPoint == null)
             return;
-        mouseManager.moveTo((int) lastSelectedHintPoint.x(),
-                (int) lastSelectedHintPoint.y());
+        moveTo(lastSelectedHintPoint);
     }
 
-    public void moveToTarget() {
-        Point target = targetPoint();
-        mouseManager.moveTo((int) target.x(), (int) target.y());
+    public void moveToGridCenter() {
+        List<Rectangle> cells = gridCells();
+        if (cells == null)
+            return;
+        moveTo(Rectangle.union(cells).center());
+    }
+
+    public void moveToCellTopEdge() {
+        moveToCellEdge(false, false);
+    }
+
+    public void moveToCellBottomEdge() {
+        moveToCellEdge(false, true);
+    }
+
+    public void moveToCellLeftEdge() {
+        moveToCellEdge(true, false);
+    }
+
+    public void moveToCellRightEdge() {
+        moveToCellEdge(true, true);
     }
 
     public void shrinkOverlayUp() {
@@ -339,6 +360,16 @@ public class HintManager implements ModeListener, MousePositionListener {
         areaOverride = new Rectangle((int) center.x() - grid.width() / 2,
                 (int) center.y() - grid.height() / 2, grid.width(), grid.height());
         modeChanged(currentMode);
+    }
+
+    public void moveTargetToMouse() {
+        moveTargetTo(new Point(mouseX, mouseY));
+    }
+
+    public void moveTargetToLastSelectedHint() {
+        if (lastSelectedHintPoint == null)
+            return;
+        moveTargetTo(lastSelectedHintPoint);
     }
 
     public void moveTargetToGridCenter() {
@@ -431,30 +462,49 @@ public class HintManager implements ModeListener, MousePositionListener {
         targetPoint = screenManager.nearestScreenContaining(x, y).rectangle().nearestPoint(x, y);
     }
 
-    /** Backward, a target 1 pixel past a cell edge goes to the edge before it. */
+    private void moveToCellEdge(boolean horizontal, boolean forward) {
+        if (mouseManager.jumping(horizontal, forward))
+            return;
+        Point cellEdge = cellEdge(new Point(mouseX, mouseY), horizontal, forward);
+        if (cellEdge == null)
+            return;
+        moveTo(cellEdge);
+        if (((HintMeshType.GridHintMesh) currentMode.hintMesh().type()).area().center() ==
+            HintGridAreaCenter.MOUSE)
+            modeChanged(currentMode);
+    }
+
     private void moveTargetToCellEdge(boolean horizontal, boolean forward) {
-        List<Rectangle> cells = gridCells();
-        if (cells == null ||
-            currentMode.hintMesh().mouseFollowsTarget() &&
+        if (currentMode.hintMesh().mouseFollowsTarget() &&
             mouseManager.jumping(horizontal, forward))
             return;
-        Point from = targetPoint();
-        int mouse = (int) (horizontal ? from.x() : from.y());
+        Point cellEdge = cellEdge(targetPoint(), horizontal, forward);
+        if (cellEdge == null)
+            return;
+        moveTargetTo(cellEdge);
+        if (((HintMeshType.GridHintMesh) currentMode.hintMesh().type()).area().center() ==
+            HintGridAreaCenter.MOUSE)
+            modeChanged(currentMode);
+    }
+
+    /** Backward, a point 1 pixel past a cell edge goes to the edge before it. */
+    private Point cellEdge(Point from, boolean horizontal, boolean forward) {
+        List<Rectangle> cells = gridCells();
+        if (cells == null)
+            return null;
+        int coordinate = (int) (horizontal ? from.x() : from.y());
         Rectangle grid = Rectangle.union(cells);
         int lastPixel = horizontal ? grid.x() + grid.width() - 1 : grid.y() + grid.height() - 1;
         IntStream cellEdges = cells.stream().flatMapToInt(cell -> horizontal ?
                 IntStream.of(cell.x(), Math.min(cell.x() + cell.width(), lastPixel)) :
                 IntStream.of(cell.y(), Math.min(cell.y() + cell.height(), lastPixel)));
-        OptionalInt cellEdge = forward ? cellEdges.filter(edge -> edge > mouse).min() :
-                cellEdges.filter(edge -> edge < mouse - 1).max();
+        OptionalInt cellEdge = forward ? cellEdges.filter(edge -> edge > coordinate).min() :
+                cellEdges.filter(edge -> edge < coordinate - 1).max();
         if (cellEdge.isEmpty())
-            return;
+            return null;
         double x = horizontal ? cellEdge.getAsInt() : from.x();
         double y = horizontal ? from.y() : cellEdge.getAsInt();
-        moveTargetTo(screenManager.nearestScreenContaining(x, y).rectangle().nearestPoint(x, y));
-        if (((HintMeshType.GridHintMesh) currentMode.hintMesh().type()).area().center() ==
-            HintGridAreaCenter.MOUSE)
-            modeChanged(currentMode);
+        return screenManager.nearestScreenContaining(x, y).rectangle().nearestPoint(x, y);
     }
 
     /**
@@ -1924,6 +1974,10 @@ public class HintManager implements ModeListener, MousePositionListener {
             targetPoint = new Point(Math.round(point.x()), Math.round(point.y()));
             return;
         }
+        moveTo(point);
+    }
+
+    private void moveTo(Point point) {
         mouseX = (int) Math.round(point.x());
         mouseY = (int) Math.round(point.y());
         logger.debug("Moving mouse to (" + mouseX + ", " + mouseY + ")");

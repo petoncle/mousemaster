@@ -248,6 +248,39 @@ class GridCommandTest {
         assertEquals(List.of(1919, 100), mousePositions);
     }
 
+    @Test
+    void withNoMovementACellEdgeMovesTheMouseAndNotTheTarget() throws IOException {
+        start("""
+                grid-mode.hint.grid-max-row-count=2
+                grid-mode.hint.grid-max-column-count=2
+                grid-mode.hint.mouse-movement=no-movement
+                """);
+        hintManager.mouseMoved(100, 100);
+        switchMode("grid-mode");
+        hintManager.moveToCellRightEdge();
+        hintManager.moveToGridCenter();
+        assertEquals(List.of(960, 100, 960, 540), mousePositions);
+        assertEquals(new Point(100, 100), hintManager.targetPoint());
+    }
+
+    @Test
+    void withNoMovementTheTargetGoesToTheMouseAndToTheLastSelectedHint() throws IOException {
+        start("""
+                grid-mode.hint.selection-keys=a b c d
+                grid-mode.hint.grid-max-row-count=2
+                grid-mode.hint.grid-max-column-count=2
+                grid-mode.hint.mouse-movement=no-movement
+                """);
+        hintManager.mouseMoved(100, 100);
+        switchMode("grid-mode");
+        hintManager.selectHintKey(Key.ofName("a"));
+        hintManager.moveTargetToMouse();
+        assertEquals(new Point(100, 100), hintManager.targetPoint());
+        hintManager.moveTargetToLastSelectedHint();
+        assertEquals(new Point(480, 270), hintManager.targetPoint());
+        assertEquals(List.of(), mousePositions);
+    }
+
     private void update(double delta) {
         mouseManager.update(delta);
         hintManager.update(delta);

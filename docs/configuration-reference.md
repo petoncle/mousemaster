@@ -1059,18 +1059,17 @@ hint-mode.overlay.label-override=plus
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
 - **`mouse-follows-target`**: Whether the mouse follows the target (default `true`). The
   target is a position that follows the mouse. Selecting a hint and `move-target-to` move it to
-  the center of the hint or to a point of the grid, and the mouse goes there. When it becomes
-  `false`, the target stops where it is: only those
-  commands move it, and the mouse stays. Use `false` when the next mode will be another hint
-  grid.
+  a point, and the mouse goes there. When it becomes `false`, the target stops where it is:
+  only those commands move it, and the mouse stays. Use `false` when the next mode will be
+  another hint grid.
 - **`target-follows-overlay-center`**: Whether the target goes to the center of the overlay
   when the overlay shows, and when a selection key or `deselect` changes its hints (default
   `false`). The mouse goes there too, unless `mouse-follows-target=false`.
-- **`move-to.last-selected-hint`**: Like `to.<mode-name>`, a command of the mode, not an overlay
-  property. It moves the mouse to the last selected hint, for example after
-  `mouse-follows-target=false` left the mouse where it was:
-  `normal-mode.move-to.last-selected-hint=+m`
-- **`move-to.target`**: The same, to the target: `grid-mode.move-to.target=+space`
+- **`move-to.<point>`**: Like `to.<mode-name>`, a command of the mode, not an overlay property.
+  It moves the mouse to a point: `target`, `last-selected-hint`, or a point of the grid (see
+  [Grid commands](#grid-commands)). For example, after `mouse-follows-target=false` left the
+  mouse where it was: `normal-mode.move-to.last-selected-hint=+m`
+- **`move-target-to.<point>`**: The same for the target, with `mouse` in place of `target`.
 - **`eat-unused-selection-keys`**: If `false`, selection keys not used in the current hint display can be used in combos
 - **`label-override`**: Draws a fixed marker in every hint cell instead of each hint's own keys — visual only, you still press the real keys to select. The value is a key sequence rendered as the label: `plus` shows `+`, `plus plus` shows `++`. Useful for positional grids (e.g. a 3×3 recursive grid) where the per-cell letters are just clutter. Default: unset (each hint shows its own key sequence).
 
@@ -1383,11 +1382,12 @@ grid-mode.stop-move-target.up=-uparrow
 - **`move-overlay-to.<area>`**: Moves the grid to `area-above`, `area-below`, `area-left` or
   `area-right`: the area of the same size next to it on that side. The center of the grid stays
   on a screen.
-- **`move-target-to.<point>`**: Moves the target to a point of the grid:
+- **`move-target-to.<point>`** / **`move-to.<point>`**: Move the target or the mouse to a point
+  of the grid:
   - `grid-center`: the center of the grid.
   - `cell-top-edge`, `cell-bottom-edge`, `cell-left-edge` and `cell-right-edge`: the next cell
-    edge on that side of the target. At the right or bottom edge of the grid, the target stops
-    on the last pixel of the grid.
+    edge on that side of the target, or of the mouse. At the right or bottom edge of the grid,
+    it stops on the last pixel of the grid.
 - **`start-move-target.<direction>`** / **`stop-move-target.<direction>`**: Start and stop a
   continuous move of the target, with the `target` properties. When the mouse follows the
   target, they move the mouse, with the `mouse` properties. A mode where the mouse follows the

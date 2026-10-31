@@ -91,15 +91,21 @@ public class CommandRunner {
             case MoveOverlayToAreaLeft moveOverlayToAreaLeft -> hintManager.moveOverlayToAreaLeft();
             case MoveOverlayToAreaRight moveOverlayToAreaRight -> hintManager.moveOverlayToAreaRight();
 
+            case MoveToTarget moveToTarget -> hintManager.moveToTarget();
+            case MoveToLastSelectedHint moveToLastSelectedHint -> hintManager.moveToLastSelectedHint();
+            case MoveToGridCenter moveToGridCenter -> hintManager.moveToGridCenter();
+            case MoveToCellTopEdge moveToCellTopEdge -> hintManager.moveToCellTopEdge();
+            case MoveToCellBottomEdge moveToCellBottomEdge -> hintManager.moveToCellBottomEdge();
+            case MoveToCellLeftEdge moveToCellLeftEdge -> hintManager.moveToCellLeftEdge();
+            case MoveToCellRightEdge moveToCellRightEdge -> hintManager.moveToCellRightEdge();
+
+            case MoveTargetToMouse moveTargetToMouse -> hintManager.moveTargetToMouse();
+            case MoveTargetToLastSelectedHint moveTargetToLastSelectedHint -> hintManager.moveTargetToLastSelectedHint();
             case MoveTargetToGridCenter moveTargetToGridCenter -> hintManager.moveTargetToGridCenter();
             case MoveTargetToCellTopEdge moveTargetToCellTopEdge -> hintManager.moveTargetToCellTopEdge();
             case MoveTargetToCellBottomEdge moveTargetToCellBottomEdge -> hintManager.moveTargetToCellBottomEdge();
             case MoveTargetToCellLeftEdge moveTargetToCellLeftEdge -> hintManager.moveTargetToCellLeftEdge();
             case MoveTargetToCellRightEdge moveTargetToCellRightEdge -> hintManager.moveTargetToCellRightEdge();
-
-            case MoveToLastSelectedHint moveToLastSelectedHint -> hintManager.moveToLastSelectedHint();
-
-            case MoveToTarget moveToTarget -> hintManager.moveToTarget();
 
             case SavePosition(String positionHistoryName) -> hintManager.saveCurrentPosition(positionHistoryName);
             case UnsavePosition(String positionHistoryName) -> hintManager.unsaveCurrentPosition(positionHistoryName);
