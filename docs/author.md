@@ -590,9 +590,10 @@ the commit so it yields, `noop.eatrightalt` keeps the press off the application)
 
 Hold **`space`** and pick hints to mark them: each is saved to `click-position-history` and shown with a
 white box, its text and border in the box gradient, and the hints come back for the next one through
-`save-after-ui-hint-mode`. Releasing `space` clicks them all with the armed button, in the order they
-were picked (`click-all-mode`), then goes back where the hints were opened from. A `space` tap with no
-hint marked clicks at the pointer.
+`save-after-ui-hint-mode`. Picking a marked hint again unmarks it (`toggle-save.click-position-history`).
+Releasing `space` clicks them all with the armed button, in the order they were picked
+(`click-all-mode`), then goes back where the hints were opened from. A `space` tap with no hint marked
+clicks at the pointer.
 
 Click or drag is the grid's rule too — `release.left` carries the same `-0-150` window, so a quick pick
 clicks and a key held past 150 ms stays pressed, with the indicator as the mid-drag cue.

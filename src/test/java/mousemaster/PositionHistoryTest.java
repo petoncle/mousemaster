@@ -190,6 +190,21 @@ public class PositionHistoryTest {
     }
 
     @Test
+    void toggleSaveSavesTheTargetThenUnsavesIt() throws IOException {
+        Configuration configuration = parse("idle-mode.toggle-save.drag-position-history=+f1\n");
+        assertTrue(commands(configuration, "idle-mode").contains(
+                new Command.ToggleSavePosition("drag-position-history")));
+        HintManager hintManager = hintManager(configuration, new App[] {new App("notepad.exe")});
+        hintManager.mouseMoved(10, 10);
+        hintManager.toggleSaveCurrentPosition("drag-position-history");
+        assertEquals(List.of(new Point(10, 10)),
+                hintManager.positionHistory("drag-position-history").positions());
+        hintManager.toggleSaveCurrentPosition("drag-position-history");
+        assertEquals(List.of(),
+                hintManager.positionHistory("drag-position-history").positions());
+    }
+
+    @Test
     void anActiveAppIsolatedPositionHistoryHasOneListPerApp() throws IOException {
         Configuration configuration = parse(twoHistories + browserHints +
                                             "browser-position-history.isolation=active-app\n");

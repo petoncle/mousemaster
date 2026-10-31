@@ -170,6 +170,7 @@ public class ConfigurationParser {
                 new Property<>("move-to", Map.of()),
                 new Property<>("save", Map.of()),
                 new Property<>("unsave", Map.of()),
+                new Property<>("toggle-save", Map.of()),
                 new Property<>("clear", Map.of()),
                 new Property<>("cycle-next", Map.of()),
                 new Property<>("cycle-previous", Map.of()),
@@ -2048,6 +2049,9 @@ public class ConfigurationParser {
             case "unsave" -> mode.comboMap.unsavePosition.parseReferenceOr(propertyKey, propertyValue,
                     commandsByCombo -> setCommand(mode.comboMap.unsavePosition.builder, propertyValue, new UnsavePosition(checkedPositionHistoryName(group2, keyMatcher.group(group4))), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                     childPropertiesByParentProperty, nonRootPropertyKeys);
+            case "toggle-save" -> mode.comboMap.toggleSavePosition.parseReferenceOr(propertyKey, propertyValue,
+                    commandsByCombo -> setCommand(mode.comboMap.toggleSavePosition.builder, propertyValue, new ToggleSavePosition(checkedPositionHistoryName(group2, keyMatcher.group(group4))), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                    childPropertiesByParentProperty, nonRootPropertyKeys);
             case "clear" -> mode.comboMap.clearPositionHistory.parseReferenceOr(propertyKey, propertyValue,
                     commandsByCombo -> setCommand(mode.comboMap.clearPositionHistory.builder, propertyValue, new ClearPositionHistory(checkedPositionHistoryName(group2, keyMatcher.group(group4))), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                     childPropertiesByParentProperty, nonRootPropertyKeys);
@@ -2336,13 +2340,15 @@ public class ConfigurationParser {
         return variableNames;
     }
 
+    private static final List<String> POSITION_HISTORY_COMMAND_NAMES = List.of(
+            "save", "unsave", "toggle-save", "clear", "cycle-next", "cycle-previous");
+
     /**
      * First pass: a position history exists as soon as a mode defines a command for it.
      */
     static Set<String> parsePositionHistoryNames(List<String> properties) {
         Pattern commandPattern = Pattern.compile("[^.]+-mode\\.(?:" +
-                String.join("|", POSITION_HISTORY_COMMAND_BY_DEPRECATED_NAME.values()) +
-                ")\\.([^.]+)");
+                String.join("|", POSITION_HISTORY_COMMAND_NAMES) + ")\\.([^.]+)");
         Set<String> positionHistoryNames = new HashSet<>();
         for (String line : properties) {
             Matcher lineMatcher = propertyLinePattern.matcher(line);
@@ -4732,6 +4738,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> moveTo;
         Property<Map<Combo, List<Command>>> savePosition;
         Property<Map<Combo, List<Command>>> unsavePosition;
+        Property<Map<Combo, List<Command>>> toggleSavePosition;
         Property<Map<Combo, List<Command>>> clearPositionHistory;
         Property<Map<Combo, List<Command>>> cycleNextPosition;
         Property<Map<Combo, List<Command>>> cyclePreviousPosition;
@@ -4768,6 +4775,7 @@ public class ConfigurationParser {
             moveTo = new ComboMapProperty("move-to", modeName, propertyByKey);
             savePosition = new ComboMapProperty("save", modeName, propertyByKey);
             unsavePosition = new ComboMapProperty("unsave", modeName, propertyByKey);
+            toggleSavePosition = new ComboMapProperty("toggle-save", modeName, propertyByKey);
             clearPositionHistory = new ComboMapProperty("clear", modeName, propertyByKey);
             cycleNextPosition = new ComboMapProperty("cycle-next", modeName, propertyByKey);
             cyclePreviousPosition = new ComboMapProperty("cycle-previous", modeName, propertyByKey);
@@ -4854,6 +4862,7 @@ public class ConfigurationParser {
             add(commandsByCombo, stopWheel.builder);
             add(commandsByCombo, savePosition.builder);
             add(commandsByCombo, unsavePosition.builder);
+            add(commandsByCombo, toggleSavePosition.builder);
             add(commandsByCombo, clearPositionHistory.builder);
             add(commandsByCombo, cycleNextPosition.builder);
             add(commandsByCombo, cyclePreviousPosition.builder);

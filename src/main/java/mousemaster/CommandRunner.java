@@ -111,6 +111,7 @@ public class CommandRunner {
 
             case SavePosition(String positionHistoryName) -> hintManager.saveCurrentPosition(positionHistoryName);
             case UnsavePosition(String positionHistoryName) -> hintManager.unsaveCurrentPosition(positionHistoryName);
+            case ToggleSavePosition(String positionHistoryName) -> hintManager.toggleSaveCurrentPosition(positionHistoryName);
             case ClearPositionHistory(String positionHistoryName) -> hintManager.clearPositionHistory(positionHistoryName);
             case CycleNextPosition(String positionHistoryName) -> hintManager.cyclePosition(positionHistoryName, 1);
             case CyclePreviousPosition(String positionHistoryName) -> hintManager.cyclePosition(positionHistoryName, -1);

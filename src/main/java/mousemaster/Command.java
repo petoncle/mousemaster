@@ -76,6 +76,7 @@ public sealed interface Command {
 
     record SavePosition(String positionHistoryName) implements Command {}
     record UnsavePosition(String positionHistoryName) implements Command {}
+    record ToggleSavePosition(String positionHistoryName) implements Command {}
     record ClearPositionHistory(String positionHistoryName) implements Command {}
     record CycleNextPosition(String positionHistoryName) implements Command {}
     record CyclePreviousPosition(String positionHistoryName) implements Command {}

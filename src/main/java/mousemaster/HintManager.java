@@ -2092,6 +2092,16 @@ public class HintManager implements ModeListener, MousePositionListener {
         showSavedPositions(positionHistoryName);
     }
 
+    public void toggleSaveCurrentPosition(String positionHistoryName) {
+        PositionHistory positionHistory = positionHistory(positionHistoryName);
+        Point position = targetPoint();
+        if (positionHistory.positions().contains(position))
+            positionHistory.unsave(position);
+        else
+            savePosition(positionHistory, position);
+        showSavedPositions(positionHistoryName);
+    }
+
     public void clearPositionHistory(String positionHistoryName) {
         positionHistory(positionHistoryName).clear();
         showSavedPositions(positionHistoryName);

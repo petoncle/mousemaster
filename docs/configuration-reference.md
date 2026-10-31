@@ -1482,6 +1482,7 @@ normal-mode.clear.position-history=+f2
 - **`max-size`**: Maximum number of positions that can be stored, 1-100 (older positions are removed when this limit is reached). Default 16.
 - **`save`**: Command to save the position of the target to history. When the target is on the point of the last selected hint, the history also keeps that hint (see [Saved hints](#saved-hints) and the indicator's `position-anchor`)
 - **`unsave`**: Command to remove the saved position the target is on
+- **`toggle-save`**: Command to `unsave` the target when it is on a saved position, and to `save` it when it is not
 - **`clear`**: Command to clear all saved positions
 - **`cycle-next`** / **`cycle-previous`**: Commands to move the target to the next or previous saved position, continuing from the one it is on. The mouse follows, unless the mode has `mouse-follows-target=false`
 
