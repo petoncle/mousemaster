@@ -24,7 +24,7 @@ public class IndicatorManager implements ModeListener {
     private Map<ModePropertyPath, RunningTimeline> runningTimelineByPropertyPath = Map.of();
     private final Map<IndicatorLayerCopyKey, IndicatorLayerCopy> copyByKey =
             new LinkedHashMap<>();
-    private final Set<String> anchoredLayerNames = new HashSet<>();
+    private final Map<String, IndicatorLayerConfiguration> anchoredLayerByName = new HashMap<>();
     private final Set<String> layerNamesToAnchor = new HashSet<>();
     private Map<IndicatorPosition, List<Point>> pointsByPosition = Map.of();
     private Map<HintGridArea, Rectangle> rectangleByArea = Map.of();
@@ -90,14 +90,21 @@ public class IndicatorManager implements ModeListener {
                 runningTimelineByPropertyPath);
         if (indicator.enabled())
             resolvedIndicator = indicator;
-        Set<String> previousAnchoredLayerNames = Set.copyOf(anchoredLayerNames);
-        anchoredLayerNames.clear();
+        Map<String, IndicatorLayerConfiguration> previousAnchoredLayerByName =
+                Map.copyOf(anchoredLayerByName);
+        anchoredLayerByName.clear();
         for (Map.Entry<String, IndicatorLayerConfiguration> entry : indicator.layerByName()
                                                                              .entrySet()) {
-            if (!entry.getValue().enabled() || entry.getValue().followMouse())
+            IndicatorLayerConfiguration layer = entry.getValue();
+            if (!layer.enabled() || layer.followMouse())
                 continue;
-            anchoredLayerNames.add(entry.getKey());
-            if (!previousAnchoredLayerNames.contains(entry.getKey()))
+            anchoredLayerByName.put(entry.getKey(), layer);
+            IndicatorLayerConfiguration previousLayer =
+                    previousAnchoredLayerByName.get(entry.getKey());
+            if (previousLayer == null || !previousLayer.positions().equals(layer.positions()) ||
+                previousLayer.positionAnchor() != layer.positionAnchor() ||
+                previousLayer.endPositionAnchor() != layer.endPositionAnchor() ||
+                !Objects.equals(previousLayer.area(), layer.area()))
                 layerNamesToAnchor.add(entry.getKey());
         }
         Map<IndicatorPosition, List<Point>> newPointsByPosition = new HashMap<>();

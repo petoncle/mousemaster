@@ -138,6 +138,22 @@ class IndicatorEffectsTest {
         assertFalse(hidden);
     }
 
+    @Test
+    void aLayerThatTakesOtherPositionsInTheNextModeIsAnchoredAgain() {
+        load("idle-mode.save.position-history=+f1",
+                "idle-mode.to.target-mode=+b",
+                "idle-mode.line-indicator.position=position-history",
+                "target-mode.line-indicator.position=target");
+        tick(0);
+        newlyAnchored();
+        hintManager.mouseMoved(300, 300);
+        tick(0);
+        assertEquals(Set.of(), newlyAnchored());
+        comboWatcher.modeChanged(modeMap.get("target-mode"));
+        tick(0);
+        assertEquals(Set.of("line-indicator"), newlyAnchored());
+    }
+
     /** The layers the draws since the last call anchored. */
     private Set<String> newlyAnchored() {
         Set<String> layerNames = new HashSet<>();
