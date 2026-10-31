@@ -29,11 +29,14 @@ public class WindowsOverlay implements Overlay {
     private final WindowsMouseController mouse;
     private boolean waitForZoom;
     private WindowsIndicatorWindow followingIndicatorWindow;
-    private final List<WindowsIndicatorWindow> anchoredIndicatorWindows = new ArrayList<>();
+    private IndicatorRenderer followingIndicatorRenderer;
+    private IndicatorConfiguration followingIndicator;
+    private WindowsIndicatorWindow anchoredIndicatorWindow;
+    private final List<IndicatorRenderer> anchoredIndicatorRenderers = new ArrayList<>();
     private List<IndicatorConfiguration> anchoredIndicators = List.of();
-    private final Map<IndicatorLayerCopyKey, WindowsIndicatorWindow>
-            anchoredIndicatorWindowByCopyKey = new LinkedHashMap<>();
-    private List<IndicatorLayerCopyKey> copyKeys = List.of();
+    private final Map<IndicatorLayerCopyKey, IndicatorRenderer>
+            anchoredIndicatorRendererByCopyKey = new LinkedHashMap<>();
+    private Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey = Map.of();
     private boolean indicatorIsCursor;
     private boolean indicatorExcludedFromCapture;
     private boolean hintMeshExcludedFromCapture;
@@ -179,15 +182,11 @@ public class WindowsOverlay implements Overlay {
         List<WinDef.HWND> hwnds = new ArrayList<>();
         List<WinDef.HWND> notTopmostHwnds = new ArrayList<>();
         // First in the hwnds list means drawn on top.
-        for (WindowsIndicatorWindow indicatorWindow : anchoredIndicatorWindows.reversed())
-            if (indicatorWindow.showing())
-                hwnds.add(indicatorWindow.hwnd());
-        for (IndicatorLayerCopyKey copyKey : copyKeys.reversed())
-            if (anchoredIndicatorWindowByCopyKey.get(copyKey).showing())
-                hwnds.add(anchoredIndicatorWindowByCopyKey.get(copyKey).hwnd());
+        if (anchoredIndicatorWindow != null)
+            hwnds.add(anchoredIndicatorWindow.hwnd());
         for (TransparentWindow window : hintMeshRenderer.windows())
             (hintMeshRenderer.showing() ? hwnds : notTopmostHwnds).add(hwnd(window));
-        if (followingIndicatorWindow != null && followingIndicatorWindow.showing())
+        if (followingIndicatorWindow != null)
             hwnds.add(followingIndicatorWindow.hwnd());
         if (zoomHwnd != null)
             (currentZoom != null ? hwnds : notTopmostHwnds).add(zoomHwnd);
@@ -254,32 +253,59 @@ public class WindowsOverlay implements Overlay {
     }
 
     private void moveAndResizeIndicatorWindow(WinDef.POINT mousePosition) {
-        for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
-            if (indicatorWindow.showing())
-                showIndicatorWindow(indicatorWindow,
-                        indicatorWindow.renderer().currentIndicator(), Set.of(), Map.of(),
-                        Map.of(), Map.of(), mousePosition);
+        showIndicator(followingIndicator, indicatorByCopyKey, anchoredIndicators, Set.of(),
+                Map.of(), Map.of(), Map.of(), mousePosition);
     }
 
-    private void showIndicatorWindow(WindowsIndicatorWindow indicatorWindow,
-                                     IndicatorConfiguration indicator,
-                                     Set<String> layerNamesToAnchor,
-                                     Map<IndicatorPosition, List<Point>> pointsByPosition,
-                                     Map<HintGridArea, Rectangle> rectangleByArea,
-                                     Map<Point, HintRectangles> hintRectanglesByPoint,
-                                     WinDef.POINT mousePosition) {
-        IndicatorRenderer.WindowImage windowImage = windowImage(indicatorWindow, indicator,
-                layerNamesToAnchor, pointsByPosition, rectangleByArea, hintRectanglesByPoint,
-                mousePosition);
-        indicatorWindow.show(windowImage.image(), windowImage.x(), windowImage.y());
+    /**
+     * The anchored layers and the copies are drawn in one window: when
+     * IndicatorRenderer.anchoredLayers splits the anchored layers into more window images, a
+     * layer leaves one window image and enters another in the same update.
+     */
+    private void showIndicator(
+            IndicatorConfiguration followingIndicator,
+            Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey,
+            List<IndicatorConfiguration> anchoredIndicators, Set<String> layerNamesToAnchor,
+            Map<IndicatorPosition, List<Point>> pointsByPosition,
+            Map<HintGridArea, Rectangle> rectangleByArea,
+            Map<Point, HintRectangles> hintRectanglesByPoint, WinDef.POINT mousePosition) {
+        List<IndicatorRenderer.WindowImage> anchoredImages = new ArrayList<>();
+        for (Map.Entry<IndicatorLayerCopyKey, IndicatorConfiguration> entry :
+                indicatorByCopyKey.entrySet())
+            if (entry.getValue().enabled())
+                anchoredImages.add(windowImage(
+                        anchoredIndicatorRendererByCopyKey.get(entry.getKey()),
+                        entry.getValue(), Set.of(), Map.of(), Map.of(), Map.of(),
+                        mousePosition));
+        for (int index = 0; index < anchoredIndicators.size(); index++)
+            anchoredImages.add(windowImage(anchoredIndicatorRenderers.get(index),
+                    anchoredIndicators.get(index), layerNamesToAnchor, pointsByPosition,
+                    rectangleByArea, hintRectanglesByPoint, mousePosition));
+        List<IndicatorRenderer.WindowImage> followingImages =
+                followingIndicator == null ? List.of() :
+                        List.of(windowImage(followingIndicatorRenderer, followingIndicator,
+                                Set.of(), Map.of(), Map.of(), Map.of(), mousePosition));
+        // A layer that goes to the other window is drawn there before it leaves this one.
+        boolean atLeastOneLayerGoesToFollowingWindow = followingIndicator != null &&
+                this.anchoredIndicators.stream().anyMatch(anchoredIndicator ->
+                        !Collections.disjoint(anchoredIndicator.layerByName().keySet(),
+                                followingIndicator.layerByName().keySet()));
+        if (atLeastOneLayerGoesToFollowingWindow)
+            followingIndicatorWindow.show(followingImages);
+        anchoredIndicatorWindow.show(anchoredImages);
+        if (!atLeastOneLayerGoesToFollowingWindow)
+            followingIndicatorWindow.show(followingImages);
+        this.followingIndicator = followingIndicator;
+        this.indicatorByCopyKey = indicatorByCopyKey;
+        this.anchoredIndicators = anchoredIndicators;
     }
 
     private IndicatorRenderer.WindowImage windowImage(
-            WindowsIndicatorWindow indicatorWindow, IndicatorConfiguration indicator,
+            IndicatorRenderer renderer, IndicatorConfiguration indicator,
             Set<String> layerNamesToAnchor, Map<IndicatorPosition, List<Point>> pointsByPosition,
             Map<HintGridArea, Rectangle> rectangleByArea,
             Map<Point, HintRectangles> hintRectanglesByPoint, WinDef.POINT mousePosition) {
-        return indicatorWindow.renderer().renderWindowImage(indicator, layerNamesToAnchor,
+        return renderer.renderWindowImage(indicator, layerNamesToAnchor,
                 pointsByPosition, rectangleByArea, hintRectanglesByPoint,
                 mouseRectangle(mousePosition),
                 mouse.cursorVisualCenter(),
@@ -287,43 +313,18 @@ public class WindowsOverlay implements Overlay {
                 hintMeshRenderer.lastSelectedHintBoxHexColor());
     }
 
-    private static boolean shows(WindowsIndicatorWindow indicatorWindow,
-                                 IndicatorConfiguration indicator) {
-        return indicator.enabled() ?
-                indicatorWindow.showing() &&
-                indicator.equals(indicatorWindow.renderer().currentIndicator()) :
-                !indicatorWindow.showing();
-    }
-
     private List<WindowsIndicatorWindow> indicatorWindows() {
-        List<WindowsIndicatorWindow> indicatorWindows = new ArrayList<>();
-        if (followingIndicatorWindow != null)
-            indicatorWindows.add(followingIndicatorWindow);
-        indicatorWindows.addAll(anchoredIndicatorWindows);
-        indicatorWindows.addAll(anchoredIndicatorWindowByCopyKey.values());
-        return indicatorWindows;
+        return followingIndicatorWindow == null ? List.of() :
+                List.of(followingIndicatorWindow, anchoredIndicatorWindow);
     }
 
-    private WindowsIndicatorWindow anchoredIndicatorWindow(IndicatorLayerCopyKey copyKey) {
-        return anchoredIndicatorWindowByCopyKey.computeIfAbsent(copyKey,
-                copyKey_ -> createAnchoredIndicatorWindow(new IndicatorRenderer()));
-    }
-
-    private WindowsIndicatorWindow createAnchoredIndicatorWindow(IndicatorRenderer renderer) {
-        WindowsIndicatorWindow indicatorWindow = new WindowsIndicatorWindow(renderer);
+    private WindowsIndicatorWindow createIndicatorWindow(boolean grows) {
+        WindowsIndicatorWindow indicatorWindow = new WindowsIndicatorWindow(grows);
         applyOverlayExStyles(indicatorWindow.hwnd());
         applyCaptureExclusion(indicatorWindow.hwnd(),
                 currentZoom != null || indicatorExcludedFromCapture);
+        indicatorWindow.show(List.of());
         return indicatorWindow;
-    }
-
-    private boolean shows(List<IndicatorConfiguration> anchored) {
-        if (anchored.size() != anchoredIndicators.size())
-            return false;
-        for (int index = 0; index < anchored.size(); index++)
-            if (!shows(anchoredIndicatorWindows.get(index), anchored.get(index)))
-                return false;
-        return true;
     }
 
     /** The cursor's bounding rectangle (position + size) at the given mouse position. */
@@ -334,8 +335,10 @@ public class WindowsOverlay implements Overlay {
     }
 
     private void createIndicatorWindows() {
-        followingIndicatorWindow = new WindowsIndicatorWindow(new IndicatorRenderer());
-        applyOverlayExStyles(followingIndicatorWindow.hwnd());
+        followingIndicatorRenderer = new IndicatorRenderer();
+        followingIndicatorWindow = createIndicatorWindow(false);
+        anchoredIndicatorWindow = createIndicatorWindow(true);
+        setTopmost();
     }
 
     private void applyOverlayExStyles(WinDef.HWND hwnd) {
@@ -370,8 +373,7 @@ public class WindowsOverlay implements Overlay {
             return;
         long before = System.nanoTime();
         createIndicatorWindows();
-        for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
-            indicatorWindow.renderer().preWarm();
+        followingIndicatorRenderer.preWarm();
         logger.debug("Pre-warmed the indicator window in " +
                     (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
@@ -443,13 +445,18 @@ public class WindowsOverlay implements Overlay {
                 applyCaptureExclusion(indicatorWindow.hwnd(),
                         currentZoom != null || indicatorExcludedFromCapture);
         }
-        IndicatorConfiguration following = IndicatorRenderer.followingMouse(indicator);
-        List<IndicatorConfiguration> anchored = IndicatorRenderer.anchoredLayers(indicator,
-                anchoredIndicators, layerNamesToAnchor);
-        boolean renderAsCursor = following.renderAsCursor() && following.enabled();
+        IndicatorConfiguration followingIndicator = IndicatorRenderer.followingMouse(indicator);
+        List<IndicatorConfiguration> anchoredIndicators =
+                IndicatorRenderer.anchoredLayers(indicator, this.anchoredIndicators,
+                        layerNamesToAnchor);
+        boolean renderAsCursor =
+                followingIndicator.renderAsCursor() && followingIndicator.enabled();
+        IndicatorConfiguration drawnFollowingIndicator =
+                !renderAsCursor && followingIndicator.enabled() ? followingIndicator : null;
         if (!renderAsCursor && !indicatorIsCursor &&
-            shows(followingIndicatorWindow, following) && shows(anchored) &&
-            indicatorByCopyKey.isEmpty() && copyKeys.isEmpty() && layerNamesToAnchor.isEmpty())
+            Objects.equals(drawnFollowingIndicator, this.followingIndicator) &&
+            anchoredIndicators.equals(this.anchoredIndicators) && indicatorByCopyKey.isEmpty() &&
+            this.indicatorByCopyKey.isEmpty() && layerNamesToAnchor.isEmpty())
             return;
         if (mouse.tryFindMousePosition() == null) {
             if (!mousePositionMissing)
@@ -460,50 +467,18 @@ public class WindowsOverlay implements Overlay {
         mousePositionMissing = false;
         WinDef.POINT mousePosition = mouse.findMousePosition();
         if (renderAsCursor)
-            setIndicatorCursor(following, animating, includeOriginalCursor, mousePosition);
+            setIndicatorCursor(followingIndicator, animating, includeOriginalCursor,
+                    mousePosition);
         for (IndicatorLayerCopyKey copyKey : indicatorByCopyKey.keySet())
-            if (!copyKeys.contains(copyKey))
-                anchoredIndicatorWindow(copyKey).renderer().anchor(copyKey.layerName(),
-                        followingIndicatorWindow.renderer());
-        copyKeys = List.copyOf(indicatorByCopyKey.keySet());
-        while (anchoredIndicatorWindows.size() < anchored.size())
-            anchoredIndicatorWindows.add(createAnchoredIndicatorWindow(
-                    new IndicatorRenderer(followingIndicatorWindow.renderer())));
-        anchoredIndicators = anchored;
-        // The images of all windows are made (renderWindowImage) before any window shows its new
-        // image, and an empty window is hidden last: a layer that goes to another window is then
-        // off the screen only between two UpdateLayeredWindow calls.
-        Map<WindowsIndicatorWindow, IndicatorRenderer.WindowImage> windowImageByWindow =
-                new LinkedHashMap<>();
-        if (!renderAsCursor && following.enabled())
-            windowImageByWindow.put(followingIndicatorWindow,
-                    windowImage(followingIndicatorWindow, following, Set.of(), Map.of(),
-                            Map.of(), Map.of(), mousePosition));
-        for (Map.Entry<IndicatorLayerCopyKey, IndicatorConfiguration> entry :
-                indicatorByCopyKey.entrySet())
-            if (entry.getValue().enabled())
-                windowImageByWindow.put(anchoredIndicatorWindowByCopyKey.get(entry.getKey()),
-                        windowImage(anchoredIndicatorWindowByCopyKey.get(entry.getKey()),
-                                entry.getValue(), Set.of(), Map.of(), Map.of(), Map.of(),
-                                mousePosition));
-        for (int index = 0; index < anchored.size(); index++)
-            if (anchored.get(index).enabled())
-                windowImageByWindow.put(anchoredIndicatorWindows.get(index),
-                        windowImage(anchoredIndicatorWindows.get(index), anchored.get(index),
-                                layerNamesToAnchor, pointsByPosition, rectangleByArea,
-                                hintRectanglesByPoint, mousePosition));
-        boolean windowShown = false;
-        for (Map.Entry<WindowsIndicatorWindow, IndicatorRenderer.WindowImage> entry :
-                windowImageByWindow.entrySet()) {
-            windowShown |= !entry.getKey().showing();
-            entry.getKey().show(entry.getValue().image(), entry.getValue().x(),
-                    entry.getValue().y());
-        }
-        for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
-            if (!windowImageByWindow.containsKey(indicatorWindow))
-                indicatorWindow.hide();
-        if (windowShown)
-            setTopmost();
+            if (!this.indicatorByCopyKey.containsKey(copyKey))
+                anchoredIndicatorRendererByCopyKey
+                        .computeIfAbsent(copyKey, copyKey_ -> new IndicatorRenderer())
+                        .anchor(copyKey.layerName(), followingIndicatorRenderer);
+        while (anchoredIndicatorRenderers.size() < anchoredIndicators.size())
+            anchoredIndicatorRenderers.add(new IndicatorRenderer(followingIndicatorRenderer));
+        showIndicator(drawnFollowingIndicator, new LinkedHashMap<>(indicatorByCopyKey),
+                anchoredIndicators, layerNamesToAnchor, pointsByPosition, rectangleByArea,
+                hintRectanglesByPoint, mousePosition);
         if (!renderAsCursor && indicatorIsCursor) {
             // The cursor changes on the next refresh, the window once it is composited.
             Dwmapi.INSTANCE.DwmFlush();
@@ -527,9 +502,10 @@ public class WindowsOverlay implements Overlay {
             includeOriginalCursor == currentIncludeOriginalCursor &&
             animating == currentCursorAnimating)
             return;
-        followingIndicatorWindow.hide();
+        followingIndicatorWindow.show(List.of());
+        followingIndicator = null;
         IndicatorRenderer.IndicatorImage image =
-                followingIndicatorWindow.renderer().renderCursorImage(indicator, scale,
+                followingIndicatorRenderer.renderCursorImage(indicator, scale,
                         hintMeshRenderer.lastSelectedHintBoxHexColor(),
                         mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                         WindowsScreen.findActiveScreen(mousePosition));
@@ -628,7 +604,10 @@ public class WindowsOverlay implements Overlay {
             currentCursorIndicator = null;
         }
         for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
-            indicatorWindow.hide();
+            indicatorWindow.show(List.of());
+        followingIndicator = null;
+        indicatorByCopyKey = Map.of();
+        anchoredIndicators = List.of();
     }
 
     /**
@@ -700,7 +679,7 @@ public class WindowsOverlay implements Overlay {
             if (currentCursorIndicator != null && (scaleChanged ||
                     !IndicatorRenderer.looksTheSameAnywhere(currentCursorIndicator))) {
                 IndicatorRenderer.IndicatorImage image =
-                        followingIndicatorWindow.renderer().renderCursorImage(
+                        followingIndicatorRenderer.renderCursorImage(
                                 currentCursorIndicator, scale,
                                 hintMeshRenderer.lastSelectedHintBoxHexColor(),
                                 mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
@@ -756,9 +735,8 @@ public class WindowsOverlay implements Overlay {
             for (TransparentWindow window : hintMeshRenderer.windows())
                 applyCaptureExclusion(hwnd(window), excluded || hintMeshExcludedFromCapture);
         for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
-            if (indicatorWindow.showing())
-                applyCaptureExclusion(indicatorWindow.hwnd(),
-                        excluded || indicatorExcludedFromCapture);
+            applyCaptureExclusion(indicatorWindow.hwnd(),
+                    excluded || indicatorExcludedFromCapture);
         if (excluded)
             Dwmapi.INSTANCE.DwmFlush();
     }

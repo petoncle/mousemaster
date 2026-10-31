@@ -65,6 +65,27 @@ public interface ExtendedUser32 extends User32 {
     LRESULT CallNextHookEx(HHOOK hhk, int nCode, WPARAM wParam, WinUser.KBDLLHOOKSTRUCT lParam);
     LRESULT CallNextHookEx(HHOOK hhk, int nCode, WPARAM wParam, WinUser.MSLLHOOKSTRUCT lParam);
 
+    boolean UpdateLayeredWindowIndirect(HWND hwnd, UPDATELAYEREDWINDOWINFO info);
+
+    class UPDATELAYEREDWINDOWINFO extends Structure {
+        public int cbSize;
+        public HDC hdcDst;
+        public Pointer pptDst;
+        public Pointer psize;
+        public HDC hdcSrc;
+        public Pointer pptSrc;
+        public int crKey;
+        public Pointer pblend;
+        public int dwFlags;
+        public Pointer prcDirty;
+
+        @Override
+        protected List<String> getFieldOrder() {
+            return List.of("cbSize", "hdcDst", "pptDst", "psize", "hdcSrc", "pptSrc", "crKey",
+                    "pblend", "dwFlags", "prcDirty");
+        }
+    }
+
     class PAINTSTRUCT extends Structure {
         public WinDef.HDC hdc;
         public WinDef.BOOL fErase;

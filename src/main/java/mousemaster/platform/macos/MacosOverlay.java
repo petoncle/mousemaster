@@ -196,33 +196,34 @@ public class MacosOverlay implements Overlay {
                 indicatorByCopyKey.entrySet())
             setIndicator(anchoredIndicatorRendererByCopyKey.get(entry.getKey()),
                     entry.getValue(), Set.of(), Map.of(), Map.of(), Map.of(), mousePosition);
-        List<IndicatorConfiguration> anchored = IndicatorRenderer.anchoredLayers(indicator,
-                anchoredIndicators, layerNamesToAnchor);
-        while (anchoredIndicatorRenderers.size() < anchored.size())
+        List<IndicatorConfiguration> anchoredIndicators =
+                IndicatorRenderer.anchoredLayers(indicator, this.anchoredIndicators,
+                        layerNamesToAnchor);
+        while (anchoredIndicatorRenderers.size() < anchoredIndicators.size())
             anchoredIndicatorRenderers.add(createAnchoredIndicatorRenderer(
                     new IndicatorRenderer(followingIndicatorRenderer)));
         for (IndicatorRenderer indicatorRenderer :
-                anchoredIndicatorRenderers.subList(anchored.size(),
+                anchoredIndicatorRenderers.subList(anchoredIndicators.size(),
                         anchoredIndicatorRenderers.size()))
             indicatorRenderer.hide();
-        for (int index = 0; index < anchored.size(); index++)
-            setIndicator(anchoredIndicatorRenderers.get(index), anchored.get(index),
+        for (int index = 0; index < anchoredIndicators.size(); index++)
+            setIndicator(anchoredIndicatorRenderers.get(index), anchoredIndicators.get(index),
                     layerNamesToAnchor, pointsByPosition, rectangleByArea, hintRectanglesByPoint,
                     mousePosition);
         // The windows share a level: the one ordered front last is drawn on top. Ordering a
         // hidden window front shows it.
         if (!copyKeys.equals(List.copyOf(indicatorByCopyKey.keySet())) ||
-            anchored.size() != anchoredIndicators.size()) {
+            anchoredIndicators.size() != this.anchoredIndicators.size()) {
             for (IndicatorLayerCopyKey copyKey : indicatorByCopyKey.keySet())
                 if (anchoredIndicatorRendererByCopyKey.get(copyKey).showing())
                     MacosWindow.orderFront(
                             anchoredIndicatorRendererByCopyKey.get(copyKey).window());
             for (IndicatorRenderer indicatorRenderer :
-                    anchoredIndicatorRenderers.subList(0, anchored.size()))
+                    anchoredIndicatorRenderers.subList(0, anchoredIndicators.size()))
                 MacosWindow.orderFront(indicatorRenderer.window());
         }
         copyKeys = List.copyOf(indicatorByCopyKey.keySet());
-        anchoredIndicators = anchored;
+        this.anchoredIndicators = anchoredIndicators;
     }
 
     @Override

@@ -45,7 +45,7 @@ public final class IndicatorRenderer {
     private final Map<String, LayerAnchor> anchorByLayerName;
     private final Map<TextKey, QPainterPath> outlineByText = new HashMap<>();
     private final Map<TextKey, QTextDocument> documentByText = new HashMap<>();
-    private IndicatorImage windowImage;
+    private QImage windowImage;
     private WindowImageKey windowImageKey;
     private boolean showing;
     private boolean cleared;
@@ -711,7 +711,7 @@ public final class IndicatorRenderer {
     public record IndicatorImage(int[] argb, int width, int height) {}
 
     /** An image of the indicator, and where its top-left goes on the screen. */
-    public record WindowImage(IndicatorImage image, int x, int y) {}
+    public record WindowImage(QImage image, int x, int y) {}
 
     /** Lays the indicator out at the cursor and renders it into an image the size of what it
      *  draws. When the layers keep their places inside the image, which they do when they all
@@ -757,7 +757,9 @@ public final class IndicatorRenderer {
                 layersRectangle.width(), layersRectangle.height(), new Point(x, y),
                 screenScale, 1);
         applyIndicator(indicator, screenScale, lastSelectedHintBoxHexColor);
-        windowImage = render(width, height, screenScale);
+        if (windowImage != null)
+            windowImage.dispose();
+        windowImage = render(width, height);
         windowImageKey = key;
         return new WindowImage(windowImage, x, y);
     }
@@ -822,10 +824,13 @@ public final class IndicatorRenderer {
                 new Point(layersTopLeft.x() - shadowPadding, layersTopLeft.y() - shadowPadding),
                 scale, 1);
         applyIndicator(indicator, scale, lastSelectedHintBoxHexColor);
-        return render(imageSize, imageSize, scale);
+        QImage image = render(imageSize, imageSize);
+        IndicatorImage indicatorImage = indicatorImage(image);
+        image.dispose();
+        return indicatorImage;
     }
 
-    private IndicatorImage render(int width, int height, double scale) {
+    private QImage render(int width, int height) {
         QImage image = new QImage(width, height, QImage.Format.Format_ARGB32_Premultiplied);
         image.fill(0);
         // Not render(image): the QPoint and QRegion it passes Qt can be garbage collected while
@@ -835,12 +840,15 @@ public final class IndicatorRenderer {
         window.render(image, targetOffset, sourceRegion);
         targetOffset.dispose();
         sourceRegion.dispose();
-        int[] argb = new int[width * height];
+        return image;
+    }
+
+    public static IndicatorImage indicatorImage(QImage image) {
+        int[] argb = new int[image.width() * image.height()];
         ByteBuffer buffer = image.bits();
         buffer.position(0);
         buffer.order(ByteOrder.nativeOrder()).asIntBuffer().get(argb);
-        image.dispose();
-        return new IndicatorImage(argb, width, height);
+        return new IndicatorImage(argb, image.width(), image.height());
     }
 
     /** Applies the indicator to the widgets (shape, fill, stroke, shadow effect) without

@@ -941,6 +941,10 @@
   "allDeclaredFields":true
 },
 {
+  "name":"mousemaster.platform.windows.ExtendedUser32$UPDATELAYEREDWINDOWINFO",
+  "allDeclaredFields":true
+},
+{
   "name":"mousemaster.platform.windows.ExtendedUser32$WinEventProc",
   "queryAllDeclaredMethods":true,
   "queryAllPublicMethods":true,

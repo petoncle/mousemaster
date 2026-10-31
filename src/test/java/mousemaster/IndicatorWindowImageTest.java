@@ -72,7 +72,7 @@ class IndicatorWindowImageTest {
     }
 
     private static boolean inked(WindowImage image, int x, int y) {
-        return image.image().argb()[(y - image.y()) * image.image().width() + x - image.x()] >>> 24 != 0;
+        return argb(image).argb()[(y - image.y()) * image.image().width() + x - image.x()] >>> 24 != 0;
     }
 
     @Test
@@ -113,11 +113,11 @@ class IndicatorWindowImageTest {
                     "idle-mode.indicator.text=<table><tr><td class=key>abc<td>de</table>",
                     "idle-mode.indicator.fill-opacity=0",
                     "idle-mode.indicator.stroke-thickness=0");
-            IndicatorRenderer.IndicatorImage image = new IndicatorRenderer().renderWindowImage(
+            IndicatorRenderer.IndicatorImage image = argb(new IndicatorRenderer().renderWindowImage(
                     indicator, Set.of(), Map.of(), Map.of(), Map.of(),
                     new Rectangle(500, 500, 32, 32), new Point(4, 4),
                     new Screen(new Rectangle(0, 0, 3840, 2160), (int) (96 * scale), scale),
-                    null, "#000000").image();
+                    null, "#000000"));
             boolean green = false, blue = false;
             for (int argb : image.argb()) {
                 green |= (argb >> 8 & 255) > 200 && (argb & 255) < 50;
@@ -299,18 +299,18 @@ class IndicatorWindowImageTest {
     }
 
     private static int alpha(WindowImage windowImage, int x, int y) {
-        IndicatorRenderer.IndicatorImage image = windowImage.image();
+        IndicatorRenderer.IndicatorImage image = argb(windowImage);
         return image.argb()[(y - windowImage.y()) * image.width() + x - windowImage.x()] >>> 24;
     }
 
     private static Rectangle inkBox(WindowImage image) {
-        Rectangle ink = ink(image.image());
+        Rectangle ink = ink(argb(image));
         return new Rectangle(image.x() + ink.x(), image.y() + ink.y(), ink.width(),
                 ink.height());
     }
 
     private static int inkRight(WindowImage image) {
-        Rectangle ink = ink(image.image());
+        Rectangle ink = ink(argb(image));
         return image.x() + ink.x() + ink.width();
     }
 
@@ -324,7 +324,7 @@ class IndicatorWindowImageTest {
                     "idle-mode.indicator.shape=text", "idle-mode.indicator.text=" + texts[textIndex],
                     "idle-mode.indicator.font-size=16", "idle-mode.indicator.fill-opacity=1",
                     "idle-mode.indicator.stroke-thickness=0"), Set.of(), 500);
-            inkTops[textIndex] = image.y() + ink(image.image()).y();
+            inkTops[textIndex] = image.y() + ink(argb(image)).y();
         }
         assertEquals(inkTops[0], inkTops[1]);
     }
@@ -336,11 +336,11 @@ class IndicatorWindowImageTest {
         String[] texts = {"<table><tr><td>aaa bbb ccc ddd eee</table>",
                 "<table width=60><tr><td>aaa bbb ccc ddd eee</table>"};
         for (int textIndex = 0; textIndex < 2; textIndex++)
-            boxes[textIndex] = ink(render(new IndicatorRenderer(), indicator(
+            boxes[textIndex] = ink(argb(render(new IndicatorRenderer(), indicator(
                     "idle-mode.indicator.shape=rectangle",
                     "idle-mode.indicator.text=" + texts[textIndex],
                     "idle-mode.indicator.fill-opacity=1",
-                    "idle-mode.indicator.stroke-thickness=0"), Set.of(), 500).image());
+                    "idle-mode.indicator.stroke-thickness=0"), Set.of(), 500)));
         assertEquals(60, boxes[1].width(), 1);
         assertTrue(boxes[1].height() > boxes[0].height() * 2,
                 boxes[0].height() + " " + boxes[1].height());
@@ -352,16 +352,20 @@ class IndicatorWindowImageTest {
         int[] boxWidths = new int[2];
         String[] texts = {"ab", "abcdef"};
         for (int textIndex = 0; textIndex < 2; textIndex++) {
-            IndicatorRenderer.IndicatorImage image = render(new IndicatorRenderer(), indicator(
+            IndicatorRenderer.IndicatorImage image = argb(render(new IndicatorRenderer(), indicator(
                     "idle-mode.indicator.shape=rectangle",
                     "idle-mode.indicator.text=" + texts[textIndex],
                     "idle-mode.indicator.fill-color=#FF0000", "idle-mode.indicator.fill-opacity=1",
-                    "idle-mode.indicator.stroke-thickness=0"), Set.of(), 500).image();
+                    "idle-mode.indicator.stroke-thickness=0"), Set.of(), 500));
             Rectangle box = ink(image);
             assertEquals(0xFFFF0000, image.argb()[box.y() * image.width() + box.x()]);
             boxWidths[textIndex] = box.width();
         }
         assertTrue(boxWidths[1] > boxWidths[0] * 2, boxWidths[0] + " " + boxWidths[1]);
+    }
+
+    private static IndicatorRenderer.IndicatorImage argb(WindowImage windowImage) {
+        return IndicatorRenderer.indicatorImage(windowImage.image());
     }
 
     private static Rectangle ink(IndicatorRenderer.IndicatorImage image) {
@@ -412,21 +416,21 @@ class IndicatorWindowImageTest {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         int[] inkHeights = new int[2];
         for (int borderRadius = 0; borderRadius < 2; borderRadius++)
-            inkHeights[borderRadius] = ink(render(new IndicatorRenderer(), indicator(
+            inkHeights[borderRadius] = ink(argb(render(new IndicatorRenderer(), indicator(
                     "idle-mode.indicator.shape=triangle", "idle-mode.indicator.size=40",
                     "idle-mode.indicator.border-radius=" + borderRadius * 8,
                     "idle-mode.indicator.fill-opacity=1",
-                    "idle-mode.indicator.stroke-thickness=0"), Set.of(), 500).image()).height();
+                    "idle-mode.indicator.stroke-thickness=0"), Set.of(), 500))).height();
         assertTrue(inkHeights[1] < inkHeights[0], inkHeights[0] + " " + inkHeights[1]);
     }
 
     @Test
     void aPathKeepsTheProportionsOfItsPoints() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
-        Rectangle ink = ink(render(new IndicatorRenderer(), indicator(
+        Rectangle ink = ink(argb(render(new IndicatorRenderer(), indicator(
                 "idle-mode.indicator.shape=path", "idle-mode.indicator.points=0,0 10,0 5,8",
                 "idle-mode.indicator.size=40", "idle-mode.indicator.fill-opacity=1",
-                "idle-mode.indicator.stroke-thickness=0"), Set.of(), 500).image());
+                "idle-mode.indicator.stroke-thickness=0"), Set.of(), 500)));
         assertEquals(40, ink.width(), 1);
         assertEquals(32, ink.height(), 1);
     }
@@ -440,10 +444,11 @@ class IndicatorWindowImageTest {
         IndicatorRenderer renderer = new IndicatorRenderer();
         WindowImage before = render(renderer, indicator, Set.of("indicator", "ripple-indicator"),
                 500);
+        int beforeWidth = before.image().width();
         WindowImage after = render(renderer, indicator, Set.of(), 600);
         assertNotSame(before.image(), after.image());
         assertEquals(before.x(), after.x());
-        assertTrue(after.image().width() > before.image().width());
+        assertTrue(after.image().width() > beforeWidth);
     }
 
     @Test
@@ -462,7 +467,7 @@ class IndicatorWindowImageTest {
     }
 
     private static int centerArgb(WindowImage windowImage) {
-        IndicatorRenderer.IndicatorImage image = windowImage.image();
+        IndicatorRenderer.IndicatorImage image = argb(windowImage);
         return image.argb()[image.height() / 2 * image.width() + image.width() / 2];
     }
 
@@ -480,7 +485,7 @@ class IndicatorWindowImageTest {
     }
 
     private static int alphaAt(WindowImage windowImage, int x, int y) {
-        IndicatorRenderer.IndicatorImage image = windowImage.image();
+        IndicatorRenderer.IndicatorImage image = argb(windowImage);
         return image.argb()[(y - windowImage.y()) * image.width() + x - windowImage.x()] >>> 24;
     }
 
