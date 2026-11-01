@@ -580,13 +580,14 @@ menu items, including in windows that expose no accessibility tree.
 
 Entry: `;` + `m`/`n` from idle or surgical mode, `m`/`n` alone from arrow mode, or a **`rightshift` tap**
 from normal mode (matched with `#`, so `rightshift` still reaches the application). `esc`,
-`backspace`/`h`, `rightctrl`, a second `rightshift` tap, or a **`rightalt` tap** leave.
+`backspace`/`h`, `rightctrl` or a second `rightshift` tap leave.
 
 Border color is the click type, same convention as the recursive grid: **yellow** left, **magenta**
 middle, **cyan** right, **white** while `rightalt` is held (move only).
 
 `rightalt` works as in the grid: hold it and pick to move there without clicking (`^{rightalt}` gates
-the commit so it yields, `noop.eatrightalt` keeps the press off the application).
+the commit so it yields, `noop.eatrightalt` keeps the press off the application). A **`rightalt` tap**
+arms the refine grid (`isrefine`) for the next pick, and a second tap disarms it.
 
 Hold **`space`** and pick hints to mark them: each is saved to `click-position-history` and shown with a
 white box, its text and border in the box gradient, and the hints come back for the next one through
