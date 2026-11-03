@@ -657,9 +657,13 @@ public final class HintMeshRenderer {
         // out or shrinking back in). A same-sized change (recolor, fresh grid) resolves instantly, unless
         // a crop is still animating — then it continues too, so a mid-crop recolor is not cut short.
         boolean partOfDrill = matchCropBefore || matchCropNow;
-        boolean coversTarget = coversInProgressTarget(hintMeshWindow, hintMesh, interruptedContainers);
-        boolean targetContainsNew = targetContainsNewMesh(hintMeshWindow, hintMesh, interruptedContainers);
-        boolean newContainsTarget = newMeshContainsTarget(hintMeshWindow, hintMesh, interruptedContainers);
+        double qtScaleFactor = qtScaleFactor(screenScale);
+        boolean coversTarget = coversInProgressTarget(hintMeshWindow, hintMesh, interruptedContainers,
+                qtScaleFactor);
+        boolean targetContainsNew = targetContainsNewMesh(hintMeshWindow, hintMesh, interruptedContainers,
+                qtScaleFactor);
+        boolean newContainsTarget = newMeshContainsTarget(hintMeshWindow, hintMesh, interruptedContainers,
+                qtScaleFactor);
         boolean continueFromCurrentExtent = partOfDrill
                 ? coversTarget || targetContainsNew || cropAnimating && newContainsTarget
                 : showingHintMesh && (newContainsTarget || targetContainsNew) && (!coversTarget || cropAnimating);
@@ -732,7 +736,6 @@ public final class HintMeshRenderer {
         hintMeshWindow.animations.clear();
         hintMeshWindow.animationCallbacks.clear();
         cropAnimation = null;
-        double qtScaleFactor = qtScaleFactor(screenScale);
         List<QWidget> oldContainers = containers(window);
         QWidget oldContainer = oldContainers.isEmpty() ? null : oldContainers.getFirst();
         boolean oldContainerHidden = oldContainer == null || oldContainer.isHidden();
@@ -1239,11 +1242,12 @@ public final class HintMeshRenderer {
     /** Whether the incoming mesh covers about the same extent as the in-progress crop's target (its
      *  newest container), i.e. it drills into the same cell and should continue the crop rather than
      *  replace it with a fresh grid. */
-    private boolean coversInProgressTarget(HintMeshWindow hintMeshWindow, HintMesh hintMesh, List<QWidget> containers) {
+    private boolean coversInProgressTarget(HintMeshWindow hintMeshWindow, HintMesh hintMesh, List<QWidget> containers,
+                                           double qtScaleFactor) {
         if (containers.isEmpty() || hintMeshWindow.hints().isEmpty())
             return false;
         QRect inProgressTarget = containers.getLast().geometry();
-        QRect bounds = newMeshBounds(hintMeshWindow, hintMesh);
+        QRect bounds = newMeshBounds(hintMeshWindow, hintMesh, qtScaleFactor);
         boolean same = closeInSize(inProgressTarget.width(), bounds.width()) &&
                        closeInSize(inProgressTarget.height(), bounds.height());
         inProgressTarget.dispose();
@@ -1253,12 +1257,13 @@ public final class HintMeshRenderer {
 
     /** Whether the crop's target contains the incoming mesh: a drill going deeper (not a larger fresh
      *  grid after a click), so the crop keeps going toward it. */
-    private boolean targetContainsNewMesh(HintMeshWindow hintMeshWindow, HintMesh hintMesh, List<QWidget> containers) {
+    private boolean targetContainsNewMesh(HintMeshWindow hintMeshWindow, HintMesh hintMesh, List<QWidget> containers,
+                                          double qtScaleFactor) {
         if (containers.isEmpty() || hintMeshWindow.hints().isEmpty())
             return false;
         QRect target = containers.getLast().geometry();
         QRect paddedTarget = paddedRect(target);
-        QRect bounds = newMeshBounds(hintMeshWindow, hintMesh);
+        QRect bounds = newMeshBounds(hintMeshWindow, hintMesh, qtScaleFactor);
         boolean contains = paddedTarget.contains(bounds);
         target.dispose();
         paddedTarget.dispose();
@@ -1268,11 +1273,12 @@ public final class HintMeshRenderer {
 
     /** Whether the incoming mesh contains the target: going back out (a reversal), so the crop grows
      *  toward the new mesh instead of insta-finishing. */
-    private boolean newMeshContainsTarget(HintMeshWindow hintMeshWindow, HintMesh hintMesh, List<QWidget> containers) {
+    private boolean newMeshContainsTarget(HintMeshWindow hintMeshWindow, HintMesh hintMesh, List<QWidget> containers,
+                                          double qtScaleFactor) {
         if (containers.isEmpty() || hintMeshWindow.hints().isEmpty())
             return false;
         QRect target = containers.getLast().geometry();
-        QRect bounds = newMeshBounds(hintMeshWindow, hintMesh);
+        QRect bounds = newMeshBounds(hintMeshWindow, hintMesh, qtScaleFactor);
         QRect paddedBounds = paddedRect(bounds);
         boolean contains = paddedBounds.contains(target);
         target.dispose();
@@ -1282,7 +1288,7 @@ public final class HintMeshRenderer {
     }
 
     /** Bounding rectangle of the incoming mesh's selected (narrowed) cells, in window coordinates. */
-    private QRect newMeshBounds(HintMeshWindow hintMeshWindow, HintMesh hintMesh) {
+    private QRect newMeshBounds(HintMeshWindow hintMeshWindow, HintMesh hintMesh, double qtScaleFactor) {
         double left = Double.MAX_VALUE, top = Double.MAX_VALUE;
         double right = -Double.MAX_VALUE, bottom = -Double.MAX_VALUE;
         for (Hint hint : hintMeshWindow.hints()) {
@@ -1293,9 +1299,10 @@ public final class HintMeshRenderer {
             top = Math.min(top, hint.centerY() - hint.cellHeight() / 2.0);
             bottom = Math.max(bottom, hint.centerY() + hint.cellHeight() / 2.0);
         }
-        return new QRect((int) Math.round(left - hintMeshWindow.window.x()),
-                (int) Math.round(top - hintMeshWindow.window.y()),
-                (int) Math.round(right - left), (int) Math.round(bottom - top));
+        return new QRect((int) Math.round(left / qtScaleFactor - hintMeshWindow.window.x()),
+                (int) Math.round(top / qtScaleFactor - hintMeshWindow.window.y()),
+                (int) Math.round((right - left) / qtScaleFactor),
+                (int) Math.round((bottom - top) / qtScaleFactor));
     }
 
     private static boolean closeInSize(double a, double b) {
