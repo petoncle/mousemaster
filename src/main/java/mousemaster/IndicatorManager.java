@@ -124,7 +124,7 @@ public class IndicatorManager implements ModeListener {
                                        .positions()));
         Map<HintGridArea, Rectangle> newRectangleByArea = new HashMap<>();
         for (IndicatorLayerConfiguration layer : indicator.layerByName().values())
-            if (layer.enabled() && layer.area() != null)
+            if (layer.enabled() && layer.area().size().source() != null)
                 newRectangleByArea.put(layer.area(), hintManager.indicatorArea(layer.area()));
         Map<Point, HintRectangles> newHintRectanglesByPoint = new HashMap<>();
         for (IndicatorLayerConfiguration layer : indicator.layerByName().values()) {
@@ -154,7 +154,7 @@ public class IndicatorManager implements ModeListener {
             if (layer.enabled() && (layer.positions().stream().anyMatch(
                     position -> !Objects.equals(newPointsByPosition.get(position),
                             pointsByPosition.get(position))) ||
-                                    layer.area() != null &&
+                                    layer.area().size().source() != null &&
                                     !Objects.equals(newRectangleByArea.get(layer.area()),
                                             rectangleByArea.get(layer.area())) ||
                                     (layer.positionAnchor() != PositionAnchor.POINT ||

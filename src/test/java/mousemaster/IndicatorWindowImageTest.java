@@ -319,6 +319,18 @@ class IndicatorWindowImageTest {
     }
 
     @Test
+    void anAreaInsetMovesTheEdgesOfALayerOverAHint() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        WindowImage cells = renderOverHints("hint-cell-edge",
+                "idle-mode.indicator.area-left-inset=-1", "idle-mode.indicator.area-right-inset=-1",
+                "idle-mode.indicator.area-top-inset=-1", "idle-mode.indicator.area-bottom-inset=-1");
+        assertTrue(inked(cells, 448, 500));
+        assertFalse(inked(cells, 450, 500));
+        assertTrue(inked(cells, 551, 500));
+        assertFalse(inked(cells, 549, 500));
+    }
+
+    @Test
     void aLayerTakesTheColorOfTheGradientAtItsCenter() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         WindowImage outlines = renderOnATopAndABottomCell(
@@ -380,14 +392,16 @@ class IndicatorWindowImageTest {
         return image.argb()[(y - windowImage.y()) * image.width() + x - windowImage.x()];
     }
 
-    private static WindowImage renderOverHints(String positionAnchor) {
-        return render(indicator("idle-mode.save.position-history=+f1",
-                        "idle-mode.indicator.enabled=true",
-                        "idle-mode.indicator.shape=rectangle",
-                        "idle-mode.indicator.fill-opacity=0",
-                        "idle-mode.indicator.stroke-thickness=2",
-                        "idle-mode.indicator.position=position-history",
-                        "idle-mode.indicator.position-anchor=" + positionAnchor),
+    private static WindowImage renderOverHints(String positionAnchor, String... lines) {
+        List<String> allLines = new ArrayList<>(List.of("idle-mode.save.position-history=+f1",
+                "idle-mode.indicator.enabled=true",
+                "idle-mode.indicator.shape=rectangle",
+                "idle-mode.indicator.fill-opacity=0",
+                "idle-mode.indicator.stroke-thickness=2",
+                "idle-mode.indicator.position=position-history",
+                "idle-mode.indicator.position-anchor=" + positionAnchor));
+        allLines.addAll(List.of(lines));
+        return render(indicator(allLines.toArray(String[]::new)),
                 Map.of(new PositionHistoryIndicatorPosition("position-history"),
                         List.of(new Point(500, 500), new Point(500, 700), new Point(700, 700))),
                 boxes());

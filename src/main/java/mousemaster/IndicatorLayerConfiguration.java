@@ -89,7 +89,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             this.positionAnchor = layer.positionAnchor;
             this.endPosition = layer.endPosition;
             this.endPositionAnchor = layer.endPositionAnchor;
-            this.area = layer.area == null ? new HintGridAreaBuilder() : layer.area.builder();
+            this.area = layer.area.builder();
             this.followMouse = layer.followMouse;
         }
 
@@ -360,7 +360,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                     stroke.build(), shadow.build(),
                     text, fontName, fontSize, fontWeight, textStyleSheet, position,
                     positionAnchor, endPosition, endPositionAnchor,
-                    area.source() == null ? null : area.build(),
+                    area.build(),
                     followMouse && area.source() == null &&
                     !positions.contains(IndicatorPosition.PointIndicatorPosition.TARGET) &&
                     !positions.contains(

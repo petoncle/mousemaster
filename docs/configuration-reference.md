@@ -521,7 +521,7 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
   when the user saved it at the point of the last selected hint. `position-anchor` sets where a
   layer with an `end-position` starts, and `end-position-anchor` sets where it stops. Without an
   `end-position`, a hint anchor puts the layer over the hint box or the hint cell, as an `area`
-  does:
+  does, and the `area-*-inset` of the layer apply to it:
   - `point` (default): at the point. It does not use the hint.
   - `hint-box-edge`: at the edge of the hint box.
   - `hint-cell-edge`: at the edge of the hint cell.

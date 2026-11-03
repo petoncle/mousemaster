@@ -118,7 +118,7 @@ public record HintGridArea(HintGridAreaSize size, HintGridAreaCenter center) {
             HintGridAreaSize size = new HintGridAreaSize(source, widthPercent, heightPercent,
                     topInset, bottomInset, leftInset, rightInset);
             return new HintGridArea(size,
-                    center != null ? center : defaultCenter(source));
+                    center != null || source == null ? center : defaultCenter(source));
         }
 
         private static HintGridAreaCenter defaultCenter(HintGridAreaSizeSource source) {

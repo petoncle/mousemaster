@@ -352,7 +352,7 @@ public final class IndicatorRenderer {
             return aspectRatio;
         }
         // The box of an area or of two points is given, whatever the points of the shape.
-        if (layer.area() != null || layer.endPosition() != null)
+        if (layer.area().size().source() != null || layer.endPosition() != null)
             return layer.aspectRatio();
         return switch (layer.shape()) {
             case TRIANGLE, STAR, PATH -> {
@@ -501,17 +501,13 @@ public final class IndicatorRenderer {
         for (String layerName : enabledLayerNames(indicator)) {
             IndicatorLayerConfiguration layer = indicator.layerByName().get(layerName);
             LayerAnchor anchor = anchor(layerName, layer, mouseAnchor);
-            if (layer.area() != null) {
+            if (layer.area().size().source() != null) {
                 Rectangle area = anchor.rectangleByArea().get(layer.area());
-                HintGridAreaSize size = layer.area().size();
-                double screenScale = anchor.activeScreen().scale();
-                Point first = new Point(zoomedX(area.x(), zoom) + size.leftInset() * screenScale,
-                        zoomedY(area.y(), zoom) + size.topInset() * screenScale);
-                Point last = new Point(
-                        zoomedX(area.x() + area.width(), zoom) - size.rightInset() * screenScale,
-                        zoomedY(area.y() + area.height(), zoom) -
-                        size.bottomInset() * screenScale);
-                addLayerOverRectangle(positionedLayers, layer, first, last, anchor, scale);
+                addLayerOverRectangle(positionedLayers, layer,
+                        new Point(zoomedX(area.x(), zoom), zoomedY(area.y(), zoom)),
+                        new Point(zoomedX(area.x() + area.width(), zoom),
+                                zoomedY(area.y() + area.height(), zoom)),
+                        anchor, scale);
             }
             else if (layer.endPosition() == null) {
                 LayerSize layerSizeWithStroke = layerSizeWithStroke(layer, scale);
@@ -597,6 +593,12 @@ public final class IndicatorRenderer {
     private void addLayerOverRectangle(List<PositionedLayer> positionedLayers,
                                        IndicatorLayerConfiguration layer, Point first,
                                        Point last, LayerAnchor anchor, double scale) {
+        HintGridAreaSize size = layer.area().size();
+        double screenScale = anchor.activeScreen().scale();
+        first = new Point(first.x() + size.leftInset() * screenScale,
+                first.y() + size.topInset() * screenScale);
+        last = new Point(last.x() - size.rightInset() * screenScale,
+                last.y() - size.bottomInset() * screenScale);
         double deltaX = last.x() - first.x();
         double deltaY = last.y() - first.y();
         add(positionedLayers, layer.builder()
@@ -622,7 +624,8 @@ public final class IndicatorRenderer {
             topLeft = keptOnScreen(topLeft, layerSizeWithStroke(layer, scale), layer, scale,
                     anchor.activeScreen());
         // The stroke of an area goes on its edges, so the layer keeps its fraction of a pixel.
-        positionedLayers.add(new PositionedLayer(layer, layer.area() != null ? topLeft :
+        positionedLayers.add(new PositionedLayer(layer,
+                layer.area().size().source() != null ? topLeft :
                 new Point(Math.round(topLeft.x()), Math.round(topLeft.y()))));
     }
 
