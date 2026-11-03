@@ -25,6 +25,7 @@ public class PositionHistory {
      */
     private final Map<Point, Rectangle> hintCellByPosition = new HashMap<>();
     private int cycleIndex = 0;
+    private boolean cycleBetweenLastAndFirst;
 
     public PositionHistory(PositionHistoryKey key, int maxSize) {
         this.key = key;
@@ -60,6 +61,7 @@ public class PositionHistory {
         if (hintCell != null)
             hintCellByPosition.put(position, hintCell);
         cycleIndex = positions.size() - 1;
+        cycleBetweenLastAndFirst = false;
         logger.debug("Saved position (" + position.x() + ", " + position.y() + ") to " +
                      key);
     }
@@ -71,7 +73,7 @@ public class PositionHistory {
         hintCellByPosition.remove(position);
         idByPosition.replaceAll(
                 (otherPosition, otherId) -> otherId < id ? otherId : otherId - 1);
-        cycleIndex = positions.size() - 1;
+        cycleBetweenLastAndFirst = true;
     }
 
     public void clear() {
@@ -88,6 +90,9 @@ public class PositionHistory {
     public Point cycle(int offset, Point from) {
         if (positions.isEmpty())
             return null;
+        if (cycleBetweenLastAndFirst)
+            cycleIndex = offset > 0 ? -1 : positions.size();
+        cycleBetweenLastAndFirst = false;
         for (int positionIndex = 0; positionIndex < positions.size(); positionIndex++) {
             Point position = positions.get(positionIndex);
             if (Math.round(position.x()) == Math.round(from.x()) &&

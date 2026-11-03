@@ -322,6 +322,23 @@ public class PositionHistoryTest {
     }
 
     @Test
+    void afterAnUnsaveTheNextPositionIsTheFirstAndThePreviousOneTheLast() {
+        Point first = new Point(10, 10);
+        Point second = new Point(20, 20);
+        Point third = new Point(30, 30);
+        PositionHistory positionHistory = new PositionHistory(new PositionHistoryKey(
+                "position-history",
+                new PositionHistoryIsolationKey.NonePositionHistoryIsolationKey()), 10);
+        positionHistory.save(first, null);
+        positionHistory.save(second, null);
+        positionHistory.save(third, null);
+        positionHistory.unsave(third);
+        assertEquals(second, positionHistory.cycle(-1, third));
+        positionHistory.unsave(second);
+        assertEquals(first, positionHistory.cycle(1, second));
+    }
+
+    @Test
     void theFormerNamesOfThePositionHistoryCommandsStillWork() throws IOException {
         Configuration configuration = parse("""
                 idle-mode.position-history.save-position=+f1
