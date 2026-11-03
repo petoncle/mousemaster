@@ -124,15 +124,18 @@ class VirtualKeyVisibilityTest {
 
     @Test
     void virtualKeyDoesNotMatchACompletedComboAgain() {
-        // The completed +a stays buffered, so a later event must not re-run its commands.
+        // The completed +a stays buffered, so a later event must not re-run its commands. In
+        // other-mode, +a gives another value, so the switch drops the one +a set.
         load("virtual-keys=flag",
-                "idle-mode.indicator.render-as-cursor=false | +a -> true");
+                "idle-mode.to.other-mode=+f1",
+                "idle-mode.indicator.render-as-cursor=false | +a -> true",
+                "other-mode.indicator.render-as-cursor=true | +a -> false");
         press("a");
         assertTrue(fired());
-        comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
-        assertFalse(fired());
+        comboWatcher.modeChanged(modeMap.get("other-mode"));
+        assertTrue(fired());
         pressVirtual("flag");
-        assertFalse(fired(), "the buffered +a must not be matched again");
+        assertTrue(fired(), "the buffered +a must not be matched again");
     }
 
     @Test
@@ -140,13 +143,15 @@ class VirtualKeyVisibilityTest {
         // +flag +q names flag, so it reaches the preparation, and pressing flag alone does not
         // complete that branch.
         load("virtual-keys=flag",
-                "idle-mode.indicator.render-as-cursor=false | +a -> true | +flag +q -> true");
+                "idle-mode.to.other-mode=+f1",
+                "idle-mode.indicator.render-as-cursor=false | +a -> true | +flag +q -> true",
+                "other-mode.indicator.render-as-cursor=true | +a -> false | +flag +q -> false");
         press("a");
         assertTrue(fired());
-        comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
-        assertFalse(fired());
+        comboWatcher.modeChanged(modeMap.get("other-mode"));
+        assertTrue(fired());
         pressVirtual("flag");
-        assertFalse(fired(), "the buffered +a must not be matched again");
+        assertTrue(fired(), "the buffered +a must not be matched again");
     }
 
     @Test

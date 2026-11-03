@@ -260,6 +260,11 @@ hint-mode.zoom.percent=1 | _{iszoom} -> 30
 
 A virtual key starts in its declared state, and reloading the configuration returns every one to it.
 
+A combo with a key sequence, like `+move -> ...`, sets a value that stays until another combo of
+the property sets one. A mode switch keeps the value when the new mode gives the property the
+same value on the same combo, as a mode that extends the same parent does. Any other switch
+gives the property its default value back.
+
 When mutating a hint font property, related properties are automatically updated. For example, mutating `font-color` also mutates `selected-font-color`, `focused-font-color`, `saved-font-color`, and the corresponding prefix variants (unless they were explicitly set in the configuration).
 
 ### Mouse properties

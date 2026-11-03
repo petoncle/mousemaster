@@ -1737,8 +1737,9 @@ public class ComboWatcher {
         App activeApp = activeAppFinder.activeApp();
         entryCombosPending = true;
         baseMode = newMode;
-        mutatedMode = newMode;
-        activeMutations.clear();
+        activeMutations.entrySet().removeIf(entry -> !mutates(newMode, entry.getKey(),
+                entry.getValue()));
+        rebuildMutatedMode();
         currentModePressedPreconditionKeys =
                 pressedPreconditionKeysByModeName.getOrDefault(newMode.name(), Set.of());
         currentModeSequenceKeys = sequenceKeysByModeName.getOrDefault(newMode.name(), Set.of());
@@ -1979,7 +1980,7 @@ public class ComboWatcher {
             }
         }
         // The mutated mode is a function of the base mode and the active mutations,
-        // and the base mode only changes through modeChanged, which clears them.
+        // and the base mode only changes through modeChanged, which rebuilds it.
         if (!activeMutationsChanged)
             return false;
         Mode previousMutatedMode = mutatedMode;
@@ -1988,6 +1989,15 @@ public class ComboWatcher {
         if (notified)
             notifyMutatedMode();
         return notified;
+    }
+
+    private static boolean mutates(Mode mode, ModePropertyPath propertyPath,
+                                   ActiveModeMutation mutation) {
+        List<Command> commands = mode.comboMap().commandsByCombo().get(mutation.combo());
+        return commands != null && commands.stream().anyMatch(
+                command -> command instanceof Command.MutateMode mutateMode &&
+                           mutateMode.propertyPath().equals(propertyPath) &&
+                           mutateMode.newPropertyValue().equals(mutation.newPropertyValue()));
     }
 
     private boolean isMutationComboPreconditionSatisfied(Combo combo, App activeApp) {
