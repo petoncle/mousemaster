@@ -281,7 +281,7 @@ public class ComboWatcher {
     public void updateBuiltInVirtualKeys(MouseState mouseState,
                                          KeyboardState keyboardState,
                                          AnimationPlayer animationPlayer) {
-        mutatedModeNotificationSuspended = true;
+        suspendMutatedModeNotification();
         setVirtualKeyPressed(BuiltInVirtualKey.IS_IDLING, mouseState.idling());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_MOVING, mouseState.moving());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_WHEELING, mouseState.wheeling());
@@ -309,6 +309,14 @@ public class ComboWatcher {
             preconditionOnlyMutationRefreshPending = false;
             refreshPreconditionOnlyMutations();
         }
+        resumeMutatedModeNotification();
+    }
+
+    void suspendMutatedModeNotification() {
+        mutatedModeNotificationSuspended = true;
+    }
+
+    void resumeMutatedModeNotification() {
         mutatedModeNotificationSuspended = false;
         if (mutatedModeNotificationPending) {
             mutatedModeNotificationPending = false;

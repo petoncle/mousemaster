@@ -255,9 +255,11 @@ public class MacroPlayer {
 
     public void update(double delta) {
         // A played move can complete a combo, which can submit a macro.
+        comboWatcher.suspendMutatedModeNotification();
         for (MacroInProgress inProgress : List.copyOf(virtualKeyMacrosInProgress))
             if (!advance(inProgress, delta, true))
                 virtualKeyMacrosInProgress.remove(inProgress);
+        comboWatcher.resumeMutatedModeNotification();
         if (macroInProgress == null && !macrosToExecute.isEmpty()) {
             macroInProgress = new MacroInProgress(macrosToExecute.removeFirst());
             ResolvedMacroParallel firstParallel = macroInProgress.macro.output().parallels().getFirst();

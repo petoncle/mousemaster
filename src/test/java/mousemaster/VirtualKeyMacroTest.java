@@ -4,6 +4,7 @@ import mousemaster.platform.ActiveAppFinder;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,27 @@ class VirtualKeyMacroTest {
 
     private double size() {
         return comboWatcher.getMutatedMode().indicator().layerByName().get("indicator").size();
+    }
+
+    @Test
+    void theMovesPlayedInOneUpdateNotifyTheListenersOnce() {
+        load("virtual-keys=flag other",
+                "idle-mode.macro.x=+a -> ~other #flag",
+                "idle-mode.indicator.fill-color=#FF0000 | -other -> #0000FF | +flag -> #00FF00");
+        List<Color> notifiedColors = new ArrayList<>();
+        comboWatcher.setModeListeners(List.of(new ModeListener() {
+            @Override
+            public void modeChanged(Mode newMode) {
+                notifiedColors.add(newMode.indicator().layerByName().get("indicator").fillColor());
+            }
+
+            @Override
+            public void modeTimedOut() {
+            }
+        }));
+        submit("x");
+        macroPlayer.update(0.01);
+        assertEquals(List.of(Color.parse("#00FF00")), notifiedColors);
     }
 
     @Test
