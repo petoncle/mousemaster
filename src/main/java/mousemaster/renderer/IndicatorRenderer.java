@@ -40,7 +40,6 @@ public final class IndicatorRenderer {
     private IndicatorConfiguration currentIndicator;
     private List<PositionedLayer> currentLayers;
     private Rectangle gradientArea;
-    private Point gradientPoint;
     private double pointsPerPixel;
     private final Map<String, LayerAnchor> anchorByLayerName;
     private final Map<TextKey, QPainterPath> outlineByText = new HashMap<>();
@@ -160,19 +159,18 @@ public final class IndicatorRenderer {
                 indicator.excludeFromCapture(), layerByName);
     }
 
-    private void setGradientSampling(Rectangle mouseRectangle, Point cursorVisualCenter,
-                                     Screen activeScreen) {
-        gradientArea = activeScreen.rectangle();
-        gradientPoint = new Point(mouseRectangle.x() + cursorVisualCenter.x(),
-                mouseRectangle.y() + cursorVisualCenter.y());
-    }
-
-    private String hex(Color color, String lastSelectedHintBoxHexColor) {
+    private String hex(Color color, String lastSelectedHintBoxHexColor, Point gradientPoint) {
         return sweep(color) == null && color instanceof GradientColor gradientColor &&
                gradientColor.gradient() ?
                 Color.hexColor(gradientColor.rgbAt(gradientArea, gradientPoint.x(),
                         gradientPoint.y())) :
                 color.hexColor(lastSelectedHintBoxHexColor);
+    }
+
+    private Point gradientPoint(PositionedLayer positionedLayer, double scale) {
+        LayerSize layerSizeWithStroke = layerSizeWithStroke(positionedLayer.layer(), scale);
+        return new Point(positionedLayer.topLeft().x() + layerSizeWithStroke.width() / 2.0,
+                positionedLayer.topLeft().y() + layerSizeWithStroke.height() / 2.0);
     }
 
     /** The sweep is cached per extent, and a screen wide ramp shifted by less than this is
@@ -221,11 +219,9 @@ public final class IndicatorRenderer {
     }
 
     /** The layers are placed in the image, so that the image holds while they move together,
-     *  or on the screen when a color is swept across it. The cursor matters only to a color
-     *  sampled at it. */
+     *  or on the screen when a color depends on where they are. */
     private record WindowImageKey(List<PositionedLayer> layers, double scale,
-                                  String lastSelectedHintBoxHexColor, Rectangle gradientArea,
-                                  Point gradientPoint) {
+                                  String lastSelectedHintBoxHexColor, Rectangle gradientArea) {
     }
 
     private static TextKey textKey(IndicatorLayerConfiguration layer, double scale) {
@@ -357,7 +353,7 @@ public final class IndicatorRenderer {
                              Map<Point, HintRectangles> hintRectanglesByPoint,
                              Rectangle mouseRectangle, Point cursorVisualCenter,
                              Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
-        setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
+        gradientArea = activeScreen.rectangle();
         anchor(layerNamesToAnchor, pointsByPosition, rectangleByArea, hintRectanglesByPoint,
                 mouseRectangle, cursorVisualCenter, activeScreen);
         if (showing && indicator.equals(currentIndicator) && layerNamesToAnchor.isEmpty())
@@ -372,10 +368,10 @@ public final class IndicatorRenderer {
                            Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
         List<PositionedLayer> previousLayers = currentLayers;
         Rectangle previousGradientArea = gradientArea;
-        setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
+        gradientArea = activeScreen.rectangle();
         reposition(currentIndicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
-        if (anyColor(currentIndicator, IndicatorRenderer::sampledAtTheCursor) ||
-            anyColor(currentIndicator, IndicatorRenderer::sweptAcrossTheScreen) &&
+        if ((anyColor(currentIndicator, IndicatorRenderer::sampled) ||
+             anyColor(currentIndicator, IndicatorRenderer::sweptAcrossTheScreen)) &&
             (!currentLayers.equals(previousLayers) ||
              !gradientArea.equals(previousGradientArea)))
             showIndicator(currentIndicator, activeScreen.scale(), lastSelectedHintBoxHexColor);
@@ -745,7 +741,7 @@ public final class IndicatorRenderer {
                                          Rectangle mouseRectangle, Point cursorVisualCenter,
                                          Screen activeScreen, Zoom zoom,
                                          String lastSelectedHintBoxHexColor) {
-        setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
+        gradientArea = activeScreen.rectangle();
         anchor(layerNamesToAnchor, pointsByPosition, rectangleByArea, hintRectanglesByPoint,
                 mouseRectangle, cursorVisualCenter, activeScreen);
         double screenScale = activeScreen.scale();
@@ -763,10 +759,9 @@ public final class IndicatorRenderer {
                     new Point(positionedLayer.topLeft().x() - x,
                             positionedLayer.topLeft().y() - y)));
         WindowImageKey key = new WindowImageKey(
-                anyColor(indicator, IndicatorRenderer::sweptAcrossTheScreen) ?
-                        positionedLayers : imageLayers,
-                screenScale, lastSelectedHintBoxHexColor, gradientArea,
-                anyColor(indicator, IndicatorRenderer::sampledAtTheCursor) ? gradientPoint : null);
+                anyColor(indicator, IndicatorRenderer::sweptAcrossTheScreen) ||
+                anyColor(indicator, IndicatorRenderer::sampled) ? positionedLayers : imageLayers,
+                screenScale, lastSelectedHintBoxHexColor, gradientArea);
         if (key.equals(windowImageKey))
             return new WindowImage(windowImage, x, y);
         int width = layersRectangle.width() + 2 * shadowPadding;
@@ -786,7 +781,7 @@ public final class IndicatorRenderer {
 
     public static boolean looksTheSameAnywhere(IndicatorConfiguration indicator) {
         return !anyColor(indicator, IndicatorRenderer::sweptAcrossTheScreen) &&
-               !anyColor(indicator, IndicatorRenderer::sampledAtTheCursor);
+               !anyColor(indicator, IndicatorRenderer::sampled);
     }
 
     private static boolean anyColor(IndicatorConfiguration indicator,
@@ -798,14 +793,14 @@ public final class IndicatorRenderer {
         return false;
     }
 
-    /** A gradient is sampled at the cursor, or swept across the screen, unless it is swept
-     *  across the element itself. */
+    /** A gradient is sampled where the layer is, or swept across the screen, unless it is
+     *  swept across the element itself. */
     private static boolean sweptAcrossTheScreen(Color color) {
         GradientColor sweep = sweep(color);
         return sweep != null && sweep.area() != GradientArea.ELEMENT;
     }
 
-    private static boolean sampledAtTheCursor(Color color) {
+    private static boolean sampled(Color color) {
         return sweep(color) == null && color instanceof GradientColor gradientColor &&
                gradientColor.gradient();
     }
@@ -816,10 +811,12 @@ public final class IndicatorRenderer {
                                          String lastSelectedHintBoxHexColor,
                                          Rectangle mouseRectangle, Point cursorVisualCenter,
                                          Screen activeScreen) {
-        setGradientSampling(mouseRectangle, cursorVisualCenter, activeScreen);
+        gradientArea = activeScreen.rectangle();
         List<IndicatorLayerConfiguration> enabledLayers = enabledLayers(indicator);
         // The image is centered on the cursor, so it reaches as far on every side as its
         // farthest layer does on one.
+        Point center = new Point(mouseRectangle.x() + cursorVisualCenter.x(),
+                mouseRectangle.y() + cursorVisualCenter.y());
         int layersSize = 0;
         for (IndicatorLayerConfiguration layer : enabledLayers)
             layersSize = Math.max(layersSize, Math.max(layerSizeWithStroke(layer, scale).width(),
@@ -831,13 +828,13 @@ public final class IndicatorRenderer {
             LayerSize layerSizeWithStroke = layerSizeWithStroke(layer, scale);
             Point offset = offset(layer, scale);
             positionedLayers.add(new PositionedLayer(layer, new Point(
-                    gradientPoint.x() - layerSizeWithStroke.width() / 2.0 + Math.round(offset.x()),
-                    gradientPoint.y() - layerSizeWithStroke.height() / 2.0 + Math.round(offset.y()))));
+                    center.x() - layerSizeWithStroke.width() / 2.0 + Math.round(offset.x()),
+                    center.y() - layerSizeWithStroke.height() / 2.0 + Math.round(offset.y()))));
         }
         int shadowPadding = shadowPadding(positionedLayers, scale);
         int imageSize = layersSize + 2 * shadowPadding;
-        Point layersTopLeft = new Point(gradientPoint.x() - layersSize / 2.0,
-                gradientPoint.y() - layersSize / 2.0);
+        Point layersTopLeft = new Point(center.x() - layersSize / 2.0,
+                center.y() - layersSize / 2.0);
         window();
         window.resize(imageSize, imageSize);
         placeLayers(positionedLayers, layersTopLeft, layersSize, layersSize,
@@ -893,21 +890,24 @@ public final class IndicatorRenderer {
         for (int i = 0; i < widgets.size(); i++) {
             if (i < currentLayers.size())
                 applyLayer(currentLayers.get(i).layer(), widgets.get(i),
-                        currentLayers.get(i).topLeft(), lastSelectedHintBoxHexColor);
+                        currentLayers.get(i).topLeft(),
+                        gradientPoint(currentLayers.get(i), shadowScale),
+                        lastSelectedHintBoxHexColor);
             else
                 widgets.get(i).hide();
         }
     }
 
     private void applyLayer(IndicatorLayerConfiguration layer, IndicatorLayerWidget widget,
-                            Point topLeft, String lastSelectedHintBoxHexColor) {
+                            Point topLeft, Point gradientPoint,
+                            String lastSelectedHintBoxHexColor) {
         widget.setSweepArea(sweepArea(topLeft));
         widget.setLayer(layer);
-        widget.setFill(QtColorUtil.qColor(hex(layer.fillColor(), lastSelectedHintBoxHexColor), layer.fillOpacity()),
+        widget.setFill(QtColorUtil.qColor(hex(layer.fillColor(), lastSelectedHintBoxHexColor, gradientPoint), layer.fillOpacity()),
                 sweep(layer.fillColor()));
         IndicatorStroke stroke = layer.stroke();
         widget.setStroke(
-                QtColorUtil.qColor(hex(stroke.color(), lastSelectedHintBoxHexColor), stroke.opacity()),
+                QtColorUtil.qColor(hex(stroke.color(), lastSelectedHintBoxHexColor, gradientPoint), stroke.opacity()),
                 sweep(stroke.color()));
         widget.show();
     }
@@ -950,26 +950,34 @@ public final class IndicatorRenderer {
             shadowCast.color().dispose();
         shadowCasts.clear();
         shadowScale = scale;
-        Map<Shadow, List<IndicatorLayerWidget>> widgetsByShadow = new LinkedHashMap<>();
+        Map<Shadow, Map<String, List<IndicatorLayerWidget>>> widgetsByHexColorByShadow =
+                new LinkedHashMap<>();
         for (int i = 0; i < currentLayers.size(); i++) {
             Shadow shadow = currentLayers.get(i).layer().shadow();
             if (shadow.opacity() > 0 && shadow.blurRadius() > 0)
-                widgetsByShadow.computeIfAbsent(shadow, shadow_ -> new ArrayList<>())
-                               .add(widgets.get(i));
+                widgetsByHexColorByShadow
+                        .computeIfAbsent(shadow, shadow_ -> new LinkedHashMap<>())
+                        .computeIfAbsent(hex(shadow.color(), lastSelectedHintBoxHexColor,
+                                        gradientPoint(currentLayers.get(i), scale)),
+                                hexColor -> new ArrayList<>())
+                        .add(widgets.get(i));
         }
-        if (!widgetsByShadow.isEmpty()) {
+        if (!widgetsByHexColorByShadow.isEmpty()) {
             double left = 0, right = 0, top = 0, bottom = 0;
-            for (Map.Entry<Shadow, List<IndicatorLayerWidget>> entry : widgetsByShadow.entrySet()) {
+            for (Map.Entry<Shadow, Map<String, List<IndicatorLayerWidget>>> entry :
+                    widgetsByHexColorByShadow.entrySet()) {
                 Shadow shadow = entry.getKey();
-                QColor baseColor =
-                        QtColorUtil.qColor(hex(shadow.color(), lastSelectedHintBoxHexColor), 1.0);
-                QColor shadowColor = new QColor(baseColor.red(), baseColor.green(),
-                        baseColor.blue(), (int) Math.round(shadow.opacity() * 255));
-                baseColor.dispose();
                 GradientColor shadowSweep = sweep(shadow.color());
-                shadowCasts.add(new ShadowCast(shadow, entry.getValue(), shadowColor,
-                        shadowSweep == null ? null :
-                                brush(shadowColor, shadowSweep, sweepArea(layersTopLeft()))));
+                for (Map.Entry<String, List<IndicatorLayerWidget>> hexColorEntry :
+                        entry.getValue().entrySet()) {
+                    QColor baseColor = QtColorUtil.qColor(hexColorEntry.getKey(), 1.0);
+                    QColor shadowColor = new QColor(baseColor.red(), baseColor.green(),
+                            baseColor.blue(), (int) Math.round(shadow.opacity() * 255));
+                    baseColor.dispose();
+                    shadowCasts.add(new ShadowCast(shadow, hexColorEntry.getValue(), shadowColor,
+                            shadowSweep == null ? null :
+                                    brush(shadowColor, shadowSweep, sweepArea(layersTopLeft()))));
+                }
                 double radius = shadow.blurRadius() * scale;
                 left = Math.max(left, radius - shadow.horizontalOffset() * scale);
                 right = Math.max(right, radius + shadow.horizontalOffset() * scale);

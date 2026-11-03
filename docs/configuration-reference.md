@@ -327,8 +327,9 @@ Every layer starts from the same defaults (a disabled 26-pixel red circle), not 
 
 Any color property takes a hex color (`#FFFFFF`), a gradient (see [hint appearance](#hint-appearance)),
 or `last-selected-hint-box-color`, the color at the center of the box of the hint selected last,
-which is black until one has been selected. It plays a click in the color of the hint that was
-clicked:
+which is black until one has been selected. A gradient that is not `per-pixel` gives a layer the
+color at its center, so a layer drawn on each saved position takes the color of its place.
+`last-selected-hint-box-color` plays a click in the color of the hint that was clicked:
 
 ```properties
 _hint-indicator-mode.indicator.fill-color=last-selected-hint-box-color

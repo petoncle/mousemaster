@@ -8,6 +8,7 @@ import mousemaster.renderer.IndicatorRenderer.WindowImage;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -315,6 +316,68 @@ class IndicatorWindowImageTest {
         assertTrue(inked(boxes, 680, 700));
         assertFalse(inked(boxes, 450, 500));
         assertFalse(inked(boxes, 500, 500));
+    }
+
+    @Test
+    void aLayerTakesTheColorOfTheGradientAtItsCenter() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        WindowImage outlines = renderOnATopAndABottomCell(
+                "idle-mode.indicator.fill-opacity=0",
+                "idle-mode.indicator.stroke-thickness=4",
+                "idle-mode.indicator.stroke-color=across-screen top-to-bottom #FF0000 #0000FF");
+        int top = argbAt(outlines, 450, 100);
+        int bottom = argbAt(outlines, 450, 900);
+        assertEquals(top, argbAt(outlines, 500, 50));
+        assertEquals(top, argbAt(outlines, 500, 150));
+        assertEquals(bottom, argbAt(outlines, 500, 850));
+        assertTrue((top >> 16 & 0xFF) > (top & 0xFF), Integer.toHexString(top));
+        assertTrue((bottom & 0xFF) > (bottom >> 16 & 0xFF), Integer.toHexString(bottom));
+    }
+
+    @Test
+    void aLayerCastsAShadowInTheColorOfTheGradientAtItsCenter() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        WindowImage boxes = renderOnATopAndABottomCell(
+                "idle-mode.indicator.fill-opacity=1",
+                "idle-mode.indicator.shadow-color=across-screen top-to-bottom #FF0000 #0000FF",
+                "idle-mode.indicator.shadow-opacity=1",
+                "idle-mode.indicator.shadow-blur-radius=2",
+                "idle-mode.indicator.shadow-horizontal-offset=20");
+        int top = argbAt(boxes, 560, 100);
+        int bottom = argbAt(boxes, 560, 900);
+        assertTrue((top >> 16 & 0xFF) > (top & 0xFF), Integer.toHexString(top));
+        assertTrue((bottom & 0xFF) > (bottom >> 16 & 0xFF), Integer.toHexString(bottom));
+    }
+
+    @Test
+    void aLayerThatFollowsTheMouseTakesTheColorOfTheGradientAtItsCenterNotAtTheCursor() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        WindowImage box = render(new IndicatorRenderer(), indicator(
+                "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=rectangle",
+                "idle-mode.indicator.size=40", "idle-mode.indicator.fill-opacity=1",
+                "idle-mode.indicator.fill-color=across-screen top-to-bottom #FF0000 #0000FF",
+                "idle-mode.indicator.y=-450"), Set.of("indicator"), 500);
+        int center = argbAt(box, 504, 54);
+        assertTrue((center >> 16 & 0xFF) > (center & 0xFF), Integer.toHexString(center));
+    }
+
+    private static WindowImage renderOnATopAndABottomCell(String... lines) {
+        List<String> allLines = new ArrayList<>(List.of("idle-mode.save.position-history=+f1",
+                "idle-mode.indicator.enabled=true",
+                "idle-mode.indicator.shape=rectangle",
+                "idle-mode.indicator.position=position-history",
+                "idle-mode.indicator.position-anchor=hint-cell-edge"));
+        allLines.addAll(List.of(lines));
+        return render(indicator(allLines.toArray(String[]::new)),
+                Map.of(new PositionHistoryIndicatorPosition("position-history"),
+                        List.of(new Point(500, 100), new Point(500, 900))),
+                Map.of(new Point(500, 100), new HintRectangles(new Rectangle(450, 50, 100, 100), null),
+                        new Point(500, 900), new HintRectangles(new Rectangle(450, 850, 100, 100), null)));
+    }
+
+    private static int argbAt(WindowImage windowImage, int x, int y) {
+        IndicatorRenderer.IndicatorImage image = argb(windowImage);
+        return image.argb()[(y - windowImage.y()) * image.width() + x - windowImage.x()];
     }
 
     private static WindowImage renderOverHints(String positionAnchor) {
