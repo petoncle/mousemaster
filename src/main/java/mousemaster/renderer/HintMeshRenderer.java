@@ -651,7 +651,8 @@ public final class HintMeshRenderer {
         for (QVariantAnimation animation : hintMeshWindow.animations)
             animation.stop();
         List<QWidget> interruptedContainers = containers(window);
-        // A drill continues from the current extent toward a same-sized or contained target. A prefix
+        // A drill continues from the current extent toward a same-sized or contained target, or grows
+        // from the target out to a mesh around it while its crop still runs (a pick that keeps the grid). A prefix
         // select/deselect continues whenever the new mesh nests with the target either way (growing back
         // out or shrinking back in). A same-sized change (recolor, fresh grid) resolves instantly, unless
         // a crop is still animating — then it continues too, so a mid-crop recolor is not cut short.
@@ -660,7 +661,7 @@ public final class HintMeshRenderer {
         boolean targetContainsNew = targetContainsNewMesh(hintMeshWindow, hintMesh, interruptedContainers);
         boolean newContainsTarget = newMeshContainsTarget(hintMeshWindow, hintMesh, interruptedContainers);
         boolean continueFromCurrentExtent = partOfDrill
-                ? coversTarget || targetContainsNew
+                ? coversTarget || targetContainsNew || cropAnimating && newContainsTarget
                 : showingHintMesh && (newContainsTarget || targetContainsNew) && (!coversTarget || cropAnimating);
         resumedTransition = continueFromCurrentExtent;
         if (matchCropBefore && !continueFromCurrentExtent) {
@@ -679,7 +680,12 @@ public final class HintMeshRenderer {
             // Consolidate multiple old containers (a mid-drill interruption) into one at their union
             // visible extent, so the next transition has a single "old" to grow/shrink from. A lone
             // container is left as is, keeping its clip-capable pixmap.
-            if (interruptedContainers.size() >= 2) {
+            if (matchCropBefore && !coversTarget && !targetContainsNew)
+                for (QWidget container : interruptedContainers.subList(0, interruptedContainers.size() - 1)) {
+                    container.setParent(null);
+                    disposeWidget(container);
+                }
+            else if (interruptedContainers.size() >= 2) {
                 int mergedX = Integer.MAX_VALUE, mergedY = Integer.MAX_VALUE;
                 int mergedRight = Integer.MIN_VALUE, mergedBottom = Integer.MIN_VALUE;
                 for (QWidget container : interruptedContainers) {
