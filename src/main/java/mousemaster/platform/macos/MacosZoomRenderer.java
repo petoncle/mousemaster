@@ -202,7 +202,7 @@ public final class MacosZoomRenderer {
                     objectiveC.objc_getClass("CALayer"), alloc), init);
             objectiveC.objc_msgSend(objectiveC.objc_msgSend(view, layer), addSublayer,
                     contentLayer);
-            MacosWindow.applyOverlayProperties(widget, MacosWindow.belowOverlaysLevel);
+            MacosWindow.applyOverlayProperties(widget, MacosWindow.zoomWindowLevel);
         }
         objectiveC.objc_msgSend(contentLayer, setFrame,
                 new CoreGraphics.CGRect.ByValue(0, 0, screen.width(), screen.height()));

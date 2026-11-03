@@ -296,6 +296,7 @@ public class ConfigurationParser {
                       .horizontalOffset(0d).verticalOffset(0d).stackCount(1);
         }
         hintMesh.eatUnusedSelectionKeys(true);
+        hintMesh.z(0);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
                            .gridLayout(AnyScreenFilter.ANY_SCREEN_FILTER)
@@ -3157,6 +3158,7 @@ public class ConfigurationParser {
             case "target-follows-overlay-center" -> ModePropertyHandler.of(prefix.append("targetFollowsOverlayCenter"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.targetFollowsOverlayCenter(v));
             case "saved-hints" -> ModePropertyHandler.of(prefix.append("savedPositionHistory"), v -> positionHistoryName("overlay.saved-hints", v, positionHistoryNames), v -> hintMeshBuilder.savedPositionHistory(v));
             case "eat-unused-selection-keys" -> ModePropertyHandler.of(prefix.append("eatUnusedSelectionKeys"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.eatUnusedSelectionKeys(v));
+            case "z" -> ModePropertyHandler.of(prefix.append("z"), v -> Integer.parseInt(v), v -> hintMeshBuilder.z(v));
             case "type" -> ModePropertyHandler.of(prefix.append("type"), v -> {
                 HintMeshType.HintMeshTypeType typeType =
                         parseHintMeshTypeType("overlay.type", v, positionHistoryNames);
@@ -4481,6 +4483,8 @@ public class ConfigurationParser {
                     builder.savedPositionHistory(parent.savedPositionHistory());
                 if (builder.eatUnusedSelectionKeys() == null)
                     builder.eatUnusedSelectionKeys(parent.eatUnusedSelectionKeys());
+                if (builder.z() == null)
+                    builder.z(parent.z());
             }
 
         }

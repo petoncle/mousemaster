@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,11 +41,14 @@ public class MacosOverlay implements Overlay {
     private final List<MacosDesktopCapture> desktopCaptures = new ArrayList<>();
 
     private IndicatorRenderer followingIndicatorRenderer;
+    private final List<IndicatorRenderer> followingIndicatorRenderers = new ArrayList<>();
     private final List<IndicatorRenderer> anchoredIndicatorRenderers = new ArrayList<>();
-    private List<IndicatorConfiguration> anchoredIndicators = List.of();
     private final Map<IndicatorLayerCopyKey, IndicatorRenderer>
             anchoredIndicatorRendererByCopyKey = new LinkedHashMap<>();
     private List<IndicatorLayerCopyKey> copyKeys = List.of();
+    private List<IndicatorRenderer.WindowLayerGroup> currentWindowLayerGroups = List.of();
+    private List<IndicatorRenderer> orderedIndicatorRenderers = List.of();
+    private final Map<IndicatorRenderer, Long> levelByIndicatorRenderer = new HashMap<>();
     private boolean indicatorExcludedFromCapture;
     private boolean hintMeshExcludedFromCapture;
     private MacosZoomRenderer zoomRenderer;
@@ -116,14 +120,13 @@ public class MacosOverlay implements Overlay {
     }
 
     private void createIndicatorWindows() {
-        followingIndicatorRenderer = new IndicatorRenderer();
-        MacosWindow.applyOverlayProperties(followingIndicatorRenderer.window());
+        followingIndicatorRenderer = createIndicatorRenderer(new IndicatorRenderer());
+        followingIndicatorRenderers.add(followingIndicatorRenderer);
     }
 
     private List<IndicatorRenderer> indicatorRenderers() {
-        List<IndicatorRenderer> indicatorRenderers = new ArrayList<>();
-        if (followingIndicatorRenderer != null)
-            indicatorRenderers.add(followingIndicatorRenderer);
+        List<IndicatorRenderer> indicatorRenderers =
+                new ArrayList<>(followingIndicatorRenderers);
         indicatorRenderers.addAll(anchoredIndicatorRenderers);
         indicatorRenderers.addAll(anchoredIndicatorRendererByCopyKey.values());
         return indicatorRenderers;
@@ -131,15 +134,37 @@ public class MacosOverlay implements Overlay {
 
     private IndicatorRenderer anchoredIndicatorRenderer(IndicatorLayerCopyKey copyKey) {
         return anchoredIndicatorRendererByCopyKey.computeIfAbsent(copyKey,
-                copyKey_ -> createAnchoredIndicatorRenderer(new IndicatorRenderer()));
+                copyKey_ -> createIndicatorRenderer(new IndicatorRenderer()));
     }
 
-    private IndicatorRenderer createAnchoredIndicatorRenderer(
-            IndicatorRenderer indicatorRenderer) {
+    private IndicatorRenderer followingIndicatorRenderer(int index) {
+        while (followingIndicatorRenderers.size() <= index)
+            followingIndicatorRenderers.add(
+                    createIndicatorRenderer(new IndicatorRenderer(followingIndicatorRenderer)));
+        return followingIndicatorRenderers.get(index);
+    }
+
+    private IndicatorRenderer anchoredIndicatorRenderer(int index) {
+        while (anchoredIndicatorRenderers.size() <= index)
+            anchoredIndicatorRenderers.add(
+                    createIndicatorRenderer(new IndicatorRenderer(followingIndicatorRenderer)));
+        return anchoredIndicatorRenderers.get(index);
+    }
+
+    private IndicatorRenderer createIndicatorRenderer(IndicatorRenderer indicatorRenderer) {
         MacosWindow.applyOverlayProperties(indicatorRenderer.window(),
-                MacosWindow.aboveOverlaysLevel);
+                MacosWindow.aboveOverlayLevel);
+        levelByIndicatorRenderer.put(indicatorRenderer, MacosWindow.aboveOverlayLevel);
         MacosWindow.setExcludedFromCapture(indicatorRenderer.window(),
                 indicatorExcludedFromCapture);
+        return indicatorRenderer;
+    }
+
+    private IndicatorRenderer atLevel(IndicatorRenderer indicatorRenderer, long level) {
+        if (levelByIndicatorRenderer.get(indicatorRenderer) != level) {
+            MacosWindow.applyOverlayProperties(indicatorRenderer.window(), level);
+            levelByIndicatorRenderer.put(indicatorRenderer, level);
+        }
         return indicatorRenderer;
     }
 
@@ -170,7 +195,7 @@ public class MacosOverlay implements Overlay {
                              Map<IndicatorPosition, List<Point>> pointsByPosition,
                              Map<HintGridArea, Rectangle> rectangleByArea,
                              Map<Point, HintRectangles> hintRectanglesByPoint,
-                             boolean animating,
+                             int overlayZ, boolean animating,
                              boolean includeOriginalCursor) {
         if (followingIndicatorRenderer == null)
             createIndicatorWindows();
@@ -181,49 +206,55 @@ public class MacosOverlay implements Overlay {
                         indicatorExcludedFromCapture);
         }
         QPoint mousePosition = mouse.findMousePosition();
-        setIndicator(followingIndicatorRenderer,
-                IndicatorRenderer.followingMouse(indicator), Set.of(), Map.of(),
-                Map.of(), Map.of(), mousePosition);
         for (IndicatorLayerCopyKey copyKey : indicatorByCopyKey.keySet())
             if (!copyKeys.contains(copyKey))
                 anchoredIndicatorRenderer(copyKey).anchor(copyKey.layerName(),
                         followingIndicatorRenderer);
-        for (Map.Entry<IndicatorLayerCopyKey, IndicatorRenderer> entry :
-                anchoredIndicatorRendererByCopyKey.entrySet())
-            if (!indicatorByCopyKey.containsKey(entry.getKey()))
-                entry.getValue().hide();
-        for (Map.Entry<IndicatorLayerCopyKey, IndicatorConfiguration> entry :
-                indicatorByCopyKey.entrySet())
-            setIndicator(anchoredIndicatorRendererByCopyKey.get(entry.getKey()),
-                    entry.getValue(), Set.of(), Map.of(), Map.of(), Map.of(), mousePosition);
-        List<IndicatorConfiguration> anchoredIndicators =
-                IndicatorRenderer.anchoredLayers(indicator, this.anchoredIndicators,
-                        layerNamesToAnchor);
-        while (anchoredIndicatorRenderers.size() < anchoredIndicators.size())
-            anchoredIndicatorRenderers.add(createAnchoredIndicatorRenderer(
-                    new IndicatorRenderer(followingIndicatorRenderer)));
-        for (IndicatorRenderer indicatorRenderer :
-                anchoredIndicatorRenderers.subList(anchoredIndicators.size(),
-                        anchoredIndicatorRenderers.size()))
-            indicatorRenderer.hide();
-        for (int index = 0; index < anchoredIndicators.size(); index++)
-            setIndicator(anchoredIndicatorRenderers.get(index), anchoredIndicators.get(index),
-                    layerNamesToAnchor, pointsByPosition, rectangleByArea, hintRectanglesByPoint,
-                    mousePosition);
-        // The windows share a level: the one ordered front last is drawn on top. Ordering a
-        // hidden window front shows it.
-        if (!copyKeys.equals(List.copyOf(indicatorByCopyKey.keySet())) ||
-            anchoredIndicators.size() != this.anchoredIndicators.size()) {
-            for (IndicatorLayerCopyKey copyKey : indicatorByCopyKey.keySet())
-                if (anchoredIndicatorRendererByCopyKey.get(copyKey).showing())
-                    MacosWindow.orderFront(
-                            anchoredIndicatorRendererByCopyKey.get(copyKey).window());
-            for (IndicatorRenderer indicatorRenderer :
-                    anchoredIndicatorRenderers.subList(0, anchoredIndicators.size()))
-                MacosWindow.orderFront(indicatorRenderer.window());
+        List<IndicatorRenderer.WindowLayerGroup> windowLayerGroups =
+                IndicatorRenderer.windowLayerGroups(indicator, indicatorByCopyKey,
+                        currentWindowLayerGroups, layerNamesToAnchor, overlayZ);
+        List<IndicatorRenderer> showingIndicatorRenderers = indicatorRenderers().stream()
+                .filter(IndicatorRenderer::showing).toList();
+        List<IndicatorRenderer> orderedIndicatorRenderers = new ArrayList<>();
+        int followingIndex = 0;
+        int runIndex = 0;
+        for (IndicatorRenderer.WindowLayerGroup windowLayerGroup : windowLayerGroups) {
+            long level = windowLayerGroup.belowOverlay() ? MacosWindow.belowOverlayLevel :
+                    MacosWindow.aboveOverlayLevel;
+            for (IndicatorLayerCopyKey copyKey : windowLayerGroup.copyKeys()) {
+                IndicatorRenderer indicatorRenderer =
+                        anchoredIndicatorRendererByCopyKey.get(copyKey);
+                setIndicator(indicatorRenderer, indicatorByCopyKey.get(copyKey), Set.of(),
+                        Map.of(), Map.of(), Map.of(), mousePosition);
+                orderedIndicatorRenderers.add(atLevel(indicatorRenderer, level));
+            }
+            for (IndicatorConfiguration windowIndicator : windowLayerGroup.indicators()) {
+                IndicatorRenderer indicatorRenderer = windowLayerGroup.followMouse() ?
+                        followingIndicatorRenderer(followingIndex++) :
+                        anchoredIndicatorRenderer(runIndex++);
+                if (windowLayerGroup.followMouse())
+                    setIndicator(indicatorRenderer, windowIndicator, Set.of(), Map.of(),
+                            Map.of(), Map.of(), mousePosition);
+                else
+                    setIndicator(indicatorRenderer, windowIndicator, layerNamesToAnchor,
+                            pointsByPosition, rectangleByArea, hintRectanglesByPoint,
+                            mousePosition);
+                orderedIndicatorRenderers.add(atLevel(indicatorRenderer, level));
+            }
         }
+        for (IndicatorRenderer indicatorRenderer : indicatorRenderers())
+            if (!orderedIndicatorRenderers.contains(indicatorRenderer))
+                indicatorRenderer.hide();
+        // Within a level, the window ordered front last is drawn on top. Ordering a hidden
+        // window front shows it.
+        if (!orderedIndicatorRenderers.equals(this.orderedIndicatorRenderers) ||
+            !showingIndicatorRenderers.containsAll(orderedIndicatorRenderers))
+            for (IndicatorRenderer indicatorRenderer : orderedIndicatorRenderers)
+                if (indicatorRenderer.showing())
+                    MacosWindow.orderFront(indicatorRenderer.window());
         copyKeys = List.copyOf(indicatorByCopyKey.keySet());
-        this.anchoredIndicators = anchoredIndicators;
+        currentWindowLayerGroups = windowLayerGroups;
+        this.orderedIndicatorRenderers = orderedIndicatorRenderers;
     }
 
     @Override

@@ -354,7 +354,9 @@ normal-mode.indicator.fill-opacity=0 | _{isleftmousepressing ismoving} -> 1
 #### Layers
 
 - **`enabled`**: Whether the layer is drawn (default `false`).
-- **`z`**: The layer's order, higher on top (default `0`).
+- **`z`**: The layer's order, higher on top (default `0`). The overlay is in the same order, at
+  its `z`: a layer with a lower `z` is drawn behind it. At equal `z`, a layer is drawn above the
+  overlay, and a layer that does not follow the mouse above one that does.
 
 #### Shape
 
@@ -735,6 +737,10 @@ only.
 
 `overlay.exclude-from-capture=true` keeps the overlay out of screenshots and screen recordings while
 it stays on screen (default false), as `indicator.exclude-from-capture` does for the indicator.
+
+`overlay.z` is the place of the overlay in the order of the indicator layers (default `0`): a
+layer with a lower `z` is drawn behind the overlay, and one with the same or a higher `z` above
+it.
 
 The hint system in mousemaster displays labels on the screen that you can select with keystrokes to move the mouse to specific locations. This is similar to the hint systems in browser extensions like Vimium, but works system-wide.
 

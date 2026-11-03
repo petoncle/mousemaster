@@ -6469,7 +6469,8 @@
             "mousemaster.ScreenFilterMap",
             "java.lang.String",
             "java.lang.String",
-            "boolean"
+            "boolean",
+            "int"
           ]
         },
         {
@@ -6514,6 +6515,10 @@
         },
         {
           "name": "savedPositionHistory",
+          "parameterTypes": []
+        },
+        {
+          "name": "z",
           "parameterTypes": []
         }
       ]

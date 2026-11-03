@@ -159,6 +159,65 @@ public final class IndicatorRenderer {
                 indicator.excludeFromCapture(), layerByName);
     }
 
+    public record WindowLayerGroup(boolean belowOverlay, boolean followMouse,
+                                   List<IndicatorLayerCopyKey> copyKeys,
+                                   List<IndicatorConfiguration> indicators) {
+    }
+
+    private record OrderedLayer(String layerName, IndicatorLayerCopyKey copyKey, int z,
+                                boolean followMouse) {
+    }
+
+    public static List<WindowLayerGroup> windowLayerGroups(
+            IndicatorConfiguration indicator,
+            Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey,
+            List<WindowLayerGroup> currentWindowLayerGroups, Set<String> layerNamesToAnchor,
+            int overlayZ) {
+        List<OrderedLayer> layers = new ArrayList<>();
+        for (String layerName : enabledLayerNames(indicator)) {
+            IndicatorLayerConfiguration layer = indicator.layerByName().get(layerName);
+            layers.add(new OrderedLayer(layerName, null, layer.z(), layer.followMouse()));
+        }
+        for (Map.Entry<IndicatorLayerCopyKey, IndicatorConfiguration> entry :
+                indicatorByCopyKey.entrySet())
+            if (entry.getValue().enabled())
+                layers.add(new OrderedLayer(entry.getKey().layerName(), entry.getKey(),
+                        entry.getValue().layerByName().get(entry.getKey().layerName()).z(),
+                        false));
+        layers.sort(Comparator.comparingInt(OrderedLayer::z)
+                              .thenComparing(layer -> !layer.followMouse())
+                              .thenComparing(layer -> layer.copyKey() == null));
+        List<IndicatorConfiguration> currentIndicators = currentWindowLayerGroups.stream()
+                .flatMap(windowLayerGroup -> windowLayerGroup.indicators().stream())
+                .toList();
+        List<WindowLayerGroup> windowLayerGroups = new ArrayList<>();
+        int windowStart = 0;
+        for (int index = 1; index <= layers.size(); index++) {
+            if (index < layers.size() &&
+                (layers.get(index).z() < overlayZ) == (layers.get(windowStart).z() < overlayZ) &&
+                layers.get(index).followMouse() == layers.get(windowStart).followMouse() &&
+                (layers.get(index).copyKey() == null || layers.get(index - 1).copyKey() != null))
+                continue;
+            List<IndicatorLayerCopyKey> copyKeys = new ArrayList<>();
+            Map<String, IndicatorLayerConfiguration> layerByName = new LinkedHashMap<>();
+            for (OrderedLayer layer : layers.subList(windowStart, index)) {
+                if (layer.copyKey() != null)
+                    copyKeys.add(layer.copyKey());
+                else
+                    layerByName.put(layer.layerName(),
+                            indicator.layerByName().get(layer.layerName()));
+            }
+            IndicatorConfiguration windowIndicator = new IndicatorConfiguration(
+                    indicator.renderAsCursor(), indicator.excludeFromCapture(), layerByName);
+            boolean followMouse = layers.get(windowStart).followMouse();
+            windowLayerGroups.add(new WindowLayerGroup(layers.get(windowStart).z() < overlayZ,
+                    followMouse, copyKeys, followMouse ? List.of(windowIndicator) :
+                    anchoredLayers(windowIndicator, currentIndicators, layerNamesToAnchor)));
+            windowStart = index;
+        }
+        return windowLayerGroups;
+    }
+
     private String hex(Color color, String lastSelectedHintBoxHexColor, Point gradientPoint) {
         return sweep(color) == null && color instanceof GradientColor gradientColor &&
                gradientColor.gradient() ?

@@ -55,7 +55,8 @@ public class IndicatorManager implements ModeListener {
             indicatorByCopyKey.put(entry.getKey(), withTimelines(entry.getValue().indicator(),
                     entry.getValue().runningTimelineByPropertyPath()));
         overlay.setIndicator(drawnIndicator, indicatorByCopyKey, Set.copyOf(layerNamesToAnchor),
-                pointsByPosition, rectangleByArea, hintRectanglesByPoint, animating(),
+                pointsByPosition, rectangleByArea, hintRectanglesByPoint,
+                currentMode.hintMesh().z(), animating(),
                 !animationPlayer.animate(currentMode, "hideCursor").hideCursor().enabled());
         layerNamesToAnchor.clear();
     }

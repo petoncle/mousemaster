@@ -15,7 +15,8 @@ public record HintMeshConfiguration(boolean enabled,
                                     ScreenFilterMap<HintMeshStyle> styleByFilter,
                                     String modeAfterSelection,
                                     String savedPositionHistory,
-                                    boolean eatUnusedSelectionKeys) {
+                                    boolean eatUnusedSelectionKeys,
+                                    int z) {
 
     public static class HintMeshConfigurationBuilder {
         private Boolean enabled;
@@ -31,6 +32,7 @@ public record HintMeshConfiguration(boolean enabled,
         private String modeAfterSelection;
         private String savedPositionHistory;
         private Boolean eatUnusedSelectionKeys;
+        private Integer z;
 
         public HintMeshConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
@@ -90,6 +92,11 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
+        public HintMeshConfigurationBuilder z(int z) {
+            this.z = z;
+            return this;
+        }
+
         public HintMeshTypeBuilder type() {
             return type;
         }
@@ -130,6 +137,10 @@ public record HintMeshConfiguration(boolean enabled,
             return eatUnusedSelectionKeys;
         }
 
+        public Integer z() {
+            return z;
+        }
+
         public HintMeshConfiguration build() {
             return new HintMeshConfiguration(enabled, visible, excludeFromCapture,
                     mouseFollowsTarget, targetFollowsOverlayCenter,
@@ -138,7 +149,7 @@ public record HintMeshConfiguration(boolean enabled,
                     styleByFilter.build(HintMeshStyleBuilder::build),
                     modeAfterSelection,
                     savedPositionHistory,
-                    eatUnusedSelectionKeys);
+                    eatUnusedSelectionKeys, z);
         }
 
     }

@@ -38,8 +38,8 @@ public interface Overlay {
                       Set<String> layerNamesToAnchor,
                       Map<IndicatorPosition, List<Point>> pointsByPosition,
                       Map<HintGridArea, Rectangle> rectangleByArea,
-                      Map<Point, HintRectangles> hintRectanglesByPoint, boolean animating,
-                      boolean includeOriginalCursor);
+                      Map<Point, HintRectangles> hintRectanglesByPoint, int overlayZ,
+                      boolean animating, boolean includeOriginalCursor);
 
     /** The rectangle of the box drawn for the hint, in screen pixels, null when none is drawn. */
     Rectangle hintBoxRectangle(Hint hint);

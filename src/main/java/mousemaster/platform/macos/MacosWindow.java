@@ -34,8 +34,9 @@ public final class MacosWindow {
 
     private static final long accessoryPolicy = 1;
     private static final long screenSaverLevel = 1000;
-    public static final long belowOverlaysLevel = screenSaverLevel - 1;
-    public static final long aboveOverlaysLevel = screenSaverLevel + 1;
+    public static final long zoomWindowLevel = screenSaverLevel - 2;
+    public static final long belowOverlayLevel = screenSaverLevel - 1;
+    public static final long aboveOverlayLevel = screenSaverLevel + 1;
     private static final long canJoinAllSpaces = 1;
     private static final long stationary = 1 << 4;
     private static final long fullScreenAuxiliary = 1 << 8;
@@ -66,7 +67,7 @@ public final class MacosWindow {
     }
 
     /** The zoom goes below the overlays it magnifies the screen for, and the indicator layers
-     *  that do not follow the mouse above them. */
+     *  below the overlay or above it. */
     public static void applyOverlayProperties(QWidget widget, long level) {
         Pointer nsWindow = nsWindow(widget);
         if (nsWindow == null)
