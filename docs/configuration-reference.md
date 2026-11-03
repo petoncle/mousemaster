@@ -508,7 +508,9 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
 - **`position-anchor`** / **`end-position-anchor`**: Each position is a point on the screen. Some
   positions also have a hint: `last-selected-hint` always has one, and a saved position has one
   when the user saved it at the point of the last selected hint. `position-anchor` sets where a
-  layer with an `end-position` starts, and `end-position-anchor` sets where it stops:
+  layer with an `end-position` starts, and `end-position-anchor` sets where it stops. Without an
+  `end-position`, a hint anchor puts the layer over the hint box or the hint cell, as an `area`
+  does:
   - `point` (default): at the point. It does not use the hint.
   - `hint-box-edge`: at the edge of the hint box.
   - `hint-cell-edge`: at the edge of the hint cell.

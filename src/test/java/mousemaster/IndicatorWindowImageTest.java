@@ -303,6 +303,34 @@ class IndicatorWindowImageTest {
     }
 
     @Test
+    void anEdgeAnchorPutsALayerWithOnePositionOverTheCellOrTheBoxOfEachHint() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        WindowImage cells = renderOverHints("hint-cell-edge");
+        assertTrue(inked(cells, 450, 500));
+        assertTrue(inked(cells, 650, 700));
+        assertFalse(inked(cells, 500, 500));
+        assertFalse(inked(cells, 480, 500));
+        WindowImage boxes = renderOverHints("hint-box-edge");
+        assertTrue(inked(boxes, 480, 500));
+        assertTrue(inked(boxes, 680, 700));
+        assertFalse(inked(boxes, 450, 500));
+        assertFalse(inked(boxes, 500, 500));
+    }
+
+    private static WindowImage renderOverHints(String positionAnchor) {
+        return render(indicator("idle-mode.save.position-history=+f1",
+                        "idle-mode.indicator.enabled=true",
+                        "idle-mode.indicator.shape=rectangle",
+                        "idle-mode.indicator.fill-opacity=0",
+                        "idle-mode.indicator.stroke-thickness=2",
+                        "idle-mode.indicator.position=position-history",
+                        "idle-mode.indicator.position-anchor=" + positionAnchor),
+                Map.of(new PositionHistoryIndicatorPosition("position-history"),
+                        List.of(new Point(500, 500), new Point(500, 700), new Point(700, 700))),
+                boxes());
+    }
+
+    @Test
     void aRotationTurnsALayerWithAnEndPositionFromTheDirectionOfItsPositions() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         Rectangle lineInk = inkBox(render(indicator(

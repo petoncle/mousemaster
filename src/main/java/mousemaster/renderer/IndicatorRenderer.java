@@ -456,13 +456,7 @@ public final class IndicatorRenderer {
                         zoomedX(area.x() + area.width(), zoom) - size.rightInset() * screenScale,
                         zoomedY(area.y() + area.height(), zoom) -
                         size.bottomInset() * screenScale);
-                double deltaX = last.x() - first.x();
-                double deltaY = last.y() - first.y();
-                add(positionedLayers, layer.builder()
-                                           .size(Math.max(deltaX, deltaY) / scale)
-                                           .aspectRatio(deltaX / deltaY)
-                                           .build(),
-                        first, last, anchor, scale);
+                addLayerOverRectangle(positionedLayers, layer, first, last, anchor, scale);
             }
             else if (layer.endPosition() == null) {
                 LayerSize layerSizeWithStroke = layerSizeWithStroke(layer, scale);
@@ -472,11 +466,22 @@ public final class IndicatorRenderer {
                             layerTopLeft(anchor, zoom, layer.position(), layerSizeWithStroke),
                             anchor, scale);
                 else
-                    for (Point point : points)
-                        add(positionedLayers, layer, new Point(
-                                zoomedX(point.x(), zoom) - layerSizeWithStroke.width() / 2.0,
-                                zoomedY(point.y(), zoom) - layerSizeWithStroke.height() / 2.0),
-                                anchor, scale);
+                    for (Point point : points) {
+                        Rectangle rectangle =
+                                positionPoint(point, anchor, zoom, layer.positionAnchor())
+                                        .rectangle();
+                        if (rectangle == null)
+                            add(positionedLayers, layer, new Point(
+                                    zoomedX(point.x(), zoom) - layerSizeWithStroke.width() / 2.0,
+                                    zoomedY(point.y(), zoom) - layerSizeWithStroke.height() / 2.0),
+                                    anchor, scale);
+                        else
+                            addLayerOverRectangle(positionedLayers, layer,
+                                    new Point(rectangle.x(), rectangle.y()),
+                                    new Point(rectangle.x() + rectangle.width(),
+                                            rectangle.y() + rectangle.height()),
+                                    anchor, scale);
+                    }
             }
             else {
                 List<PositionPoint> points =
@@ -532,6 +537,18 @@ public final class IndicatorRenderer {
                 deltaY < 0 ? (rectangle.y() - from.point().y()) / deltaY :
                         Double.POSITIVE_INFINITY;
         return Math.min(exitX, exitY);
+    }
+
+    private void addLayerOverRectangle(List<PositionedLayer> positionedLayers,
+                                       IndicatorLayerConfiguration layer, Point first,
+                                       Point last, LayerAnchor anchor, double scale) {
+        double deltaX = last.x() - first.x();
+        double deltaY = last.y() - first.y();
+        add(positionedLayers, layer.builder()
+                                   .size(Math.max(deltaX, deltaY) / scale)
+                                   .aspectRatio(deltaX / deltaY)
+                                   .build(),
+                first, last, anchor, scale);
     }
 
     private void add(List<PositionedLayer> positionedLayers, IndicatorLayerConfiguration layer,
