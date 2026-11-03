@@ -668,8 +668,8 @@ public final class IndicatorRenderer {
 
     /**
      * Returns the layer top-left position for the given layer size.
-     * For CENTER, the layer is centered on the cursor's visual center.
-     * For corner positions, the layer is placed in that corner relative to the cursor,
+     * For MOUSE, the layer is centered on the cursor's visual center.
+     * For a mouse corner, the layer is placed in that corner relative to the cursor,
      * flipping to the opposite side when near the corresponding screen edge.
      */
     private Point layerTopLeft(LayerAnchor anchor, Zoom zoom, IndicatorPosition position,
@@ -679,6 +679,17 @@ public final class IndicatorRenderer {
         if (position == PointIndicatorPosition.SCREEN_CENTER)
             return new Point(screen.x() + (screen.width() - layerSizeWithStroke.width()) / 2.0,
                     screen.y() + (screen.height() - layerSizeWithStroke.height()) / 2.0);
+        boolean screenRight = position == PointIndicatorPosition.ACTIVE_SCREEN_TOP_RIGHT ||
+                              position == PointIndicatorPosition.ACTIVE_SCREEN_BOTTOM_RIGHT;
+        boolean screenBottom = position == PointIndicatorPosition.ACTIVE_SCREEN_BOTTOM_LEFT ||
+                               position == PointIndicatorPosition.ACTIVE_SCREEN_BOTTOM_RIGHT;
+        if (position == PointIndicatorPosition.ACTIVE_SCREEN_TOP_LEFT || screenRight ||
+            screenBottom)
+            return new Point(screenRight ?
+                    screen.x() + screen.width() - layerSizeWithStroke.width() : screen.x(),
+                    screenBottom ?
+                            screen.y() + screen.height() - layerSizeWithStroke.height() :
+                            screen.y());
         if (position == PointIndicatorPosition.MOUSE || position == PointIndicatorPosition.TARGET ||
             position == PointIndicatorPosition.LAST_SELECTED_HINT) {
             double centerX = mouseRectangle.x() + anchor.cursorVisualCenter().x();

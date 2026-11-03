@@ -11,6 +11,10 @@ public sealed interface IndicatorPosition {
         MOUSE_BOTTOM_LEFT,
         MOUSE_BOTTOM_RIGHT,
         SCREEN_CENTER,
+        ACTIVE_SCREEN_TOP_LEFT,
+        ACTIVE_SCREEN_TOP_RIGHT,
+        ACTIVE_SCREEN_BOTTOM_LEFT,
+        ACTIVE_SCREEN_BOTTOM_RIGHT,
         TARGET,
         LAST_SELECTED_HINT
     }
@@ -30,6 +34,10 @@ public sealed interface IndicatorPosition {
             case "mouse-bottom-left" -> PointIndicatorPosition.MOUSE_BOTTOM_LEFT;
             case "mouse-bottom-right" -> PointIndicatorPosition.MOUSE_BOTTOM_RIGHT;
             case "screen-center" -> PointIndicatorPosition.SCREEN_CENTER;
+            case "active-screen-top-left" -> PointIndicatorPosition.ACTIVE_SCREEN_TOP_LEFT;
+            case "active-screen-top-right" -> PointIndicatorPosition.ACTIVE_SCREEN_TOP_RIGHT;
+            case "active-screen-bottom-left" -> PointIndicatorPosition.ACTIVE_SCREEN_BOTTOM_LEFT;
+            case "active-screen-bottom-right" -> PointIndicatorPosition.ACTIVE_SCREEN_BOTTOM_RIGHT;
             case "target" -> PointIndicatorPosition.TARGET;
             case "last-selected-hint" -> PointIndicatorPosition.LAST_SELECTED_HINT;
             case "center" -> throw new IllegalArgumentException(
@@ -40,7 +48,7 @@ public sealed interface IndicatorPosition {
                             value);
             default -> throw new IllegalArgumentException(
                     "Invalid indicator position: " + value +
-                    ", must be 'mouse', 'mouse-top-left', 'mouse-top-right', 'mouse-bottom-left', 'mouse-bottom-right', 'screen-center', 'target', 'last-selected-hint' or a position history");
+                    ", must be 'mouse', 'mouse-top-left', 'mouse-top-right', 'mouse-bottom-left', 'mouse-bottom-right', 'screen-center', 'active-screen-top-left', 'active-screen-top-right', 'active-screen-bottom-left', 'active-screen-bottom-right', 'target', 'last-selected-hint' or a position history");
         };
     }
 }

@@ -544,6 +544,19 @@ class IndicatorWindowImageTest {
     }
 
     @Test
+    void aScreenCornerLayerIsInThatCornerOfTheScreenAndMovedAwayFromTheEdgesByItsOffset() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        Rectangle ink = inkBox(render(new IndicatorRenderer(), indicator(
+                "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=rectangle",
+                "idle-mode.indicator.size=40", "idle-mode.indicator.fill-opacity=1",
+                "idle-mode.indicator.position=active-screen-bottom-left",
+                "idle-mode.indicator.x=50", "idle-mode.indicator.y=-100"), Set.of("indicator"),
+                1500));
+        assertEquals(50, ink.x(), 1);
+        assertEquals(1080 - 100, ink.y() + ink.height(), 1);
+    }
+
+    @Test
     void aBorderRadiusRoundsTheCornersOfATriangle() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         int[] inkHeights = new int[2];
