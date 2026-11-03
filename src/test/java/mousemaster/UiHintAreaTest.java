@@ -41,7 +41,7 @@ public class UiHintAreaTest {
                                          .get("ui-hint-mode")
                                          .hintMesh()
                                          .type();
-        return ((HintMeshType.UiAccessibilityHintMesh) type).area();
+        return type.area();
     }
 
     /** Same default as a grid hint mesh: the area does not depend on the hint type. */
@@ -186,7 +186,7 @@ public class UiHintAreaTest {
                 hint-mode.hint.grid-area-center=mouse
                 """).modeMap().get("hint-mode").hintMesh().type();
         assertEquals(HintGridAreaCenter.MOUSE,
-                ((HintMeshType.GridHintMesh) type).area().center());
+                type.area().center());
     }
 
     /** The area is a component of the ui hint mesh, so it is mutated in place. */
@@ -222,9 +222,7 @@ public class UiHintAreaTest {
     }
 
     private static HintGridAreaSizeSource mutatedUiHintAreaSource(ComboWatcher comboWatcher) {
-        return ((HintMeshType.UiAccessibilityHintMesh) comboWatcher.getMutatedMode()
-                                                      .hintMesh()
-                                                      .type()).area().size().source();
+        return comboWatcher.getMutatedMode().hintMesh().type().area().size().source();
     }
 
     @Test
@@ -238,7 +236,7 @@ public class UiHintAreaTest {
         HintMeshType type =
                 configuration.modeMap().get("hint-mode").hintMesh().type();
         assertEquals(HintGridAreaSizeSource.ACTIVE_SCREEN,
-                ((HintMeshType.GridHintMesh) type).area().size().source());
+                type.area().size().source());
     }
 
     @SuppressWarnings("unchecked")

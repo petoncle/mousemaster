@@ -3,41 +3,41 @@ package mousemaster;
 import mousemaster.HintGridLayout.HintGridLayoutBuilder;
 import mousemaster.ScreenFilterMap.ScreenFilterMapBuilder;
 
-public sealed interface HintMeshType {
+import java.util.function.Function;
 
-    record GridHintMesh(HintGridArea area, ScreenFilterMap<HintGridLayout> gridLayoutByFilter) implements HintMeshType {
+public record HintMeshType(HintMeshTypeType type, HintGridArea area,
+                           ScreenFilterMap<HintGridLayout> gridLayoutByFilter,
+                           UiHintOrder order, int density, double minSize,
+                           String positionHistoryName) {
 
-        public HintGridLayout layout(ScreenFilter filter) {
-            HintGridLayout layout = gridLayoutByFilter.get(filter);
-            if (layout != null)
-                return layout;
-            return gridLayoutByFilter.get(
-                    ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER);
-        }
-
+    public HintGridLayout layout(ScreenFilter filter) {
+        HintGridLayout layout = gridLayoutByFilter.get(filter);
+        if (layout != null)
+            return layout;
+        return gridLayoutByFilter.get(
+                ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER);
     }
 
-    record PositionHistoryHintMesh(String positionHistoryName) implements HintMeshType {
-
-    }
-
-    /** The area selects the windows the UI elements are looked for in. */
-    record UiAccessibilityHintMesh(HintGridArea area, UiHintOrder order) implements HintMeshType {
-
-    }
-
-    /** The area the elements are looked for in, as for {@link UiAccessibilityHintMesh}. */
-    record UiVisionHintMesh(HintGridArea area, UiHintOrder order, int density, double minSize) implements HintMeshType {
-
-    }
-
-    enum HintMeshTypeType {
+    public enum HintMeshTypeType {
 
         GRID, POSITION_HISTORY, UI_ACCESSIBILITY, UI_VISION
 
     }
 
-    class HintMeshTypeBuilder {
+    public record TypeChange(HintMeshTypeType type, String positionHistoryName)
+            implements Function<HintMeshType, HintMeshType> {
+
+        @Override
+        public HintMeshType apply(HintMeshType hintMeshType) {
+            return new HintMeshType(type, hintMeshType.area, hintMeshType.gridLayoutByFilter,
+                    hintMeshType.order, hintMeshType.density, hintMeshType.minSize,
+                    positionHistoryName == null ? hintMeshType.positionHistoryName :
+                            positionHistoryName);
+        }
+
+    }
+
+    public static class HintMeshTypeBuilder {
 
         private HintMeshTypeType type;
         private HintGridArea.HintGridAreaBuilder
@@ -54,33 +54,14 @@ public sealed interface HintMeshType {
         }
 
         public HintMeshTypeBuilder(HintMeshType hintMeshType) {
-            switch (hintMeshType) {
-                case GridHintMesh gridHintMesh -> {
-                    this.type = HintMeshTypeType.GRID;
-                    this.area = gridHintMesh.area.builder();
-                    this.gridLayoutByFilter =
-                            gridHintMesh.gridLayoutByFilter.builder(HintGridLayout::builder);
-                }
-                case PositionHistoryHintMesh positionHistoryHintMesh -> {
-                    this.type = HintMeshTypeType.POSITION_HISTORY;
-                    this.positionHistoryName = positionHistoryHintMesh.positionHistoryName;
-                    this.gridLayoutByFilter = new ScreenFilterMapBuilder<>();
-                }
-                case UiAccessibilityHintMesh uiAccessibilityHintMesh -> {
-                    this.type = HintMeshTypeType.UI_ACCESSIBILITY;
-                    this.area = uiAccessibilityHintMesh.area.builder();
-                    this.uiOrder = uiAccessibilityHintMesh.order;
-                    this.gridLayoutByFilter = new ScreenFilterMapBuilder<>();
-                }
-                case UiVisionHintMesh uiVisionHintMesh -> {
-                    this.type = HintMeshTypeType.UI_VISION;
-                    this.area = uiVisionHintMesh.area.builder();
-                    this.uiOrder = uiVisionHintMesh.order;
-                    this.visionDensity = uiVisionHintMesh.density;
-                    this.visionMinSize = uiVisionHintMesh.minSize;
-                    this.gridLayoutByFilter = new ScreenFilterMapBuilder<>();
-                }
-            }
+            this.type = hintMeshType.type;
+            this.area = hintMeshType.area.builder();
+            this.gridLayoutByFilter =
+                    hintMeshType.gridLayoutByFilter.builder(HintGridLayout::builder);
+            this.uiOrder = hintMeshType.order;
+            this.visionDensity = hintMeshType.density;
+            this.visionMinSize = hintMeshType.minSize;
+            this.positionHistoryName = hintMeshType.positionHistoryName;
         }
 
         public HintMeshTypeType type() {
@@ -142,12 +123,9 @@ public sealed interface HintMeshType {
         }
 
         public HintMeshType build() {
-            return switch (type) {
-                case GRID -> new GridHintMesh(area.build(), gridLayoutByFilter.build(HintGridLayoutBuilder::build));
-                case POSITION_HISTORY -> new PositionHistoryHintMesh(positionHistoryName);
-                case UI_ACCESSIBILITY -> new UiAccessibilityHintMesh(area.build(), uiOrder);
-                case UI_VISION -> new UiVisionHintMesh(area.build(), uiOrder, visionDensity, visionMinSize);
-            };
+            return new HintMeshType(type, area.build(),
+                    gridLayoutByFilter.build(HintGridLayoutBuilder::build), uiOrder,
+                    visionDensity, visionMinSize, positionHistoryName);
         }
     }
 

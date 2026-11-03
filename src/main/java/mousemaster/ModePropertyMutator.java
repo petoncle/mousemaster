@@ -99,16 +99,8 @@ public class ModePropertyMutator {
             RecordComponent[] components = getComponents(record.getClass());
             Object[] args = new Object[components.length];
             for (int i = 0; i < components.length; i++) {
-                if (components[i].getName().equals(fieldName)) {
-                    // The same component name holds a different type in another variant of a sealed
-                    // type (GridHintMesh.area and UiAccessibilityHintMesh.area): that path is for the other variant.
-                    // Primitive components are skipped: the value is boxed, so isInstance is false.
-                    Class<?> componentType = components[i].getType();
-                    if (newValue != null && !componentType.isPrimitive() &&
-                        !componentType.isInstance(newValue))
-                        return record;
+                if (components[i].getName().equals(fieldName))
                     args[i] = newValue;
-                }
                 else
                     args[i] = components[i].getAccessor().invoke(record);
             }

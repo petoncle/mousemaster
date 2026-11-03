@@ -17,8 +17,8 @@ class DeprecatedGridTest {
     }
 
     private static HintGridLayout layout(HintMeshConfiguration hint) {
-        return ((HintMeshType.GridHintMesh) hint.type())
-                .layout(ScreenFilter.of(new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1)));
+        return hint.type().layout(
+                ScreenFilter.of(new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1)));
     }
 
     private static HintMeshStyle style(HintMeshConfiguration hint) {
@@ -34,7 +34,7 @@ class DeprecatedGridTest {
         assertFalse(hint.mouseFollowsTarget());
         assertFalse(hint.targetFollowsOverlayCenter());
         assertEquals(HintGridAreaSizeSource.ACTIVE_WINDOW,
-                ((HintMeshType.GridHintMesh) hint.type()).area().size().source());
+                hint.type().area().size().source());
         assertInstanceOf(HintCellSizing.FitToArea.class, layout(hint).cellSizing());
         assertEquals(2, layout(hint).maxRowCount());
         assertEquals(2, layout(hint).maxColumnCount());
@@ -66,10 +66,8 @@ class DeprecatedGridTest {
 
     @Test
     void aGridCenteredOnTheMouseIsAHintAreaCenteredOnTheMouse() {
-        assertEquals(HintGridAreaCenter.MOUSE, ((HintMeshType.GridHintMesh) hint("grid-mode",
-                "idle-mode.to.grid-mode=+g",
-                "grid-mode.grid.synchronization=grid-center-follows-mouse").type())
-                .area().center());
+        assertEquals(HintGridAreaCenter.MOUSE, hint("grid-mode", "idle-mode.to.grid-mode=+g",
+                "grid-mode.grid.synchronization=grid-center-follows-mouse").type().area().center());
     }
 
     @Test

@@ -39,7 +39,7 @@ public class UiHintOrderTest {
                                          .get("ui-hint-mode")
                                          .hintMesh()
                                          .type();
-        return ((HintMeshType.UiVisionHintMesh) type).order();
+        return type.order();
     }
 
     @Test
@@ -55,20 +55,6 @@ public class UiHintOrderTest {
                 parse(uiMode + "ui-hint-mode.hint.ui-order=bottom-to-top\n")));
         assertEquals(UiHintOrder.MOUSE, uiHintOrder(
                 parse(uiMode + "ui-hint-mode.hint.ui-order=mouse\n")));
-    }
-
-    @Test
-    void uiOrderDoesNotApplyToGridHints() {
-        IllegalArgumentException exception =
-                assertThrows(IllegalArgumentException.class, () -> parse("""
-                        idle-mode.to.hint-mode=+h
-                        hint-mode.to.idle-mode=+esc
-                        hint-mode.hint.selection-keys=a b c d
-                        hint-mode.hint.type=grid
-                        hint-mode.hint.ui-order=left-to-right
-                        """));
-        assertTrue(exception.getMessage().contains("overlay.ui-order"),
-                exception.getMessage());
     }
 
     @Test

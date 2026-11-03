@@ -747,6 +747,15 @@ The **`type`** property determines what hints are displayed:
 - `ui-accessibility`: Displays hints at interactive UI elements (see [Accessibility UI hints](#accessibility-ui-hints))
 - `ui-vision`: Displays hints at elements detected on screen (see [Vision UI hints](#vision-ui-hints))
 
+A mode keeps the settings of every type, so a branch on `type` shows the hints of that type with
+the settings the mode gives it:
+
+```properties
+ui-hint-mode.overlay.type=ui-vision | _{isgrid} -> grid
+ui-hint-mode.overlay.vision-density=6
+ui-hint-mode.overlay.grid-max-row-count=20
+```
+
 ### Accessibility UI hints
 
 Accessibility UI hints detect interactive elements (buttons, links, text fields, checkboxes,
@@ -811,8 +820,7 @@ few pixels apart horizontally, is one column labeled from top to bottom:
 ui-hint-mode.overlay.ui-order=left-to-right
 ```
 
-`ui-order` only applies to `overlay.type=ui-accessibility` and `overlay.type=ui-vision`, and setting it
-on another hint type is rejected.
+`ui-order` only applies to `overlay.type=ui-accessibility` and `overlay.type=ui-vision`.
 
 A scan that finds no element leaves the mode showing nothing. The built-in virtual key
 `isoverlayempty` is pressed then, so a combo can leave the mode:
@@ -844,8 +852,7 @@ ui-hint-mode.overlay.ui-element-box-horizontal-padding=2
 ui-hint-mode.overlay.ui-element-box-vertical-padding=2
 ```
 
-`ui-element-box-*` only applies to `overlay.type=ui-accessibility` and `overlay.type=ui-vision`, and
-setting it on another hint type is rejected.
+`ui-element-box-*` only applies to `overlay.type=ui-accessibility` and `overlay.type=ui-vision`.
 
 ### Vision UI hints
 
@@ -867,8 +874,7 @@ hook, so mousemaster stays responsive while a scan is in progress, and `isoverla
 pressed when a scan finds nothing, exactly as for accessibility UI hints.
 
 - **`vision-density`**: How hard the detection looks, 1 to 8 (default 6). A higher value gives
-  more hints, on smaller things. It only applies to `overlay.type=ui-vision`, and setting it on
-  another hint type is rejected.
+  more hints, on smaller things. It only applies to `overlay.type=ui-vision`.
   - 1 leaves **plain text** out: it hints only what the ink draws without a gap (an icon, a
     filled button, a checkbox, a picture) or what a border surrounds on every side (a field,
     an outlined button).
@@ -886,8 +892,7 @@ pressed when a scan finds nothing, exactly as for accessibility UI hints.
   gets no hint (default 0). It leaves out the bars, separators and underlines detected beside
   what they belong to, such as the bar a taskbar draws by the icon of an open app. It also
   leaves out what is detected only by a thin part of it: at 6, a checkbox found by one edge of
-  its outline or a three-dot button loses its hint. It only applies to `overlay.type=ui-vision`,
-  and setting it on another hint type is rejected.
+  its outline or a three-dot button loses its hint. It only applies to `overlay.type=ui-vision`.
 
   ```properties
   ui-hint-mode.overlay.vision-min-size=6

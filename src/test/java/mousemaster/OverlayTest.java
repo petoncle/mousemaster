@@ -2,7 +2,9 @@ package mousemaster;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -59,8 +61,8 @@ class OverlayTest {
                     "grid-mode.to.other-grid-mode=+o",
                     "grid-mode.overlay.grid-max-row-count=3",
                     reference);
-            assertEquals(3, ((HintMeshType.GridHintMesh) overlay.type())
-                    .layout(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER).maxRowCount(), reference);
+            assertEquals(3, overlay.type().layout(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER)
+                    .maxRowCount(), reference);
         }
     }
 
@@ -94,6 +96,47 @@ class OverlayTest {
                 ConfigurationParser.parse(List.of("idle-mode.to.grid-mode=+g",
                         "grid-mode.overlay.mouse-movement=mouse-follows-hint-grid-center | _{leftctrl} -> no-movement"),
                         KeyboardLayout.keyboardLayout("00000409", null)).modeMap().get("grid-mode"));
+    }
+
+    @Test
+    void aTypeBranchGivesTheOverlayTheSettingsOfItsType() {
+        HintMeshType grid = branchType("ui-vision", "grid");
+        assertEquals(HintMeshType.HintMeshTypeType.GRID, grid.type());
+        assertEquals(3, grid.layout(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER).maxRowCount());
+        HintMeshType ui = branchType("grid", "ui-accessibility");
+        assertEquals(HintMeshType.HintMeshTypeType.UI_ACCESSIBILITY, ui.type());
+        assertEquals(UiHintOrder.LEFT_TO_RIGHT, ui.order());
+        assertEquals(HintGridAreaSizeSource.ACTIVE_WINDOW, ui.area().size().source());
+    }
+
+    private static HintMeshType branchType(String type, String branchType) {
+        Configuration configuration = ConfigurationParser.parse(List.of(
+                        "idle-mode.overlay.type=" + type + " | _{isidling} -> " + branchType,
+                        "idle-mode.overlay.selection-keys=a b c d",
+                        "idle-mode.overlay.area=active-window",
+                        "idle-mode.overlay.ui-order=left-to-right",
+                        "idle-mode.overlay.grid-max-row-count=3"),
+                KeyboardLayout.keyboardLayout("00000409", null));
+        ComboWatcher comboWatcher =
+                new ComboWatcher(null, null, () -> new App("test.exe"), null, Instant::now,
+                        Set.of(), Set.of(), new KeyRedactor(KeyRedaction.NONE),
+                        configuration.modeMap(),
+                        configuration.initiallySetVariables(), configuration.virtualKeys(),
+                        configuration.initiallyPressedVirtualKeys(),
+                        configuration.activeKeyboardLayout());
+        comboWatcher.setModeListeners(List.of(new ModeListener() {
+            @Override
+            public void modeChanged(Mode newMode) {
+            }
+
+            @Override
+            public void modeTimedOut() {
+            }
+        }));
+        comboWatcher.modeChanged(configuration.modeMap().get(Mode.IDLE_MODE_NAME));
+        comboWatcher.setVirtualKeyPressed(BuiltInVirtualKey.IS_IDLING, true);
+        comboWatcher.update(0.01);
+        return comboWatcher.getMutatedMode().hintMesh().type();
     }
 
 }

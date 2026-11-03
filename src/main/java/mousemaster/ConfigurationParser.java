@@ -2697,19 +2697,6 @@ public class ConfigurationParser {
 
     private static final ModePropertyPath HINT_SELECTION_KEYS_PATH =
             new ModePropertyPath(List.of("hintMesh", "keysByFilter", "selectionKeys"));
-    private static final ModePropertyPath HINT_UI_ORDER_PATH =
-            new ModePropertyPath(List.of("hintMesh", "type", "order"));
-    private static final ModePropertyPath HINT_VISION_DENSITY_PATH =
-            new ModePropertyPath(List.of("hintMesh", "type", "density"));
-    private static final ModePropertyPath HINT_VISION_MIN_SIZE_PATH =
-            new ModePropertyPath(List.of("hintMesh", "type", "minSize"));
-    private static final List<ModePropertyPath> HINT_UI_ELEMENT_BOX_PATHS =
-            Stream.of("uiElementBoxColor", "uiElementBoxOpacity", "uiElementBoxBorderThickness",
-                          "uiElementBoxBorderLength", "uiElementBoxBorderColor",
-                          "uiElementBoxBorderOpacity", "uiElementBoxBorderRadius",
-                          "uiElementBoxHorizontalPadding", "uiElementBoxVerticalPadding")
-                  .map(field -> new ModePropertyPath(List.of("hintMesh", "styleByFilter", field)))
-                  .toList();
 
     private static void checkMissingProperties(ModeBuilder mode) {
         if (mode.timeout.builder.enabled() != null && mode.timeout.builder.enabled() &&
@@ -2728,30 +2715,6 @@ public class ConfigurationParser {
         HintMeshType.HintMeshTypeBuilder hintMeshType =
                 mode.hintMesh.builder.type();
         if (hintMeshType.type() != null) {
-            boolean uiType =
-                    hintMeshType.type() == HintMeshType.HintMeshTypeType.UI_ACCESSIBILITY ||
-                    hintMeshType.type() == HintMeshType.HintMeshTypeType.UI_VISION;
-            if (!uiType && mode.hintMesh.setPropertyPaths.contains(HINT_UI_ORDER_PATH))
-                throw new IllegalArgumentException(
-                        "Invalid definition of overlay for " + mode.modeName +
-                        ": overlay.ui-order only applies to overlay.type=ui-accessibility or " +
-                        "overlay.type=ui-vision");
-            if (!uiType && HINT_UI_ELEMENT_BOX_PATHS.stream()
-                                                    .anyMatch(mode.hintMesh.setPropertyPaths::contains))
-                throw new IllegalArgumentException(
-                        "Invalid definition of overlay for " + mode.modeName +
-                        ": overlay.ui-element-box-* only applies to overlay.type=ui-accessibility or " +
-                        "overlay.type=ui-vision");
-            if (hintMeshType.type() != HintMeshType.HintMeshTypeType.UI_VISION
-                && mode.hintMesh.setPropertyPaths.contains(HINT_VISION_DENSITY_PATH))
-                throw new IllegalArgumentException(
-                        "Invalid definition of overlay for " + mode.modeName +
-                        ": overlay.vision-density only applies to overlay.type=ui-vision");
-            if (hintMeshType.type() != HintMeshType.HintMeshTypeType.UI_VISION
-                && mode.hintMesh.setPropertyPaths.contains(HINT_VISION_MIN_SIZE_PATH))
-                throw new IllegalArgumentException(
-                        "Invalid definition of overlay for " + mode.modeName +
-                        ": overlay.vision-min-size only applies to overlay.type=ui-vision");
             switch (hintMeshType.type()) {
                 case GRID -> {
                     HintGridLayoutBuilder defaultLayout =
@@ -3194,40 +3157,15 @@ public class ConfigurationParser {
             case "target-follows-overlay-center" -> ModePropertyHandler.of(prefix.append("targetFollowsOverlayCenter"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.targetFollowsOverlayCenter(v));
             case "saved-hints" -> ModePropertyHandler.of(prefix.append("savedPositionHistory"), v -> positionHistoryName("overlay.saved-hints", v, positionHistoryNames), v -> hintMeshBuilder.savedPositionHistory(v));
             case "eat-unused-selection-keys" -> ModePropertyHandler.of(prefix.append("eatUnusedSelectionKeys"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.eatUnusedSelectionKeys(v));
-            // Type property (sealed variant): uses Function for GRID because it
-            // needs the current area/gridLayout at mutation time, not parse time.
-            case "type" -> new ModePropertyHandler(prefix.append("type"), v -> {
+            case "type" -> ModePropertyHandler.of(prefix.append("type"), v -> {
                 HintMeshType.HintMeshTypeType typeType =
                         parseHintMeshTypeType("overlay.type", v, positionHistoryNames);
-                return switch (typeType) {
-                    case GRID -> (Object) (Function<Object, Object>) currentType -> {
-                        if (currentType instanceof HintMeshType.GridHintMesh)
-                            return currentType;
-                        throw new IllegalArgumentException(
-                                "Cannot combo-trigger overlay type to grid: current type is " +
-                                currentType.getClass().getSimpleName());
-                    };
-                    case POSITION_HISTORY -> new HintMeshType.PositionHistoryHintMesh(v);
-                    case UI_ACCESSIBILITY -> (Object) (Function<Object, Object>) currentType ->
-                            currentType instanceof HintMeshType.UiAccessibilityHintMesh uiAccessibilityHintMesh ?
-                                    uiAccessibilityHintMesh : new HintMeshType.UiAccessibilityHintMesh(
-                                    new HintGridArea(new HintGridAreaSize(
-                                            HintGridAreaSizeSource.ACTIVE_SCREEN, 1, 1, 0, 0, 0, 0),
-                                            HintGridAreaCenter.SCREEN_CENTER),
-                                    UiHintOrder.TOP_TO_BOTTOM);
-                    case UI_VISION -> (Object) (Function<Object, Object>) currentType -> {
-                        if (currentType instanceof HintMeshType.UiVisionHintMesh)
-                            return currentType;
-                        throw new IllegalArgumentException(
-                                "Cannot combo-trigger overlay type to ui-vision: current type is " +
-                                currentType.getClass().getSimpleName());
-                    };
-                };
-            }, v -> {
-                HintMeshType.HintMeshTypeBuilder type = hintMeshBuilder.type();
-                type.type(parseHintMeshTypeType("overlay.type", v, positionHistoryNames));
-                if (type.type() == HintMeshType.HintMeshTypeType.POSITION_HISTORY)
-                    type.positionHistoryName(v);
+                return new HintMeshType.TypeChange(typeType,
+                        typeType == HintMeshType.HintMeshTypeType.POSITION_HISTORY ? v : null);
+            }, typeChange -> {
+                hintMeshBuilder.type().type(typeChange.type());
+                if (typeChange.positionHistoryName() != null)
+                    hintMeshBuilder.type().positionHistoryName(typeChange.positionHistoryName());
             });
             case "ui-order" -> ModePropertyHandler.of(prefix.append("type", "order"), v -> parseUiHintOrder("overlay.ui-order", v), v -> hintMeshBuilder.type().uiOrder(v));
             case "vision-density" -> ModePropertyHandler.of(prefix.append("type", "density"), v -> parseUnsignedInteger(v, 1, Vision.densities), v -> hintMeshBuilder.type().visionDensity(v));

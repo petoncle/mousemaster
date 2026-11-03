@@ -304,8 +304,8 @@ public class Mousemaster {
                       .stream()
                       .filter(mode -> mode.hintMesh().enabled())
                       .map(mode -> mode.hintMesh().type())
-                      .filter(HintMeshType.UiVisionHintMesh.class::isInstance)
-                      .map(type -> ((HintMeshType.UiVisionHintMesh) type).density())
+                      .filter(type -> type.type() == HintMeshType.HintMeshTypeType.UI_VISION)
+                      .map(HintMeshType::density)
                       .findFirst()
                       .orElse(null);
     }

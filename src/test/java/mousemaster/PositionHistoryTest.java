@@ -42,8 +42,7 @@ public class PositionHistoryTest {
     }
 
     private static String positionHistoryName(Mode mode) {
-        return ((HintMeshType.PositionHistoryHintMesh) mode.hintMesh()
-                                                       .type()).positionHistoryName();
+        return mode.hintMesh().type().positionHistoryName();
     }
 
     private static List<Command> commands(Configuration configuration,

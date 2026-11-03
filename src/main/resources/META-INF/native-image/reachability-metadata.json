@@ -6879,14 +6879,23 @@
       ]
     },
     {
-      "type": "mousemaster.HintMeshType$GridHintMesh",
+      "type": "mousemaster.HintMeshType",
       "methods": [
         {
           "name": "<init>",
           "parameterTypes": [
+            "mousemaster.HintMeshType$HintMeshTypeType",
             "mousemaster.HintGridArea",
-            "mousemaster.ScreenFilterMap"
+            "mousemaster.ScreenFilterMap",
+            "mousemaster.UiHintOrder",
+            "int",
+            "double",
+            "java.lang.String"
           ]
+        },
+        {
+          "name": "type",
+          "parameterTypes": []
         },
         {
           "name": "area",
@@ -6895,58 +6904,9 @@
         {
           "name": "gridLayoutByFilter",
           "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "mousemaster.HintMeshType$PositionHistoryHintMesh",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "java.lang.String"
-          ]
-        },
-        {
-          "name": "positionHistoryName",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "mousemaster.HintMeshType$UiAccessibilityHintMesh",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "mousemaster.HintGridArea",
-            "mousemaster.UiHintOrder"
-          ]
-        },
-        {
-          "name": "area",
-          "parameterTypes": []
         },
         {
           "name": "order",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "mousemaster.HintMeshType$UiVisionHintMesh",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "mousemaster.HintGridArea",
-            "mousemaster.UiHintOrder",
-            "int",
-            "double"
-          ]
-        },
-        {
-          "name": "area",
           "parameterTypes": []
         },
         {
@@ -6958,7 +6918,7 @@
           "parameterTypes": []
         },
         {
-          "name": "order",
+          "name": "positionHistoryName",
           "parameterTypes": []
         }
       ]
