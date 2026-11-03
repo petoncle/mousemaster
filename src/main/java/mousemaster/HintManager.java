@@ -238,7 +238,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         HintGridAreaSizeSource source = type.area().size().source();
         return (source == HintGridAreaSizeSource.ACTIVE_SCREEN ||
                 source == HintGridAreaSizeSource.ALL_SCREENS) &&
-               type.area().center() == HintGridAreaCenter.SCREEN_CENTER;
+               type.area().center() == HintGridAreaCenter.ACTIVE_SCREEN_CENTER;
     }
 
     public HintMesh hintMesh() {
@@ -1041,7 +1041,7 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private Point areaCenter(HintGridAreaCenter center, Point lastSelectedHint) {
         return switch (center) {
-            case SCREEN_CENTER -> screenManager.activeScreen().rectangle().center();
+            case ACTIVE_SCREEN_CENTER -> screenManager.activeScreen().rectangle().center();
             case MOUSE -> new Point(mouseX, mouseY);
             case LAST_SELECTED_HINT -> lastSelectedHint == null ?
                     screenManager.activeScreen().rectangle().center() : lastSelectedHint;
@@ -1149,7 +1149,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                         default -> throw new IllegalStateException();
                     };
                     gridCenter = switch (area.center()) {
-                        case SCREEN_CENTER ->
+                        case ACTIVE_SCREEN_CENTER ->
                                 activeScreen.rectangle().center();
                         case MOUSE -> zoomedPoint(new Point(mouseX, mouseY), zoom);
                         case LAST_SELECTED_HINT -> lastSelectedHintPoint == null ?

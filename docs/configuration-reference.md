@@ -442,7 +442,7 @@ text with CSS. The neo-mousekeys-ijkl cheatsheet is such a layer:
 
 ```properties
 normal-mode.cheatsheet-indicator.shape=rectangle
-normal-mode.cheatsheet-indicator.position=screen-center
+normal-mode.cheatsheet-indicator.position=active-screen-center
 normal-mode.cheatsheet-indicator.text-style-sheet=\
 td { color: #A9B1D6; } \
 .title { font-family: 'Segoe UI', 'Helvetica Neue'; font-size: x-large; color: #C0CAF5; } \
@@ -481,19 +481,19 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
 #### Position
 
 - **`position`**: `mouse` (default), `mouse-top-left`, `mouse-top-right`, `mouse-bottom-left`,
-  `mouse-bottom-right`, `screen-center`, `active-screen-top-left`, `active-screen-top-right`,
-  `active-screen-bottom-left`, `active-screen-bottom-right`, `target`, `last-selected-hint`, or a
-  position history (`position-history` or any `<name>-position-history`). `mouse` centers the
-  layer behind the cursor, best with a low opacity so the cursor stays visible. Near a screen
-  edge, a mouse corner position moves to the other side of the cursor, and a layer with a text
-  moves inward instead of being cut. An active screen corner position puts the layer in that
-  corner of the screen with the mouse cursor: `x` and `y` move it away from the edges. `target`
-  and `last-selected-hint` center the layer on those points of the overlay (see
-  `mouse-follows-target`), and the layer moves with them, not with the cursor. While the mouse
-  follows the target, the target is the mouse, and a layer on it is drawn again at each mouse
-  move: to draw at the cursor, use `mouse`. A position history stands for the positions saved in
-  it, in the order they were saved: the layer is drawn on each of them, and not drawn while the
-  history is empty.
+  `mouse-bottom-right`, `active-screen-center`, `active-screen-top-left`,
+  `active-screen-top-right`, `active-screen-bottom-left`, `active-screen-bottom-right`, `target`,
+  `last-selected-hint`, or a position history (`position-history` or any
+  `<name>-position-history`). `mouse` centers the layer behind the cursor, best with a low
+  opacity so the cursor stays visible. Near a screen edge, a mouse corner position moves to the
+  other side of the cursor, and a layer with a text moves inward instead of being cut. An active
+  screen corner position puts the layer in that corner of the screen with the mouse cursor: `x`
+  and `y` move it away from the edges. `target` and `last-selected-hint` center the layer on
+  those points of the overlay (see `mouse-follows-target`), and the layer moves with them, not
+  with the cursor. While the mouse follows the target, the target is the mouse, and a layer on it
+  is drawn again at each mouse move: to draw at the cursor, use `mouse`. A position history
+  stands for the positions saved in it, in the order they were saved: the layer is drawn on each
+  of them, and not drawn while the history is empty.
 - **`end-position`**: The same values as `position`. With `end-position`, the layer starts at
   `position` and stops at `end-position`. `size` is its width, and `rotation` turns it from the
   line between the two points. `aspect-ratio` cannot be set.
@@ -670,7 +670,7 @@ hint2-2-mode.zoom.center=last-selected-hint
 ```
 
 - `zoom.percent` is between 1.0 (100%, no magnification) and 100.
-- `zoom.center` can either be `screen-center` (default), `mouse`
+- `zoom.center` can either be `active-screen-center` (default), `mouse`
   or `last-selected-hint`.
 - `zoom.area-size-source` is what the magnified area is sized from: `percent` (default), scaled by
   `zoom.area-width-percent` / `zoom.area-height-percent` (default `1.0`), or `last-selected-hint-cell`.
@@ -913,7 +913,7 @@ The following properties control where hints appear and how they're arranged:
 ```properties
 # Hint area configuration
 hint-mode.overlay.area=active-screen
-hint-mode.overlay.area-center=screen-center
+hint-mode.overlay.area-center=active-screen-center
 
 # Grid layout configuration
 hint-mode.overlay.grid-cell-width=74
@@ -955,14 +955,14 @@ the point it is *centered* on. For UI hints it is the region the elements are lo
   negative inset grows the area.
 
 - **`area-center`** (point the area is centered on):
-  - `screen-center`: Center of the screen
+  - `active-screen-center`: Center of the screen with the mouse cursor
   - `mouse`: Current mouse position
   - `last-selected-hint`: Position of the last selected hint
   - `active-window-center`: Center of the active window
   - `last-overlay-area-center`: Center of the area `last-overlay-area` names
 
   When omitted, the center defaults per size: `active-screen`/`all-screens` →
-  `screen-center`, `active-window` → `active-window-center`, `last-selected-hint-cell` →
+  `active-screen-center`, `active-window` → `active-window-center`, `last-selected-hint-cell` →
   `last-selected-hint` (grid stays over the cell), `last-overlay-area` →
   `last-overlay-area-center`. The size and center compose freely — e.g. an
   `active-window`-sized grid with `area-center=mouse` is a window-sized grid centered on the

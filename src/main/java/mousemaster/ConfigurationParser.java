@@ -136,7 +136,7 @@ public class ConfigurationParser {
             .areaSizeSource(ZoomAreaSizeSource.PERCENT)
             .areaWidthPercent(1.0)
             .areaHeightPercent(1.0)
-            .center(ZoomCenter.SCREEN_CENTER)
+            .center(ZoomCenter.ACTIVE_SCREEN_CENTER)
             .animationEnabled(false)
             .animationEasing(new Easing.Smootherstep())
             .animationDurationMillis(200);
@@ -3055,9 +3055,9 @@ public class ConfigurationParser {
             case "font-size" -> ModePropertyHandler.of(prefix.append("fontSize"), v -> parseDouble(v, false, 0, 1000), v -> layer.fontSize(v));
             case "font-weight" -> ModePropertyHandler.of(prefix.append("fontWeight"), v -> FontWeight.of(v), v -> layer.fontWeight(v));
             case "text-style-sheet" -> ModePropertyHandler.of(prefix.append("textStyleSheet"), v -> v, v -> layer.textStyleSheet(v));
-            case "position" -> ModePropertyHandler.of(prefix.append("position"), v -> IndicatorPosition.fromString(v, positionHistoryNames), v -> layer.position(v));
+            case "position" -> ModePropertyHandler.of(prefix.append("position"), v -> IndicatorPosition.fromString(layerName + ".position", v, positionHistoryNames), v -> layer.position(v));
             case "position-anchor" -> ModePropertyHandler.of(prefix.append("positionAnchor"), v -> PositionAnchor.fromString(v), v -> layer.positionAnchor(v));
-            case "end-position" -> ModePropertyHandler.of(prefix.append("endPosition"), v -> IndicatorPosition.fromString(v, positionHistoryNames), v -> layer.endPosition(v));
+            case "end-position" -> ModePropertyHandler.of(prefix.append("endPosition"), v -> IndicatorPosition.fromString(layerName + ".end-position", v, positionHistoryNames), v -> layer.endPosition(v));
             case "end-position-anchor" -> ModePropertyHandler.of(prefix.append("endPositionAnchor"), v -> PositionAnchor.fromString(v), v -> layer.endPositionAnchor(v));
             case "area" -> ModePropertyHandler.of(prefix.append("area", "size", "source"), v -> parseHintGridAreaSizeSource(layerName + ".area", v), v -> layer.area().source(v));
             case "area-width-percent" -> ModePropertyHandler.of(prefix.append("area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> layer.area().widthPercent(v));
@@ -3803,14 +3803,19 @@ public class ConfigurationParser {
     private static HintGridAreaCenter parseHintGridAreaCenter(
             String propertyKey, String propertyValue) {
         return switch (propertyValue) {
-            case "screen-center" -> HintGridAreaCenter.SCREEN_CENTER;
+            case "active-screen-center" -> HintGridAreaCenter.ACTIVE_SCREEN_CENTER;
+            case "screen-center" -> {
+                logger.warn(propertyKey + "=screen-center has been deprecated: use " +
+                            propertyKey + "=active-screen-center instead");
+                yield HintGridAreaCenter.ACTIVE_SCREEN_CENTER;
+            }
             case "mouse" -> HintGridAreaCenter.MOUSE;
             case "last-selected-hint" -> HintGridAreaCenter.LAST_SELECTED_HINT;
             case "active-window-center" -> HintGridAreaCenter.ACTIVE_WINDOW_CENTER;
             case "last-overlay-area-center" -> HintGridAreaCenter.LAST_OVERLAY_AREA_CENTER;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
-                    ": expected one of " + List.of("screen-center", "mouse",
+                    ": expected one of " + List.of("active-screen-center", "mouse",
                             "last-selected-hint", "active-window-center",
                             "last-overlay-area-center"));
         };
@@ -3842,13 +3847,18 @@ public class ConfigurationParser {
 
     private static ZoomCenter parseZoomCenter(String propertyKey, String propertyValue) {
         return switch (propertyValue) {
-            case "screen-center" -> ZoomCenter.SCREEN_CENTER;
+            case "active-screen-center" -> ZoomCenter.ACTIVE_SCREEN_CENTER;
+            case "screen-center" -> {
+                logger.warn(propertyKey + "=screen-center has been deprecated: use " +
+                            propertyKey + "=active-screen-center instead");
+                yield ZoomCenter.ACTIVE_SCREEN_CENTER;
+            }
             case "mouse" -> ZoomCenter.MOUSE;
             case "last-selected-hint" -> ZoomCenter.LAST_SELECTED_HINT;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": expected one of " +
-                    List.of("screen-center", "mouse", "last-selected-hint"));
+                    List.of("active-screen-center", "mouse", "last-selected-hint"));
         };
     }
 

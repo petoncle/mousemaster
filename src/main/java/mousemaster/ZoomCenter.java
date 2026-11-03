@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 public enum ZoomCenter {
 
-    SCREEN_CENTER,
+    ACTIVE_SCREEN_CENTER,
     MOUSE,
     LAST_SELECTED_HINT;
 
@@ -14,7 +14,7 @@ public enum ZoomCenter {
     public Point centerPoint(Rectangle screenRectangle, int mouseX,
                              int mouseY, Point lastSelectedHintPoint) {
         return switch (this) {
-            case SCREEN_CENTER -> screenRectangle.center();
+            case ACTIVE_SCREEN_CENTER -> screenRectangle.center();
             case MOUSE -> new Point(mouseX, mouseY);
             case LAST_SELECTED_HINT -> {
                 if (lastSelectedHintPoint == null) {

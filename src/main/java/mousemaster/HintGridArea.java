@@ -123,7 +123,7 @@ public record HintGridArea(HintGridAreaSize size, HintGridAreaCenter center) {
 
         private static HintGridAreaCenter defaultCenter(HintGridAreaSizeSource source) {
             return switch (source) {
-                case ACTIVE_SCREEN, ALL_SCREENS -> HintGridAreaCenter.SCREEN_CENTER;
+                case ACTIVE_SCREEN, ALL_SCREENS -> HintGridAreaCenter.ACTIVE_SCREEN_CENTER;
                 case ACTIVE_WINDOW -> HintGridAreaCenter.ACTIVE_WINDOW_CENTER;
                 case LAST_SELECTED_HINT_CELL -> HintGridAreaCenter.LAST_SELECTED_HINT;
                 case LAST_OVERLAY_AREA -> HintGridAreaCenter.LAST_OVERLAY_AREA_CENTER;

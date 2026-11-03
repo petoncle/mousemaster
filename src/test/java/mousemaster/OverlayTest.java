@@ -100,6 +100,21 @@ class OverlayTest {
     }
 
     @Test
+    void screenCenterIsActiveScreenCenter() {
+        assertEquals(
+                ConfigurationParser.parse(List.of("idle-mode.to.grid-mode=+g",
+                        "grid-mode.overlay.area-center=active-screen-center",
+                        "grid-mode.zoom.center=active-screen-center",
+                        "grid-mode.indicator.position=active-screen-center"),
+                        KeyboardLayout.keyboardLayout("00000409", null)).modeMap().get("grid-mode"),
+                ConfigurationParser.parse(List.of("idle-mode.to.grid-mode=+g",
+                        "grid-mode.overlay.area-center=screen-center",
+                        "grid-mode.zoom.center=screen-center",
+                        "grid-mode.indicator.position=screen-center"),
+                        KeyboardLayout.keyboardLayout("00000409", null)).modeMap().get("grid-mode"));
+    }
+
+    @Test
     void aTypeBranchGivesTheOverlayTheSettingsOfItsType() {
         HintMeshType grid = branchType("ui-vision", "grid");
         assertEquals(HintMeshType.HintMeshTypeType.GRID, grid.type());

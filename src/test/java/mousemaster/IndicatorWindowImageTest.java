@@ -534,7 +534,7 @@ class IndicatorWindowImageTest {
     void aScreenCenterLayerIsCenteredOnTheScreenWhereverTheMouseIs() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         IndicatorConfiguration indicator = indicator("idle-mode.indicator.size=40",
-                "idle-mode.indicator.position=screen-center");
+                "idle-mode.indicator.position=active-screen-center");
         for (int mouseX : new int[] {100, 1500}) {
             WindowImage image = render(new IndicatorRenderer(), indicator, Set.of("indicator"),
                     mouseX);

@@ -676,7 +676,7 @@ public final class IndicatorRenderer {
                                LayerSize layerSizeWithStroke) {
         Rectangle mouseRectangle = anchor.mouseRectangle();
         Rectangle screen = anchor.activeScreen().rectangle();
-        if (position == PointIndicatorPosition.SCREEN_CENTER)
+        if (position == PointIndicatorPosition.ACTIVE_SCREEN_CENTER)
             return new Point(screen.x() + (screen.width() - layerSizeWithStroke.width()) / 2.0,
                     screen.y() + (screen.height() - layerSizeWithStroke.height()) / 2.0);
         boolean screenRight = position == PointIndicatorPosition.ACTIVE_SCREEN_TOP_RIGHT ||
