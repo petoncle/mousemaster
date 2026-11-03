@@ -6269,21 +6269,26 @@
       ]
     },
     {
-      "type": "mousemaster.HintCellSizing$FixedCellSize",
+      "type": "mousemaster.HintCellSizing",
       "methods": [
         {
           "name": "<init>",
           "parameterTypes": [
+            "mousemaster.HintCellSizing$HintCellSizingType",
             "double",
             "double"
           ]
         },
         {
-          "name": "cellHeight",
+          "name": "type",
           "parameterTypes": []
         },
         {
           "name": "cellWidth",
+          "parameterTypes": []
+        },
+        {
+          "name": "cellHeight",
           "parameterTypes": []
         }
       ]

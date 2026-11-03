@@ -1676,13 +1676,14 @@ public class HintManager implements ModeListener, MousePositionListener {
     private FixedSizeHintGrid hintGridForArea(Rectangle areaRectangle, Point gridCenter,
                                               HintGridLayout gridLayout, double scale,
                                               Zoom zoom) {
-        return switch (gridLayout.cellSizing()) {
-            case HintCellSizing.FixedCellSize fixedCellSize -> fixedSizeHintGrid(
+        HintCellSizing cellSizing = gridLayout.cellSizing();
+        return switch (cellSizing.type()) {
+            case FIXED -> fixedSizeHintGrid(
                     areaRectangle, gridCenter, gridLayout.maxRowCount(),
                     gridLayout.maxColumnCount(),
-                    fixedCellSize.cellWidth() * scale * zoom.percent(),
-                    fixedCellSize.cellHeight() * scale * zoom.percent());
-            case HintCellSizing.FitToArea fitToArea -> fitToAreaHintGrid(
+                    cellSizing.cellWidth() * scale * zoom.percent(),
+                    cellSizing.cellHeight() * scale * zoom.percent());
+            case FIT -> fitToAreaHintGrid(
                     areaRectangle, gridLayout.maxRowCount(), gridLayout.maxColumnCount());
         };
     }
@@ -1748,7 +1749,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             return null;
         HintGridLayout decorationLayout = new HintGridLayout(
                 decoration.maxRowCount(), decoration.maxColumnCount(),
-                new HintCellSizing.FitToArea(),
+                new HintCellSizing(HintCellSizing.HintCellSizingType.FIT, 0, 0),
                 decoration.maxRowCount(), decoration.maxColumnCount(), true);
         FixedSizeHintGrid grid = hintGridForArea(area,
                 area.center(), decorationLayout, scale, zoom);

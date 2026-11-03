@@ -53,17 +53,6 @@ public record HintMeshType(HintMeshTypeType type, HintGridArea area,
             this.gridLayoutByFilter = new ScreenFilterMapBuilder<>();
         }
 
-        public HintMeshTypeBuilder(HintMeshType hintMeshType) {
-            this.type = hintMeshType.type;
-            this.area = hintMeshType.area.builder();
-            this.gridLayoutByFilter =
-                    hintMeshType.gridLayoutByFilter.builder(HintGridLayout::builder);
-            this.uiOrder = hintMeshType.order;
-            this.visionDensity = hintMeshType.density;
-            this.visionMinSize = hintMeshType.minSize;
-            this.positionHistoryName = hintMeshType.positionHistoryName;
-        }
-
         public HintMeshTypeType type() {
             return type;
         }

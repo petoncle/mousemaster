@@ -1,16 +1,8 @@
 package mousemaster;
 
-public sealed interface HintCellSizing {
+public record HintCellSizing(HintCellSizingType type, double cellWidth, double cellHeight) {
 
-    record FixedCellSize(double cellWidth, double cellHeight) implements HintCellSizing {
-
-    }
-
-    record FitToArea() implements HintCellSizing {
-
-    }
-
-    enum HintCellSizingType {
+    public enum HintCellSizingType {
 
         FIXED, FIT
 

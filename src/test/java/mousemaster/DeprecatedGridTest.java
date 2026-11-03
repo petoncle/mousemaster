@@ -35,7 +35,7 @@ class DeprecatedGridTest {
         assertFalse(hint.targetFollowsOverlayCenter());
         assertEquals(HintGridAreaSizeSource.ACTIVE_WINDOW,
                 hint.type().area().size().source());
-        assertInstanceOf(HintCellSizing.FitToArea.class, layout(hint).cellSizing());
+        assertEquals(HintCellSizing.HintCellSizingType.FIT, layout(hint).cellSizing().type());
         assertEquals(2, layout(hint).maxRowCount());
         assertEquals(2, layout(hint).maxColumnCount());
         assertEquals(List.of(), hint.keysByFilter().get(AnyScreenFilter.ANY_SCREEN_FILTER)
@@ -86,7 +86,7 @@ class DeprecatedGridTest {
                 "_base-mode.indicator.size=10",
                 "grid-mode=_base-mode",
                 "grid-mode.grid.line-visible=true");
-        assertInstanceOf(HintCellSizing.FitToArea.class, layout(hint).cellSizing());
+        assertEquals(HintCellSizing.HintCellSizingType.FIT, layout(hint).cellSizing().type());
         assertEquals(2, layout(hint).maxRowCount());
     }
 
@@ -97,7 +97,7 @@ class DeprecatedGridTest {
                 "grid-mode=_base-mode");
         assertTrue(hint.enabled());
         assertTrue(hint.visible());
-        assertInstanceOf(HintCellSizing.FitToArea.class, layout(hint).cellSizing());
+        assertEquals(HintCellSizing.HintCellSizingType.FIT, layout(hint).cellSizing().type());
     }
 
     @Test
@@ -122,7 +122,7 @@ class DeprecatedGridTest {
                 "hint-mode.hint.selection-keys=a b c d",
                 "hint-mode.snap.up=+u");
         assertTrue(hint.visible());
-        assertInstanceOf(HintCellSizing.FixedCellSize.class, layout(hint).cellSizing());
+        assertEquals(HintCellSizing.HintCellSizingType.FIXED, layout(hint).cellSizing().type());
     }
 
     @Test

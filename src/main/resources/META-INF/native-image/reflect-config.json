@@ -773,9 +773,9 @@
   "methods":[{"name":"<init>","parameterTypes":["boolean","java.time.Duration"] }, {"name":"enabled","parameterTypes":[] }, {"name":"idleDuration","parameterTypes":[] }]
 },
 {
-  "name":"mousemaster.HintCellSizing$FixedCellSize",
+  "name":"mousemaster.HintCellSizing",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["double","double"] }, {"name":"cellHeight","parameterTypes":[] }, {"name":"cellWidth","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintCellSizing$HintCellSizingType","double","double"] }, {"name":"cellHeight","parameterTypes":[] }, {"name":"cellWidth","parameterTypes":[] }, {"name":"type","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.HintFontStyle",

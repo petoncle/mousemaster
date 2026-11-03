@@ -3,6 +3,7 @@ package mousemaster;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -110,12 +111,27 @@ class OverlayTest {
     }
 
     private static HintMeshType branchType(String type, String branchType) {
-        Configuration configuration = ConfigurationParser.parse(List.of(
-                        "idle-mode.overlay.type=" + type + " | _{isidling} -> " + branchType,
-                        "idle-mode.overlay.selection-keys=a b c d",
-                        "idle-mode.overlay.area=active-window",
-                        "idle-mode.overlay.ui-order=left-to-right",
-                        "idle-mode.overlay.grid-max-row-count=3"),
+        return overlayWhileIdling(
+                "idle-mode.overlay.type=" + type + " | _{isidling} -> " + branchType,
+                "idle-mode.overlay.area=active-window",
+                "idle-mode.overlay.ui-order=left-to-right",
+                "idle-mode.overlay.grid-max-row-count=3").type();
+    }
+
+    @Test
+    void aCellSizingBranchKeepsTheCellSize() {
+        assertEquals(new HintCellSizing(HintCellSizing.HintCellSizingType.FIXED, 50, 36),
+                overlayWhileIdling("idle-mode.overlay.type=grid",
+                        "idle-mode.overlay.grid-cell-sizing=fit | _{isidling} -> fixed",
+                        "idle-mode.overlay.grid-cell-width=50")
+                        .type().layout(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER)
+                        .cellSizing());
+    }
+
+    private static HintMeshConfiguration overlayWhileIdling(String... lines) {
+        List<String> allLines = new ArrayList<>(List.of(lines));
+        allLines.add("idle-mode.overlay.selection-keys=a b c d");
+        Configuration configuration = ConfigurationParser.parse(allLines,
                 KeyboardLayout.keyboardLayout("00000409", null));
         ComboWatcher comboWatcher =
                 new ComboWatcher(null, null, () -> new App("test.exe"), null, Instant::now,
@@ -136,7 +152,7 @@ class OverlayTest {
         comboWatcher.modeChanged(configuration.modeMap().get(Mode.IDLE_MODE_NAME));
         comboWatcher.setVirtualKeyPressed(BuiltInVirtualKey.IS_IDLING, true);
         comboWatcher.update(0.01);
-        return comboWatcher.getMutatedMode().hintMesh().type();
+        return comboWatcher.getMutatedMode().hintMesh();
     }
 
 }

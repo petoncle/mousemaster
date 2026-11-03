@@ -7,10 +7,6 @@ public record HintGridLayout(int maxRowCount, int maxColumnCount,
                              int layoutRowCount, int layoutColumnCount,
                              boolean layoutRowOriented) {
 
-    public HintGridLayoutBuilder builder() {
-        return new HintGridLayoutBuilder(this);
-    }
-
     public static class HintGridLayoutBuilder {
 
         private Integer maxRowCount;
@@ -24,21 +20,6 @@ public record HintGridLayout(int maxRowCount, int maxColumnCount,
 
         public HintGridLayoutBuilder() {
 
-        }
-
-        public HintGridLayoutBuilder(HintGridLayout layout) {
-            switch (layout.cellSizing) {
-                case HintCellSizing.FixedCellSize fixedCellSize -> {
-                    this.cellSizingType = HintCellSizingType.FIXED;
-                    this.cellWidth = fixedCellSize.cellWidth();
-                    this.cellHeight = fixedCellSize.cellHeight();
-                }
-                case HintCellSizing.FitToArea fitToArea ->
-                        this.cellSizingType = HintCellSizingType.FIT;
-            }
-            this.layoutRowCount = layout.layoutRowCount;
-            this.layoutColumnCount = layout.layoutColumnCount;
-            this.layoutRowOriented = layout.layoutRowOriented;
         }
 
         public Integer maxRowCount() {
@@ -114,29 +95,15 @@ public record HintGridLayout(int maxRowCount, int maxColumnCount,
         }
 
         public HintGridLayout build(HintGridLayout defaultLayout) {
-            HintCellSizing defaultCellSizing =
-                    defaultLayout == null ? null : defaultLayout.cellSizing;
-            HintCellSizingType resolvedCellSizingType = cellSizingType != null ?
-                    cellSizingType :
-                    defaultCellSizing instanceof HintCellSizing.FitToArea ?
-                            HintCellSizingType.FIT : HintCellSizingType.FIXED;
-            HintCellSizing cellSizing = switch (resolvedCellSizingType) {
-                case FIXED -> {
-                    HintCellSizing.FixedCellSize defaultFixed =
-                            defaultCellSizing instanceof HintCellSizing.FixedCellSize fixed ?
-                                    fixed : null;
-                    yield new HintCellSizing.FixedCellSize(
-                            cellWidth != null ? cellWidth :
-                                    defaultFixed != null ? defaultFixed.cellWidth() : 0,
-                            cellHeight != null ? cellHeight :
-                                    defaultFixed != null ? defaultFixed.cellHeight() : 0);
-                }
-                case FIT -> new HintCellSizing.FitToArea();
-            };
             return new HintGridLayout(
                     maxRowCount == null ? defaultLayout.maxRowCount : maxRowCount,
                     maxColumnCount == null ? defaultLayout.maxColumnCount : maxColumnCount,
-                    cellSizing,
+                    new HintCellSizing(
+                            cellSizingType == null ? defaultLayout.cellSizing.type() :
+                                    cellSizingType,
+                            cellWidth == null ? defaultLayout.cellSizing.cellWidth() : cellWidth,
+                            cellHeight == null ? defaultLayout.cellSizing.cellHeight() :
+                                    cellHeight),
                     layoutRowCount == null ? defaultLayout.layoutRowCount : layoutRowCount,
                     layoutColumnCount == null ? defaultLayout.layoutColumnCount : layoutColumnCount,
                     layoutRowOriented == null ? defaultLayout.layoutRowOriented : layoutRowOriented

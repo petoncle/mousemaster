@@ -3,7 +3,6 @@ package mousemaster;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static mousemaster.ScreenFilter.*;
@@ -39,10 +38,6 @@ public class ScreenFilterMap<V> {
         return map;
     }
 
-    public <B> ScreenFilterMapBuilder<B, V> builder(Function<V, B> elementToBuilder) {
-        return new ScreenFilterMapBuilder<>(this, elementToBuilder);
-    }
-
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass())
@@ -66,16 +61,6 @@ public class ScreenFilterMap<V> {
 
         public ScreenFilterMapBuilder() {
             this.map = new HashMap<>();
-        }
-
-        public ScreenFilterMapBuilder(ScreenFilterMap<V> screenFilterMap, Function<V, B> elementToBuilder) {
-            this.map = screenFilterMap.map
-                    .entrySet()
-                    .stream()
-                    .collect(Collectors.toMap(
-                            Map.Entry::getKey,
-                            entry -> elementToBuilder.apply(entry.getValue())
-                    ));
         }
 
         public Map<ScreenFilter, B> map() {
