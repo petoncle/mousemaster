@@ -48,13 +48,21 @@ public class UiHintOrderTest {
     }
 
     @Test
-    void uiHintOrderCanStartFromAnEdgeOrTheMouse() throws IOException {
+    void uiHintOrderCanStartFromAnEdgeOrAPoint() throws IOException {
         assertEquals(UiHintOrder.LEFT_TO_RIGHT, uiHintOrder(
                 parse(uiMode + "ui-hint-mode.hint.ui-order=left-to-right\n")));
         assertEquals(UiHintOrder.BOTTOM_TO_TOP, uiHintOrder(
                 parse(uiMode + "ui-hint-mode.hint.ui-order=bottom-to-top\n")));
         assertEquals(UiHintOrder.MOUSE, uiHintOrder(
                 parse(uiMode + "ui-hint-mode.hint.ui-order=mouse\n")));
+        assertEquals(UiHintOrder.ACTIVE_SCREEN_CENTER, uiHintOrder(
+                parse(uiMode + "ui-hint-mode.hint.ui-order=active-screen-center\n")));
+        assertEquals(UiHintOrder.ACTIVE_WINDOW_CENTER, uiHintOrder(
+                parse(uiMode + "ui-hint-mode.hint.ui-order=active-window-center\n")));
+        assertEquals(UiHintOrder.LAST_SELECTED_HINT, uiHintOrder(
+                parse(uiMode + "ui-hint-mode.hint.ui-order=last-selected-hint\n")));
+        assertEquals(UiHintOrder.LAST_OVERLAY_AREA_CENTER, uiHintOrder(
+                parse(uiMode + "ui-hint-mode.hint.ui-order=last-overlay-area-center\n")));
     }
 
     @Test
@@ -121,11 +129,40 @@ public class UiHintOrderTest {
                 ui-hint-mode.hint.type=ui-accessibility
                 ui-hint-mode.hint.ui-order=mouse
                 """).modeMap().get("ui-hint-mode");
-        Future<List<UiElement>> found = CompletableFuture.completedFuture(
-                List.of(new UiElement(new Rectangle(10, 10, 0, 0)), new UiElement(new Rectangle(510, 505, 0, 0))));
+        HintManager hintManager = hintManager(List.of(new UiElement(new Rectangle(10, 10, 0, 0)),
+                new UiElement(new Rectangle(510, 505, 0, 0))));
+        hintManager.mouseMoved(500, 500);
+        hintManager.modeChanged(mode);
+        hintManager.completePendingUiHintQuery();
+        List<Hint> hints = hintManager.hintMesh().hints();
+        assertEquals(510, hints.getFirst().centerX());
+        hintManager.mouseMoved(10, 10);
+        hintManager.modeChanged(mode);
+        assertEquals(hints, hintManager.hintMesh().hints());
+    }
+
+    @Test
+    void theElementsNearestTheCenterOfTheActiveScreenComeFirst() throws IOException {
+        Mode mode = parse("""
+                idle-mode.to.ui-hint-mode=+u
+                ui-hint-mode.to.idle-mode=+esc
+                ui-hint-mode.hint.selection-keys=a b c d
+                ui-hint-mode.hint.type=ui-accessibility
+                ui-hint-mode.hint.ui-order=active-screen-center
+                """).modeMap().get("ui-hint-mode");
+        HintManager hintManager = hintManager(List.of(new UiElement(new Rectangle(10, 10, 0, 0)),
+                new UiElement(new Rectangle(950, 530, 0, 0))));
+        hintManager.mouseMoved(10, 10);
+        hintManager.modeChanged(mode);
+        hintManager.completePendingUiHintQuery();
+        assertEquals(950, hintManager.hintMesh().hints().getFirst().centerX());
+    }
+
+    private static HintManager hintManager(List<UiElement> elements) {
+        Future<List<UiElement>> found = CompletableFuture.completedFuture(elements);
         ScreenManager screenManager = new ScreenManager(
                 () -> Set.of(new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1)));
-        HintManager hintManager = new HintManager(Map.of(), screenManager,
+        return new HintManager(Map.of(), screenManager,
                 new MouseManager(screenManager, proxy(MouseController.class)),
                 proxy(Overlay.class), new UiAutomation() {
                     @Override
@@ -138,14 +175,6 @@ public class UiHintOrderTest {
                         return found;
                     }
                 }, () -> new App("test.exe"), new KeyRedactor(KeyRedaction.NONE), null);
-        hintManager.mouseMoved(500, 500);
-        hintManager.modeChanged(mode);
-        hintManager.completePendingUiHintQuery();
-        List<Hint> hints = hintManager.hintMesh().hints();
-        assertEquals(510, hints.getFirst().centerX());
-        hintManager.mouseMoved(10, 10);
-        hintManager.modeChanged(mode);
-        assertEquals(hints, hintManager.hintMesh().hints());
     }
 
     @SuppressWarnings("unchecked")

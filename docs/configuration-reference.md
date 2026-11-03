@@ -812,14 +812,16 @@ ui-hint-mode.overlay.area-height-percent=0.33
 ui-hint-mode.overlay.area-center=mouse
 ```
 
-**`ui-order`** is the order the elements are labeled in, the first ones getting the shortest
-labels (default `top-to-bottom`): `top-to-bottom`, `bottom-to-top`, `left-to-right`,
-`right-to-left` or `mouse`. With `mouse`, the elements nearest the mouse cursor come first, from
-where it was when the scan started. With an edge, elements are labeled in rows from it, each
-read from left to right (in columns read from top to bottom for `left-to-right` and
-`right-to-left`). A row goes on as long as the next element's center is at most 6 pixels
-further (at 100% scaling), so with `left-to-right` a taskbar on the left edge, whose icons are a
-few pixels apart horizontally, is one column labeled from top to bottom:
+**`ui-order`** is the order the elements are labeled in, the first ones getting the shortest labels
+(default `top-to-bottom`): an edge (`top-to-bottom`, `bottom-to-top`, `left-to-right`,
+`right-to-left`) or a point of `area-center` (`active-screen-center`, `mouse`,
+`last-selected-hint`, `active-window-center`, `last-overlay-area-center`). With a point, the
+elements nearest it come first, from where it was when the scan started: `active-screen-center`
+gives the shortest labels to the middle of the screen. With an edge, elements are labeled in rows
+from it, each read from left to right (in columns read from top to bottom for `left-to-right` and
+`right-to-left`). A row goes on as long as the next element's center is at most 6 pixels further
+(at 100% scaling), so with `left-to-right` a taskbar on the left edge, whose icons are a few pixels
+apart horizontally, is one column labeled from top to bottom:
 
 ```properties
 ui-hint-mode.overlay.ui-order=left-to-right

@@ -67,7 +67,7 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private PendingUiHintQuery pendingUiHintQuery;
     private List<UiElement> lastUiElements = List.of();
-    private Point uiElementQueryMousePoint;
+    private Point uiElementQueryOrderPoint;
     private Rectangle uiElementQueryArea;
 
     /**
@@ -745,10 +745,12 @@ public class HintManager implements ModeListener, MousePositionListener {
             boolean backToShownHints = hintMeshState != null && sameUiElementQueryArea &&
                     buildHintMesh(hintMeshConfiguration, newMode.zoom(), newZoom,
                             newScreenFilter, lastUiElements, uiElementQueryArea,
-                            uiElementQueryMousePoint, screenManager.activeScreen())
+                            uiElementQueryOrderPoint, screenManager.activeScreen())
                             .hints().equals(hintMeshState.hintMesh.hints());
             if (!sameUiElementQuery && !backToShownHints) {
-                uiElementQueryMousePoint = new Point(mouseX, mouseY);
+                HintGridAreaCenter orderCenter = hintMeshConfiguration.type().order().center();
+                uiElementQueryOrderPoint = orderCenter == null ? null :
+                        areaCenter(orderCenter, lastSelectedHintPoint);
                 pendingUiHintQuery = new PendingUiHintQuery(
                         startUiElementQuery(hintMeshConfiguration.type()),
                         hintMeshConfiguration, newZoom, newScreenFilter);
@@ -770,7 +772,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             else {
                 newHintMesh = buildHintMesh(hintMeshConfiguration, newMode.zoom(), newZoom,
                         newScreenFilter, lastUiElements, uiElementQueryArea,
-                        uiElementQueryMousePoint, screenManager.activeScreen());
+                        uiElementQueryOrderPoint, screenManager.activeScreen());
             }
         }
         else {
@@ -896,7 +898,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         ZoomConfiguration zoom = currentMode.zoom();
         HintMesh newHintMesh = buildHintMesh(hintMeshConfiguration,
                 zoom, pending.zoom(), screenFilter,
-                uiElements, uiElementQueryArea, uiElementQueryMousePoint,
+                uiElements, uiElementQueryArea, uiElementQueryOrderPoint,
                 screenManager.activeScreen());
         activateHintMesh(currentMode, newHintMesh, hintMeshConfiguration, screenFilter,
                 currentZoom, false);
@@ -1090,7 +1092,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             HintMeshConfiguration hintMeshConfiguration,
             ZoomConfiguration zoomConfiguration, Zoom zoom,
             ScreenFilter screenFilter,
-            List<UiElement> uiElements, Rectangle uiArea, Point mousePoint,
+            List<UiElement> uiElements, Rectangle uiArea, Point orderPoint,
             Screen activeScreen) {
         HintMeshBuilder hintMesh = new HintMeshBuilder();
         hintMesh.visible(hintMeshConfiguration.visible())
@@ -1240,7 +1242,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             Set<Integer> prefixLengths = new HashSet<>();
             buildUiHints(hintMeshConfiguration, screenFilter,
                     sortedUiElements(uiElements, type.order(),
-                            activeScreen.scale(), mousePoint),
+                            activeScreen.scale(), orderPoint),
                     prefixLengths, hints);
             hintMesh.hints(hints)
                     .prefixLength(prefixLengths.size() == 1 ?
@@ -1416,7 +1418,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     static List<UiElement> sortedUiElements(List<UiElement> uiElements, UiHintOrder order,
-                                            double scale, Point mouse) {
+                                            double scale, Point point) {
         return switch (order) {
             case TOP_TO_BOTTOM -> bandSortedUiElements(uiElements, UiElement::centerY,
                     UiElement::centerX, scale);
@@ -1426,12 +1428,11 @@ public class HintManager implements ModeListener, MousePositionListener {
                     UiElement::centerY, scale);
             case RIGHT_TO_LEFT -> bandSortedUiElements(uiElements,
                     uiElement -> -uiElement.centerX(), UiElement::centerY, scale);
-            case MOUSE -> uiElements.stream()
-                                    .sorted(Comparator.comparingDouble(
-                                            uiElement -> Math.hypot(
-                                                    uiElement.centerX() - mouse.x(),
-                                                    uiElement.centerY() - mouse.y())))
-                                    .toList();
+            case ACTIVE_SCREEN_CENTER, MOUSE, LAST_SELECTED_HINT, ACTIVE_WINDOW_CENTER,
+                 LAST_OVERLAY_AREA_CENTER -> uiElements.stream()
+                    .sorted(Comparator.comparingDouble(uiElement -> Math.hypot(
+                            uiElement.centerX() - point.x(), uiElement.centerY() - point.y())))
+                    .toList();
         };
     }
 
