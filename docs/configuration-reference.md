@@ -1089,8 +1089,10 @@ hint-mode.overlay.label-override=plus
     point is in several cells, such as nested UI elements, the command uses the smallest one.
   - `cell-top`, `cell-bottom`, `cell-left` and `cell-right`: the nearest point of a cell edge
     on that side of the point that moves: a top edge above it, a bottom edge below it, a left
-    edge on its left and a right edge on its right. A right or bottom edge is the last pixel of
-    its cell, so the point lands in the cell.
+    edge on its left and a right edge on its right. The edge of the cell that the point is in
+    comes first, the smallest one as for `cell-center`, so the edge of a UI element is its own
+    and not the one of the element next to it. A right or bottom edge is the last pixel of its
+    cell, so the point lands in the cell.
 
   For example, after `mouse-follows-target=false` left the mouse where it was:
   `normal-mode.move-to.last-selected-hint=+m`

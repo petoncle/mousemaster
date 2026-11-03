@@ -520,33 +520,44 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     /**
-     * The nearest point of a cell edge on that side of the point. Backward, a point 1 pixel past
-     * a cell edge goes to the edge before it.
+     * The edge on that side of the cell the point is in, the smallest one when the point is in
+     * several, or else the nearest cell edge on that side of the point.
      */
     private Point nearestCellEdge(Point from, boolean horizontal, boolean forward) {
         List<Rectangle> cells = cells();
         if (cells == null || cells.isEmpty())
             return null;
-        int coordinate = (int) (horizontal ? from.x() : from.y());
-        Point nearestCellEdge = null;
-        for (Rectangle cell : cells) {
-            int lastX = cell.x() + cell.width() - 1;
-            int lastY = cell.y() + cell.height() - 1;
-            int edge = horizontal ? forward ? lastX : cell.x() : forward ? lastY : cell.y();
-            if (forward ? edge <= coordinate : edge >= coordinate - 1)
-                continue;
-            Point cellEdge = horizontal ? new Point(edge, Math.clamp(from.y(), cell.y(), lastY)) :
-                    new Point(Math.clamp(from.x(), cell.x(), lastX), edge);
-            if (nearestCellEdge == null ||
-                Math.hypot(cellEdge.x() - from.x(), cellEdge.y() - from.y()) <
-                Math.hypot(nearestCellEdge.x() - from.x(), nearestCellEdge.y() - from.y()))
-                nearestCellEdge = cellEdge;
-        }
+        Point nearestCellEdge =
+                cells.stream()
+                     .filter(cell -> cell.contains(from.x(), from.y()))
+                     .min(Comparator.comparingLong(cell -> (long) cell.width() * cell.height()))
+                     .map(cell -> cellEdge(cell, from, horizontal, forward))
+                     .or(() -> cells.stream()
+                                    .map(cell -> cellEdge(cell, from, horizontal, forward))
+                                    .filter(Objects::nonNull)
+                                    .min(Comparator.comparingDouble(cellEdge -> Math.hypot(
+                                            cellEdge.x() - from.x(), cellEdge.y() - from.y()))))
+                     .orElse(null);
         if (nearestCellEdge == null)
             return null;
         return screenManager.nearestScreenContaining(nearestCellEdge.x(), nearestCellEdge.y())
                             .rectangle()
                             .nearestPoint(nearestCellEdge.x(), nearestCellEdge.y());
+    }
+
+    /**
+     * The nearest point of the edge of the cell on that side of the point, or null when the edge
+     * is not past the point. Backward, a point 1 pixel past the edge is not past it.
+     */
+    private static Point cellEdge(Rectangle cell, Point from, boolean horizontal, boolean forward) {
+        int coordinate = (int) (horizontal ? from.x() : from.y());
+        int lastX = cell.x() + cell.width() - 1;
+        int lastY = cell.y() + cell.height() - 1;
+        int edge = horizontal ? forward ? lastX : cell.x() : forward ? lastY : cell.y();
+        if (forward ? edge <= coordinate : edge >= coordinate - 1)
+            return null;
+        return horizontal ? new Point(edge, Math.clamp(from.y(), cell.y(), lastY)) :
+                new Point(Math.clamp(from.x(), cell.x(), lastX), edge);
     }
 
     /**

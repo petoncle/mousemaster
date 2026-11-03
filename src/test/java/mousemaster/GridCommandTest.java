@@ -240,6 +240,26 @@ class GridCommandTest {
     }
 
     @Test
+    void inAUiHintTheTargetGoesToTheEdgeOfItsElement() throws IOException {
+        uiElements = List.of(new UiElement(new Rectangle(100, 500, 300, 40)),
+                new UiElement(new Rectangle(230, 560, 70, 40)));
+        start("""
+                idle-mode.to.ui-hint-mode=+u
+                ui-hint-mode.to.idle-mode=+esc
+                ui-hint-mode.mouse.smooth-jump-enabled=false
+                ui-hint-mode.overlay.type=ui-accessibility
+                ui-hint-mode.overlay.selection-keys=a b c d
+                """);
+        hintManager.mouseMoved(250, 520);
+        switchMode("ui-hint-mode");
+        hintManager.completePendingUiHintQuery();
+        hintManager.moveTargetToCellLeft();
+        hintManager.mouseMoved(250, 520);
+        hintManager.moveTargetToCellRight();
+        assertEquals(List.of(100, 520, 399, 520), mousePositions);
+    }
+
+    @Test
     void aGridCenteredOnTheMouseFollowsItBetweenTargetMoves() throws IOException {
         start("""
                 grid-mode.hint.area-width-percent=0.5
