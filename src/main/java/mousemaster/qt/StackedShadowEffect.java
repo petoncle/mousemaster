@@ -30,11 +30,6 @@ public class StackedShadowEffect extends QtDropShadowEffect {
 
     private int stackCount;
     private boolean transparencyOnly;
-    private boolean preWarming;
-
-    public void setPreWarming(boolean preWarming) {
-        this.preWarming = preWarming;
-    }
 
     public void setStackCount(int stackCount) {
         this.stackCount = stackCount;
@@ -53,7 +48,7 @@ public class StackedShadowEffect extends QtDropShadowEffect {
         long before = System.nanoTime();
         drawShadow(painter);
         long durationMillis = (System.nanoTime() - before) / 1000000;
-        if (durationMillis >= SLOW_DRAW_MS && !preWarming)
+        if (durationMillis >= SLOW_DRAW_MS)
             logger.debug("Blurred a shadow in " + durationMillis + "ms");
     }
 
@@ -161,6 +156,22 @@ public class StackedShadowEffect extends QtDropShadowEffect {
         }
         image.dispose();
         return new QImage(pixels, w, h, QImage.Format.Format_ARGB32_Premultiplied);
+    }
+
+    /**
+     * Renders the shadow {@code sourceImage} casts, as the effect draws it under the source.
+     * Consumes {@code sourceImage}. Dispose the returned image, never the argument.
+     */
+    public static ShadowImage renderShadow(QImage sourceImage, QColor shadowColor,
+                                           double blurRadius, double horizontalOffset,
+                                           double verticalOffset) {
+        QPixmap sourcePixmap = QPixmap.fromImage(sourceImage);
+        sourceImage.dispose();
+        QImage shadowImage = blurredShadow(sourcePixmap, horizontalOffset, verticalOffset,
+                blurRadius);
+        sourcePixmap.dispose();
+        tint(shadowImage, shadowColor, null);
+        return new ShadowImage(shadowImage, 0, 0);
     }
 
     /**

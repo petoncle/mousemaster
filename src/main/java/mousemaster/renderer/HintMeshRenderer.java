@@ -32,6 +32,8 @@ public final class HintMeshRenderer {
     private static final Logger logger = LoggerFactory.getLogger(HintMeshRenderer.class);
 
     private static final long SLOW_PAINT_MS = 5;
+    /** What a layer costs besides its blur, whatever its size, in pixels that would be blurred in the same time. */
+    private static final long LAYER_COST_PIXELS = 50_000;
 
     private final Map<HintMesh, PixmapAndPosition> hintMeshPixmaps = new HashMap<>();
     private final Map<HintMesh, Map<List<Key>, Rectangle>> hintBoxRectanglesByHintMeshKey =
@@ -3633,7 +3635,7 @@ public final class HintMeshRenderer {
         }
     }
 
-    /** Whether a layer each blurs fewer pixels than one layer over them all. */
+    /** Whether a layer each costs less than one layer over them all. */
     private static boolean layerPerLabel(List<HintLabel> labels, QtHintFontStyle style) {
         if (style == null || labels.isEmpty())
             return false;
@@ -3641,70 +3643,12 @@ public final class HintMeshRenderer {
             return false;
         int padding = shadowPadding(style.defaultStyle());
         List<Rectangle> ink = labelInk(labels);
-        long paddedInkArea = 0;
+        long layersCost = (ink.size() - 1) * LAYER_COST_PIXELS;
         for (Rectangle rectangle : ink)
-            paddedInkArea += (long) (rectangle.width() + 2 * padding) *
-                             (rectangle.height() + 2 * padding);
+            layersCost += (long) (rectangle.width() + 2 * padding) *
+                          (rectangle.height() + 2 * padding);
         Rectangle union = Rectangle.union(ink);
-        return paddedInkArea < (long) union.width() * union.height();
-    }
-
-    /**
-     * Applies shadow to a label layer. When text is fully opaque, uses Qt's
-     * QGraphicsDropShadowEffect directly on the widget (fast path). When text
-     * has transparency, pre-renders the shadow off-screen and punches out the
-     * text shape so shadow doesn't show through transparent text.
-     */
-    private void applyLabelShadow(HintPaintLayer layer,
-                                         List<HintLabel> labels,
-                                         QtHintFontStyle style,
-                                         boolean hasSelectedKeys,
-                                         int containerWidth,
-                                         int containerHeight,
-                                         double screenScale) {
-        // Shadowing a layer that draws nothing still costs a blur of the whole layer, which for a
-        // screen-sized hint mesh is tens of milliseconds.
-        if (labels.isEmpty() || style.invisible(hasSelectedKeys))
-            return;
-        if (style.perKeyShadow()) {
-            if (!preWarming)
-                logger.debug("Hint label shadow: per-key shadow, pre-rendering per group");
-            preRenderLabelShadow(layer, labels, style,
-                    containerWidth, containerHeight, screenScale);
-            return;
-        }
-        QtFontStyle defaultStyle = style.defaultStyle();
-        if (defaultStyle.shadowColor().alpha() == 0)
-            return;
-        if (!style.hasTransparency() &&
-            defaultStyle.shadowStackCount() == 1) {
-            if (!preWarming)
-                logger.debug("Hint label shadow: opaque text, applying effect directly");
-            if (!layer.fitToInk(labelInk(labels), shadowPadding(defaultStyle),
-                    containerWidth, containerHeight))
-                return;
-            StackedShadowEffect effect = new StackedShadowEffect();
-            effect.setPreWarming(preWarming);
-            effect.setBlurRadius(defaultStyle.shadowBlurRadius());
-            effect.setOffset(defaultStyle.shadowHorizontalOffset(),
-                    defaultStyle.shadowVerticalOffset());
-            effect.setColor(defaultStyle.shadowColor());
-            effect.setStackCount(defaultStyle.shadowStackCount());
-            layer.setGraphicsEffect(effect);
-        }
-        else {
-            if (defaultStyle.shadowStackCount() != 1)
-                // Even though multiple stacks can be done with StackedShadowEffect, it
-                // is faster to do it this way.
-                logger.debug("Hint label shadow: shadow stack count is " +
-                             defaultStyle.shadowStackCount() +
-                             ", pre-rendering off-screen");
-            else
-                if (!preWarming)
-                    logger.debug("Hint label shadow: transparent text, pre-rendering off-screen");
-            preRenderLabelShadow(layer, labels, style,
-                    containerWidth, containerHeight, screenScale);
-        }
+        return layersCost < (long) union.width() * union.height();
     }
 
     /** How far the shadow of a glyph reaches past it: the blur, plus how far it is offset. */
@@ -3727,17 +3671,25 @@ public final class HintMeshRenderer {
         return ink;
     }
 
-    private void preRenderLabelShadow(HintPaintLayer layer,
-                                             List<HintLabel> labels,
-                                             QtHintFontStyle style,
-                                             int containerWidth,
-                                             int containerHeight,
-                                             double screenScale) {
+    /** Pre-renders the shadow of a label layer, punched out of transparent text that would show it. */
+    private void applyLabelShadow(HintPaintLayer layer,
+                                         List<HintLabel> labels,
+                                         QtHintFontStyle style,
+                                         boolean hasSelectedKeys,
+                                         int containerWidth,
+                                         int containerHeight,
+                                         double screenScale) {
+        // Shadowing a layer that draws nothing still costs a blur of the whole layer, which for a
+        // screen-sized hint mesh is tens of milliseconds.
+        if (labels.isEmpty() || style.invisible(hasSelectedKeys))
+            return;
         if (style.perKeyShadow()) {
             preRenderPerGroupShadow(layer, labels, containerWidth, containerHeight, screenScale);
             return;
         }
         QtFontStyle shadowStyle = style.defaultStyle();
+        if (shadowStyle.shadowColor().alpha() == 0)
+            return;
         if (!layer.fitToInk(labelInk(labels), shadowPadding(shadowStyle),
                 containerWidth, containerHeight))
             return;
@@ -3757,9 +3709,16 @@ public final class HintMeshRenderer {
         }
         srcPainter.end();
         srcPainter.dispose();
-        StackedShadowEffect.ShadowImage shadow = StackedShadowEffect.renderShadowOnly(sourceImage, shadowStyle.shadowColor(),
-                shadowStyle.shadowBlurRadius(), shadowStyle.shadowHorizontalOffset(),
-                shadowStyle.shadowVerticalOffset(), width, height);
+        StackedShadowEffect.ShadowImage shadow =
+                style.hasTransparency() || shadowStyle.shadowStackCount() != 1 ?
+                        StackedShadowEffect.renderShadowOnly(sourceImage,
+                                shadowStyle.shadowColor(), shadowStyle.shadowBlurRadius(),
+                                shadowStyle.shadowHorizontalOffset(),
+                                shadowStyle.shadowVerticalOffset(), width, height) :
+                        StackedShadowEffect.renderShadow(sourceImage, shadowStyle.shadowColor(),
+                                shadowStyle.shadowBlurRadius(),
+                                shadowStyle.shadowHorizontalOffset(),
+                                shadowStyle.shadowVerticalOffset());
         QImage shadowImage = StackedShadowEffect.bakeStacking(shadow.image(), shadowStyle.shadowStackCount());
         QPixmap shadowPixmap = QPixmap.fromImage(shadowImage);
         layer.setShadowPixmap(shadowPixmap,
