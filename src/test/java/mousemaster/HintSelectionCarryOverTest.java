@@ -131,11 +131,52 @@ class HintSelectionCarryOverTest {
                         ui-hint-mode.clear.position-history=+c
                         """))), KeyboardLayout.keyboardLayoutByShortName.get("uk-qwerty"));
         ModeMap modeMap = configuration.modeMap();
+        HintManager hintManager = hintManager(configuration);
+        hintManager.modeChanged(modeMap.get("grid-mode"));
+        hintManager.modeChanged(modeMap.get("ui-hint-mode"));
+        hintManager.clearPositionHistory("position-history");
+        hintManager.completePendingUiHintQuery();
+        assertEquals(3, hintManager.hintMesh().hints().size());
+    }
+
+    @Test
+    void aHintPickedInAModeEnteredBackWithTheSameHintsIsSavedOnIt() throws IOException {
+        Configuration configuration = ConfigurationParser.parse(PropertiesReader.readPropertiesFile(
+                new BufferedReader(new StringReader("""
+                        idle-mode.to.ui-hint-mode=+u
+                        ui-hint-mode.to.idle-mode=+esc
+                        ui-hint-mode.to.pick-mode=+x
+                        ui-hint-mode.overlay.selection-keys=a b c
+                        ui-hint-mode.overlay.type=ui-accessibility
+                        ui-hint-mode.overlay.mouse-follows-target=false
+                        ui-hint-mode.overlay.saved-hints=position-history
+                        ui-hint-mode.save.position-history=+s
+                        pick-mode.overlay=ui-hint-mode.overlay
+                        pick-mode.to.ui-hint-mode=+h
+                        """))), KeyboardLayout.keyboardLayoutByShortName.get("uk-qwerty"));
+        ModeMap modeMap = configuration.modeMap();
+        HintManager hintManager = hintManager(configuration);
+        hintManager.modeChanged(modeMap.get("ui-hint-mode"));
+        hintManager.completePendingUiHintQuery();
+        List<Hint> hints = hintManager.hintMesh().hints();
+        for (Hint hint : hints.subList(0, 2)) {
+            for (Key key : hint.keySequence())
+                hintManager.selectHintKey(key);
+            // A mutation of the mode, such as one by an animation the selection starts.
+            hintManager.modeChanged(modeMap.get("ui-hint-mode"));
+            hintManager.saveCurrentPosition("position-history");
+            hintManager.modeChanged(modeMap.get("pick-mode"));
+            hintManager.modeChanged(modeMap.get("ui-hint-mode"));
+        }
+        assertEquals(hints.subList(0, 2), hintManager.hintMesh().savedHints());
+    }
+
+    private static HintManager hintManager(Configuration configuration) {
         Future<List<UiElement>> found = CompletableFuture.completedFuture(
                 List.of(new UiElement(new Rectangle(10, 10, 40, 20)), new UiElement(new Rectangle(500, 300, 40, 20)), new UiElement(new Rectangle(900, 700, 40, 20))));
         ScreenManager screenManager = new ScreenManager(
                 () -> Set.of(new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1)));
-        HintManager hintManager = new HintManager(configuration.positionHistoryConfigurationByName(),
+        return new HintManager(configuration.positionHistoryConfigurationByName(),
                 screenManager, new MouseManager(screenManager, proxy(MouseController.class)),
                 proxy(Overlay.class), new UiAutomation() {
                     @Override
@@ -148,11 +189,6 @@ class HintSelectionCarryOverTest {
                         return found;
                     }
                 }, () -> new App("test.exe"), new KeyRedactor(KeyRedaction.NONE), null);
-        hintManager.modeChanged(modeMap.get("grid-mode"));
-        hintManager.modeChanged(modeMap.get("ui-hint-mode"));
-        hintManager.clearPositionHistory("position-history");
-        hintManager.completePendingUiHintQuery();
-        assertEquals(3, hintManager.hintMesh().hints().size());
     }
 
     @SuppressWarnings("unchecked")

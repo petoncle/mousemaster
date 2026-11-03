@@ -781,12 +781,13 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
         boolean hintMeshUnchanged =
                 newHintMesh.equals(hintMesh) && newZoom.equals(currentZoom);
-        if (hintMeshUnchanged && currentMode != null &&
-            hintMeshConfiguration.equals(currentMode.hintMesh()))
-            return;
+        boolean hintMeshConfigurationUnchanged = currentMode != null &&
+                hintMeshConfiguration.equals(currentMode.hintMesh());
         currentMode = newMode;
         currentZoom = newZoom;
         screenFilter = newScreenFilter;
+        if (hintMeshUnchanged && hintMeshConfigurationUnchanged)
+            return;
         activateHintMesh(newMode, newHintMesh, hintMeshConfiguration, newScreenFilter,
                 newZoom, hintMeshUnchanged);
     }
