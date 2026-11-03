@@ -1122,7 +1122,8 @@ hint-mode.overlay.box-shadow-stack-count=1
 hint-mode.overlay.box-shadow-horizontal-offset=2
 hint-mode.overlay.box-shadow-vertical-offset=2
 
-# Box size relative to the grid cell (for the hint grid only)
+# Box size relative to the grid cell (for the hint grid only). Below 1, a box is at least as
+# large as its label and padding, so 0 fits each box to its label.
 hint-mode.overlay.box-width-percent=1.0
 hint-mode.overlay.box-height-percent=1.0
 

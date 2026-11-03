@@ -1672,8 +1672,12 @@ public final class HintMeshRenderer {
                             boxBorderRadius
                     );
             hintBoxes.add(hintBox);
-            int scaledBoxWidth = (int) (fullBoxWidth * style.boxWidthPercent());
-            int scaledBoxHeight = (int) (fullBoxHeight * style.boxHeightPercent());
+            int scaledBoxWidth = style.boxWidthPercent() == 1 ? fullBoxWidth : Math.max(
+                    (int) (fullBoxWidth * style.boxWidthPercent()),
+                    (int) ((advancePixels + 2 * boxHorizontalPadding) / qtScaleFactor));
+            int scaledBoxHeight = style.boxHeightPercent() == 1 ? fullBoxHeight : Math.max(
+                    (int) (fullBoxHeight * style.boxHeightPercent()),
+                    (int) ((lineHeightPixels + 2 * boxVerticalPadding) / qtScaleFactor));
             boolean boxSizedByLabel =
                     !isHintPartOfGrid && hintLabel.tightHintBoxWidth >= scaledBoxWidth;
             int boxWidth = isHintPartOfTiledGrid ? scaledBoxWidth :
