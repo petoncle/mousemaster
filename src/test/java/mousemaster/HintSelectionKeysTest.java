@@ -88,6 +88,12 @@ class HintSelectionKeysTest {
                 () -> parse(gridMode + "grid-mode.select=+a\n"));
     }
 
+    @Test
+    void deselectAllWithoutSelectionKeysIsRejected() {
+        assertThrows(IllegalArgumentException.class,
+                () -> parse(gridMode + "grid-mode.deselect-all=wait-0\n"));
+    }
+
     private static Set<Combo> combos(Mode mode, Class<? extends Command> commandType) {
         return mode.comboMap().commandsByCombo().entrySet().stream()
                    .filter(entry -> entry.getValue().stream().anyMatch(commandType::isInstance))

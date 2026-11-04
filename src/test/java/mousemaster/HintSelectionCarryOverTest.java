@@ -115,6 +115,13 @@ class HintSelectionCarryOverTest {
         assertEquals(hints, hintManager.hintMesh().hints());
         assertEquals(keySequence.subList(0, keySequence.size() - 1),
                 hintManager.hintMesh().selectedKeySequence());
+        hintManager.deselectAllHintKeys();
+        assertEquals(List.of(), hintManager.hintMesh().selectedKeySequence());
+        hintManager.modeChanged(modeMap.get("grid-mode"));
+        hintManager.modeChanged(modeMap.get("ui-hint-mode"));
+        assertEquals(1, queries.size());
+        assertEquals(List.of(), hintManager.hintMesh().selectedKeySequence(),
+                "the hints come back the way deselect-all left them");
     }
 
     @Test

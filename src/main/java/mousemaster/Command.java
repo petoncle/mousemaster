@@ -103,6 +103,7 @@ public sealed interface Command {
 
     record SelectHintKey() implements Command {}
     record DeselectHintKey() implements Command {}
+    record DeselectAllHintKeys() implements Command {}
 
     record MutateMode(String modeName, ModePropertyPath propertyPath, Object newPropertyValue, Combo combo) implements Command {
         @Override

@@ -1890,6 +1890,14 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public void deselectHintKey() {
+        deselectHintKeys(1);
+    }
+
+    public void deselectAllHintKeys() {
+        deselectHintKeys(Integer.MAX_VALUE);
+    }
+
+    private void deselectHintKeys(int keyCount) {
         if (pendingUiHintQuery != null)
             // Let user perform an action on deselect (e.g. switch mode) even when UI hint query is ongoing.
             return;
@@ -1903,7 +1911,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (!selectedKeySequence.isEmpty()) {
             hintMesh = hintMesh.builder()
                                .selectedKeySequence(selectedKeySequence.subList(0,
-                                       selectedKeySequence.size() - 1))
+                                       Math.max(0, selectedKeySequence.size() - keyCount)))
                                .build();
             HintMeshKey hintMeshKey =
                     new HintMeshKey(hintMeshConfiguration.type(),

@@ -178,6 +178,7 @@ public class ConfigurationParser {
                 new Property<>("stop", Map.of()),
                 new Property<>("select", Map.of()),
                 new Property<>("deselect", Map.of()),
+                new Property<>("deselect-all", Map.of()),
                 new Property<>("break-combo-preparation", Map.of()),
                 new Property<>("break-macro", Map.of()),
                 new Property<>("exit", Map.of()),
@@ -693,12 +694,13 @@ public class ConfigurationParser {
         for (ModeBuilder mode : modeByName.values()) {
             checkMissingProperties(mode);
             if (mode.hintMesh.builder.enabled() && hintSelectionKeys(mode).isEmpty() &&
-                Stream.of(mode.comboMap.select.builder, mode.comboMap.deselect.builder)
+                Stream.of(mode.comboMap.select.builder, mode.comboMap.deselect.builder,
+                                mode.comboMap.deselectAll.builder)
                       .anyMatch(commandsByCombo -> commandsByCombo.keySet().stream()
                                                                   .anyMatch(Objects::nonNull)))
                 throw new IllegalArgumentException(
                         "Invalid definition of overlay for " + mode.modeName +
-                        ": select and deselect need overlay.selection-keys");
+                        ": select, deselect and deselect-all need overlay.selection-keys");
             if (mode.hintMesh.builder.enabled() && mode.comboMap.select.builder.isEmpty()) {
                 logger.trace(mode.modeName + ".select is missing, using selection keys");
                 for (Combo combo : deriveSelectCombosFromHintSelectionKeys(mode,
@@ -2073,6 +2075,9 @@ public class ConfigurationParser {
                     childPropertiesByParentProperty, nonRootPropertyKeys);
             case "deselect" -> mode.comboMap.deselect.parseReferenceOr(propertyKey, propertyValue,
                     commandsByCombo -> setCommand(mode.comboMap.deselect.builder, propertyValue, new DeselectHintKey(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                    childPropertiesByParentProperty, nonRootPropertyKeys);
+            case "deselect-all" -> mode.comboMap.deselectAll.parseReferenceOr(propertyKey, propertyValue,
+                    commandsByCombo -> setCommand(mode.comboMap.deselectAll.builder, propertyValue, new DeselectAllHintKeys(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                     childPropertiesByParentProperty, nonRootPropertyKeys);
             case "break-combo-preparation" -> mode.comboMap.breakComboPreparation.parseReferenceOr(propertyKey, propertyValue,
                     commandsByCombo -> setCommand(mode.comboMap.breakComboPreparation.builder,  propertyValue, new BreakComboPreparation(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
@@ -4714,6 +4719,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> resetVariables;
         Property<Map<Combo, List<Command>>> select;
         Property<Map<Combo, List<Command>>> deselect;
+        Property<Map<Combo, List<Command>>> deselectAll;
 
         public ComboMapConfigurationBuilder(String modeName,
                                             Map<PropertyKey, Property<?>> propertyByKey) {
@@ -4751,6 +4757,7 @@ public class ConfigurationParser {
             resetVariables = new ComboMapProperty("reset-variables", modeName, propertyByKey);
             select = new ComboMapProperty("select", modeName, propertyByKey);
             deselect = new ComboMapProperty("deselect", modeName, propertyByKey);
+            deselectAll = new ComboMapProperty("deselect-all", modeName, propertyByKey);
         }
 
           private static class ComboMapProperty extends Property<Map<Combo, List<Command>>> {
@@ -4804,6 +4811,7 @@ public class ConfigurationParser {
             Map<Combo, List<Command>> commandsByCombo = new LinkedHashMap<>();
             add(commandsByCombo, select.builder);
             add(commandsByCombo, deselect.builder);
+            add(commandsByCombo, deselectAll.builder);
             add(commandsByCombo, to.builder);
             add(commandsByCombo, startMove.builder);
             add(commandsByCombo, stopMove.builder);

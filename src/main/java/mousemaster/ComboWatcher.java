@@ -551,7 +551,7 @@ public class ComboWatcher {
                              .anyMatch(command -> command instanceof Command.SwitchMode switchMode &&
                                                   switchMode.modeName().equals(baseMode.name()));
         Mode beforeMode = baseMode;
-        runCommands(commandsToRun);
+        runCommands(commandsToRun, false);
         combosWaitingForLastMoveToComplete.removeAll(completedCombosWaitingForLastMoveToComplete);
         boolean comboPreparationAlreadyBroken = false;
         if (hasAsyncSelfSwitch) {
@@ -1150,7 +1150,8 @@ public class ComboWatcher {
                 Predicate<Command> switchModeOrHintPredicate =
                         c -> c instanceof Command.SwitchMode ||
                              c instanceof Command.SelectHintKey ||
-                             c instanceof Command.DeselectHintKey;
+                             c instanceof Command.DeselectHintKey ||
+                             c instanceof Command.DeselectAllHintKeys;
                 if (ignoreSwitchModeAndHintCommands &&
                     commands.stream()
                             .anyMatch(switchModeOrHintPredicate)) {
@@ -1248,7 +1249,7 @@ public class ComboWatcher {
             }
         }
         long beforeRunCommandsNanos = System.nanoTime();
-        runCommands(commandsToRun);
+        runCommands(commandsToRun, event != null);
         long runCommandsMs = (long) ((System.nanoTime() - beforeRunCommandsNanos) / 1e6);
         if (runCommandsMs >= SLOW_COMMANDS_MS && logger.isDebugEnabled())
             logger.debug("Ran commands in " + runCommandsMs + "ms");
@@ -1256,22 +1257,23 @@ public class ComboWatcher {
     }
 
 
-    private void runCommands(List<Command> commandsToRun) {
+    private void runCommands(List<Command> commandsToRun, boolean ofKeyEvent) {
         if (commandsToRun.isEmpty())
             return;
         Key lastEventKey = lastKeyEvent == null ? null : lastKeyEvent.key();
         List<Command> commands = new ArrayList<>(commandsToRun);
         // Run hint selection/deselection commands first, before variable and
-        // mutation commands. If a hint command supersedes other commands,
-        // skip the rest.
+        // mutation commands. If a hint command supersedes the other commands of
+        // its key event, skip the rest.
         for (int i = 0; i < commands.size(); i++) {
             Command command = commands.get(i);
             if (command instanceof Command.SelectHintKey ||
-                command instanceof Command.DeselectHintKey) {
+                command instanceof Command.DeselectHintKey ||
+                command instanceof Command.DeselectAllHintKeys) {
                 commandRunner.run(command, lastEventKey);
                 commands.remove(i);
                 i--;
-                if (hintManager.pollLastHintCommandSupercedesOtherCommands()) {
+                if (hintManager.pollLastHintCommandSupercedesOtherCommands() && ofKeyEvent) {
                     if (!commands.isEmpty() && logger.isDebugEnabled())
                         logger.debug("Ignoring commands (superseded by hint command): " +
                                      summarizeCommands(commands));

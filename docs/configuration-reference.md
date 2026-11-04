@@ -1087,12 +1087,17 @@ hint-mode.overlay.label-override=plus
 ```
 
 - **`selection-keys`**: Keys that can be pressed to select hints. Without selection keys (the
-  default), the hints have no labels and cannot be selected, and `select` and `deselect` are
-  rejected. `none` gives no selection keys, for example in a mutation that shows the labels only
-  while a key is pressed: `grid-mode.overlay.selection-keys=none | _{labels} -> hintkey`.
-  `select` then works with the keys of every branch.
+  default), the hints have no labels and cannot be selected, and `select`, `deselect` and
+  `deselect-all` are rejected. `none` gives no selection keys, for example in a mutation that
+  shows the labels only while a key is pressed:
+  `grid-mode.overlay.selection-keys=none | _{labels} -> hintkey`. `select` then works with the
+  keys of every branch.
 - **`select`**: Combo that triggers hint selection. For example, if you want to be able to hold leftshift while pressing a hint selection key, then use `hint-mode.select=_{none | leftshift} +selectionkey`
 - **`deselect`**: Combo that deselects the last selection key
+- **`deselect-all`**: Combo that deselects every selection key typed so far. A selected hint that
+  leads to a mode with other hints keeps the keys before its last one when its hints show again,
+  so a neighbor is one key away: `deselect-all` in the mode that brings the hints back starts
+  them from nothing instead (e.g., `pick-mode.deselect-all=wait-0` after a refine)
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
 - **`mouse-follows-target`**: Whether the mouse follows the target (default `true`). The
   target is a position that follows the mouse. Selecting a hint and `move-target-to` move it to
