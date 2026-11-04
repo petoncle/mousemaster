@@ -238,7 +238,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         HintGridAreaSizeSource source = type.area().size().source();
         return (source == HintGridAreaSizeSource.ACTIVE_SCREEN ||
                 source == HintGridAreaSizeSource.ALL_SCREENS) &&
-               type.area().center() == HintGridAreaCenter.ACTIVE_SCREEN_CENTER;
+               type.area().centerOrDefault() == HintGridAreaCenter.ACTIVE_SCREEN_CENTER;
     }
 
     public HintMesh hintMesh() {
@@ -487,7 +487,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             return;
         moveTo(point);
         if (currentMode.hintMesh().type().type() == HintMeshTypeType.GRID &&
-            currentMode.hintMesh().type().area().center() == HintGridAreaCenter.MOUSE)
+            currentMode.hintMesh().type().area().centerOrDefault() == HintGridAreaCenter.MOUSE)
             modeChanged(currentMode);
     }
 
@@ -496,7 +496,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             return;
         moveTargetTo(point);
         if (currentMode.hintMesh().type().type() == HintMeshTypeType.GRID &&
-            currentMode.hintMesh().type().area().center() == HintGridAreaCenter.MOUSE)
+            currentMode.hintMesh().type().area().centerOrDefault() == HintGridAreaCenter.MOUSE)
             modeChanged(currentMode);
     }
 
@@ -576,7 +576,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                         .map(hint -> unzoomedHintCell(hint, currentZoom))
                                         .toList();
         if (currentMode.hintMesh().type().type() != HintMeshTypeType.GRID ||
-            currentMode.hintMesh().type().area().center() != HintGridAreaCenter.MOUSE)
+            currentMode.hintMesh().type().area().centerOrDefault() != HintGridAreaCenter.MOUSE)
             return cells;
         Point center = Rectangle.union(cells).center();
         int deltaX = mouseX - (int) center.x();
@@ -661,7 +661,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         else if (hintMeshConfiguration.type().type() == HintMeshTypeType.GRID &&
                  hintMeshConfiguration.type().area().size().source() ==
                  HintGridAreaSizeSource.ACTIVE_SCREEN &&
-                 hintMeshConfiguration.type().area().center() ==
+                 hintMeshConfiguration.type().area().centerOrDefault() ==
                  HintGridAreaCenter.LAST_SELECTED_HINT) {
             // When going back from hint3-3 to hint3-2, we find the selected hint of hint1 that led to hint3-2.
             // (Because currently, last selected hint is the hint selected by hint3-2.)
@@ -687,7 +687,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMeshConfiguration.type().area().size().source() ==
             HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL) {
             HintGridAreaSize size = hintMeshConfiguration.type().area().size();
-            HintGridAreaCenter center = hintMeshConfiguration.type().area().center();
+            HintGridAreaCenter center = hintMeshConfiguration.type().area().centerOrDefault();
             if (hintWasJustSelected) {
                 if (pendingSelectedCell != null)
                     cellGridLevelStack.push(
@@ -986,14 +986,14 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (area.size().source() == HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL)
             return cellGridArea(lastSelectedHintCell == null ?
                             screenManager.activeScreen().rectangle() : lastSelectedHintCell,
-                    area.size(), area.center());
+                    area.size(), area.centerOrDefault());
         Rectangle sourceRectangle = switch (area.size().source()) {
             case ACTIVE_WINDOW -> overlay.activeWindowRectangle();
             case LAST_OVERLAY_AREA -> lastOverlayArea();
             default -> screenManager.activeScreen().rectangle();
         };
         return scaledArea(sourceRectangle, area.size(),
-                areaCenter(area.center(), lastSelectedHintPoint),
+                areaCenter(area.centerOrDefault(), lastSelectedHintPoint),
                 screenManager.activeScreen().scale());
     }
 
@@ -1131,7 +1131,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                 // Areas resolve to screen space: a screen source is already there, a
                 // desktop region is mapped through the zoom.
                 if (areaOverride != null) {
-                    Rectangle centeredAreaOverride = area.center() == HintGridAreaCenter.MOUSE ?
+                    Rectangle centeredAreaOverride =
+                            area.centerOrDefault() == HintGridAreaCenter.MOUSE ?
                             new Rectangle(mouseX - areaOverride.width() / 2,
                                     mouseY - areaOverride.height() / 2, areaOverride.width(),
                                     areaOverride.height()) : areaOverride;
@@ -1151,7 +1152,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                         case LAST_OVERLAY_AREA -> zoom.zoomedRectangle(lastOverlayArea());
                         default -> throw new IllegalStateException();
                     };
-                    gridCenter = switch (area.center()) {
+                    gridCenter = switch (area.centerOrDefault()) {
                         case ACTIVE_SCREEN_CENTER ->
                                 activeScreen.rectangle().center();
                         case MOUSE -> zoomedPoint(new Point(mouseX, mouseY), zoom);

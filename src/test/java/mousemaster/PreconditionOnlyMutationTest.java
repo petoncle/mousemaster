@@ -137,6 +137,16 @@ class PreconditionOnlyMutationTest {
     }
 
     @Test
+    void aMutatedAreaIsCenteredByItsNewArea() {
+        load("idle-mode.overlay.area=active-screen | _{isidling} -> active-window");
+        assertEquals(HintGridAreaCenter.ACTIVE_SCREEN_CENTER,
+                comboWatcher.getMutatedMode().hintMesh().type().area().centerOrDefault());
+        setIdling(true);
+        assertEquals(HintGridAreaCenter.ACTIVE_WINDOW_CENTER,
+                comboWatcher.getMutatedMode().hintMesh().type().area().centerOrDefault());
+    }
+
+    @Test
     void aMutationReachesAnIndicatorProperty() {
         load("idle-mode.indicator.fill-color=#FF0000 | _{isidling} -> #00FF00");
         tick();

@@ -2,6 +2,20 @@ package mousemaster;
 
 public record HintGridArea(HintGridAreaSize size, HintGridAreaCenter center) {
 
+    /** The center area-center sets, else the one of the area, which a mutation can change. */
+    public HintGridAreaCenter centerOrDefault() {
+        return center != null || size.source() == null ? center : defaultCenter(size.source());
+    }
+
+    private static HintGridAreaCenter defaultCenter(HintGridAreaSizeSource source) {
+        return switch (source) {
+            case ACTIVE_SCREEN, ALL_SCREENS -> HintGridAreaCenter.ACTIVE_SCREEN_CENTER;
+            case ACTIVE_WINDOW -> HintGridAreaCenter.ACTIVE_WINDOW_CENTER;
+            case LAST_SELECTED_HINT_CELL -> HintGridAreaCenter.LAST_SELECTED_HINT;
+            case LAST_OVERLAY_AREA -> HintGridAreaCenter.LAST_OVERLAY_AREA_CENTER;
+        };
+    }
+
     public HintGridAreaBuilder builder() {
         return new HintGridAreaBuilder(this);
     }
@@ -117,17 +131,7 @@ public record HintGridArea(HintGridAreaSize size, HintGridAreaCenter center) {
         public HintGridArea build() {
             HintGridAreaSize size = new HintGridAreaSize(source, widthPercent, heightPercent,
                     topInset, bottomInset, leftInset, rightInset);
-            return new HintGridArea(size,
-                    center != null || source == null ? center : defaultCenter(source));
-        }
-
-        private static HintGridAreaCenter defaultCenter(HintGridAreaSizeSource source) {
-            return switch (source) {
-                case ACTIVE_SCREEN, ALL_SCREENS -> HintGridAreaCenter.ACTIVE_SCREEN_CENTER;
-                case ACTIVE_WINDOW -> HintGridAreaCenter.ACTIVE_WINDOW_CENTER;
-                case LAST_SELECTED_HINT_CELL -> HintGridAreaCenter.LAST_SELECTED_HINT;
-                case LAST_OVERLAY_AREA -> HintGridAreaCenter.LAST_OVERLAY_AREA_CENTER;
-            };
+            return new HintGridArea(size, center);
         }
     }
 }
