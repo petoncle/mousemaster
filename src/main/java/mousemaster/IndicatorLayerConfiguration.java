@@ -20,10 +20,19 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                                           PositionAnchor positionAnchor,
                                           IndicatorPosition endPosition,
                                           PositionAnchor endPositionAnchor,
-                                          HintGridArea area, boolean followMouse) {
+                                          HintGridArea area, boolean follow) {
 
     public List<IndicatorPosition> positions() {
         return endPosition == null ? List.of(position) : List.of(position, endPosition);
+    }
+
+    public boolean followMouse() {
+        List<IndicatorPosition> positions = positions();
+        return follow && area.size().source() == null &&
+               !positions.contains(IndicatorPosition.PointIndicatorPosition.TARGET) &&
+               !positions.contains(IndicatorPosition.PointIndicatorPosition.LAST_SELECTED_HINT) &&
+               positions.stream().noneMatch(
+                       IndicatorPosition.PositionHistoryIndicatorPosition.class::isInstance);
     }
 
     public IndicatorLayerConfigurationBuilder builder() {
@@ -58,7 +67,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         private IndicatorPosition endPosition;
         private PositionAnchor endPositionAnchor;
         private HintGridAreaBuilder area = new HintGridAreaBuilder();
-        private Boolean followMouse;
+        private Boolean follow;
 
         public IndicatorLayerConfigurationBuilder() {
         }
@@ -90,7 +99,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             this.endPosition = layer.endPosition;
             this.endPositionAnchor = layer.endPositionAnchor;
             this.area = layer.area.builder();
-            this.followMouse = layer.followMouse;
+            this.follow = layer.follow;
         }
 
         public IndicatorLayerConfigurationBuilder enabled(boolean enabled) {
@@ -313,13 +322,13 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             return area;
         }
 
-        public IndicatorLayerConfigurationBuilder followMouse(boolean followMouse) {
-            this.followMouse = followMouse;
+        public IndicatorLayerConfigurationBuilder follow(boolean follow) {
+            this.follow = follow;
             return this;
         }
 
-        public Boolean followMouse() {
-            return followMouse;
+        public Boolean follow() {
+            return follow;
         }
 
         public void extend(IndicatorLayerConfigurationBuilder parent) {
@@ -349,24 +358,15 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             if (endPosition == null) endPosition = parent.endPosition;
             if (endPositionAnchor == null) endPositionAnchor = parent.endPositionAnchor;
             area.extend(parent.area);
-            if (followMouse == null) followMouse = parent.followMouse;
+            if (follow == null) follow = parent.follow;
         }
 
         public IndicatorLayerConfiguration build() {
-            List<IndicatorPosition> positions =
-                    endPosition == null ? List.of(position) : List.of(position, endPosition);
             return new IndicatorLayerConfiguration(enabled, z, shape, size, aspectRatio,
                     borderRadius, points, x, y, distance, angle, rotation, fillColor, fillOpacity,
                     stroke.build(), shadow.build(),
                     text, fontName, fontSize, fontWeight, textStyleSheet, position,
-                    positionAnchor, endPosition, endPositionAnchor,
-                    area.build(),
-                    followMouse && area.source() == null &&
-                    !positions.contains(IndicatorPosition.PointIndicatorPosition.TARGET) &&
-                    !positions.contains(
-                            IndicatorPosition.PointIndicatorPosition.LAST_SELECTED_HINT) &&
-                    positions.stream().noneMatch(
-                            IndicatorPosition.PositionHistoryIndicatorPosition.class::isInstance));
+                    positionAnchor, endPosition, endPositionAnchor, area.build(), follow);
         }
     }
 }

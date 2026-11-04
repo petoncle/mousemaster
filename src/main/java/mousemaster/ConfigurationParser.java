@@ -98,7 +98,7 @@ public class ConfigurationParser {
              .position(IndicatorPosition.PointIndicatorPosition.MOUSE)
              .positionAnchor(PositionAnchor.POINT)
              .endPositionAnchor(PositionAnchor.POINT)
-             .followMouse(true);
+             .follow(true);
         layer.area()
              .widthPercent(1d)
              .heightPercent(1d)
@@ -350,6 +350,7 @@ public class ConfigurationParser {
         properties = desugarOverlayKeys(properties);
         properties = desugarHintMeshEmpty(properties);
         properties = desugarIndicatorStates(properties);
+        properties = desugarIndicatorKeys(properties);
         properties = desugarMouseMovement(desugarGrid(properties));
         properties = desugarPositionHistoryAndAnimationCommands(properties);
         properties = desugarOverlaySelect(properties);
@@ -998,6 +999,35 @@ public class ConfigurationParser {
                 continue;
             }
             desugared.add(propertyKey + "=" + overlayValue);
+        }
+        return desugared;
+    }
+
+    private static final Map<String, String> INDICATOR_KEY_BY_DEPRECATED_KEY =
+            Map.of("follow-mouse", "follow");
+
+    /**
+     * Rewrites the deprecated indicator keys: a-mode.indicator.follow-mouse=false becomes
+     * a-mode.indicator.follow=false.
+     */
+    private static List<String> desugarIndicatorKeys(List<String> properties) {
+        List<String> desugared = new ArrayList<>(properties.size());
+        for (String property : properties) {
+            Matcher lineMatcher = propertyLinePattern.matcher(property);
+            Matcher keyMatcher = modeKeyPattern.matcher(
+                    lineMatcher.matches() ? lineMatcher.group(1).strip() : "");
+            if (!keyMatcher.matches() || keyMatcher.group(3) == null ||
+                !isIndicatorName(keyMatcher.group(3)) || keyMatcher.group(5) == null ||
+                !INDICATOR_KEY_BY_DEPRECATED_KEY.containsKey(keyMatcher.group(5)) ||
+                keyMatcher.group(7) != null) {
+                desugared.add(property);
+                continue;
+            }
+            String propertyKey = keyMatcher.group(1) + "." + keyMatcher.group(3) + "." +
+                                 INDICATOR_KEY_BY_DEPRECATED_KEY.get(keyMatcher.group(5));
+            logger.warn(lineMatcher.group(1).strip() + " has been deprecated: use " +
+                        propertyKey + " instead");
+            desugared.add(propertyKey + "=" + lineMatcher.group(2).strip());
         }
         return desugared;
     }
@@ -3073,7 +3103,7 @@ public class ConfigurationParser {
             case "area-left-inset" -> ModePropertyHandler.of(prefix.append("area", "size", "leftInset"), v -> parseDouble(v, true, -10_000, 10_000), v -> layer.area().leftInset(v));
             case "area-right-inset" -> ModePropertyHandler.of(prefix.append("area", "size", "rightInset"), v -> parseDouble(v, true, -10_000, 10_000), v -> layer.area().rightInset(v));
             case "area-center" -> ModePropertyHandler.of(prefix.append("area", "center"), v -> parseHintGridAreaCenter(layerName + ".area-center", v), v -> layer.area().center(v));
-            case "follow-mouse" -> ModePropertyHandler.of(prefix.append("followMouse"), v -> Boolean.parseBoolean(v), v -> layer.followMouse(v));
+            case "follow" -> ModePropertyHandler.of(prefix.append("follow"), v -> Boolean.parseBoolean(v), v -> layer.follow(v));
             // @formatter:on
             default -> null;
         };

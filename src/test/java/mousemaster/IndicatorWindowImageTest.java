@@ -80,7 +80,7 @@ class IndicatorWindowImageTest {
     void aLayerSweptAcrossTheScreenIsDrawnAgainOnlyWhenItMoves() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         IndicatorConfiguration indicator = indicator("idle-mode.indicator.enabled=true",
-                "idle-mode.indicator.follow-mouse=false",
+                "idle-mode.indicator.follow=false",
                 "idle-mode.indicator.fill-color=across-screen per-pixel center-to-edge" +
                 " #FF0000 #0000FF");
         IndicatorRenderer renderer = new IndicatorRenderer();
@@ -599,7 +599,7 @@ class IndicatorWindowImageTest {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         IndicatorConfiguration indicator = indicator("idle-mode.indicator.enabled=true",
                 "idle-mode.ripple-indicator.size=40",
-                "idle-mode.ripple-indicator.follow-mouse=false");
+                "idle-mode.ripple-indicator.follow=false");
         IndicatorRenderer renderer = new IndicatorRenderer();
         WindowImage before = render(renderer, indicator, Set.of("indicator", "ripple-indicator"),
                 500);
@@ -614,7 +614,7 @@ class IndicatorWindowImageTest {
     void anAnchoredLayerKeepsItsAnchorInEveryRendererOfTheIndicatorAndInItsCopy() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         IndicatorConfiguration indicator = indicator("idle-mode.ripple-indicator.size=40",
-                "idle-mode.ripple-indicator.follow-mouse=false");
+                "idle-mode.ripple-indicator.follow=false");
         IndicatorRenderer renderer = new IndicatorRenderer();
         WindowImage anchored = render(renderer, indicator, Set.of("ripple-indicator"), 500);
         assertEquals(anchored.x(),

@@ -54,9 +54,16 @@ class IndicatorLayerTest {
     @Test
     void aLayerFollowsTheMouseUnlessItIsAnchored() {
         Mode mode = parse("idle-mode.indicator.size=40",
-                "idle-mode.ripple-indicator.follow-mouse=false").modeMap().get(Mode.IDLE_MODE_NAME);
+                "idle-mode.ripple-indicator.follow=false").modeMap().get(Mode.IDLE_MODE_NAME);
         assertTrue(layer(mode, "indicator").followMouse());
         assertFalse(layer(mode, "ripple-indicator").followMouse());
+    }
+
+    @Test
+    void followMouseIsFollow() {
+        assertEquals(parse("idle-mode.indicator.follow=false").modeMap().get(Mode.IDLE_MODE_NAME),
+                parse("idle-mode.indicator.follow-mouse=false").modeMap()
+                                                               .get(Mode.IDLE_MODE_NAME));
     }
 
     @Test
@@ -259,7 +266,7 @@ class IndicatorLayerTest {
     @Test
     void anIndicatorSplitsIntoTheLayersThatFollowTheMouseAndTheOthers() {
         IndicatorConfiguration indicator = parse("idle-mode.indicator.enabled=true",
-                "idle-mode.sheet-indicator.follow-mouse=false").modeMap().get(Mode.IDLE_MODE_NAME)
+                "idle-mode.sheet-indicator.follow=false").modeMap().get(Mode.IDLE_MODE_NAME)
                                                               .indicator();
         assertEquals(Set.of("indicator"),
                 IndicatorRenderer.followingMouse(indicator).layerByName().keySet());
@@ -269,9 +276,9 @@ class IndicatorLayerTest {
 
     @Test
     void theLayersThatChangedAreDrawnApartFromTheOthersInZOrder() {
-        List<String> lines = List.of("idle-mode.a-indicator.follow-mouse=false",
-                "idle-mode.b-indicator.follow-mouse=false", "idle-mode.b-indicator.z=1",
-                "idle-mode.c-indicator.follow-mouse=false", "idle-mode.c-indicator.z=2");
+        List<String> lines = List.of("idle-mode.a-indicator.follow=false",
+                "idle-mode.b-indicator.follow=false", "idle-mode.b-indicator.z=1",
+                "idle-mode.c-indicator.follow=false", "idle-mode.c-indicator.z=2");
         IndicatorConfiguration indicator = parse(lines.toArray(String[]::new)).modeMap()
                 .get(Mode.IDLE_MODE_NAME).indicator();
         List<IndicatorConfiguration> current =

@@ -7022,7 +7022,7 @@
           "parameterTypes": []
         },
         {
-          "name": "followMouse",
+          "name": "follow",
           "parameterTypes": []
         },
         {

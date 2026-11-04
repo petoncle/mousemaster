@@ -43,16 +43,16 @@ class WindowLayerGroupTest {
     @Test
     void aLayerBelowTheZOfTheOverlayIsDrawnBelowTheOverlay() {
         IndicatorConfiguration indicator = indicator(
-                "idle-mode.a-indicator.follow-mouse=false", "idle-mode.a-indicator.z=-1",
-                "idle-mode.b-indicator.follow-mouse=false");
+                "idle-mode.a-indicator.follow=false", "idle-mode.a-indicator.z=-1",
+                "idle-mode.b-indicator.follow=false");
         assertEquals("a-indicator | b-indicator", windowLayerGroups(indicator, Map.of(), 0));
     }
 
     @Test
     void theZOfTheOverlayMovesTheOverlay() {
         IndicatorConfiguration indicator = indicator(
-                "idle-mode.a-indicator.follow-mouse=false", "idle-mode.a-indicator.z=-1",
-                "idle-mode.b-indicator.follow-mouse=false");
+                "idle-mode.a-indicator.follow=false", "idle-mode.a-indicator.z=-1",
+                "idle-mode.b-indicator.follow=false");
         assertEquals("a-indicator+b-indicator | ", windowLayerGroups(indicator, Map.of(), 1));
         assertEquals(" | a-indicator+b-indicator", windowLayerGroups(indicator, Map.of(), -1));
     }
@@ -61,7 +61,7 @@ class WindowLayerGroupTest {
     void aLayerThatFollowsTheMouseIsOrderedByItsZLikeTheOthers() {
         IndicatorConfiguration indicator = indicator(
                 "idle-mode.mouse-indicator.z=1",
-                "idle-mode.a-indicator.follow-mouse=false",
+                "idle-mode.a-indicator.follow=false",
                 "idle-mode.below-indicator.z=-1");
         assertEquals("*below-indicator | a-indicator *mouse-indicator",
                 windowLayerGroups(indicator, Map.of(), 0));
@@ -70,15 +70,15 @@ class WindowLayerGroupTest {
     @Test
     void atEqualZALayerThatDoesNotFollowTheMouseIsAboveOneThatDoes() {
         IndicatorConfiguration indicator = indicator(
-                "idle-mode.a-indicator.follow-mouse=false", "idle-mode.mouse-indicator.z=0");
+                "idle-mode.a-indicator.follow=false", "idle-mode.mouse-indicator.z=0");
         assertEquals(" | *mouse-indicator a-indicator", windowLayerGroups(indicator, Map.of(), 0));
     }
 
     @Test
     void aCopyIsDrawnBelowTheLayersOfItsWindow() {
         IndicatorConfiguration indicator = indicator(
-                "idle-mode.a-indicator.follow-mouse=false", "idle-mode.a-indicator.z=-1",
-                "idle-mode.b-indicator.follow-mouse=false", "idle-mode.b-indicator.z=-1");
+                "idle-mode.a-indicator.follow=false", "idle-mode.a-indicator.z=-1",
+                "idle-mode.b-indicator.follow=false", "idle-mode.b-indicator.z=-1");
         assertEquals("copy of a-indicator,a-indicator+b-indicator | ",
                 windowLayerGroups(indicator, indicatorByCopyKey(indicator, "a-indicator"), 0));
     }
@@ -86,8 +86,8 @@ class WindowLayerGroupTest {
     @Test
     void aCopyWithAHigherZIsDrawnAboveALayer() {
         IndicatorConfiguration indicator = indicator(
-                "idle-mode.a-indicator.follow-mouse=false", "idle-mode.a-indicator.z=-1",
-                "idle-mode.b-indicator.follow-mouse=false", "idle-mode.b-indicator.z=-2");
+                "idle-mode.a-indicator.follow=false", "idle-mode.a-indicator.z=-1",
+                "idle-mode.b-indicator.follow=false", "idle-mode.b-indicator.z=-2");
         assertEquals("b-indicator copy of a-indicator,a-indicator | ",
                 windowLayerGroups(indicator, indicatorByCopyKey(indicator, "a-indicator"), 0));
     }

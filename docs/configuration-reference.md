@@ -356,7 +356,7 @@ normal-mode.indicator.fill-opacity=0 | _{isleftmousepressing ismoving} -> 1
 - **`enabled`**: Whether the layer is drawn (default `false`).
 - **`z`**: The layer's order, higher on top (default `0`). The overlay is in the same order, at
   its `z`: a layer with a lower `z` is drawn behind it. At equal `z`, a layer is drawn above the
-  overlay, and a layer that does not follow the mouse above one that does.
+  overlay, and a layer that follows the cursor or its screen below the others.
 
 #### Shape
 
@@ -491,9 +491,9 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
   other side of the cursor, and a layer with a text moves inward instead of being cut. An active
   screen corner position puts the layer in that corner of the screen with the mouse cursor: `x`
   and `y` move it away from the edges. `target` and `last-selected-hint` center the layer on
-  those points of the overlay (see `mouse-follows-target`), and the layer moves with them, not
-  with the cursor. While the mouse follows the target, the target is the mouse, and a layer on it
-  is drawn again at each mouse move: to draw at the cursor, use `mouse`. A position history
+  those points of the overlay (see `mouse-follows-target`), not on the cursor. While the mouse
+  follows the target, the target is the mouse, and a layer that follows the target is drawn
+  again at each mouse move: to draw at the cursor, use `mouse`. A position history
   stands for the positions saved in it, in the order they were saved: the layer is drawn on each
   of them, and not drawn while the history is empty.
 - **`end-position`**: The same values as `position`. With `end-position`, the layer starts at
@@ -536,14 +536,17 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
   ui-hint-mode.line-indicator.end-position=click-position-history
   ui-hint-mode.line-indicator.end-position-anchor=hint-box-edge
   ```
-- **`follow-mouse`**: Whether the layer moves with the cursor (default `true`). With `false`, the
-  layer stays where it was when it was enabled, or when its keyframes started over.
+- **`follow`**: Whether the layer moves with what its positions or its `area` name (default
+  `true`): the cursor, the screen with the mouse cursor, the target, the last selected hint, the
+  saved positions or the area. A layer with an `end-position` follows each of its two positions:
+  a line from `mouse` to `target` keeps its start on the cursor and its end on the target. With
+  `false`, the layer stays where it was when it was enabled, or when its keyframes started over.
 - **`area`**: The area the layer covers. It takes the values of the overlay's `area`, with
   `area-width-percent`, `area-height-percent`, the `area-*-inset` and `area-center` (see
   [Overlay area and layout](#overlay-area-and-layout)). The layer takes its position and its size
-  from the area, so `position`, `end-position`, `size` and `aspect-ratio` cannot be set, and it does not follow
-  the mouse. The stroke is centered on the edge of the area: an inset of minus half the stroke
-  thickness puts the stroke just outside it. A box around the element of the last selected UI
+  from the area, so `position`, `end-position`, `size` and `aspect-ratio` cannot be set. The
+  stroke is centered on the edge of the area: an inset of minus half the stroke thickness puts
+  the stroke just outside it. A box around the element of the last selected UI
   hint:
   ```properties
   grid-mode.element-indicator.shape=rectangle
@@ -580,8 +583,9 @@ never drawn over a layer, even a translucent one.
 normal-mode.indicator.render-as-cursor=true
 ```
 
-`render-as-cursor` draws the layers that follow the mouse into the system cursor image, with the
-real cursor glyph composited on top, instead of into a window that follows the pointer.
+`render-as-cursor` draws the layers that follow the cursor or its screen into the system cursor
+image, with the real cursor glyph composited on top, instead of into a window that follows the
+pointer.
 Nothing can lag behind, since there is nothing to follow. Windows only (default false); it is
 ignored on macOS, where the indicator is always a window.
 
@@ -650,7 +654,7 @@ _indicator-mode.indicator.stroke-opacity=1 | _{clickburstanimation} -> 0% 1; 250
   is linear), `smoothstep`, `smootherstep`, `logarithmic`, `exponential`, `exponential-out-<n>`, or
   `step`, which holds the previous value until the keyframe.
 - Numbers ease, and so do colors with as many colors on both sides. Anything else (a shape, a
-  text, `follow-mouse`...) switches at its keyframe.
+  text, `follow`...) switches at its keyframe.
 - The frame at 100% is drawn before the animation ends.
 - Keyframes need a branch that names exactly one animation, and only indicator and `hide-cursor`
   properties take them.

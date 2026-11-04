@@ -154,6 +154,34 @@ class IndicatorEffectsTest {
         assertEquals(Set.of("line-indicator"), newlyAnchored());
     }
 
+    @Test
+    void aLayerThatFollowsIsAnchoredAgainWhenWhatItsPositionsNameMoves() {
+        load("idle-mode.target-indicator.position=target",
+                "idle-mode.line-indicator.position=mouse",
+                "idle-mode.line-indicator.end-position=target");
+        tick(0);
+        newlyAnchored();
+        tick(0);
+        assertEquals(Set.of("line-indicator"), newlyAnchored());
+        hintManager.mouseMoved(300, 300);
+        tick(0);
+        assertEquals(Set.of("target-indicator", "line-indicator"), newlyAnchored());
+    }
+
+    @Test
+    void aLayerThatDoesNotFollowStaysWhereWhatItsPositionsNameWasWhenItWasEnabled() {
+        load("idle-mode.target-indicator.position=target",
+                "idle-mode.target-indicator.follow=false",
+                "idle-mode.line-indicator.position=mouse",
+                "idle-mode.line-indicator.end-position=target",
+                "idle-mode.line-indicator.follow=false");
+        tick(0);
+        assertEquals(Set.of("target-indicator", "line-indicator"), newlyAnchored());
+        hintManager.mouseMoved(300, 300);
+        tick(0);
+        assertEquals(Set.of(), newlyAnchored());
+    }
+
     /** The layers the draws since the last call anchored. */
     private Set<String> newlyAnchored() {
         Set<String> layerNames = new HashSet<>();
@@ -188,7 +216,7 @@ class IndicatorEffectsTest {
             String hold = holdPercents[i] == 0 ? "" : holdPercents[i] + "% 10; ";
             String holdOpacity = holdPercents[i] == 0 ? "" : holdPercents[i] + "% 0.9; ";
             lines.add(ring + "enabled=false | _{rippleanimation} -> true");
-            lines.add(ring + "follow-mouse=false");
+            lines.add(ring + "follow=false");
             lines.add(ring + "fill-opacity=0");
             lines.add(ring + "stroke-thickness=2");
             lines.add(ring + "size=10 | _{rippleanimation} -> 0% 10; " + hold + "100% 60");

@@ -180,7 +180,7 @@ class AnimationTest {
         load("ripple-animation.duration-millis=100",
                 "idle-mode.start.ripple-animation=+a",
                 "idle-mode.indicator.enabled=true",
-                "idle-mode.ripple-indicator.follow-mouse=false",
+                "idle-mode.ripple-indicator.follow=false",
                 "idle-mode.ripple-indicator.size=10 | _{rippleanimation} -> 0% 10; 100% 40");
         tick(0);
         assertEquals(Set.of("ripple-indicator"), newlyAnchored());
@@ -199,7 +199,7 @@ class AnimationTest {
     @Test
     void aLayerIsAnchoredWhenItStopsFollowingTheMouse() {
         load("idle-mode.indicator.enabled=true",
-                "idle-mode.indicator.follow-mouse=true | _{a} -> false");
+                "idle-mode.indicator.follow=true | _{a} -> false");
         tick(0);
         assertEquals(Set.of(), newlyAnchored());
         comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, Key.ofName("a")));

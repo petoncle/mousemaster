@@ -147,6 +147,16 @@ class PreconditionOnlyMutationTest {
     }
 
     @Test
+    void aLayerMutatedToTheTargetFollowsTheTargetInsteadOfTheMouse() {
+        load("idle-mode.indicator.position=mouse | _{isidling} -> target");
+        assertTrue(comboWatcher.getMutatedMode().indicator().layerByName().get("indicator")
+                               .followMouse());
+        setIdling(true);
+        assertFalse(comboWatcher.getMutatedMode().indicator().layerByName().get("indicator")
+                                .followMouse());
+    }
+
+    @Test
     void aMutationReachesAnIndicatorProperty() {
         load("idle-mode.indicator.fill-color=#FF0000 | _{isidling} -> #00FF00");
         tick();

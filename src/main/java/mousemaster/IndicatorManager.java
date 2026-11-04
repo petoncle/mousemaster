@@ -151,15 +151,18 @@ public class IndicatorManager implements ModeListener {
         for (Map.Entry<String, IndicatorLayerConfiguration> entry : indicator.layerByName()
                                                                              .entrySet()) {
             IndicatorLayerConfiguration layer = entry.getValue();
-            if (layer.enabled() && (layer.positions().stream().anyMatch(
-                    position -> !Objects.equals(newPointsByPosition.get(position),
-                            pointsByPosition.get(position))) ||
-                                    layer.area().size().source() != null &&
-                                    !Objects.equals(newRectangleByArea.get(layer.area()),
-                                            rectangleByArea.get(layer.area())) ||
-                                    (layer.positionAnchor() != PositionAnchor.POINT ||
-                                     layer.endPositionAnchor() != PositionAnchor.POINT) &&
-                                    !newHintRectanglesByPoint.equals(hintRectanglesByPoint)))
+            if (layer.enabled() && layer.follow() && !layer.followMouse() &&
+                (layer.area().size().source() == null && layer.positions().stream().anyMatch(
+                        position -> !newPointsByPosition.containsKey(position)) ||
+                 layer.positions().stream().anyMatch(
+                         position -> !Objects.equals(newPointsByPosition.get(position),
+                                 pointsByPosition.get(position))) ||
+                 layer.area().size().source() != null &&
+                 !Objects.equals(newRectangleByArea.get(layer.area()),
+                         rectangleByArea.get(layer.area())) ||
+                 (layer.positionAnchor() != PositionAnchor.POINT ||
+                  layer.endPositionAnchor() != PositionAnchor.POINT) &&
+                 !newHintRectanglesByPoint.equals(hintRectanglesByPoint)))
                 layerNamesToAnchor.add(entry.getKey());
         }
         pointsByPosition = newPointsByPosition;
