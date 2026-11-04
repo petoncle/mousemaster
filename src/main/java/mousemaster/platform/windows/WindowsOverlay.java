@@ -495,14 +495,17 @@ public class WindowsOverlay implements Overlay {
                 applyCaptureExclusion(indicatorWindow.hwnd(),
                         currentZoom != null || indicatorExcludedFromCapture);
         }
-        IndicatorConfiguration followingIndicator = IndicatorRenderer.followingMouse(indicator);
-        boolean renderAsCursor =
-                followingIndicator.renderAsCursor() && followingIndicator.enabled();
-        List<IndicatorRenderer.WindowLayerGroup> windowLayerGroups =
-                IndicatorRenderer.windowLayerGroups(indicator, indicatorByCopyKey,
-                        currentWindowLayerGroups, layerNamesToAnchor, overlayZ);
+        IndicatorConfiguration cursorIndicator = IndicatorRenderer.cursorLayers(indicator);
+        boolean renderAsCursor = cursorIndicator.renderAsCursor() && cursorIndicator.enabled();
+        Map<String, IndicatorLayerConfiguration> layerByName =
+                new LinkedHashMap<>(indicator.layerByName());
         if (renderAsCursor)
-            windowLayerGroups.removeIf(IndicatorRenderer.WindowLayerGroup::followMouse);
+            layerByName.keySet().removeAll(cursorIndicator.layerByName().keySet());
+        List<IndicatorRenderer.WindowLayerGroup> windowLayerGroups =
+                IndicatorRenderer.windowLayerGroups(new IndicatorConfiguration(
+                                indicator.renderAsCursor(), indicator.excludeFromCapture(),
+                                layerByName), indicatorByCopyKey, currentWindowLayerGroups,
+                        layerNamesToAnchor, overlayZ);
         if (!renderAsCursor && !indicatorIsCursor &&
             windowLayerGroups.equals(currentWindowLayerGroups) && indicatorByCopyKey.isEmpty() &&
             this.indicatorByCopyKey.isEmpty() && layerNamesToAnchor.isEmpty())
@@ -515,9 +518,6 @@ public class WindowsOverlay implements Overlay {
         }
         mousePositionMissing = false;
         WinDef.POINT mousePosition = mouse.findMousePosition();
-        if (renderAsCursor)
-            setIndicatorCursor(followingIndicator, animating, includeOriginalCursor,
-                    mousePosition);
         for (IndicatorLayerCopyKey copyKey : indicatorByCopyKey.keySet())
             if (!this.indicatorByCopyKey.containsKey(copyKey))
                 anchoredIndicatorRendererByCopyKey
@@ -526,6 +526,9 @@ public class WindowsOverlay implements Overlay {
         showIndicator(windowLayerGroups, new LinkedHashMap<>(indicatorByCopyKey),
                 layerNamesToAnchor, pointsByPosition, rectangleByArea, hintRectanglesByPoint,
                 mousePosition);
+        if (renderAsCursor)
+            setIndicatorCursor(cursorIndicator, animating, includeOriginalCursor,
+                    mousePosition);
         if (!renderAsCursor && indicatorIsCursor) {
             // The cursor changes on the next refresh, the window once it is composited.
             Dwmapi.INSTANCE.DwmFlush();
@@ -549,8 +552,6 @@ public class WindowsOverlay implements Overlay {
             includeOriginalCursor == currentIncludeOriginalCursor &&
             animating == currentCursorAnimating)
             return;
-        for (WindowsIndicatorWindow indicatorWindow : followingIndicatorWindows)
-            indicatorWindow.show(List.of());
         IndicatorRenderer.IndicatorImage image =
                 followingIndicatorRenderer.renderCursorImage(indicator, scale,
                         hintMeshRenderer.lastSelectedHintBoxHexColor(),
@@ -740,7 +741,9 @@ public class WindowsOverlay implements Overlay {
                         currentIncludeOriginalCursor, scaleChanged);
                 currentCursorScale = scale;
             }
-            return;
+            if (currentWindowLayerGroups.stream()
+                                        .noneMatch(IndicatorRenderer.WindowLayerGroup::followMouse))
+                return;
         }
         if (followingIndicatorRenderer == null)
              return;

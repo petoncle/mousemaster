@@ -149,11 +149,15 @@ public final class IndicatorRenderer {
                            .toList();
     }
 
-    public static IndicatorConfiguration followingMouse(IndicatorConfiguration indicator) {
+    /** The layers the cursor image can draw: centered on the cursor, and not moved near a
+     *  screen edge. */
+    public static IndicatorConfiguration cursorLayers(IndicatorConfiguration indicator) {
         Map<String, IndicatorLayerConfiguration> layerByName = new LinkedHashMap<>();
         for (Map.Entry<String, IndicatorLayerConfiguration> entry : indicator.layerByName()
                                                                              .entrySet())
-            if (entry.getValue().followMouse())
+            if (entry.getValue().followMouse() &&
+                entry.getValue().position() == PointIndicatorPosition.MOUSE &&
+                entry.getValue().endPosition() == null && entry.getValue().text().isEmpty())
                 layerByName.put(entry.getKey(), entry.getValue());
         return new IndicatorConfiguration(indicator.renderAsCursor(),
                 indicator.excludeFromCapture(), layerByName);

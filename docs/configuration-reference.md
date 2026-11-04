@@ -583,11 +583,11 @@ never drawn over a layer, even a translucent one.
 normal-mode.indicator.render-as-cursor=true
 ```
 
-`render-as-cursor` draws the layers that follow the cursor or its screen into the system cursor
-image, with the real cursor glyph composited on top, instead of into a window that follows the
-pointer.
-Nothing can lag behind, since there is nothing to follow. Windows only (default false); it is
-ignored on macOS, where the indicator is always a window.
+`render-as-cursor` draws the layers at `mouse` that follow it, without a text or an
+`end-position`, into the system cursor image, with the real cursor glyph composited on top,
+instead of into a window that follows the pointer. Nothing can lag behind, since there is nothing
+to follow. The other layers stay in windows. Windows only (default false); it is ignored on
+macOS, where the indicator is always a window.
 
 Because the indicator then *is* the cursor, anything that hides the cursor hides the indicator
 too. In particular, the Windows pointer option "Hide pointer while typing" (on by default)

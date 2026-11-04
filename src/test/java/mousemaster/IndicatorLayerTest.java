@@ -268,10 +268,22 @@ class IndicatorLayerTest {
         IndicatorConfiguration indicator = parse("idle-mode.indicator.enabled=true",
                 "idle-mode.sheet-indicator.follow=false").modeMap().get(Mode.IDLE_MODE_NAME)
                                                               .indicator();
-        assertEquals(Set.of("indicator"),
-                IndicatorRenderer.followingMouse(indicator).layerByName().keySet());
+        assertTrue(indicator.layerByName().get("indicator").followMouse());
         assertEquals(List.of(Set.of("sheet-indicator")),
                 layerNames(IndicatorRenderer.anchoredLayers(indicator, List.of(), Set.of())));
+    }
+
+    @Test
+    void theCursorImageDrawsTheLayersAtTheMouseWithoutATextOrAnEndPosition() {
+        IndicatorConfiguration indicator = parse("idle-mode.indicator.enabled=true",
+                "idle-mode.corner-indicator.position=mouse-top-left",
+                "idle-mode.screen-indicator.position=active-screen-center",
+                "idle-mode.text-indicator.text=a",
+                "idle-mode.line-indicator.end-position=mouse-top-left",
+                "idle-mode.still-indicator.follow=false").modeMap().get(Mode.IDLE_MODE_NAME)
+                                                         .indicator();
+        assertEquals(Set.of("indicator"),
+                IndicatorRenderer.cursorLayers(indicator).layerByName().keySet());
     }
 
     @Test
