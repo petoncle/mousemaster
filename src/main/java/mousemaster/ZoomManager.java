@@ -48,6 +48,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         if (previousMode != null && !anchoredOnHintSelection &&
             previousMode.zoom().equals(newMode.zoom()))
             return;
+        overlay.stopHintMatchAnimation();
         Point targetCenter = newMode.zoom().center().centerPoint(
                 screenManager.activeScreen().rectangle(), mouseX, mouseY,
                 hintManager.lastSelectedHintPoint());

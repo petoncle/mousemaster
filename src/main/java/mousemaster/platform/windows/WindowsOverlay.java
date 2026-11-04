@@ -667,6 +667,11 @@ public class WindowsOverlay implements Overlay {
     }
 
     @Override
+    public void stopHintMatchAnimation() {
+        hintMeshRenderer.stopHintMatchAnimation();
+    }
+
+    @Override
     public void setHintMesh(HintMesh hintMesh, Zoom zoom) {
         setHintMesh(hintMesh, zoom, false);
     }

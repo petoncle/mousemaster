@@ -352,6 +352,11 @@ public class MacosOverlay implements Overlay {
     }
 
     @Override
+    public void stopHintMatchAnimation() {
+        hintMeshRenderer.stopHintMatchAnimation();
+    }
+
+    @Override
     public boolean canZoom(Rectangle screenRectangle) {
         return true;
     }

@@ -66,6 +66,8 @@ public interface Overlay {
 
     void animateHintMatch(Hint hint);
 
+    void stopHintMatchAnimation();
+
     boolean canZoom(Rectangle screenRectangle);
 
     void setZoom(Zoom zoom);

@@ -376,6 +376,13 @@ public final class HintMeshRenderer {
                               .get(ScreenFilter.of(hintMeshWindows.keySet().iterator().next()));
     }
 
+    public void stopHintMatchAnimation() {
+        if (!hintMeshEndAnimation)
+            return;
+        setHintMeshEndAnimation(false);
+        doHideHintMesh();
+    }
+
     private void doHideHintMesh() {
         showingHintMesh = false;
         hideCount++;
