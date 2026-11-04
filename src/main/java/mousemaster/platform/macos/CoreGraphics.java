@@ -119,6 +119,10 @@ public interface CoreGraphics extends Library {
     Pointer CGEventCreateMouseEvent(Pointer source, int type, CGPoint.ByValue point,
                                     int button);
 
+    int mouseEventClickState = 1;
+
+    void CGEventSetIntegerValueField(Pointer event, int field, long value);
+
     /** The non-variadic variant: arm64 passes variadic arguments on the stack. */
     Pointer CGEventCreateScrollWheelEvent2(Pointer source, int units, int wheelCount,
                                            int wheel1, int wheel2, int wheel3);

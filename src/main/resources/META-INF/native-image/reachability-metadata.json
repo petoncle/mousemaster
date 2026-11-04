@@ -8755,6 +8755,13 @@
     {
       "type": {
         "proxy": [
+          "mousemaster.platform.macos.ObjectiveC$ReturningDouble"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
           "mousemaster.platform.macos.ObjectiveC$ReturningSize"
         ]
       }

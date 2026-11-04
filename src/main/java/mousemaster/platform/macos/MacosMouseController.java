@@ -13,10 +13,18 @@ import java.util.Set;
 
 public class MacosMouseController implements MouseController {
 
+    private static final ObjectiveC objectiveC = ObjectiveC.INSTANCE;
+    private static final Pointer doubleClickInterval =
+            objectiveC.sel_registerName("doubleClickInterval");
+
     private final CoreGraphics coreGraphics = CoreGraphics.INSTANCE;
     private final Set<Integer> pressedButtons = new LinkedHashSet<>();
     private QPoint movedTo;
     private QPoint movedToPoint;
+    private int lastPressedButton;
+    private QPoint lastPressPosition;
+    private long lastPressMillis;
+    private int clickState;
 
     /** The pointer only goes to whole points, every other pixel of a 2x screen: while it stays
      *  where mousemaster put it, it is on the pixel it was put on. */
@@ -139,13 +147,28 @@ public class MacosMouseController implements MouseController {
     }
 
     private void button(int type, int button, boolean press) {
-        if (press)
+        QPoint position = QCursor.pos();
+        if (press) {
             pressedButtons.add(button);
+            long pressMillis = System.currentTimeMillis();
+            double doubleClickSeconds = ObjectiveC.ReturningDouble.INSTANCE.objc_msgSend(
+                    objectiveC.objc_getClass("NSEvent"), doubleClickInterval);
+            if (button == lastPressedButton && position.equals(lastPressPosition) &&
+                pressMillis - lastPressMillis <= doubleClickSeconds * 1000)
+                clickState++;
+            else
+                clickState = 1;
+            lastPressedButton = button;
+            lastPressPosition = position;
+            lastPressMillis = pressMillis;
+        }
         else
             pressedButtons.remove(button);
-        QPoint position = QCursor.pos();
-        post(coreGraphics.CGEventCreateMouseEvent(null, type,
-                new CoreGraphics.CGPoint.ByValue(position.x(), position.y()), button));
+        Pointer event = coreGraphics.CGEventCreateMouseEvent(null, type,
+                new CoreGraphics.CGPoint.ByValue(position.x(), position.y()), button);
+        coreGraphics.CGEventSetIntegerValueField(event, CoreGraphics.mouseEventClickState,
+                clickState);
+        post(event);
     }
 
     @Override

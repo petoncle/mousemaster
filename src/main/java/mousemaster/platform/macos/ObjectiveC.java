@@ -84,6 +84,14 @@ public interface ObjectiveC extends Library {
 
     }
 
+    interface ReturningDouble extends Library {
+
+        ReturningDouble INSTANCE = Native.load("objc", ReturningDouble.class);
+
+        double objc_msgSend(Pointer receiver, Pointer selector);
+
+    }
+
     /** What a completion handler block is called with, an object and an error either way round. */
     interface BlockHandler extends Callback {
         void callback(Pointer block, Pointer first, Pointer second);
