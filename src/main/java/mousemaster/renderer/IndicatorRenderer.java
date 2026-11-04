@@ -26,8 +26,8 @@ import java.util.function.Predicate;
 /**
  * Cross-platform Qt rendering of the mouse indicator: owns a widget per layer and the shadow
  * effect, and computes where and how big to draw each layer.
- * The platform overlay owns the native window (styles its handle) and supplies the cursor,
- * screen and zoom.
+ * The platform overlay draws the images it renders in its own windows, and supplies the
+ * cursor, screen and zoom.
  */
 public final class IndicatorRenderer {
 
@@ -37,7 +37,6 @@ public final class IndicatorRenderer {
     private IndicatorShadowEffect shadowEffect;
     private final List<ShadowCast> shadowCasts = new ArrayList<>();
     private double shadowScale;
-    private IndicatorConfiguration currentIndicator;
     private List<PositionedLayer> currentLayers;
     private Rectangle gradientArea;
     private double pointsPerPixel;
@@ -46,8 +45,6 @@ public final class IndicatorRenderer {
     private final Map<TextKey, QTextDocument> documentByText = new HashMap<>();
     private QImage windowImage;
     private WindowImageKey windowImageKey;
-    private boolean showing;
-    private boolean cleared;
 
     public IndicatorRenderer() {
         anchorByLayerName = new HashMap<>();
@@ -57,8 +54,8 @@ public final class IndicatorRenderer {
         anchorByLayerName = renderer.anchorByLayerName;
     }
 
-    /** Lazily creates the window and its widgets; the host styles winId() afterwards. */
-    public TransparentWindow window() {
+    /** Lazily creates the window and its widgets, which are rendered into images. */
+    private TransparentWindow window() {
         if (window == null) {
             window = new TransparentWindow();
             layersWidget = new QWidget(window);
@@ -78,14 +75,6 @@ public final class IndicatorRenderer {
         window();
         layersWidget.setGraphicsEffect(new IndicatorShadowEffect(this));
         layersWidget.setGraphicsEffect(null);
-    }
-
-    public boolean showing() {
-        return showing;
-    }
-
-    public IndicatorConfiguration currentIndicator() {
-        return currentIndicator;
     }
 
     private record LayerAnchor(Rectangle mouseRectangle, Point cursorVisualCenter,
@@ -407,39 +396,6 @@ public final class IndicatorRenderer {
     }
 
 
-    /** Shows/updates the indicator: repositions and renders unless nothing changed. The
-     *  overlay supplies the cursor rectangle, its visual center, and the active screen and
-     *  zoom. */
-    public void setIndicator(IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
-                             Map<IndicatorPosition, List<Point>> pointsByPosition,
-                             Map<HintGridArea, Rectangle> rectangleByArea,
-                             Map<Point, HintRectangles> hintRectanglesByPoint,
-                             Rectangle mouseRectangle, Point cursorVisualCenter,
-                             Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
-        gradientArea = activeScreen.rectangle();
-        anchor(layerNamesToAnchor, pointsByPosition, rectangleByArea, hintRectanglesByPoint,
-                mouseRectangle, cursorVisualCenter, activeScreen);
-        if (showing && indicator.equals(currentIndicator) && layerNamesToAnchor.isEmpty())
-            return;
-        // Position the (hidden) window before showIndicator shows it.
-        reposition(indicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
-        showIndicator(indicator, activeScreen.scale(), lastSelectedHintBoxHexColor);
-    }
-
-    /** Repositions the current indicator for the cursor, screen and zoom. */
-    public void reposition(Rectangle mouseRectangle, Point cursorVisualCenter,
-                           Screen activeScreen, Zoom zoom, String lastSelectedHintBoxHexColor) {
-        List<PositionedLayer> previousLayers = currentLayers;
-        Rectangle previousGradientArea = gradientArea;
-        gradientArea = activeScreen.rectangle();
-        reposition(currentIndicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
-        if ((anyColor(currentIndicator, IndicatorRenderer::sampled) ||
-             anyColor(currentIndicator, IndicatorRenderer::sweptAcrossTheScreen)) &&
-            (!currentLayers.equals(previousLayers) ||
-             !gradientArea.equals(previousGradientArea)))
-            showIndicator(currentIndicator, activeScreen.scale(), lastSelectedHintBoxHexColor);
-    }
-
     private void anchor(Set<String> layerNamesToAnchor,
                         Map<IndicatorPosition, List<Point>> pointsByPosition,
                         Map<HintGridArea, Rectangle> rectangleByArea,
@@ -663,24 +619,6 @@ public final class IndicatorRenderer {
                 centerY - layerSizeWithStroke.height() / 2.0);
     }
 
-    private void reposition(IndicatorConfiguration indicator, Rectangle mouseRectangle,
-                            Point cursorVisualCenter, Screen activeScreen, Zoom zoom) {
-        double screenScale = activeScreen.scale();
-        LayerAnchor mouseAnchor =
-                new LayerAnchor(mouseRectangle, cursorVisualCenter, activeScreen, Map.of(),
-                        Map.of(), Map.of());
-        List<PositionedLayer> positionedLayers = positionedLayers(indicator, mouseAnchor, zoom);
-        Rectangle layersRectangle = layersRectangle(positionedLayers, screenScale);
-        // The window covers the screen and stays put: Qt moves a window at once but repaints
-        // it later, so a layer that does not follow the mouse would shake inside a moving one.
-        window.coverInPixels(activeScreen);
-        Rectangle screen = activeScreen.rectangle();
-        placeLayers(positionedLayers, new Point(layersRectangle.x(), layersRectangle.y()),
-                layersRectangle.width(), layersRectangle.height(),
-                new Point(screen.x(), screen.y()), screenScale,
-                Os.macos ? activeScreen.scale() : 1);
-    }
-
     private Rectangle layersRectangle(List<PositionedLayer> positionedLayers,
                                       double screenScale) {
         int left = Integer.MAX_VALUE;
@@ -803,8 +741,37 @@ public final class IndicatorRenderer {
     /** An offscreen-rendered indicator: premultiplied ARGB (0xAARRGGBB), row-major. */
     public record IndicatorImage(int[] argb, int width, int height) {}
 
-    /** An image of the indicator, and where its top-left goes on the screen. */
-    public record WindowImage(QImage image, int x, int y) {}
+    /** An image of the indicator, and where it goes on the screen. The size outlives the image,
+     *  which its renderer disposes when it renders the next one. */
+    public record WindowImage(QImage image, int x, int y, int width, int height) {
+
+        public Rectangle rectangle() {
+            return new Rectangle(x, y, width, height);
+        }
+
+    }
+
+    /** Where the images changed: where those that are no longer the same were, and are. */
+    public static Rectangle changedRectangle(List<WindowImage> windowImages,
+                                             List<WindowImage> shownWindowImages) {
+        List<Rectangle> changedRectangles = new ArrayList<>();
+        for (int index = 0; index < Math.max(windowImages.size(), shownWindowImages.size());
+             index++) {
+            WindowImage windowImage = index < windowImages.size() ? windowImages.get(index) : null;
+            WindowImage shownWindowImage = index < shownWindowImages.size() ?
+                    shownWindowImages.get(index) : null;
+            if (windowImage != null && shownWindowImage != null &&
+                windowImage.image() == shownWindowImage.image() &&
+                windowImage.rectangle().equals(shownWindowImage.rectangle()))
+                continue;
+            if (windowImage != null)
+                changedRectangles.add(windowImage.rectangle());
+            if (shownWindowImage != null)
+                changedRectangles.add(shownWindowImage.rectangle());
+        }
+        return changedRectangles.isEmpty() ? new Rectangle(0, 0, 0, 0) :
+                Rectangle.union(changedRectangles);
+    }
 
     /** Lays the indicator out at the cursor and renders it into an image the size of what it
      *  draws. When the layers keep their places inside the image, which they do when they all
@@ -840,7 +807,7 @@ public final class IndicatorRenderer {
                 anyColor(indicator, IndicatorRenderer::sampled) ? positionedLayers : imageLayers,
                 screenScale, lastSelectedHintBoxHexColor, gradientArea);
         if (key.equals(windowImageKey))
-            return new WindowImage(windowImage, x, y);
+            return new WindowImage(windowImage, x, y, windowImage.width(), windowImage.height());
         int width = layersRectangle.width() + 2 * shadowPadding;
         int height = layersRectangle.height() + 2 * shadowPadding;
         window();
@@ -848,12 +815,12 @@ public final class IndicatorRenderer {
         placeLayers(positionedLayers, new Point(layersRectangle.x(), layersRectangle.y()),
                 layersRectangle.width(), layersRectangle.height(), new Point(x, y),
                 screenScale, 1);
-        applyIndicator(indicator, screenScale, lastSelectedHintBoxHexColor);
+        applyIndicator(screenScale, lastSelectedHintBoxHexColor);
         if (windowImage != null)
             windowImage.dispose();
         windowImage = render(width, height);
         windowImageKey = key;
-        return new WindowImage(windowImage, x, y);
+        return new WindowImage(windowImage, x, y, width, height);
     }
 
     public static boolean looksTheSameAnywhere(IndicatorConfiguration indicator) {
@@ -917,7 +884,7 @@ public final class IndicatorRenderer {
         placeLayers(positionedLayers, layersTopLeft, layersSize, layersSize,
                 new Point(layersTopLeft.x() - shadowPadding, layersTopLeft.y() - shadowPadding),
                 scale, 1);
-        applyIndicator(indicator, scale, lastSelectedHintBoxHexColor);
+        applyIndicator(scale, lastSelectedHintBoxHexColor);
         QImage image = render(imageSize, imageSize);
         IndicatorImage indicatorImage = indicatorImage(image);
         image.dispose();
@@ -946,10 +913,8 @@ public final class IndicatorRenderer {
     }
 
     /** Applies the indicator to the widgets (shape, fill, stroke, shadow effect) without
-     *  showing or positioning. Shared by the on-screen path and the offscreen cursor render. */
-    private void applyIndicator(IndicatorConfiguration indicator, double shadowScale,
-                                String lastSelectedHintBoxHexColor) {
-        currentIndicator = indicator;
+     *  positioning them. Shared by the window image and the cursor image renders. */
+    private void applyIndicator(double shadowScale, String lastSelectedHintBoxHexColor) {
         outlineByText.entrySet().removeIf(entry -> {
             if (drawn(entry.getKey()))
                 return false;
@@ -962,7 +927,6 @@ public final class IndicatorRenderer {
             entry.getValue().dispose();
             return true;
         });
-        cleared = false;
         applyShadowEffect(shadowScale, lastSelectedHintBoxHexColor);
         for (int i = 0; i < widgets.size(); i++) {
             if (i < currentLayers.size())
@@ -987,25 +951,6 @@ public final class IndicatorRenderer {
                 QtColorUtil.qColor(hex(stroke.color(), lastSelectedHintBoxHexColor, gradientPoint), stroke.opacity()),
                 sweep(stroke.color()));
         widget.show();
-    }
-
-    /** Applies the indicator, then shows the window. */
-    private void showIndicator(IndicatorConfiguration indicator, double shadowScale,
-                               String lastSelectedHintBoxHexColor) {
-        applyIndicator(indicator, shadowScale, lastSelectedHintBoxHexColor);
-        window.show();
-        layersWidget.repaint();
-        showing = true;
-    }
-
-    public void hide() {
-        if (!showing)
-            return;
-        showing = false;
-        // Paint the surface fully transparent before hiding.
-        cleared = true;
-        layersWidget.repaint();
-        window.hide();
     }
 
     boolean indicatorHasTransparency() {
@@ -1531,19 +1476,6 @@ public final class IndicatorRenderer {
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
-            if (cleared) {
-                // Paint fully transparent so DWM's cached surface is blank.
-                painter.setCompositionMode(
-                        QPainter.CompositionMode.CompositionMode_Clear);
-                QRect r = rect();
-                QColor c = new QColor(0, 0, 0, 0);
-                painter.fillRect(r, c);
-                r.dispose();
-                c.dispose();
-                painter.end();
-                painter.dispose();
-                return;
-            }
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             QColor opaqueFillColor = opaque(fillColor);
             QColor opaqueStrokeColor = opaque(strokeColor);
@@ -1561,17 +1493,6 @@ public final class IndicatorRenderer {
 
         IndicatorShadowEffect(IndicatorRenderer renderer) {
             this.renderer = renderer;
-        }
-
-        @Override
-        protected void draw(QPainter painter) {
-            if (renderer.cleared) {
-                // Just draw the source (triggers paintEvent which clears).
-                // Skip shadow and redrawSourceOverShadow.
-                drawSource(painter);
-                return;
-            }
-            super.draw(painter);
         }
 
         @Override

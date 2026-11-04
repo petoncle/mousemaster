@@ -14,10 +14,10 @@ import io.qt.gui.QImage;
 import io.qt.gui.QPainter;
 import mousemaster.Rectangle;
 import mousemaster.Screen;
+import mousemaster.renderer.IndicatorRenderer;
 import mousemaster.renderer.IndicatorRenderer.WindowImage;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -40,11 +40,8 @@ final class WindowsIndicatorWindow {
     private int dibHeight;
     private QImage image;
     private Rectangle rectangle = new Rectangle(0, 0, 1, 1);
-    private List<Part> parts = List.of();
+    private List<WindowImage> windowImages = List.of();
     private boolean showing;
-
-    private record Part(QImage image, Rectangle rectangle) {
-    }
 
     /** A window that grows keeps its rectangle while its images move and grow a little. */
     WindowsIndicatorWindow(boolean grows) {
@@ -66,28 +63,25 @@ final class WindowsIndicatorWindow {
 
     /** The images, in z order. */
     void show(List<WindowImage> windowImages) {
-        List<Part> parts = new ArrayList<>();
-        for (WindowImage windowImage : windowImages)
-            parts.add(new Part(windowImage.image(),
-                    new Rectangle(windowImage.x(), windowImage.y(),
-                            windowImage.image().width(), windowImage.image().height())));
-        Rectangle partsRectangle = parts.isEmpty() ? null :
-                Rectangle.union(parts.stream().map(Part::rectangle).toList());
-        Rectangle rectangle = partsRectangle == null ?
+        Rectangle imagesRectangle = windowImages.isEmpty() ? null :
+                Rectangle.union(windowImages.stream().map(WindowImage::rectangle).toList());
+        Rectangle rectangle = imagesRectangle == null ?
                 new Rectangle(this.rectangle.x(), this.rectangle.y(), 1, 1) :
-                grows ? grownRectangle(partsRectangle) : partsRectangle;
+                grows ? grownRectangle(imagesRectangle) : imagesRectangle;
         if (showing && rectangle.width() == this.rectangle.width() &&
-            rectangle.height() == this.rectangle.height() && sameInRectangle(parts, rectangle)) {
+            rectangle.height() == this.rectangle.height() &&
+            sameInRectangle(windowImages, rectangle)) {
             if (!rectangle.equals(this.rectangle))
                 updateLayeredWindow(rectangle, null);
             this.rectangle = rectangle;
-            this.parts = parts;
+            this.windowImages = windowImages;
             return;
         }
         Rectangle dirty = showing && rectangle.equals(this.rectangle) ?
-                changedRectangle(parts).intersection(rectangle) : rectangle;
+                IndicatorRenderer.changedRectangle(windowImages, this.windowImages)
+                                 .intersection(rectangle) : rectangle;
         this.rectangle = rectangle;
-        this.parts = parts;
+        this.windowImages = windowImages;
         if (dirty.isEmpty())
             return;
         reserve(rectangle.width(), rectangle.height());
@@ -99,46 +93,26 @@ final class WindowsIndicatorWindow {
         }
     }
 
-    private boolean sameInRectangle(List<Part> parts, Rectangle rectangle) {
-        if (parts.size() != this.parts.size())
+    private boolean sameInRectangle(List<WindowImage> windowImages, Rectangle rectangle) {
+        if (windowImages.size() != this.windowImages.size())
             return false;
-        for (int index = 0; index < parts.size(); index++) {
-            Part part = parts.get(index);
-            Part shownPart = this.parts.get(index);
-            if (part.image() != shownPart.image() ||
-                part.rectangle().x() - rectangle.x() !=
-                shownPart.rectangle().x() - this.rectangle.x() ||
-                part.rectangle().y() - rectangle.y() !=
-                shownPart.rectangle().y() - this.rectangle.y())
+        for (int index = 0; index < windowImages.size(); index++) {
+            WindowImage windowImage = windowImages.get(index);
+            WindowImage shownWindowImage = this.windowImages.get(index);
+            if (windowImage.image() != shownWindowImage.image() ||
+                windowImage.x() - rectangle.x() != shownWindowImage.x() - this.rectangle.x() ||
+                windowImage.y() - rectangle.y() != shownWindowImage.y() - this.rectangle.y())
                 return false;
         }
         return true;
     }
 
-    /** Where the images changed: where those that are no longer the same were, and are. */
-    private Rectangle changedRectangle(List<Part> parts) {
-        List<Rectangle> changedRectangles = new ArrayList<>();
-        for (int index = 0; index < Math.max(parts.size(), this.parts.size()); index++) {
-            Part part = index < parts.size() ? parts.get(index) : null;
-            Part shownPart = index < this.parts.size() ? this.parts.get(index) : null;
-            if (part != null && shownPart != null && part.image() == shownPart.image() &&
-                part.rectangle().equals(shownPart.rectangle()))
-                continue;
-            if (part != null)
-                changedRectangles.add(part.rectangle());
-            if (shownPart != null)
-                changedRectangles.add(shownPart.rectangle());
-        }
-        return changedRectangles.isEmpty() ? new Rectangle(0, 0, 0, 0) :
-                Rectangle.union(changedRectangles);
-    }
-
-    private Rectangle grownRectangle(Rectangle partsRectangle) {
+    private Rectangle grownRectangle(Rectangle imagesRectangle) {
         List<Rectangle> screenRectangles =
                 WindowsScreen.findScreens().stream().map(Screen::rectangle).toList();
         Rectangle visibleRectangle =
-                partsRectangle.intersection(Rectangle.union(screenRectangles));
-        if (!parts.isEmpty() && rectangle.contains(visibleRectangle) &&
+                imagesRectangle.intersection(Rectangle.union(screenRectangles));
+        if (!windowImages.isEmpty() && rectangle.contains(visibleRectangle) &&
             4L * visibleRectangle.width() * visibleRectangle.height() >=
             (long) rectangle.width() * rectangle.height())
             return rectangle;
@@ -187,10 +161,10 @@ final class WindowsIndicatorWindow {
         painter.fillRect(left, top, area.width(), area.height(), transparent);
         transparent.dispose();
         painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-        for (Part part : parts)
-            if (!part.rectangle().intersection(area).isEmpty())
-                painter.drawImage(part.rectangle().x() - rectangle.x(),
-                        part.rectangle().y() - rectangle.y(), part.image());
+        for (WindowImage windowImage : windowImages)
+            if (!windowImage.rectangle().intersection(area).isEmpty())
+                painter.drawImage(windowImage.x() - rectangle.x(),
+                        windowImage.y() - rectangle.y(), windowImage.image());
         painter.end();
         painter.dispose();
         ByteBuffer bits = image.bits();

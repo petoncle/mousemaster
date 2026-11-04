@@ -7639,6 +7639,18 @@
       ]
     },
     {
+      "type": "mousemaster.platform.macos.MacosIndicatorWindow",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "paintEvent",
+          "parameterTypes": [
+            "io.qt.gui.QPaintEvent"
+          ]
+        }
+      ]
+    },
+    {
       "type": "mousemaster.platform.macos.ObjectiveC$BlockHandler",
       "methods": [
         {
@@ -8426,12 +8438,6 @@
       "allDeclaredFields": true,
       "jniAccessible": true,
       "methods": [
-        {
-          "name": "draw",
-          "parameterTypes": [
-            "io.qt.gui.QPainter"
-          ]
-        },
         {
           "name": "setColors",
           "parameterTypes": [

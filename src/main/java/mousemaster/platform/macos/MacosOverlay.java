@@ -45,10 +45,12 @@ public class MacosOverlay implements Overlay {
     private final List<IndicatorRenderer> anchoredIndicatorRenderers = new ArrayList<>();
     private final Map<IndicatorLayerCopyKey, IndicatorRenderer>
             anchoredIndicatorRendererByCopyKey = new LinkedHashMap<>();
-    private List<IndicatorLayerCopyKey> copyKeys = List.of();
+    private final List<MacosIndicatorWindow> followingIndicatorWindows = new ArrayList<>();
+    private final List<MacosIndicatorWindow> anchoredIndicatorWindows = new ArrayList<>();
+    private Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey = Map.of();
     private List<IndicatorRenderer.WindowLayerGroup> currentWindowLayerGroups = List.of();
-    private List<IndicatorRenderer> orderedIndicatorRenderers = List.of();
-    private final Map<IndicatorRenderer, Long> levelByIndicatorRenderer = new HashMap<>();
+    private List<MacosIndicatorWindow> orderedIndicatorWindows = List.of();
+    private final Map<MacosIndicatorWindow, Long> levelByIndicatorWindow = new HashMap<>();
     private boolean indicatorExcludedFromCapture;
     private boolean hintMeshExcludedFromCapture;
     private MacosZoomRenderer zoomRenderer;
@@ -113,59 +115,52 @@ public class MacosOverlay implements Overlay {
             return;
         long before = System.nanoTime();
         createIndicatorWindows();
-        for (IndicatorRenderer indicatorRenderer : indicatorRenderers())
-            indicatorRenderer.preWarm();
+        followingIndicatorRenderer.preWarm();
         logger.debug("Pre-warmed the indicator window in " +
                      (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
 
     private void createIndicatorWindows() {
-        followingIndicatorRenderer = createIndicatorRenderer(new IndicatorRenderer());
+        followingIndicatorRenderer = new IndicatorRenderer();
         followingIndicatorRenderers.add(followingIndicatorRenderer);
+        followingIndicatorWindows.add(createIndicatorWindow());
+        anchoredIndicatorWindows.add(createIndicatorWindow());
     }
 
-    private List<IndicatorRenderer> indicatorRenderers() {
-        List<IndicatorRenderer> indicatorRenderers =
-                new ArrayList<>(followingIndicatorRenderers);
-        indicatorRenderers.addAll(anchoredIndicatorRenderers);
-        indicatorRenderers.addAll(anchoredIndicatorRendererByCopyKey.values());
-        return indicatorRenderers;
-    }
-
-    private IndicatorRenderer anchoredIndicatorRenderer(IndicatorLayerCopyKey copyKey) {
-        return anchoredIndicatorRendererByCopyKey.computeIfAbsent(copyKey,
-                copyKey_ -> createIndicatorRenderer(new IndicatorRenderer()));
+    private List<MacosIndicatorWindow> indicatorWindows() {
+        List<MacosIndicatorWindow> indicatorWindows = new ArrayList<>(followingIndicatorWindows);
+        indicatorWindows.addAll(anchoredIndicatorWindows);
+        return indicatorWindows;
     }
 
     private IndicatorRenderer followingIndicatorRenderer(int index) {
         while (followingIndicatorRenderers.size() <= index)
-            followingIndicatorRenderers.add(
-                    createIndicatorRenderer(new IndicatorRenderer(followingIndicatorRenderer)));
+            followingIndicatorRenderers.add(new IndicatorRenderer(followingIndicatorRenderer));
         return followingIndicatorRenderers.get(index);
     }
 
     private IndicatorRenderer anchoredIndicatorRenderer(int index) {
         while (anchoredIndicatorRenderers.size() <= index)
-            anchoredIndicatorRenderers.add(
-                    createIndicatorRenderer(new IndicatorRenderer(followingIndicatorRenderer)));
+            anchoredIndicatorRenderers.add(new IndicatorRenderer(followingIndicatorRenderer));
         return anchoredIndicatorRenderers.get(index);
     }
 
-    private IndicatorRenderer createIndicatorRenderer(IndicatorRenderer indicatorRenderer) {
-        MacosWindow.applyOverlayProperties(indicatorRenderer.window(),
-                MacosWindow.aboveOverlayLevel);
-        levelByIndicatorRenderer.put(indicatorRenderer, MacosWindow.aboveOverlayLevel);
-        MacosWindow.setExcludedFromCapture(indicatorRenderer.window(),
-                indicatorExcludedFromCapture);
-        return indicatorRenderer;
+    private MacosIndicatorWindow createIndicatorWindow() {
+        MacosIndicatorWindow indicatorWindow = new MacosIndicatorWindow();
+        MacosWindow.applyOverlayProperties(indicatorWindow, MacosWindow.aboveOverlayLevel);
+        levelByIndicatorWindow.put(indicatorWindow, MacosWindow.aboveOverlayLevel);
+        MacosWindow.setExcludedFromCapture(indicatorWindow, indicatorExcludedFromCapture);
+        indicatorWindow.show(List.of(),
+                MacosScreens.findActiveScreen(mouse.findMousePosition()));
+        return indicatorWindow;
     }
 
-    private IndicatorRenderer atLevel(IndicatorRenderer indicatorRenderer, long level) {
-        if (levelByIndicatorRenderer.get(indicatorRenderer) != level) {
-            MacosWindow.applyOverlayProperties(indicatorRenderer.window(), level);
-            levelByIndicatorRenderer.put(indicatorRenderer, level);
+    private MacosIndicatorWindow atLevel(MacosIndicatorWindow indicatorWindow, long level) {
+        if (levelByIndicatorWindow.get(indicatorWindow) != level) {
+            MacosWindow.applyOverlayProperties(indicatorWindow, level);
+            levelByIndicatorWindow.put(indicatorWindow, level);
         }
-        return indicatorRenderer;
+        return indicatorWindow;
     }
 
     private TransparentWindow createStyledHintMeshWindow() {
@@ -201,60 +196,23 @@ public class MacosOverlay implements Overlay {
             createIndicatorWindows();
         if (indicator.excludeFromCapture() != indicatorExcludedFromCapture) {
             indicatorExcludedFromCapture = indicator.excludeFromCapture();
-            for (IndicatorRenderer indicatorRenderer : indicatorRenderers())
-                MacosWindow.setExcludedFromCapture(indicatorRenderer.window(),
-                        indicatorExcludedFromCapture);
+            for (MacosIndicatorWindow indicatorWindow : indicatorWindows())
+                MacosWindow.setExcludedFromCapture(indicatorWindow, indicatorExcludedFromCapture);
         }
-        QPoint mousePosition = mouse.findMousePosition();
-        for (IndicatorLayerCopyKey copyKey : indicatorByCopyKey.keySet())
-            if (!copyKeys.contains(copyKey))
-                anchoredIndicatorRenderer(copyKey).anchor(copyKey.layerName(),
-                        followingIndicatorRenderer);
         List<IndicatorRenderer.WindowLayerGroup> windowLayerGroups =
                 IndicatorRenderer.windowLayerGroups(indicator, indicatorByCopyKey,
                         currentWindowLayerGroups, layerNamesToAnchor, overlayZ);
-        List<IndicatorRenderer> showingIndicatorRenderers = indicatorRenderers().stream()
-                .filter(IndicatorRenderer::showing).toList();
-        List<IndicatorRenderer> orderedIndicatorRenderers = new ArrayList<>();
-        int followingIndex = 0;
-        int runIndex = 0;
-        for (IndicatorRenderer.WindowLayerGroup windowLayerGroup : windowLayerGroups) {
-            long level = windowLayerGroup.belowOverlay() ? MacosWindow.belowOverlayLevel :
-                    MacosWindow.aboveOverlayLevel;
-            for (IndicatorLayerCopyKey copyKey : windowLayerGroup.copyKeys()) {
-                IndicatorRenderer indicatorRenderer =
-                        anchoredIndicatorRendererByCopyKey.get(copyKey);
-                setIndicator(indicatorRenderer, indicatorByCopyKey.get(copyKey), Set.of(),
-                        Map.of(), Map.of(), Map.of(), mousePosition);
-                orderedIndicatorRenderers.add(atLevel(indicatorRenderer, level));
-            }
-            for (IndicatorConfiguration windowIndicator : windowLayerGroup.indicators()) {
-                IndicatorRenderer indicatorRenderer = windowLayerGroup.followMouse() ?
-                        followingIndicatorRenderer(followingIndex++) :
-                        anchoredIndicatorRenderer(runIndex++);
-                if (windowLayerGroup.followMouse())
-                    setIndicator(indicatorRenderer, windowIndicator, Set.of(), Map.of(),
-                            Map.of(), Map.of(), mousePosition);
-                else
-                    setIndicator(indicatorRenderer, windowIndicator, layerNamesToAnchor,
-                            pointsByPosition, rectangleByArea, hintRectanglesByPoint,
-                            mousePosition);
-                orderedIndicatorRenderers.add(atLevel(indicatorRenderer, level));
-            }
-        }
-        for (IndicatorRenderer indicatorRenderer : indicatorRenderers())
-            if (!orderedIndicatorRenderers.contains(indicatorRenderer))
-                indicatorRenderer.hide();
-        // Within a level, the window ordered front last is drawn on top. Ordering a hidden
-        // window front shows it.
-        if (!orderedIndicatorRenderers.equals(this.orderedIndicatorRenderers) ||
-            !showingIndicatorRenderers.containsAll(orderedIndicatorRenderers))
-            for (IndicatorRenderer indicatorRenderer : orderedIndicatorRenderers)
-                if (indicatorRenderer.showing())
-                    MacosWindow.orderFront(indicatorRenderer.window());
-        copyKeys = List.copyOf(indicatorByCopyKey.keySet());
-        currentWindowLayerGroups = windowLayerGroups;
-        this.orderedIndicatorRenderers = orderedIndicatorRenderers;
+        if (windowLayerGroups.equals(currentWindowLayerGroups) && indicatorByCopyKey.isEmpty() &&
+            this.indicatorByCopyKey.isEmpty() && layerNamesToAnchor.isEmpty())
+            return;
+        for (IndicatorLayerCopyKey copyKey : indicatorByCopyKey.keySet())
+            if (!this.indicatorByCopyKey.containsKey(copyKey))
+                anchoredIndicatorRendererByCopyKey
+                        .computeIfAbsent(copyKey, copyKey_ -> new IndicatorRenderer())
+                        .anchor(copyKey.layerName(), followingIndicatorRenderer);
+        showIndicator(windowLayerGroups, new LinkedHashMap<>(indicatorByCopyKey),
+                layerNamesToAnchor, pointsByPosition, rectangleByArea, hintRectanglesByPoint,
+                mouse.findMousePosition());
     }
 
     @Override
@@ -262,36 +220,87 @@ public class MacosOverlay implements Overlay {
         return hintMeshRenderer.hintBoxRectangle(hint);
     }
 
-    private void setIndicator(IndicatorRenderer indicatorRenderer,
-                              IndicatorConfiguration indicator, Set<String> layerNamesToAnchor,
-                              Map<IndicatorPosition, List<Point>> pointsByPosition,
-                              Map<HintGridArea, Rectangle> rectangleByArea,
-                              Map<Point, HintRectangles> hintRectanglesByPoint,
-                              QPoint mousePosition) {
-        if (!indicator.enabled()) {
-            indicatorRenderer.hide();
-            return;
-        }
+    /**
+     * The anchored layers and the copies of a window layer group are drawn in one window: when
+     * IndicatorRenderer.anchoredLayers splits the anchored layers into more window images, a
+     * layer leaves one window image and enters another in the same update.
+     */
+    private void showIndicator(
+            List<IndicatorRenderer.WindowLayerGroup> windowLayerGroups,
+            Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey,
+            Set<String> layerNamesToAnchor,
+            Map<IndicatorPosition, List<Point>> pointsByPosition,
+            Map<HintGridArea, Rectangle> rectangleByArea,
+            Map<Point, HintRectangles> hintRectanglesByPoint, QPoint mousePosition) {
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
-        indicatorRenderer.setIndicator(indicator, layerNamesToAnchor, pointsByPosition,
-                rectangleByArea, hintRectanglesByPoint, cursorRectangle(mousePosition, activeScreen),
-                cursorVisualCenter(activeScreen), activeScreen, null,
-                hintMeshRenderer.lastSelectedHintBoxHexColor());
+        List<MacosIndicatorWindow> windows = new ArrayList<>();
+        int followingIndex = 0;
+        int anchoredIndex = 0;
+        int runIndex = 0;
+        for (IndicatorRenderer.WindowLayerGroup windowLayerGroup : windowLayerGroups) {
+            MacosIndicatorWindow window = atLevel(windowLayerGroup.followMouse() ?
+                    indicatorWindow(followingIndicatorWindows, followingIndex) :
+                    indicatorWindow(anchoredIndicatorWindows, anchoredIndex++),
+                    windowLayerGroup.belowOverlay() ? MacosWindow.belowOverlayLevel :
+                            MacosWindow.aboveOverlayLevel);
+            List<IndicatorRenderer.WindowImage> images = new ArrayList<>();
+            for (IndicatorLayerCopyKey copyKey : windowLayerGroup.copyKeys())
+                images.add(windowImage(anchoredIndicatorRendererByCopyKey.get(copyKey),
+                        indicatorByCopyKey.get(copyKey), Set.of(), Map.of(), Map.of(),
+                        Map.of(), mousePosition));
+            for (IndicatorConfiguration indicator : windowLayerGroup.indicators())
+                images.add(windowLayerGroup.followMouse() ?
+                        windowImage(followingIndicatorRenderer(followingIndex++), indicator,
+                                Set.of(), Map.of(), Map.of(), Map.of(), mousePosition) :
+                        windowImage(anchoredIndicatorRenderer(runIndex++), indicator,
+                                layerNamesToAnchor, pointsByPosition, rectangleByArea,
+                                hintRectanglesByPoint, mousePosition));
+            window.show(images, activeScreen);
+            windows.add(window);
+        }
+        for (MacosIndicatorWindow indicatorWindow : indicatorWindows())
+            if (!windows.contains(indicatorWindow))
+                indicatorWindow.show(List.of(), activeScreen);
+        // Within a level, the window ordered front last is drawn on top.
+        if (!windows.equals(orderedIndicatorWindows))
+            for (MacosIndicatorWindow window : windows)
+                MacosWindow.orderFront(window);
+        orderedIndicatorWindows = windows;
+        currentWindowLayerGroups = windowLayerGroups;
+        this.indicatorByCopyKey = indicatorByCopyKey;
+    }
+
+    private MacosIndicatorWindow indicatorWindow(List<MacosIndicatorWindow> windows, int index) {
+        while (windows.size() <= index)
+            windows.add(createIndicatorWindow());
+        return windows.get(index);
+    }
+
+    private IndicatorRenderer.WindowImage windowImage(
+            IndicatorRenderer renderer, IndicatorConfiguration indicator,
+            Set<String> layerNamesToAnchor, Map<IndicatorPosition, List<Point>> pointsByPosition,
+            Map<HintGridArea, Rectangle> rectangleByArea,
+            Map<Point, HintRectangles> hintRectanglesByPoint, QPoint mousePosition) {
+        Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
+        return renderer.renderWindowImage(indicator, layerNamesToAnchor, pointsByPosition,
+                rectangleByArea, hintRectanglesByPoint,
+                cursorRectangle(mousePosition, activeScreen), cursorVisualCenter(activeScreen),
+                activeScreen, null, hintMeshRenderer.lastSelectedHintBoxHexColor());
     }
 
     @Override
     public void hideIndicator() {
-        for (IndicatorRenderer indicatorRenderer : indicatorRenderers())
-            indicatorRenderer.hide();
+        Screen activeScreen = MacosScreens.findActiveScreen(mouse.findMousePosition());
+        for (MacosIndicatorWindow indicatorWindow : indicatorWindows())
+            indicatorWindow.show(List.of(), activeScreen);
+        indicatorByCopyKey = Map.of();
+        currentWindowLayerGroups = List.of();
     }
 
     public void repositionIndicator(QPoint mousePosition) {
-        Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
-        for (IndicatorRenderer indicatorRenderer : indicatorRenderers())
-            if (indicatorRenderer.showing())
-                indicatorRenderer.reposition(cursorRectangle(mousePosition, activeScreen),
-                        cursorVisualCenter(activeScreen), activeScreen, null,
-                        hintMeshRenderer.lastSelectedHintBoxHexColor());
+        if (followingIndicatorRenderer != null)
+            showIndicator(currentWindowLayerGroups, indicatorByCopyKey, Set.of(), Map.of(),
+                    Map.of(), Map.of(), mousePosition);
     }
 
     /** The cursor is measured in points, and the indicator it positions is in pixels. */
