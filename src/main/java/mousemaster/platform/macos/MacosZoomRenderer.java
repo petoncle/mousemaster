@@ -4,10 +4,10 @@ import com.sun.jna.Callback;
 import com.sun.jna.CallbackReference;
 import com.sun.jna.NativeLibrary;
 import com.sun.jna.Pointer;
-import io.qt.core.Qt;
-import io.qt.widgets.QWidget;
+import io.qt.core.QPoint;
 import mousemaster.Rectangle;
 import mousemaster.Zoom;
+import mousemaster.qt.TransparentWindow;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -26,6 +26,10 @@ public final class MacosZoomRenderer {
     private static final Pointer setContents = objectiveC.sel_registerName("setContents:");
     private static final Pointer setContentsRect =
             objectiveC.sel_registerName("setContentsRect:");
+    private static final Pointer begin = objectiveC.sel_registerName("begin");
+    private static final Pointer setDisableActions =
+            objectiveC.sel_registerName("setDisableActions:");
+    private static final Pointer commit = objectiveC.sel_registerName("commit");
     private static final Pointer count = objectiveC.sel_registerName("count");
     private static final Pointer objectAtIndex =
             objectiveC.sel_registerName("objectAtIndex:");
@@ -34,18 +38,21 @@ public final class MacosZoomRenderer {
 
     private static final int ownProcessId = (int) ProcessHandle.current().pid();
 
-    private final QWidget widget = new QWidget();
+    private final TransparentWindow widget = new TransparentWindow();
 
     private final AtomicReference<Pointer> captured = new AtomicReference<>();
 
     private Pointer contentLayer;
     private Rectangle windowRectangle;
     private boolean showing;
-    private boolean streaming;
+    private boolean holdsFrame;
+    private Pointer stream;
 
     /** The stream hands its frames to an instance of a class built here, so it needs one. */
     private final ObjectiveC.FrameOutput frameOutput = (self, selector, stream, sampleBuffer,
                                                         type) -> {
+        if (!stream.equals(this.stream))
+            return;
         Pointer pixelBuffer = CoreMedia.INSTANCE.CMSampleBufferGetImageBuffer(sampleBuffer);
         if (pixelBuffer == null)
             return;
@@ -60,11 +67,10 @@ public final class MacosZoomRenderer {
             startStream(content);
     };
 
-    private final ObjectiveC.BlockHandler startedHandler = (block, error, unused) -> {
+    private final ObjectiveC.BlockHandler completionHandler = (block, error, unused) -> {
     };
 
     public MacosZoomRenderer() {
-        widget.setWindowFlags(Qt.WindowType.FramelessWindowHint);
         // Showing the window before it holds a frame would flash whatever it last held.
         widget.setWindowOpacity(0);
     }
@@ -73,20 +79,27 @@ public final class MacosZoomRenderer {
         Rectangle screen = zoom.screenRectangle();
         if (!screen.equals(windowRectangle)) {
             hide();
-            widget.setGeometry(screen.x(), screen.y(), screen.width(), screen.height());
+            widget.coverInPixels(
+                    MacosScreens.findActiveScreen(new QPoint(screen.x(), screen.y())));
             widget.show();
-            createContentLayer(screen);
+            createContentLayer();
             windowRectangle = screen;
+            holdsFrame = false;
+            requestStream();
         }
-        requestStream();
+        Pointer transaction = objectiveC.objc_getClass("CATransaction");
+        objectiveC.objc_msgSend(transaction, begin);
+        objectiveC.objc_msgSend(transaction, setDisableActions, 1);
         objectiveC.objc_msgSend(contentLayer, setContentsRect, magnifiedPart(zoom, screen));
         Pointer pixelBuffer = captured.getAndSet(null);
-        if (pixelBuffer == null)
-            return;
-        objectiveC.objc_msgSend(contentLayer, setContents,
-                CoreVideo.INSTANCE.CVPixelBufferGetIOSurface(pixelBuffer));
-        CoreFoundation.INSTANCE.CFRelease(pixelBuffer);
-        if (!showing) {
+        if (pixelBuffer != null) {
+            objectiveC.objc_msgSend(contentLayer, setContents,
+                    CoreVideo.INSTANCE.CVPixelBufferGetIOSurface(pixelBuffer));
+            CoreFoundation.INSTANCE.CFRelease(pixelBuffer);
+            holdsFrame = true;
+        }
+        objectiveC.objc_msgSend(transaction, commit);
+        if (holdsFrame && !showing) {
             showing = true;
             widget.setWindowOpacity(1);
         }
@@ -101,13 +114,16 @@ public final class MacosZoomRenderer {
     }
 
     /**
-     * One stream, asked for once: it is authorized once, where a capture per frame is a request
+     * One stream per screen zoomed: it is authorized once, where a capture per frame is a request
      * per frame and macOS asks about every one of them.
      */
     private void requestStream() {
-        if (streaming)
-            return;
-        streaming = true;
+        if (stream != null) {
+            objectiveC.objc_msgSend(stream,
+                    objectiveC.sel_registerName("stopCaptureWithCompletionHandler:"),
+                    ObjectiveC.block(completionHandler));
+            stream = null;
+        }
         NativeLibrary.getInstance(
                 "/System/Library/Frameworks/ScreenCaptureKit.framework/ScreenCaptureKit");
         objectiveC.objc_msgSend(objectiveC.objc_getClass("SCShareableContent"),
@@ -116,8 +132,9 @@ public final class MacosZoomRenderer {
     }
 
     private void startStream(Pointer content) {
-        Pointer display = first(objectiveC.objc_msgSend(content,
-                objectiveC.sel_registerName("displays")));
+        Pointer display = MacosDesktopCapture.displayContaining(content,
+                new QPoint((int) windowRectangle.center().x(),
+                        (int) windowRectangle.center().y()));
         if (display == null)
             return;
         Pointer filter = objectiveC.objc_msgSend(
@@ -133,7 +150,9 @@ public final class MacosZoomRenderer {
                 windowRectangle.width());
         objectiveC.objc_msgSend(configuration, objectiveC.sel_registerName("setHeight:"),
                 windowRectangle.height());
-        Pointer stream = objectiveC.objc_msgSend(
+        objectiveC.objc_msgSend(configuration, objectiveC.sel_registerName("setShowsCursor:"),
+                0);
+        stream = objectiveC.objc_msgSend(
                 objectiveC.objc_msgSend(objectiveC.objc_getClass("SCStream"), alloc),
                 objectiveC.sel_registerName("initWithFilter:configuration:delegate:"), filter,
                 configuration, null);
@@ -145,7 +164,7 @@ public final class MacosZoomRenderer {
                 Libc.INSTANCE.dispatch_queue_create("mousemaster.zoom", null), null);
         objectiveC.objc_msgSend(stream,
                 objectiveC.sel_registerName("startCaptureWithCompletionHandler:"),
-                ObjectiveC.block(startedHandler));
+                ObjectiveC.block(completionHandler));
     }
 
     /** Excluded from the stream, so the overlays drawn above the zoom stay out of it. */
@@ -163,11 +182,6 @@ public final class MacosZoomRenderer {
         }
         return objectiveC.objc_msgSend(objectiveC.objc_getClass("NSArray"),
                 objectiveC.sel_registerName("array"));
-    }
-
-    private static Pointer first(Pointer array) {
-        return Pointer.nativeValue(objectiveC.objc_msgSend(array, count)) == 0 ? null :
-                objectiveC.objc_msgSend(array, objectAtIndex, 0);
     }
 
     private Pointer streamOutput;
@@ -194,7 +208,7 @@ public final class MacosZoomRenderer {
         widget.setWindowOpacity(0);
     }
 
-    private void createContentLayer(Rectangle screen) {
+    private void createContentLayer() {
         Pointer view = new Pointer(widget.winId());
         objectiveC.objc_msgSend(view, setWantsLayer, 1);
         if (contentLayer == null) {
@@ -205,7 +219,7 @@ public final class MacosZoomRenderer {
             MacosWindow.applyOverlayProperties(widget, MacosWindow.zoomWindowLevel);
         }
         objectiveC.objc_msgSend(contentLayer, setFrame,
-                new CoreGraphics.CGRect.ByValue(0, 0, screen.width(), screen.height()));
+                new CoreGraphics.CGRect.ByValue(0, 0, widget.width(), widget.height()));
     }
 
 }

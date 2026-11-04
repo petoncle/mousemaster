@@ -229,7 +229,7 @@ final class MacosDesktopCapture {
                 objectiveC.sel_registerName("array"));
     }
 
-    private static Pointer displayContaining(Pointer content, QPoint pixelPoint) {
+    static Pointer displayContaining(Pointer content, QPoint pixelPoint) {
         Pointer all = objectiveC.objc_msgSend(content,
                 objectiveC.sel_registerName("displays"));
         long displayCount = Pointer.nativeValue(objectiveC.objc_msgSend(all, count));
