@@ -1,14 +1,12 @@
 # neru configuration for mousemaster ([neru.properties](../configuration/neru.properties))
 
-(See [configuration-reference.md](configuration-reference.md) for the full list of properties.)
-
-Designed to mimic the features of the [neru](https://github.com/y3owk1n/neru) project.
+[neru](https://github.com/y3owk1n/neru), the mousemaster way.
 
 A keyboard-only mouse driven by hints: launch a mode, jump the cursor onto a target, click. The pattern is always **Ctrl+Shift** to start a mode, then **unmodified keys** to pick a cell, and **Shift+L/R/M** to click.
 
 ![neru layout](assets/neru-layout.png)
 
-Mode launchers are yellow, the recursive 3×3 cells blue, scrolling teal, and clicking green ([neru-keyboardlayouteditor.json](assets/neru-keyboardlayouteditor.json)).
+Mode launchers are yellow, the recursive 3×3 cells blue, scrolling teal, and clicking green.
 
 ## Launch
 

@@ -1,7 +1,5 @@
 # neo-mousekeys-ijkl configuration for mousemaster ([neo-mousekeys-ijkl.properties](../configuration/neo-mousekeys-ijkl.properties))
 
-(Refer to [configuration-reference.md](configuration-reference.md) for documentation on the complete list of configuration properties.)
-
 ## Overview
 
 - Press _leftalt + e_ or _leftalt + capslock_ to activate.

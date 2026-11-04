@@ -1,8 +1,5 @@
 # Author's configuration of mousemaster ([author.properties](../configuration/author.properties))
 
-(See [configuration-reference.md](configuration-reference.md) for the property list and
-[combo-reference.md](combo-reference.md) for the combo syntax.)
-
 A right-hand-only pointer: `i` `j` `k` `l` move, the keys around them click, and every mode is reached
 without the hand leaving the home row. This document covers the bindings whose shape is not obvious from
 the file.

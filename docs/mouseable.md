@@ -1,17 +1,15 @@
 # mouseable configuration for mousemaster ([mouseable.properties](../configuration/mouseable.properties))
 
-(Refer to [configuration-reference.md](configuration-reference.md) for documentation on the complete list of configuration properties.)
-
 ## Overview
 
-- Designed to mimic the features of the [mouseable](https://github.com/wirekang/mouseable/) project.
+- [mouseable](https://github.com/wirekang/mouseable/), the mousemaster way.
 - 3 main modes: normal, hint, and grid mode.
 - Normal mode uses vi-like bindings for local mouse movement.
 - Hint and grid modes assist in larger screen movements and are used with normal mode for comprehensive navigation.
 
 ![mouseable layout](assets/mouseable-layout.png)
 
-The layout above shows normal mode ([mouseable-keyboardlayouteditor.json](assets/mouseable-keyboardlayouteditor.json)).
+The layout above shows normal mode.
 
 ## Normal Mode (_leftctrl, leftctrl_)
 

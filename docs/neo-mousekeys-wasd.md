@@ -1,7 +1,5 @@
 # neo-mousekeys-wasd configuration for mousemaster ([neo-mousekeys-wasd.properties](../configuration/neo-mousekeys-wasd.properties))
 
-(Refer to [configuration-reference.md](configuration-reference.md) for documentation on the complete list of configuration properties.)
-
 ## Overview
 
 - Press _leftalt + e_ or _leftalt + capslock_ to activate.

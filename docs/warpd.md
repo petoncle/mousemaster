@@ -1,17 +1,15 @@
 # warpd configuration for mousemaster ([warpd.properties](../configuration/warpd.properties))
 
-(Refer to [configuration-reference.md](configuration-reference.md) for documentation on the complete list of configuration properties.)
-
 ## Overview
 
-- Designed to mimic the features of the [warpd](https://github.com/rvaiya/warpd) project.
+- [warpd](https://github.com/rvaiya/warpd), the mousemaster way.
 - 3 main modes: normal, hint, and grid mode.
 - Normal mode uses vi-like bindings for local mouse movement.
 - Hint and grid modes assist in larger screen movements and are used with normal mode for comprehensive navigation.
 
 ![warpd layout](assets/warpd-layout.png)
 
-The layout above shows normal mode ([warpd-keyboardlayouteditor.json](assets/warpd-keyboardlayouteditor.json)).
+The layout above shows normal mode.
 
 ## Normal Mode (_leftalt + c_)
 

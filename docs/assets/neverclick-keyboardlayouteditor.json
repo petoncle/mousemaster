@@ -1,0 +1,324 @@
+[
+  {
+    "css": ""
+  },
+  [
+    {
+      "c": "#cdaef0"
+    },
+    "Esc\n\n\n\n\n\nLeave",
+    {
+      "x": 1,
+      "c": "#a8dfe6"
+    },
+    "F1\n\n\n\n\n\nWindow",
+    "F2\n\n\n\n\n\nMonitor",
+    "F3\n\n\n\n\n\nAll",
+    {
+      "c": "#cccccc"
+    },
+    "F4",
+    {
+      "x": 0.5
+    },
+    "F5",
+    "F6",
+    "F7",
+    "F8",
+    {
+      "x": 0.5
+    },
+    "F9",
+    "F10",
+    "F11",
+    "F12",
+    {
+      "x": 0.25
+    },
+    "PrtSc",
+    "Scroll\nLock",
+    "Pause"
+  ],
+  [
+    {
+      "y": 0.25,
+      "c": "#d4e9b6"
+    },
+    "`\nDrag\n\n\n\n\nSlow",
+    {
+      "c": "#c6d5fc"
+    },
+    "1\n⇧ ↑\n\n\n\n\nLeft",
+    "2\n\n\n\n\n\n1/8",
+    "3\n\n\n\n\n\n1/4",
+    "4\n\n\n\n\n\n3/8",
+    "5\n\n\n\n\n\nCenter",
+    "6\n\n\n\n\n\n5/8",
+    "7\n\n\n\n\n\n3/4",
+    "8\n\n\n\n\n\n7/8",
+    "9\n⇧ ↓\n\n\n\n\nRight",
+    {
+      "c": "#d4e9b6"
+    },
+    "0\nOnly\n\n\n\n\nMove",
+    "-\n\n\n\n\n\nStay",
+    {
+      "c": "#f4b8d3"
+    },
+    "=\nSticky\n\n\n\n\nSave",
+    {
+      "w": 2,
+      "c": "#b6c6d9"
+    },
+    "Backspace\n\n\n\n\n\nBack",
+    {
+      "x": 0.25,
+      "c": "#cccccc"
+    },
+    "Insert",
+    "Home",
+    "PgUp",
+    {
+      "x": 0.25
+    },
+    "Num\nLock",
+    "/",
+    "*",
+    "-"
+  ],
+  [
+    {
+      "w": 1.5,
+      "c": "#a8dfe6"
+    },
+    "Tab\nWin↔All\n\n\n\n\nToggle",
+    {
+      "c": "#f7e98c"
+    },
+    "Q\n\n\n\n\n\nHint",
+    "W\n\n\n\n\n\nHint",
+    "E\n(+Ctrl)\n\n\n\n\nPath",
+    "R\n(+⇧)\n\n\n\n\nRescan",
+    "T\n(+Ctrl)\n\n\n\n\nRefine",
+    "Y\n\n\n\n\n\nHint",
+    "U\n\n\n\n\n\nHint",
+    "I\n⇧ ↑\n\n\n\n\nHint",
+    "O\n\n\n\n\n\nHint",
+    "P\n\n\n\n\n\nHint",
+    {
+      "c": "#a8dfe6"
+    },
+    "[\n\n\n\n\n\nAccess",
+    "]\n⇧ Ultra\n\n\n\n\nNarrow",
+    {
+      "w": 1.5
+    },
+    "\\\n(+Ctrl)\n\n\n\n\nSticky",
+    {
+      "x": 0.25,
+      "c": "#f4b8d3"
+    },
+    "Delete\nSticky\n\n\n\n\nForget",
+    {
+      "c": "#cccccc"
+    },
+    "End",
+    "PgDn",
+    {
+      "x": 0.25,
+      "c": "#c6d5fc"
+    },
+    "7\n↖\n\n\n\n\nPoint",
+    "8\n↑\n\n\n\n\nPoint",
+    "9\n↗\n\n\n\n\nPoint",
+    {
+      "h": 2,
+      "c": "#cccccc"
+    },
+    "+"
+  ],
+  [
+    {
+      "w": 1.75,
+      "c": "#cccccc"
+    },
+    "Caps Lock",
+    {
+      "c": "#f7e98c"
+    },
+    "A\n\n\n\n\n\nHint",
+    "S\n\n\n\n\n\nHint",
+    "D\n(+Ctrl)\n\n\n\n\nDual",
+    "F\n(+⇧)\n\n\n\n\nCycle",
+    "G\n\n\n\n\n\nHint",
+    "H\n\n\n\n\n\nHint",
+    "J\n⇧ ←\n\n\n\n\nHint",
+    "K\n⇧ ↓\n\n\n\n\nHint",
+    "L\n⇧ →\n\n\n\n\nHint",
+    {
+      "c": "#a8dfe6"
+    },
+    ";\n\n\n\n\n\nGrid",
+    {
+      "c": "#f4b8d3"
+    },
+    "'\n⇧ Multi\n\n\n\n\nDual",
+    {
+      "w": 2.25,
+      "c": "#cdaef0"
+    },
+    "Enter\n\n\n\n\n\nRun",
+    {
+      "x": 3.5,
+      "c": "#c6d5fc"
+    },
+    "4\n←\n\n\n\n\nPoint",
+    "5\n\n\n\n\n\nCenter",
+    "6\n→\n\n\n\n\nPoint"
+  ],
+  [
+    {
+      "w": 2.25,
+      "c": "#cdaef0"
+    },
+    "Shift\n\n\n\n\n\n+Enter",
+    {
+      "c": "#f7e98c"
+    },
+    "Z\n(+Ctrl)\n\n\n\n\nUndo",
+    "X\n\n\n\n\n\nHint",
+    "C\n\n\n\n\n\nHint",
+    "V\n\n\n\n\n\nHint",
+    "B\n\n\n\n\n\nHint",
+    "N\n\n\n\n\n\nHint",
+    "M\n(+Ctrl)\n\n\n\n\nMulti",
+    {
+      "c": "#d4e9b6",
+      "fa": [
+        0,
+        0,
+        2
+      ]
+    },
+    ",\nAlt\nCtrl+A\n\n\n\nHold",
+    ".\nCtrl\nCtrl+C\n\n\n\nHold",
+    "/\nShift\nCtrl+S\n\n\n\nHold",
+    {
+      "w": 2.75,
+      "c": "#cccccc",
+      "f": 3
+    },
+    "Shift",
+    {
+      "x": 1.25,
+      "c": "#c6d5fc"
+    },
+    "↑\n\n\n\n\n\nNudge",
+    {
+      "x": 1.25
+    },
+    "1\n↙\n\n\n\n\nPoint",
+    "2\n↓\n\n\n\n\nPoint",
+    "3\n↘\n\n\n\n\nPoint",
+    {
+      "h": 2,
+      "c": "#cdaef0"
+    },
+    "Enter\n\n\n\n\n\nRun"
+  ],
+  [
+    {
+      "w": 1.25,
+      "c": "#cdaef0"
+    },
+    "Ctrl\n\n\n\n\n\n+Enter",
+    {
+      "w": 1.25,
+      "c": "#cccccc"
+    },
+    "Win",
+    {
+      "w": 1.25,
+      "c": "#cdaef0"
+    },
+    "Alt\n\n\n\n\n\n+Enter",
+    {
+      "w": 6.25,
+      "c": "#cccccc"
+    },
+    "",
+    {
+      "w": 1.25
+    },
+    "Alt",
+    {
+      "w": 1.25
+    },
+    "Win",
+    {
+      "w": 1.25
+    },
+    "Menu",
+    {
+      "w": 1.25
+    },
+    "Ctrl",
+    {
+      "x": 0.25,
+      "c": "#c6d5fc"
+    },
+    "←\n\n\n\n\n\nNudge",
+    "↓\n\n\n\n\n\nNudge",
+    "→\n\n\n\n\n\nNudge",
+    {
+      "x": 0.25,
+      "w": 2,
+      "c": "#cccccc"
+    },
+    "0\nIns",
+    ".\nDel"
+  ],
+  [
+    {
+      "y": 0.25,
+      "d": true,
+      "w": 2.8
+    },
+    "Ctrl+Enter\nagain: double, triple\n\n\n\n\nLeft click",
+    {
+      "d": true,
+      "w": 2.8
+    },
+    "Alt+Enter\n\n\n\n\n\nCtrl-click",
+    {
+      "d": true,
+      "w": 2.8
+    },
+    "Ctrl+⇧+Enter\n\n\n\n\n\nRight click",
+    {
+      "d": true,
+      "w": 2.8
+    },
+    "Alt+⇧+Enter\n\n\n\n\n\nMiddle click",
+    {
+      "d": true,
+      "w": 2.8
+    },
+    "Ctrl+Alt+Enter\n\n\n\n\n\nText selection",
+    {
+      "d": true,
+      "w": 2.8
+    },
+    "Ctrl+Alt+⇧+Enter\n\n\n\n\n\nDrag",
+    {
+      "d": true,
+      "w": 2.8
+    },
+    "Ctrl+\\\n\n\n\n\n\nSticky hints",
+    {
+      "d": true,
+      "w": 2.8
+    },
+    "Hold ?\n\n\n\n\n\nCheat sheet"
+  ]
+]
