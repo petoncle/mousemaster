@@ -636,10 +636,12 @@ public class ConfigurationParser {
                             ": a layer with an area takes its position and size from it");
                 layer.extend(defaultLayer);
             }
-        // Cascades font-color mutations to the focused, selected and prefix variants,
-        // except where the configuration sets them explicitly.
+        // Cascades font-color mutations to the focused, selected and prefix variants that take
+        // their value from it.
         for (ModeBuilder mode : modeByName.values())
-            cascadeMutations(mode.hintMesh, HINT_FONT_STYLE_CASCADE_RULES);
+            cascadeMutations(
+                    propertyAndParents(mode.hintMesh, propertyByKey, parentPropertiesByChildProperty),
+                    HINT_FONT_STYLE_CASCADE_RULES);
         // Aggregate mutateModeCommands from individual properties into
         // each mode's comboMap.mutateMode so they are included in the ComboMap.
         for (ModeBuilder mode : modeByName.values()) {
@@ -2782,62 +2784,121 @@ public class ConfigurationParser {
     }
 
     /**
-     * Hint font style cascade rules, matching the cascade in cascadeAllFontStyles:
-     * defaultFontStyle -> focused/selected/saved, fontStyle -> prefixFontStyle.
-     * Order matters: fontStyle.defaultFontStyle -> prefixFontStyle.defaultFontStyle
-     * must run before the prefixFontStyle.defaultFontStyle -> focused/selected/saved rules,
-     * so that transitive cascades work.
+     * The sources of each hint font style, in the order of cascadeAllFontStyles.
      */
     private static final List<CascadeRule> HINT_FONT_STYLE_CASCADE_RULES = List.of(
-            new CascadeRule(List.of("fontStyle", "defaultFontStyle"), List.of("fontStyle", "focusedFontStyle")),
-            new CascadeRule(List.of("fontStyle", "defaultFontStyle"), List.of("fontStyle", "selectedFontStyle")),
-            new CascadeRule(List.of("fontStyle", "defaultFontStyle"), List.of("fontStyle", "savedFontStyle")),
-            new CascadeRule(List.of("fontStyle", "defaultFontStyle"), List.of("prefixFontStyle", "defaultFontStyle")),
-            new CascadeRule(List.of("prefixFontStyle", "defaultFontStyle"), List.of("prefixFontStyle", "focusedFontStyle")),
-            new CascadeRule(List.of("prefixFontStyle", "defaultFontStyle"), List.of("prefixFontStyle", "selectedFontStyle")),
-            new CascadeRule(List.of("prefixFontStyle", "defaultFontStyle"), List.of("prefixFontStyle", "savedFontStyle"))
+            new CascadeRule(List.of("fontStyle", "focusedFontStyle"),
+                    List.of(List.of("fontStyle", "defaultFontStyle"))),
+            new CascadeRule(List.of("fontStyle", "selectedFontStyle"),
+                    List.of(List.of("fontStyle", "defaultFontStyle"))),
+            new CascadeRule(List.of("fontStyle", "savedFontStyle"),
+                    List.of(List.of("fontStyle", "defaultFontStyle"))),
+            new CascadeRule(List.of("prefixFontStyle", "defaultFontStyle"),
+                    List.of(List.of("fontStyle", "defaultFontStyle"))),
+            new CascadeRule(List.of("prefixFontStyle", "focusedFontStyle"),
+                    List.of(List.of("prefixFontStyle", "defaultFontStyle"),
+                            List.of("fontStyle", "focusedFontStyle"),
+                            List.of("fontStyle", "defaultFontStyle"))),
+            new CascadeRule(List.of("prefixFontStyle", "selectedFontStyle"),
+                    List.of(List.of("prefixFontStyle", "defaultFontStyle"),
+                            List.of("fontStyle", "selectedFontStyle"),
+                            List.of("fontStyle", "defaultFontStyle"))),
+            new CascadeRule(List.of("prefixFontStyle", "savedFontStyle"),
+                    List.of(List.of("prefixFontStyle", "defaultFontStyle"),
+                            List.of("fontStyle", "savedFontStyle"),
+                            List.of("fontStyle", "defaultFontStyle")))
     );
 
     /**
-     * Gives each MutateMode a twin on the fields that extend the one it mutates, so that
-     * mutating font-color also mutates focused-font-color and the other variants.
+     * Gives each MutateMode a twin on the fields that take their value from the field it
+     * mutates, so that mutating font-color also mutates focused-font-color.
+     * A field takes its value from the first of these that the configuration sets: the field
+     * itself, then its sources in the order of its rule. The mode is searched first, then the
+     * mode it extends, and so on. For example, prefix-focused-font-color takes its value from
+     * prefix-font-color, else focused-font-color, else font-color.
+     * A MutateMode inherited from an extended mode is dropped when the field it mutates takes
+     * its value from another field: focused-font-color in a mode that sets font-color.
      */
-    private static void cascadeMutations(Property<?> property, List<CascadeRule> rules) {
-        for (CascadeRule rule : rules) {
-            Map<Combo, List<Command>> newEntries = new HashMap<>();
-            for (Map.Entry<Combo, List<Command>> entry :
-                    property.mutateModeCommands.entrySet()) {
-                for (Command command : entry.getValue()) {
-                    if (!(command instanceof Command.MutateMode mutateMode))
-                        continue;
-                    List<String> fields = mutateMode.propertyPath().fieldNames();
-                    int sourceIndex = Collections.indexOfSubList(fields, rule.sourceFieldNames());
-                    if (sourceIndex < 0)
-                        continue;
-                    List<String> targetFields = new ArrayList<>(
-                            fields.subList(0, sourceIndex));
-                    targetFields.addAll(rule.targetFieldNames());
-                    targetFields.addAll(fields.subList(
-                            sourceIndex + rule.sourceFieldNames().size(),
-                            fields.size()));
-                    ModePropertyPath targetPath =
-                            new ModePropertyPath(List.copyOf(targetFields));
-                    if (property.setPropertyPaths.contains(targetPath))
-                        continue;
-                    Command cascadedCommand = new Command.MutateMode(
-                            mutateMode.modeName(), targetPath,
-                            mutateMode.newPropertyValue(), mutateMode.combo());
-                    newEntries.computeIfAbsent(entry.getKey(),
-                                    c -> new ArrayList<>())
-                            .add(cascadedCommand);
+    private static void cascadeMutations(List<Property<?>> properties, List<CascadeRule> rules) {
+        Property<?> property = properties.getFirst();
+        Map<Combo, List<Command>> newEntries = new HashMap<>();
+        for (Map.Entry<Combo, List<Command>> entry : property.mutateModeCommands.entrySet()) {
+            List<Command> commands = new ArrayList<>();
+            for (Command command : entry.getValue()) {
+                if (!(command instanceof Command.MutateMode mutateMode)) {
+                    commands.add(command);
+                    continue;
                 }
+                List<String> fields = mutateMode.propertyPath().fieldNames();
+                boolean reached = true;
+                for (CascadeRule rule : rules) {
+                    List<List<String>> ruleFieldNames = new ArrayList<>();
+                    ruleFieldNames.add(rule.targetFieldNames());
+                    ruleFieldNames.addAll(rule.sourceFieldNames());
+                    for (int fieldNamesIndex = 0; fieldNamesIndex < ruleFieldNames.size(); fieldNamesIndex++) {
+                        List<String> fieldNames = ruleFieldNames.get(fieldNamesIndex);
+                        int index = Collections.indexOfSubList(fields, fieldNames);
+                        if (index < 0)
+                            continue;
+                        List<ModePropertyPath> paths = ruleFieldNames.stream()
+                                .map(otherFieldNames -> replaceFieldNames(
+                                        mutateMode.propertyPath(), index, fieldNames.size(),
+                                        otherFieldNames))
+                                .toList();
+                        int setIndex = firstSetPathIndex(properties, paths);
+                        if (fieldNamesIndex == 0)
+                            reached &= setIndex == -1 || setIndex == 0;
+                        else if (setIndex == fieldNamesIndex)
+                            newEntries.computeIfAbsent(entry.getKey(), c -> new ArrayList<>())
+                                      .add(new Command.MutateMode(mutateMode.modeName(),
+                                              paths.getFirst(), mutateMode.newPropertyValue(),
+                                              mutateMode.combo()));
+                    }
+                }
+                if (reached)
+                    commands.add(command);
             }
-            for (Map.Entry<Combo, List<Command>> entry : newEntries.entrySet()) {
-                property.mutateModeCommands
-                 .computeIfAbsent(entry.getKey(), c -> new ArrayList<>())
-                 .addAll(entry.getValue());
-            }
+            entry.setValue(commands);
         }
+        for (Map.Entry<Combo, List<Command>> entry : newEntries.entrySet())
+            property.mutateModeCommands.computeIfAbsent(entry.getKey(), c -> new ArrayList<>())
+                                       .addAll(entry.getValue());
+    }
+
+    private static ModePropertyPath replaceFieldNames(ModePropertyPath path, int index,
+                                                      int count, List<String> fieldNames) {
+        List<String> newFieldNames = new ArrayList<>(path.fieldNames().subList(0, index));
+        newFieldNames.addAll(fieldNames);
+        newFieldNames.addAll(path.fieldNames().subList(index + count, path.fieldNames().size()));
+        return new ModePropertyPath(List.copyOf(newFieldNames), path.screenFilter());
+    }
+
+    /**
+     * The index of the first of the paths the properties set, nearest property first, or -1.
+     */
+    private static int firstSetPathIndex(List<Property<?>> properties,
+                                         List<ModePropertyPath> paths) {
+        for (Property<?> property : properties)
+            for (int pathIndex = 0; pathIndex < paths.size(); pathIndex++) {
+                ModePropertyPath path = paths.get(pathIndex);
+                if (property.setPropertyPaths.stream().anyMatch(path::equalsIgnoringScreenFilter))
+                    return pathIndex;
+            }
+        return -1;
+    }
+
+    /**
+     * The property, then the ones it extends, nearest first.
+     */
+    private static List<Property<?>> propertyAndParents(Property<?> property,
+                                                        Map<PropertyKey, Property<?>> propertyByKey,
+                                                        Map<PropertyKey, List<PropertyKey>> parentPropertiesByChildProperty) {
+        List<Property<?>> properties = new ArrayList<>(List.of(property));
+        for (PropertyKey parentPropertyKey :
+                parentPropertiesByChildProperty.getOrDefault(property.propertyKey, List.of()))
+            properties.addAll(propertyAndParents(propertyByKey.get(parentPropertyKey),
+                    propertyByKey, parentPropertiesByChildProperty));
+        return properties;
     }
 
     private static String checkModeReference(String modeNameReference) {

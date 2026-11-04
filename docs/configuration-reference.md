@@ -265,7 +265,11 @@ the property sets one. A mode switch keeps the value when the new mode gives the
 same value on the same combo, as a mode that extends the same parent does. Any other switch
 gives the property its default value back.
 
-When mutating a hint font property, related properties are automatically updated. For example, mutating `font-color` also mutates `selected-font-color`, `focused-font-color`, `saved-font-color`, and the corresponding prefix variants (unless they were explicitly set in the configuration).
+When mutating a hint font property, the font properties that take their value from it change with
+it (see [Hint prefix](#hint-prefix)). For example, mutating `font-color` also mutates
+`selected-font-color`, `focused-font-color`, `saved-font-color`, and the corresponding prefix
+variants, unless the configuration sets them. Mutating `focused-font-color` also mutates
+`prefix-focused-font-color`.
 
 ### Mouse properties
 

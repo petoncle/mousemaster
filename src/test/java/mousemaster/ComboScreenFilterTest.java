@@ -100,6 +100,22 @@ class ComboScreenFilterTest {
         assertEquals(1, mutatedBoxBorderRadius(3840, 2160, 3));
     }
 
+    private double mutatedFocusedFontOpacity(int width, int height, double scale) {
+        return comboWatcher.getMutatedMode().hintMesh()
+                           .styleByFilter()
+                           .get(new ScreenFilter.FixedScreenFilter(width, height, scale))
+                           .fontStyle().focusedFontStyle().opacity();
+    }
+
+    @Test
+    void aFilteredFontMutationReachesTheFocusedFontOfTheFiltersScreensOnly() {
+        load("idle-mode.hint.selection-keys=a b c d",
+                "idle-mode.hint.font-opacity=1 | _{3840x2160-300% isidling} -> 0.5");
+        setIdling(true);
+        assertEquals(0.5, mutatedFocusedFontOpacity(3840, 2160, 3));
+        assertEquals(1, mutatedFocusedFontOpacity(1920, 1080, 1));
+    }
+
     @Test
     void aScreenAliasStandsForEveryFilterItNames() {
         Mode mode = load("screen-alias.big=3840x2160-300% 2560x1440-100%",

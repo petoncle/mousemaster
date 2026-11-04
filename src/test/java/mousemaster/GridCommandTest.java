@@ -573,18 +573,69 @@ class GridCommandTest {
         assertEquals(Color.parse("#00FF00"), fontStyle.selectedFontStyle().color());
     }
 
-    @Test
-    void aFontMutationReachesTheSavedFont() throws IOException {
-        start("""
-                grid-mode.hint.font-color=#FFFFFF | _{isidling} -> #FF0000
-                """);
+    private HintMeshStyle mutatedGridModeStyle() {
         Mode mode = modeMap.get("grid-mode");
         for (List<Command> commands : mode.comboMap().commandsByCombo().values())
             for (Command command : commands)
                 if (command instanceof Command.MutateMode mutateMode)
                     mode = mode.mutate(mutateMode.propertyPath(), mutateMode.newPropertyValue());
-        assertEquals(Color.parse("#FF0000"), mode.hintMesh().styleByFilter()
-                .get(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER).fontStyle().savedFontStyle().color());
+        return mode.hintMesh().styleByFilter().get(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER);
+    }
+
+    @Test
+    void aFontMutationReachesTheSavedFont() throws IOException {
+        start("""
+                grid-mode.hint.font-color=#FFFFFF | _{isidling} -> #FF0000
+                """);
+        assertEquals(Color.parse("#FF0000"),
+                mutatedGridModeStyle().fontStyle().savedFontStyle().color());
+    }
+
+    @Test
+    void aFontMutationKeepsTheFocusedFontAnExtendedModeSets() throws IOException {
+        start("""
+                _base-mode.hint.focused-font-opacity=1
+                _base-mode.hint.font-opacity=1 | _{isidling} -> 0.5
+                grid-mode=_base-mode
+                """);
+        HintMeshStyle style = mutatedGridModeStyle();
+        assertEquals(0.5, style.fontStyle().defaultFontStyle().opacity());
+        assertEquals(1, style.fontStyle().focusedFontStyle().opacity());
+        assertEquals(0.5, style.fontStyle().selectedFontStyle().opacity());
+        assertEquals(0.5, style.prefixFontStyle().defaultFontStyle().opacity());
+        assertEquals(1, style.prefixFontStyle().focusedFontStyle().opacity());
+    }
+
+    @Test
+    void aFontMutationReachesTheFocusedFontOnlyAnExtendedModeSets() throws IOException {
+        start("""
+                _base-mode.hint.focused-font-opacity=1
+                grid-mode=_base-mode
+                grid-mode.hint.font-opacity=1 | _{isidling} -> 0.5
+                """);
+        HintMeshStyle style = mutatedGridModeStyle();
+        assertEquals(0.5, style.fontStyle().focusedFontStyle().opacity());
+        assertEquals(0.5, style.prefixFontStyle().focusedFontStyle().opacity());
+    }
+
+    @Test
+    void aFocusedFontMutationReachesThePrefixFocusedFont() throws IOException {
+        start("""
+                grid-mode.hint.focused-font-opacity=1 | _{isidling} -> 0.5
+                """);
+        HintMeshStyle style = mutatedGridModeStyle();
+        assertEquals(0.5, style.prefixFontStyle().focusedFontStyle().opacity());
+        assertEquals(1, style.prefixFontStyle().defaultFontStyle().opacity());
+    }
+
+    @Test
+    void anInheritedFocusedFontMutationSkipsAModeThatSetsTheFont() throws IOException {
+        start("""
+                _base-mode.hint.focused-font-opacity=1 | _{isidling} -> 0.5
+                grid-mode=_base-mode
+                grid-mode.hint.font-opacity=0.8
+                """);
+        assertEquals(0.8, mutatedGridModeStyle().fontStyle().focusedFontStyle().opacity());
     }
 
     @Test
