@@ -293,7 +293,7 @@ class GridCommandTest {
         switchMode("other-grid-mode");
         switchMode("idle-mode");
         switchMode("grid-mode");
-        assertEquals(List.of(960, 540, 960, 270, 960, 270, 960, 540), mousePositions);
+        assertEquals(List.of(960, 540, 960, 270, 960, 540), mousePositions);
     }
 
     @Test

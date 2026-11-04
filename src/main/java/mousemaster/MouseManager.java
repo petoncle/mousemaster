@@ -341,6 +341,8 @@ public class MouseManager implements ModeListener, MousePositionListener {
             return;
         mouseController.beginMove();
         mouseController.synchronousMoveTo((int) position.x(), (int) position.y());
+        // The platform reports the move later: a move back before then is not one to skip.
+        mover.moved((int) position.x(), (int) position.y());
     }
 
     public boolean jumping() {
