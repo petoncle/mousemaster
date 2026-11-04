@@ -1403,19 +1403,6 @@ public class HintManager implements ModeListener, MousePositionListener {
             hints.add(new Hint(element.centerX(), element.centerY(),
                     -1, -1, keySequence, element.rectangle()));
         }
-        if (!hints.isEmpty()) {
-            double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE;
-            double minY = Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
-            for (Hint hint : hints) {
-                minX = Math.min(minX, hint.centerX());
-                maxX = Math.max(maxX, hint.centerX());
-                minY = Math.min(minY, hint.centerY());
-                maxY = Math.max(maxY, hint.centerY());
-            }
-            logger.debug("UI hint bounds: minX = " + (int) minX +
-                    ", maxX = " + (int) maxX + ", minY = " + (int) minY +
-                    ", maxY = " + (int) maxY);
-        }
     }
 
     static List<UiElement> sortedUiElements(List<UiElement> uiElements, UiHintOrder order,
