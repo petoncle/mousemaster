@@ -48,7 +48,6 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         if (previousMode != null && !anchoredOnHintSelection &&
             previousMode.zoom().equals(newMode.zoom()))
             return;
-        overlay.stopHintMatchAnimation();
         Point targetCenter = newMode.zoom().center().centerPoint(
                 screenManager.activeScreen().rectangle(), mouseX, mouseY,
                 hintManager.lastSelectedHintPoint());
@@ -60,6 +59,12 @@ public class ZoomManager implements ModeListener, MousePositionListener {
                 && newMode.zoom().center() == ZoomCenter.ACTIVE_SCREEN_CENTER;
         beginPercent = currentPercent;
         endPercent = endIsNoZoom ? 1.0 : targetPercent;
+        beginCenterPoint = currentCenterPoint != null
+                ? currentCenterPoint
+                : screenManager.activeScreen().rectangle().center();
+        boolean zoomChanges = beginPercent != endPercent || !beginCenterPoint.equals(targetCenter);
+        if (zoomChanges)
+            overlay.stopHintMatchAnimation();
         // When transitioning to no-zoom, use previous mode's animation configuration.
         ZoomConfiguration animationConfig =
                 (endIsNoZoom && previousMode != null) ? previousMode.zoom() : newMode.zoom();
@@ -82,16 +87,10 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             }
         }
         else {
-            beginCenterPoint = currentCenterPoint != null
-                    ? currentCenterPoint
-                    : screenManager.activeScreen().rectangle().center();
             endCenter = endIsNoZoom
                     ? ZoomCenter.ACTIVE_SCREEN_CENTER
                     : newMode.zoom().center();
-            Point endCenterPoint = endCenter.centerPoint(
-                    screenManager.activeScreen().rectangle(), mouseX, mouseY,
-                    hintManager.lastSelectedHintPoint());
-            if (beginPercent == endPercent && beginCenterPoint.equals(endCenterPoint)) {
+            if (!zoomChanges) {
                 // Zoom configurations differing only in their animation settings, or a
                 // zoom released before a single frame of it was drawn.
                 currentPercent = endPercent;

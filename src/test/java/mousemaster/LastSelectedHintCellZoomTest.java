@@ -11,7 +11,9 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * screen-hint-mode is a 2x2 grid of 960x540 cells on a 1920x1080 screen. zoom-hint-mode
@@ -47,6 +49,7 @@ class LastSelectedHintCellZoomTest {
     private HintManager hintManager;
     private ZoomManager zoomManager;
     private Zoom zoom;
+    private boolean hintMatchAnimationStopped;
 
     @Test
     void zoomsIntoTheCellSelectedInThePreviousMode() throws IOException {
@@ -90,6 +93,24 @@ class LastSelectedHintCellZoomTest {
         assertNull(zoom);
     }
 
+    @Test
+    void zoomingIntoTheSelectedCellStopsTheHintMatchAnimation() throws IOException {
+        start("");
+        switchMode("screen-hint-mode");
+        selectBottomRightHint();
+        switchMode("zoom-hint-mode");
+        assertTrue(hintMatchAnimationStopped);
+    }
+
+    @Test
+    void aZoomConfigurationThatDoesNotZoomKeepsTheHintMatchAnimation() throws IOException {
+        start("screen-hint-mode.zoom.animation-enabled=true");
+        switchMode("screen-hint-mode");
+        selectBottomRightHint();
+        switchMode("idle-mode");
+        assertFalse(hintMatchAnimationStopped);
+    }
+
     private void start(String extraProperties) throws IOException {
         modeMap = ConfigurationParser.parse(PropertiesReader.readPropertiesFile(
                 new BufferedReader(new StringReader(configuration + extraProperties))),
@@ -100,6 +121,8 @@ class LastSelectedHintCellZoomTest {
                 new Class<?>[] {Overlay.class}, (proxy, method, args) -> {
                     if (method.getName().equals("setZoom"))
                         zoom = (Zoom) args[0];
+                    else if (method.getName().equals("stopHintMatchAnimation"))
+                        hintMatchAnimationStopped = true;
                     return method.getName().equals("canZoom") ? true : null;
                 });
         hintManager = new HintManager(Map.of(), screenManager, null, overlay, null, null,
