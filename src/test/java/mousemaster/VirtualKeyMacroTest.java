@@ -33,7 +33,19 @@ class VirtualKeyMacroTest {
                                                     .keyPrecondition()
                                                     .pressedKeyPrecondition()
                                                     .allKeys());
-        comboWatcher = new ComboWatcher(null, null, () -> new App("test.exe"), null,
+        CommandRunner commandRunner = new CommandRunner(null, null, null) {
+            @Override
+            public boolean runningAtomicCommand() {
+                return false;
+            }
+
+            @Override
+            public void run(Command command, Key eventKey) {
+                if (command instanceof Command.SwitchMode switchMode)
+                    comboWatcher.modeChanged(modeMap.get(switchMode.modeName()));
+            }
+        };
+        comboWatcher = new ComboWatcher(commandRunner, null, () -> new App("test.exe"), null,
                 Instant::now, Set.of(), pressedPreconditionKeys, new KeyRedactor(KeyRedaction.NONE), modeMap,
                 configuration.initiallySetVariables(), configuration.virtualKeys(),
                 configuration.initiallyPressedVirtualKeys(),
@@ -86,6 +98,29 @@ class VirtualKeyMacroTest {
         submit("x");
         macroPlayer.update(0.01);
         assertEquals(List.of(Color.parse("#00FF00")), notifiedColors);
+    }
+
+    @Test
+    void eachModeSwitchInTheMovesPlayedInOneUpdateNotifiesTheListeners() {
+        load("virtual-keys=flag",
+                "idle-mode.macro.x=+a -> #flag ~flag",
+                "idle-mode.to.first-mode=+flag",
+                "first-mode.to.second-mode=-flag",
+                "second-mode.to.idle-mode=+esc");
+        List<String> notifiedModeNames = new ArrayList<>();
+        comboWatcher.setModeListeners(List.of(new ModeListener() {
+            @Override
+            public void modeChanged(Mode newMode) {
+                notifiedModeNames.add(newMode.name());
+            }
+
+            @Override
+            public void modeTimedOut() {
+            }
+        }));
+        submit("x");
+        macroPlayer.update(0.01);
+        assertEquals(List.of("first-mode", "second-mode"), notifiedModeNames);
     }
 
     @Test

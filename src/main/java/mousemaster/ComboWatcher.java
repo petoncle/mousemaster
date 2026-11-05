@@ -1754,8 +1754,12 @@ public class ComboWatcher {
                 pressedPreconditionKeysByModeName.getOrDefault(newMode.name(), Set.of());
         currentModeSequenceKeys = sequenceKeysByModeName.getOrDefault(newMode.name(), Set.of());
         computePreconditionOnlyByPropertyPath();
+        boolean notificationSuspended = mutatedModeNotificationSuspended;
+        mutatedModeNotificationSuspended = false;
+        mutatedModeNotificationPending = false;
         if (!refreshPreconditionOnlyMutations(activeApp))
             notifyMutatedMode();
+        mutatedModeNotificationSuspended = notificationSuspended;
         leadingWaitBeginTimeByCombo.clear();
         // The preparation survives the mode change, so only the leading waits restart.
         combosBlockedFromRerunningCommand.removeIf(
