@@ -35,11 +35,11 @@
 ### Hint grid
 https://github.com/user-attachments/assets/cfba2c70-7edd-44bf-b63e-ded1613368da
 
+### UI hints
+https://github.com/user-attachments/assets/ec6c7d45-da1e-43d1-82ba-76cef25dad6f
+
 ### Recursive hint grid
 https://github.com/user-attachments/assets/9140b3be-6109-4a90-a842-0a22c7e0e562
-
-### UI hints
-https://github.com/user-attachments/assets/f90d5438-6bfe-45d6-bd33-5d6cbd90c42b
 
 ### Recursive grid
 https://github.com/user-attachments/assets/b395505e-9a06-4ec8-b361-81323c7b3fb4

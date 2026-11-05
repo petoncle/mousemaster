@@ -2,7 +2,7 @@
 
 [Neverclick](https://www.neverclick.com), the mousemaster way.
 
-https://github.com/user-attachments/assets/00217a67-faa1-4a74-a935-46a2d579ff33
+https://github.com/user-attachments/assets/4725e4a2-9223-4aaa-be56-05647eadde0e
 
 ## Tools
 
