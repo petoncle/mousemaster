@@ -160,10 +160,8 @@ public class ModeController {
         }
         if (currentModeCursorHidden) {
             if (!mode.hideCursor().enabled() ||
-                !mode.hideCursor().idleDuration().equals(Duration.ZERO)) {
-                mouseManager.showCursor();
-                currentModeCursorHidden = false;
-            }
+                !mode.hideCursor().idleDuration().equals(Duration.ZERO))
+                showCursor();
         }
         else {
             if (mode.hideCursor().enabled() &&
@@ -172,6 +170,13 @@ public class ModeController {
                 currentModeCursorHidden = true;
             }
         }
+    }
+
+    public void showCursor() {
+        if (!currentModeCursorHidden)
+            return;
+        mouseManager.showCursor();
+        currentModeCursorHidden = false;
     }
 
     private void resetModeTimeoutTimer(Mode mode) {

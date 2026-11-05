@@ -273,6 +273,8 @@ public class Mousemaster {
         comboWatcher.setModeListeners(
                 List.of(platform, mouseManager, hintManager, zoomManager,
                         indicatorManager));
+        if (modeController != null)
+            modeController.showCursor();
         modeController =
                 new ModeController(configuration.modeMap(), mouseManager, mouseState,
                         keyboardState,
