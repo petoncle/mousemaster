@@ -22,6 +22,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Cross-platform Qt rendering of the hint mesh: builds and caches the per-screen hint
@@ -257,7 +258,10 @@ public final class HintMeshRenderer {
     public void preWarmHintMesh(HintMesh hintMesh, Zoom zoom, Set<Screen> screens) {
         if (!hintMesh.visible() || hintMesh.hints().isEmpty())
             return;
-        if (hintMeshPixmaps.containsKey(hintMeshKey(hintMesh, hintMesh.hints())))
+        if (hintsByScreen(hintMesh.hints(), screens).entrySet().stream().allMatch(entry ->
+                hintMeshPixmaps.containsKey(hintMeshKey(hintMesh, entry.getValue(),
+                        hintMesh.styleByFilter().get(ScreenFilter.of(entry.getKey())),
+                        entry.getKey().scale()))))
             return;
         preWarming = true;
         try {
@@ -772,7 +776,7 @@ public final class HintMeshRenderer {
             return;
         }
         HintMesh hintMeshKey = matchBoxPixmap != null ? null :
-                hintMeshKey(hintMesh, hintMeshWindow.hints());
+                hintMeshKey(hintMesh, hintMeshWindow.hints(), style, screenScale);
         hintMeshWindow.lastHintMeshKeyReference.set(hintMeshKey); // Will be used by animateHintMatch.
         PixmapAndPosition pixmapAndPosition =
                 matchBoxPixmap != null ? matchBoxPixmap :
@@ -783,10 +787,11 @@ public final class HintMeshRenderer {
             logger.trace("Using cached hint mesh pixmap " + pixmapAndPosition);
             ClearBackgroundQLabel pixmapLabel = new ClearBackgroundQLabel(window);
             pixmapLabel.setPixmap(pixmapAndPosition.pixmap);
-            Hint originalFirstHint = pixmapAndPosition.originalHintMesh.hints().getFirst();
+            Hint originalFirstHint = roundedHint(
+                    pixmapAndPosition.originalHintMesh.hints().getFirst(), style, screenScale);
             int originalWindowX = pixmapAndPosition.windowX;
             int originalWindowY = pixmapAndPosition.windowY;
-            Hint newFirstHint = hintMesh.hints().getFirst();
+            Hint newFirstHint = roundedHint(hintMesh.hints().getFirst(), style, screenScale);
             // Translate the original pixmap which may be at a different position than
             // the new hint mesh.
             // Hints are in pixels, the label and the window in points. The grab is in the pixels
@@ -2403,38 +2408,118 @@ public final class HintMeshRenderer {
             }
     }
 
-    /** The key a drawn mesh is cached by: the mesh with its visible hints and saved positions moved
-     *  so that the smallest hint center x and y are 0. A mesh that only moved has the same key. */
-    private HintMesh hintMeshKey(HintMesh hintMesh, List<Hint> hints) {
+    /** The key a drawn mesh is cached by: the mesh with its visible hints at the boxes they are
+     *  drawn in, moved so that the smallest hint center x and y are 0 when it looks the same
+     *  anywhere. A mesh that only moved has the same key. */
+    private HintMesh hintMeshKey(HintMesh hintMesh, List<Hint> hints, HintMeshStyle style,
+                                 double screenScale) {
+        HintMesh visibleHintMesh = hintMesh.builder()
+                .hints(hints.stream().filter(hint -> visible(hint, hintMesh)).toList())
+                .build();
+        if (!looksTheSameAnywhere(hintMesh))
+            return visibleHintMesh;
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
         for (Hint hint : hints) {
             if (!hint.startsWith(hintMesh.selectedKeySequence()))
                 continue;
-            minHintCenterX = Math.min(minHintCenterX, hint.centerX());
-            minHintCenterY = Math.min(minHintCenterY, hint.centerY());
+            Hint roundedHint = roundedHint(hint, style, screenScale);
+            minHintCenterX = Math.min(minHintCenterX, roundedHint.centerX());
+            minHintCenterY = Math.min(minHintCenterY, roundedHint.centerY());
         }
-        double trimX = minHintCenterX, trimY = minHintCenterY;
-        return new HintMesh.HintMeshBuilder(hintMesh)
-                .hints(trimmedHints(hints, hintMesh, trimX, trimY))
-                .savedHints(trimmedHints(hintMesh.savedHints(), hintMesh, trimX, trimY))
-                .build();
+        return trimmedHintMesh(visibleHintMesh.builder().backgroundArea(null).build(), style,
+                screenScale, minHintCenterX, minHintCenterY);
     }
 
-    private List<Hint> trimmedHints(List<Hint> hints, HintMesh hintMesh,
+    private HintMesh trimmedHintMesh(HintMesh hintMesh, HintMeshStyle style, double screenScale,
+                                     double minHintCenterX, double minHintCenterY) {
+        if (hintMesh == null)
+            return null;
+        return hintMesh.builder()
+                       .hints(trimmedHints(hintMesh.hints(), style, screenScale, minHintCenterX,
+                               minHintCenterY))
+                       .savedHints(trimmedHints(hintMesh.savedHints(), style, screenScale,
+                               minHintCenterX, minHintCenterY))
+                       .area(trimmedRectangle(hintMesh.area(), minHintCenterX, minHintCenterY))
+                       .backgroundArea(trimmedRectangle(hintMesh.backgroundArea(),
+                               minHintCenterX, minHintCenterY))
+                       .decoration(trimmedHintMesh(hintMesh.decoration(), style, screenScale,
+                               minHintCenterX, minHintCenterY))
+                       .subDecoration(trimmedHintMesh(hintMesh.subDecoration(), style,
+                               screenScale, minHintCenterX, minHintCenterY))
+                       .build();
+    }
+
+    private List<Hint> trimmedHints(List<Hint> hints, HintMeshStyle style, double screenScale,
                                     double minHintCenterX, double minHintCenterY) {
-        if (minHintCenterX == 0 && minHintCenterY == 0)
-            return hints;
-        List<Hint> trimmedHints = new ArrayList<>();
-        for (Hint hint : hints) {
-            if (!visible(hint, hintMesh))
-                continue;
-            trimmedHints.add(new Hint(hint.centerX() - minHintCenterX,
-                    hint.centerY() - minHintCenterY,
-                    hint.cellWidth(), hint.cellHeight(), hint.keySequence(),
-                    hint.elementRectangle()));
-        }
-        return trimmedHints;
+        return hints.stream()
+                    .map(hint -> roundedHint(hint, style, screenScale))
+                    .map(hint -> new Hint(hint.centerX() - minHintCenterX,
+                            hint.centerY() - minHintCenterY, hint.cellWidth(),
+                            hint.cellHeight(), hint.keySequence(),
+                            trimmedRectangle(hint.elementRectangle(), minHintCenterX,
+                                    minHintCenterY)))
+                    .toList();
+    }
+
+    private static Rectangle trimmedRectangle(Rectangle rectangle, double minHintCenterX,
+                                              double minHintCenterY) {
+        if (rectangle == null)
+            return null;
+        return new Rectangle((int) Math.round(rectangle.x() - minHintCenterX),
+                (int) Math.round(rectangle.y() - minHintCenterY), rectangle.width(),
+                rectangle.height());
+    }
+
+    /** A grid hint at the box it is drawn in, whose edges are whole points. */
+    private Hint roundedHint(Hint hint, HintMeshStyle style, double screenScale) {
+        if (hint.cellWidth() == -1)
+            return hint;
+        double qtScaleFactor = qtScaleFactor(screenScale);
+        double cellWidth =
+                hint.cellWidth() + 2 * scaledLength(style.boxHorizontalPadding(), screenScale);
+        double cellHeight =
+                hint.cellHeight() + 2 * scaledLength(style.boxVerticalPadding(), screenScale);
+        int left = hintRoundedX(hint.centerX(), cellWidth, qtScaleFactor);
+        int top = hintRoundedY(hint.centerY(), cellHeight, qtScaleFactor);
+        int right = hintRoundedRight(hint.centerX(), cellWidth, qtScaleFactor);
+        int bottom = hintRoundedBottom(hint.centerY(), cellHeight, qtScaleFactor);
+        return new Hint((left + right) / 2d * qtScaleFactor, (top + bottom) / 2d * qtScaleFactor,
+                (right - left) * qtScaleFactor, (bottom - top) * qtScaleFactor,
+                hint.keySequence(), hint.elementRectangle());
+    }
+
+    private static boolean looksTheSameAnywhere(HintMesh hintMesh) {
+        return hintMesh.styleByFilter().map().values().stream().allMatch(style ->
+                style.backgroundOpacity() == 0 && style.backgroundBorderOpacity() == 0 &&
+                colors(style).noneMatch(HintMeshRenderer::acrossTheScreen));
+    }
+
+    private static Stream<Color> colors(HintMeshStyle style) {
+        return Stream.of(Stream.of(style.boxColor(), style.boxBorderColor(),
+                                 style.boxShadow().color(), style.prefixBoxBorderColor(),
+                                 style.uiElementBoxColor(), style.uiElementBoxBorderColor(),
+                                 style.savedBoxColor(), style.savedBoxBorderColor(),
+                                 style.savedUiElementBoxColor(),
+                                 style.savedUiElementBoxBorderColor()),
+                         colors(style.fontStyle()), colors(style.prefixFontStyle()),
+                         style.decorations().stream().flatMap(decoration -> Stream.concat(
+                                 Stream.of(decoration.boxColor(), decoration.boxBorderColor()),
+                                 colors(decoration.fontStyle()))))
+                     .flatMap(Function.identity());
+    }
+
+    private static Stream<Color> colors(HintFontStyle fontStyle) {
+        return Stream.of(fontStyle.defaultFontStyle(), fontStyle.selectedFontStyle(),
+                         fontStyle.focusedFontStyle(), fontStyle.savedFontStyle())
+                     .flatMap(font -> Stream.of(font.color(), font.outlineColor(),
+                             font.shadow().color()));
+    }
+
+    private static boolean acrossTheScreen(Color color) {
+        return color instanceof GradientColor gradientColor && gradientColor.gradient() &&
+               (gradientColor.area() == GradientArea.SCREEN ||
+                gradientColor.area() == GradientArea.ALL_SCREENS);
     }
 
     /** boxes is the live box layer's boxes for a morphing grid, redrawn on a cache hit; null otherwise.
@@ -4094,7 +4179,7 @@ public final class HintMeshRenderer {
         HintMeshStyle style =
                 lastHintMeshKey.styleByFilter().get(ScreenFilter.of(screen));
         GradientColor boxColor = style.boxColor();
-        Rectangle boxColorArea = gradientArea(boxColor.area(), hintMeshWindow, lastHintMeshKey);
+        Rectangle boxColorArea = gradientArea(boxColor.area(), hintMeshWindow, currentHintMesh);
         lastSelectedHintBoxHexColor = Color.hexColor(boxColorArea == null ?
                 boxColor.rgbAt(GradientColor.unitArea, 0.5, 0.5) :
                 boxColor.rgbAt(boxColorArea, hint.centerX(), hint.centerY()));
@@ -4127,9 +4212,7 @@ public final class HintMeshRenderer {
                 hintBoxRectangle.height() + boxBorderThickness);
         QPixmap pixmap = container.grab(containerBoxRect); // Expensive.
         containerBoxRect.dispose();
-        HintMesh hintMesh =
-                new HintMesh.HintMeshBuilder(lastHintMeshKey).hints(List.of(hint))
-                                                             .build();
+        HintMesh hintMesh = currentHintMesh.builder().hints(List.of(hint)).build();
         PixmapAndPosition pixmapAndPosition =
                 new PixmapAndPosition(pixmap, boxWindowX, boxWindowY, null, List.of(), hintMesh,
                         hintMeshWindow.window.x(), hintMeshWindow.window.y());
