@@ -42,9 +42,9 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
         GradientStep step = GradientStep.ELEMENT;
         String directionToken = null, areaToken = null, stepToken = null;
         for (String token : value.split("\\s+")) {
-            // A direction reads X-to-Y and the other keywords name their own axis, so a token
-            // says which one it is on and only one of each may be given.
-            if (token.contains("-to-")) {
+            // A direction reads X-to-Y or is in-turn, and the other keywords name their own axis,
+            // so a token says which one it is on and only one of each may be given.
+            if (token.contains("-to-") || token.equals("in-turn")) {
                 directionToken = once(directionToken, token, value);
                 direction = switch (token) {
                     case "top-to-bottom" -> GradientDirection.TOP_TO_BOTTOM;
@@ -63,6 +63,7 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
                     case "corner-to-center" -> GradientDirection.CORNER_TO_CENTER;
                     case "center-to-edge" -> GradientDirection.CENTER_TO_EDGE;
                     case "edge-to-center" -> GradientDirection.EDGE_TO_CENTER;
+                    case "in-turn" -> GradientDirection.IN_TURN;
                     default -> throw invalid(token);
                 };
             }
@@ -99,6 +100,11 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
                                            area == GradientArea.GROUP))
             throw new IllegalArgumentException("Invalid color " + value +
                                                ": per-group needs an area wider than a group");
+        if (direction == GradientDirection.IN_TURN &&
+            (areaToken != null || step == GradientStep.PIXEL))
+            throw new IllegalArgumentException("Invalid color " + value +
+                                               ": in-turn cannot be given with an across-" +
+                                               " keyword or per-pixel");
         return new GradientColor(List.copyOf(hexColors), direction, area, step);
     }
 
@@ -129,6 +135,10 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
 
     public int rgbAt(Rectangle area, double x, double y) {
         return rgbAt(sweepPosition(area, x, y));
+    }
+
+    public int turnRgb(int turn) {
+        return Color.rgb(hexColors.get(turn % hexColors.size()));
     }
 
     public int rgbAt(double t) {
@@ -217,7 +227,8 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
         CENTER_TO_CORNER(0.5, 0.5, 1, 1, GradientShape.CIRCLE, false),
         CORNER_TO_CENTER(0.5, 0.5, 1, 1, GradientShape.CIRCLE, true),
         CENTER_TO_EDGE(0.5, 0.5, 1, 1, GradientShape.ELLIPSE, false),
-        EDGE_TO_CENTER(0.5, 0.5, 1, 1, GradientShape.ELLIPSE, true);
+        EDGE_TO_CENTER(0.5, 0.5, 1, 1, GradientShape.ELLIPSE, true),
+        IN_TURN(0, 0, 0, 0, GradientShape.STRAIGHT, false);
 
         private final double startXPercent, startYPercent, endXPercent, endYPercent;
         private final GradientShape shape;

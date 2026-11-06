@@ -7,6 +7,7 @@ import io.qt.gui.*;
 import io.qt.widgets.*;
 import mousemaster.*;
 import mousemaster.GradientColor.GradientArea;
+import mousemaster.GradientColor.GradientDirection;
 import mousemaster.GradientColor.GradientStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1349,6 +1350,7 @@ public final class HintMeshRenderer {
 
     private class HintGroup {
 
+        final int turn;
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
         double maxHintCenterX = -Double.MAX_VALUE;
@@ -1362,6 +1364,10 @@ public final class HintMeshRenderer {
         HintBox prefixHintBox;
         HintLabel prefixHintLabel;
         int x, y;
+
+        HintGroup(int turn) {
+            this.turn = turn;
+        }
 
         Rectangle centerArea() {
             return new Rectangle((int) Math.round(minHintCenterX),
@@ -1384,10 +1390,15 @@ public final class HintMeshRenderer {
         double minHintCenterY = Double.MAX_VALUE;
         double maxHintCenterX = -Double.MAX_VALUE;
         double maxHintCenterY = -Double.MAX_VALUE;
+        Map<List<Key>, Integer> turnByKeySequence =
+                turnByKeySequence(hintMesh.hints(), -1);
+        Map<List<Key>, Integer> turnByPrefix =
+                turnByKeySequence(hintMesh.hints(), hintMesh.prefixLength());
         Map<List<Key>, HintGroup> hintGroupByPrefix = new HashMap<>();
-        HintGroup meshGroup = new HintGroup();
+        HintGroup meshGroup = new HintGroup(0);
         for (Hint hint : hintMeshWindow.hints()) {
-            HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, meshGroup, hint);
+            HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, turnByPrefix,
+                    meshGroup, hint);
             hintGroup.minHintCenterX = Math.min(hintGroup.minHintCenterX, hint.centerX());
             hintGroup.minHintCenterY = Math.min(hintGroup.minHintCenterY, hint.centerY());
             hintGroup.maxHintCenterX = Math.max(hintGroup.maxHintCenterX, hint.centerX());
@@ -1572,7 +1583,8 @@ public final class HintMeshRenderer {
                             boxSweptPerHint &&
                             boxColor.step() != GradientStep.PIXEL ?
                                     sampledBrush(boxColor, style.boxOpacity(), boxGradientArea,
-                                            hintGroup, new Point(hint.centerX(), hint.centerY())) :
+                                            hintGroup, new Point(hint.centerX(), hint.centerY()),
+                                            turnByKeySequence.get(hint.keySequence())) :
                                     boxBrush,
                             null,
                             isHintPartOfGrid,
@@ -1793,25 +1805,27 @@ public final class HintMeshRenderer {
             hintBox.move(hintBox.x() - offsetX, hintBox.y() - offsetY);
             HintLabel hintLabel = hintLabels.get(hintIndex);
             hintLabel.move(hintBox.x(), hintBox.y());
-            HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, meshGroup, hintBox.hint);
+            HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, turnByPrefix,
+                    meshGroup, hintBox.hint);
             if (boxSweptPerHint && boxColor.step() == GradientStep.PIXEL)
                 hintBox.setColor(sweptBrush(boxColor, style.boxOpacity(),
                         areaNarrowedToGroup(boxColor, boxGradientArea, hintGroup),
                         sweepOrigin));
             Point hintCenter = new Point(hintBox.hint.centerX(), hintBox.hint.centerY());
+            int turn = turnByKeySequence.get(hintBox.hint.keySequence());
             // The live border layer paints a grid's border, and that layer starts at the window.
             hintBox.setBorderColor(brush(boxBorderColor, style.boxBorderOpacity(),
-                    boxBorderGradientArea, hintGroup, hintCenter,
+                    boxBorderGradientArea, hintGroup, hintCenter, turn,
                     isHintPartOfGrid ? windowPixelRectangle : hintBox.pixelRectangle(0, 0),
                     isHintPartOfGrid ? windowOrigin : sweepOrigin));
             boolean hintSaved = savedHints.contains(hintBox.hint);
             if (hintSaved) {
                 hintBox.setColor(brush(savedStyle.boxColor(), savedStyle.boxOpacity(),
-                        savedBoxGradientArea, hintGroup, hintCenter,
+                        savedBoxGradientArea, hintGroup, hintCenter, turn,
                         hintBox.pixelRectangle(0, 0), sweepOrigin));
                 hintBox.setBorderColor(brush(savedBoxBorderColor,
                         savedStyle.boxBorderOpacity(), savedBoxBorderGradientArea, hintGroup,
-                        hintCenter,
+                        hintCenter, turn,
                         isHintPartOfGrid ? windowPixelRectangle : hintBox.pixelRectangle(0, 0),
                         isHintPartOfGrid ? windowOrigin : sweepOrigin));
             }
@@ -1823,32 +1837,34 @@ public final class HintMeshRenderer {
                         color -> color.area() == GradientArea.ELEMENT ? box :
                                 textGradientAreaByArea.computeIfAbsent(color.area(),
                                         area -> gradientArea(area, hintMeshWindow, hintMesh)),
-                        hintGroup, hintCenter);
+                        hintGroup, hintCenter, turn);
             }
             setDecorationBorderColors(hintBox, hintBox.pixelRectangle(0, 0),
-                    subDecorationStyles, 0, hintGroup, sweepOrigin);
+                    subDecorationStyles, 0, hintGroup, turn, sweepOrigin);
             hintBoxRectangles.put(hintBox.hint.keySequence(),
                     new Rectangle(hintBox.x(), hintBox.y(), hintBox.width(), hintBox.height()));
         }
         for (HintBox elementBox : elementBoxes) {
             elementBox.move(elementBox.x() - offsetX, elementBox.y() - offsetY);
-            HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, meshGroup, elementBox.hint);
+            HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, turnByPrefix,
+                    meshGroup, elementBox.hint);
             Point hintCenter = new Point(elementBox.hint.centerX(), elementBox.hint.centerY());
+            int turn = turnByKeySequence.get(elementBox.hint.keySequence());
             Rectangle pixelRectangle = elementBox.pixelRectangle(0, 0);
             if (style.uiElementBoxOpacity() != 0)
                 elementBox.setColor(brush(style.uiElementBoxColor(), style.uiElementBoxOpacity(),
-                        elementBoxGradientArea, hintGroup, hintCenter, pixelRectangle,
-                        sweepOrigin));
+                        elementBoxGradientArea, hintGroup, hintCenter, turn,
+                        pixelRectangle, sweepOrigin));
             elementBox.setBorderColor(brush(elementBoxBorderColor,
                     style.uiElementBoxBorderOpacity(), elementBoxBorderGradientArea, hintGroup,
-                    hintCenter, pixelRectangle, sweepOrigin));
+                    hintCenter, turn, pixelRectangle, sweepOrigin));
             if (savedHints.contains(elementBox.hint)) {
                 elementBox.setColor(brush(savedStyle.uiElementBoxColor(),
                         savedStyle.uiElementBoxOpacity(), savedElementBoxGradientArea,
-                        hintGroup, hintCenter, pixelRectangle, sweepOrigin));
+                        hintGroup, hintCenter, turn, pixelRectangle, sweepOrigin));
                 elementBox.setBorderColor(brush(savedElementBoxBorderColor,
                         savedStyle.uiElementBoxBorderOpacity(),
-                        savedElementBoxBorderGradientArea, hintGroup, hintCenter,
+                        savedElementBoxBorderGradientArea, hintGroup, hintCenter, turn,
                         pixelRectangle, sweepOrigin));
             }
         }
@@ -1864,8 +1880,8 @@ public final class HintMeshRenderer {
             );
             prefixHintBox.setBorderColor(brush(prefixBoxBorderColor,
                     style.prefixBoxBorderOpacity(), prefixBoxBorderGradientArea, hintGroup,
-                    hintGroup.centerArea().center(), prefixHintBox.pixelRectangle(0, 0),
-                    sweepOrigin));
+                    hintGroup.centerArea().center(), hintGroup.turn,
+                    prefixHintBox.pixelRectangle(0, 0), sweepOrigin));
             prefixBoxes.add(prefixHintBox);
         }
         for (HintGroup hintGroup : hintGroupByPrefix.values()) {
@@ -1928,7 +1944,7 @@ public final class HintMeshRenderer {
             addDecorationBoxes(areaBox, areaWidth, areaHeight,
                     hintMesh.decoration(), areaDecorationStyles, 0, qtScaleFactor);
             setDecorationBorderColors(areaBox, areaBox.pixelRectangle(0, 0),
-                    areaDecorationStyles, 0, null, sweepOrigin);
+                    areaDecorationStyles, 0, null, 0, sweepOrigin);
             List<Rectangle> areaInk = new ArrayList<>();
             areaBox.collectBorderInk(0, 0, areaInk);
             prefixBoxLayer.setEnclosingInk(areaInk);
@@ -2035,9 +2051,25 @@ public final class HintMeshRenderer {
 
     /** Without prefixes, the whole mesh is one group. */
     private HintGroup hintGroupOf(HintMesh hintMesh, Map<List<Key>, HintGroup> hintGroupByPrefix,
+                                  Map<List<Key>, Integer> turnByPrefix,
                                   HintGroup meshGroup, Hint hint) {
         return hintMesh.prefixLength() == -1 ? meshGroup : hintGroupByPrefix.computeIfAbsent(
-                hint.keySequence().subList(0, hintMesh.prefixLength()), prefix -> new HintGroup());
+                labelKeySequence(hint, hintMesh.prefixLength()),
+                prefix -> new HintGroup(turnByPrefix.get(prefix)));
+    }
+
+    private static List<Key> labelKeySequence(Hint hint, int prefixLength) {
+        return prefixLength == -1 ? hint.keySequence() :
+                hint.keySequence().subList(0, prefixLength);
+    }
+
+    private static Map<List<Key>, Integer> turnByKeySequence(List<Hint> hints,
+                                                                  int prefixLength) {
+        Map<List<Key>, Integer> turnByKeySequence = new HashMap<>();
+        for (Hint hint : hints)
+            turnByKeySequence.putIfAbsent(labelKeySequence(hint, prefixLength),
+                    turnByKeySequence.size());
+        return turnByKeySequence;
     }
 
     private static Rectangle areaNarrowedToGroup(GradientColor color, Rectangle area,
@@ -2047,9 +2079,17 @@ public final class HintMeshRenderer {
     }
 
     private static QBrush sampledBrush(GradientColor color, double opacity, Rectangle area,
-                                       HintGroup hintGroup, Point center) {
+                                       HintGroup hintGroup, Point center, int turn) {
+        if (color.direction() == GradientDirection.IN_TURN)
+            return QtColorUtil.qBrush(QtColorUtil.rgba(
+                    color.turnRgb(sampledTurn(color, hintGroup, turn)), opacity));
         return QtColorUtil.qBrush(color, opacity,
                 sampledPosition(color, area, hintGroup, center));
+    }
+
+    private static int sampledTurn(GradientColor color, HintGroup hintGroup, int turn) {
+        return color.step() == GradientStep.GROUP && hintGroup != null ?
+                hintGroup.turn : turn;
     }
 
     private static double sampledPosition(GradientColor color, Rectangle area,
@@ -2077,9 +2117,10 @@ public final class HintMeshRenderer {
      *  the way a box samples a gradient. */
     private static QtHintFontStyle sampledLabelFontStyle(
             QtHintFontStyle labelFontStyle, HintMeshStyle style,
-            Function<GradientColor, Rectangle> gradientArea, HintGroup hintGroup, Point center) {
+            Function<GradientColor, Rectangle> gradientArea, HintGroup hintGroup, Point center,
+            int turn) {
         BiFunction<QtFontStyle, FontStyle, QtFontStyle> sampled = (qtFontStyle, fontStyle) ->
-                sampledFontStyle(qtFontStyle, fontStyle, gradientArea, hintGroup, center);
+                sampledFontStyle(qtFontStyle, fontStyle, gradientArea, hintGroup, center, turn);
         HintFontStyle fontStyle = style.fontStyle();
         HintFontStyle prefixFontStyle = style.prefixFontStyle();
         boolean prefix = labelFontStyle.prefixDefaultStyle() != null;
@@ -2099,10 +2140,14 @@ public final class HintMeshRenderer {
 
     private static QtFontStyle sampledFontStyle(QtFontStyle qtFontStyle, FontStyle fontStyle,
                                                 Function<GradientColor, Rectangle> gradientArea,
-                                                HintGroup hintGroup, Point center) {
+                                                HintGroup hintGroup, Point center, int turn) {
         if (!gradient(fontStyle))
             return qtFontStyle;
         GradientColor color = (GradientColor) fontStyle.color();
+        if (color.direction() == GradientDirection.IN_TURN)
+            return qtFontStyle.withColor(QColor.fromRgba(QtColorUtil.rgba(
+                    color.turnRgb(sampledTurn(color, hintGroup, turn)),
+                    fontStyle.opacity())));
         return qtFontStyle.withColor(QtColorUtil.qColor(color, fontStyle.opacity(),
                 sampledPosition(color, gradientArea.apply(color), hintGroup, center)));
     }
@@ -2116,14 +2161,14 @@ public final class HintMeshRenderer {
     /** box is in the pixels of the layer that paints it, whose top left is sweepOrigin. A border is
      *  stroked a line at a time, so a sweep across each box is laid over the box itself. */
     private static QBrush brush(GradientColor color, double opacity, Rectangle gradientArea,
-                                HintGroup hintGroup, Point center, Rectangle box,
-                                Point sweepOrigin) {
+                                HintGroup hintGroup, Point center, int turn,
+                                Rectangle box, Point sweepOrigin) {
         if (!color.gradient())
             return QtColorUtil.qBrush(QtColorUtil.rgba(color.rgbAt(0), opacity));
         if (color.area() == GradientArea.ELEMENT)
             return QtColorUtil.qBrush(color, opacity, box);
         if (color.step() != GradientStep.PIXEL)
-            return sampledBrush(color, opacity, gradientArea, hintGroup, center);
+            return sampledBrush(color, opacity, gradientArea, hintGroup, center, turn);
         return sweptBrush(color, opacity, areaNarrowedToGroup(color, gradientArea, hintGroup),
                 sweepOrigin);
     }
@@ -2137,7 +2182,7 @@ public final class HintMeshRenderer {
     private static void setDecorationBorderColors(HintBox box, Rectangle boxPixelRectangle,
                                                   List<DecorationStyle> decorationStyles,
                                                   int depth, HintGroup hintGroup,
-                                                  Point sweepOrigin) {
+                                                  int turn, Point sweepOrigin) {
         for (HintBox decorationBox : box.decorationBoxes) {
             DecorationStyle decorationStyle = decorationStyles.get(depth);
             Rectangle pixelRectangle =
@@ -2146,9 +2191,9 @@ public final class HintMeshRenderer {
                     decorationStyle.boxBorderOpacity(), decorationStyle.boxBorderGradientArea(),
                     hintGroup, new Point(sweepOrigin.x() + pixelRectangle.center().x(),
                             sweepOrigin.y() + pixelRectangle.center().y()),
-                    pixelRectangle, sweepOrigin));
+                    turn, pixelRectangle, sweepOrigin));
             setDecorationBorderColors(decorationBox, pixelRectangle, decorationStyles,
-                    depth + 1, hintGroup, sweepOrigin);
+                    depth + 1, hintGroup, turn, sweepOrigin);
         }
     }
 
@@ -4064,10 +4109,20 @@ public final class HintMeshRenderer {
         HintMeshStyle style =
                 lastHintMeshKey.styleByFilter().get(ScreenFilter.of(screen));
         GradientColor boxColor = style.boxColor();
-        Rectangle boxColorArea = gradientArea(boxColor.area(), hintMeshWindow, currentHintMesh);
-        lastSelectedHintBoxHexColor = Color.hexColor(boxColorArea == null ?
-                boxColor.rgbAt(GradientColor.unitArea, 0.5, 0.5) :
-                boxColor.rgbAt(boxColorArea, hint.centerX(), hint.centerY()));
+        if (boxColor.direction() == GradientDirection.IN_TURN) {
+            int prefixLength = boxColor.step() == GradientStep.GROUP ?
+                    Math.max(currentHintMesh.prefixLength(), 0) : -1;
+            lastSelectedHintBoxHexColor = Color.hexColor(boxColor.turnRgb(
+                    turnByKeySequence(currentHintMesh.hints(), prefixLength)
+                            .get(labelKeySequence(hint, prefixLength))));
+        }
+        else {
+            Rectangle boxColorArea =
+                    gradientArea(boxColor.area(), hintMeshWindow, currentHintMesh);
+            lastSelectedHintBoxHexColor = Color.hexColor(boxColorArea == null ?
+                    boxColor.rgbAt(GradientColor.unitArea, 0.5, 0.5) :
+                    boxColor.rgbAt(boxColorArea, hint.centerX(), hint.centerY()));
+        }
         if (!style.transition().enabled())
             return;
         boolean isHintGrid = lastHintMeshKey.hints().getFirst().cellWidth() != -1 &&

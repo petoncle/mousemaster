@@ -173,6 +173,27 @@ class GradientColorTest {
     }
 
     @Test
+    void inTurnGivesTheColorsOneAfterTheOther() {
+        GradientColor color = GradientColor.parse("per-group in-turn #FF0000 #00FF00 #0000FF");
+        assertEquals(GradientDirection.IN_TURN, color.direction());
+        assertEquals(GradientStep.GROUP, color.step());
+        assertEquals(0xFF0000, color.turnRgb(0));
+        assertEquals(0x00FF00, color.turnRgb(1));
+        assertEquals(0x0000FF, color.turnRgb(2));
+        assertEquals(0xFF0000, color.turnRgb(3));
+    }
+
+    @Test
+    void inTurnTakesNoSweep() {
+        assertThrows(IllegalArgumentException.class,
+                () -> GradientColor.parse("in-turn across-screen #FF0000 #0000FF"));
+        assertThrows(IllegalArgumentException.class,
+                () -> GradientColor.parse("in-turn per-pixel #FF0000 #0000FF"));
+        assertThrows(IllegalArgumentException.class,
+                () -> GradientColor.parse("in-turn top-to-bottom #FF0000 #0000FF"));
+    }
+
+    @Test
     void oneKeywordPerAxis() {
         assertThrows(IllegalArgumentException.class, () -> GradientColor.parse(
                 "right-to-left corner-to-center #FF0000 #0000FF"));

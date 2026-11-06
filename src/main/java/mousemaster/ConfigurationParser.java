@@ -3145,10 +3145,10 @@ public class ConfigurationParser {
             case "distance" -> ModePropertyHandler.of(prefix.append("distance"), v -> parseDouble(v, true, -10_000, 10_000), v -> layer.distance(v));
             case "angle" -> ModePropertyHandler.of(prefix.append("angle"), v -> parseDouble(v, true, -100_000, 100_000), v -> layer.angle(v));
             case "rotation" -> ModePropertyHandler.of(prefix.append("rotation"), v -> parseDouble(v, true, -100_000, 100_000), v -> layer.rotation(v));
-            case "fill-color" -> ModePropertyHandler.of(prefix.append("fillColor"), v -> Color.parse(v, colorAliases), v -> layer.fillColor(v));
+            case "fill-color" -> ModePropertyHandler.of(prefix.append("fillColor"), v -> parseIndicatorColor(v, colorAliases), v -> layer.fillColor(v));
             case "fill-opacity" -> ModePropertyHandler.of(prefix.append("fillOpacity"), v -> parseDouble(v, true, 0, 1), v -> layer.fillOpacity(v));
             case "stroke-thickness" -> ModePropertyHandler.of(prefix.append("stroke").append("thickness"), v -> parseDouble(v, true, 0, 1000), v -> layer.stroke().thickness(v));
-            case "stroke-color" -> ModePropertyHandler.of(prefix.append("stroke").append("color"), v -> Color.parse(v, colorAliases), v -> layer.stroke().color(v));
+            case "stroke-color" -> ModePropertyHandler.of(prefix.append("stroke").append("color"), v -> parseIndicatorColor(v, colorAliases), v -> layer.stroke().color(v));
             case "stroke-opacity" -> ModePropertyHandler.of(prefix.append("stroke").append("opacity"), v -> parseDouble(v, true, 0, 1), v -> layer.stroke().opacity(v));
             case "stroke-start-angle" -> ModePropertyHandler.of(prefix.append("stroke").append("startAngle"), v -> parseDouble(v, true, 0, 360), v -> layer.stroke().startAngle(v));
             case "stroke-length-percent" -> ModePropertyHandler.of(prefix.append("stroke").append("lengthPercent"), v -> parseDouble(v, true, -1, 1), v -> layer.stroke().lengthPercent(v));
@@ -3158,7 +3158,7 @@ public class ConfigurationParser {
             case "stroke-dash-offset" -> ModePropertyHandler.of(prefix.append("stroke").append("dashOffset"), v -> parseDouble(v, true, -1_000_000, 1_000_000), v -> layer.stroke().dashOffset(v));
             case "stroke-cap" -> ModePropertyHandler.of(prefix.append("stroke").append("cap"), v -> StrokeCap.fromString(v), v -> layer.stroke().cap(v));
             case "shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("shadow").append("blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> layer.shadow().blurRadius(v));
-            case "shadow-color" -> ModePropertyHandler.of(prefix.append("shadow").append("color"), v -> Color.parse(v, colorAliases), v -> layer.shadow().color(v));
+            case "shadow-color" -> ModePropertyHandler.of(prefix.append("shadow").append("color"), v -> parseIndicatorColor(v, colorAliases), v -> layer.shadow().color(v));
             case "shadow-opacity" -> ModePropertyHandler.of(prefix.append("shadow").append("opacity"), v -> parseDouble(v, true, 0, 1), v -> layer.shadow().opacity(v));
             case "shadow-stack-count" -> ModePropertyHandler.of(prefix.append("shadow").append("stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> layer.shadow().stackCount(v));
             case "shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("shadow").append("horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> layer.shadow().horizontalOffset(v));
@@ -3913,6 +3913,16 @@ public class ConfigurationParser {
                             "last-selected-hint", "active-window-center",
                             "last-overlay-area-center"));
         };
+    }
+
+    private static Color parseIndicatorColor(String propertyValue,
+                                             Map<String, GradientColor> colorAliases) {
+        Color color = Color.parse(propertyValue, colorAliases);
+        if (color instanceof GradientColor gradientColor &&
+            gradientColor.direction() == GradientColor.GradientDirection.IN_TURN)
+            throw new IllegalArgumentException("Invalid color " + propertyValue +
+                                               ": an indicator cannot take the colors in-turn");
+        return color;
     }
 
     private static LabelLength parseLabelLength(String propertyKey, String propertyValue) {

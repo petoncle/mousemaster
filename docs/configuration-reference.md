@@ -1302,6 +1302,14 @@ hint-mode.overlay.background-opacity=0
       `across-hint`.
     - A grid without subgrids, such as one without `selection-keys`, is one subgrid: with
       `per-subgrid`, all its boxes share one color.
+    - `in-turn`, in place of a direction: the colors are not blended. The hints (with
+      `per-hint`) or the subgrids (with `per-subgrid`) take the colors in turn, in the order
+      their labels are given, and start again at the first color after the last one. An
+      `across-` keyword and `per-pixel` cannot be given with it, and an indicator color cannot
+      use it:
+      ```properties
+      hint-mode.overlay.box-color=per-subgrid in-turn #E06C75 #98C379 #61AFEF
+      ```
   - `box-border-color`: One color, or a gradient as for `box-color`. So are
     `prefix-box-border-color`, `ui-element-box-color`, `ui-element-box-border-color` and
     `<level>-box-border-color`.

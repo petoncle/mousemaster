@@ -31,6 +31,14 @@ class ColorAliasTest {
     }
 
     @Test
+    void anIndicatorRejectsAnInTurnColor() {
+        assertThrows(IllegalArgumentException.class, () -> parse(
+                "color-alias.key-colors=per-group in-turn #F97316 #3B82F6",
+                "idle-mode.hint.box-color=key-colors",
+                "idle-mode.indicator.fill-color=key-colors"));
+    }
+
+    @Test
     void anUndefinedAliasIsStillRejected() {
         assertThrows(IllegalArgumentException.class,
                 () -> parse("idle-mode.indicator.fill-color=no-such-alias"));
