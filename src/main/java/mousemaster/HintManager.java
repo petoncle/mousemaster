@@ -1161,17 +1161,12 @@ public class HintManager implements ModeListener, MousePositionListener {
                         default -> throw new IllegalStateException();
                     };
                     gridCenter = switch (area.centerOrDefault()) {
-                        case ACTIVE_SCREEN_CENTER ->
-                                activeScreen.rectangle().center();
-                        case MOUSE, TARGET ->
-                                zoomedPoint(areaCenterPoint(area.centerOrDefault()), zoom);
+                        case ACTIVE_SCREEN_CENTER -> activeScreen.rectangle().center();
                         case LAST_SELECTED_HINT -> lastSelectedHintPoint == null ?
                                 activeScreen.rectangle().center() :
                                 zoomedPoint(lastSelectedHintPoint, zoom);
-                        case ACTIVE_WINDOW_CENTER ->
-                                zoom.zoomedRectangle(overlay.activeWindowRectangle()).center();
-                        case LAST_OVERLAY_AREA_CENTER ->
-                                zoom.zoomedRectangle(lastOverlayArea()).center();
+                        case MOUSE, TARGET, ACTIVE_WINDOW_CENTER, LAST_OVERLAY_AREA_CENTER ->
+                                zoomedPoint(areaCenterPoint(area.centerOrDefault()), zoom);
                     };
                     areaRectangle = scaledArea(sourceRectangle, area.size(), gridCenter,
                             activeScreen.scale());
