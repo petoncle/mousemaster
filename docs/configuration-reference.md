@@ -1302,6 +1302,10 @@ hint-mode.overlay.background-opacity=0
       `across-hint`.
     - A grid without subgrids, such as one without `selection-keys`, is one subgrid: with
       `per-subgrid`, all its boxes share one color.
+    - Hints without a grid (UI hints and position history hints) are in subgrids too: the hints
+      whose labels differ only in the last key are one subgrid. With the labels
+      `a b c da db dc`, `a b c` is one subgrid and `da db dc` is another. Thus with 2-key labels
+      and `per-subgrid in-turn`, each first key gets its own color.
     - `in-turn`, in place of a direction: the colors are not blended. The hints (with
       `per-hint`) or the subgrids (with `per-subgrid`) take the colors in turn, in the order
       their labels are given, and start again at the first color after the last one. An

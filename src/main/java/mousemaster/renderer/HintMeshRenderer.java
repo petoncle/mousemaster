@@ -1391,14 +1391,12 @@ public final class HintMeshRenderer {
         double maxHintCenterX = -Double.MAX_VALUE;
         double maxHintCenterY = -Double.MAX_VALUE;
         Map<List<Key>, Integer> turnByKeySequence =
-                turnByKeySequence(hintMesh.hints(), -1);
-        Map<List<Key>, Integer> turnByPrefix =
-                turnByKeySequence(hintMesh.hints(), hintMesh.prefixLength());
+                turnByKeySequence(hintMesh.hints(), Hint::keySequence);
+        Map<List<Key>, Integer> turnByPrefix = turnByKeySequence(hintMesh.hints(),
+                hint -> groupPrefix(hintMesh, hint));
         Map<List<Key>, HintGroup> hintGroupByPrefix = new HashMap<>();
-        HintGroup meshGroup = new HintGroup(0);
         for (Hint hint : hintMeshWindow.hints()) {
-            HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, turnByPrefix,
-                    meshGroup, hint);
+            HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, turnByPrefix, hint);
             hintGroup.minHintCenterX = Math.min(hintGroup.minHintCenterX, hint.centerX());
             hintGroup.minHintCenterY = Math.min(hintGroup.minHintCenterY, hint.centerY());
             hintGroup.maxHintCenterX = Math.max(hintGroup.maxHintCenterX, hint.centerX());
@@ -1575,8 +1573,7 @@ public final class HintMeshRenderer {
             boolean gridTopEdge = !isHintPartOfGrid || !selectable || hint.centerY() == minHintCenterY || style.boxHeightPercent() != 1;
             boolean gridRightEdge = !isHintPartOfGrid || !selectable || hint.centerX() == maxHintCenterX || style.boxWidthPercent() != 1;
             boolean gridBottomEdge = !isHintPartOfGrid || !selectable || hint.centerY() == maxHintCenterY || style.boxHeightPercent() != 1;
-            HintGroup hintGroup = hintMesh.prefixLength() == -1 ? meshGroup :
-                    hintGroupByPrefix.get(prefix);
+            HintGroup hintGroup = hintGroupByPrefix.get(groupPrefix(hintMesh, hint));
             HintBox hintBox =
                     new HintBox(hint, boxBorderLength,
                             boxBorderThickness,
@@ -1673,7 +1670,7 @@ public final class HintMeshRenderer {
         for (HintGroup hintGroup : hintGroupByPrefix.values()) {
             if (!hintGroup.atLeastOneHintVisible)
                 continue;
-            if (!style.prefixBoxEnabled())
+            if (!style.prefixBoxEnabled() || hintMesh.prefixLength() == -1)
                 continue;
             boolean gridLeftEdge =
                     !isHintPartOfGrid || hintGroup.minHintCenterX == minHintCenterX ||
@@ -1704,7 +1701,7 @@ public final class HintMeshRenderer {
             hintGroup.prefixHintBox = prefixHintBox;
         }
         QtHintFontStyle prefixQtHintFontStyle = null;
-        if (style.prefixInBackground()) {
+        if (style.prefixInBackground() && hintMesh.prefixLength() != -1) {
             prefixQtHintFontStyle = QtHintFont.qtHintFontStyle(style.prefixFontStyle(), null, screenScale, lastSelectedHintBoxHexColor);
             Map<String, Integer> prefixXAdvancesByString = new HashMap<>();
             int prefixHintKeyMaxXAdvance = 0;
@@ -1805,8 +1802,8 @@ public final class HintMeshRenderer {
             hintBox.move(hintBox.x() - offsetX, hintBox.y() - offsetY);
             HintLabel hintLabel = hintLabels.get(hintIndex);
             hintLabel.move(hintBox.x(), hintBox.y());
-            HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, turnByPrefix,
-                    meshGroup, hintBox.hint);
+            HintGroup hintGroup =
+                    hintGroupOf(hintMesh, hintGroupByPrefix, turnByPrefix, hintBox.hint);
             if (boxSweptPerHint && boxColor.step() == GradientStep.PIXEL)
                 hintBox.setColor(sweptBrush(boxColor, style.boxOpacity(),
                         areaNarrowedToGroup(boxColor, boxGradientArea, hintGroup),
@@ -1847,7 +1844,7 @@ public final class HintMeshRenderer {
         for (HintBox elementBox : elementBoxes) {
             elementBox.move(elementBox.x() - offsetX, elementBox.y() - offsetY);
             HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, turnByPrefix,
-                    meshGroup, elementBox.hint);
+                    elementBox.hint);
             Point hintCenter = new Point(elementBox.hint.centerX(), elementBox.hint.centerY());
             int turn = turnByKeySequence.get(elementBox.hint.keySequence());
             Rectangle pixelRectangle = elementBox.pixelRectangle(0, 0);
@@ -2049,26 +2046,27 @@ public final class HintMeshRenderer {
                 new Point(end.x() - origin.x(), end.y() - origin.y()));
     }
 
-    /** Without prefixes, the whole mesh is one group. */
     private HintGroup hintGroupOf(HintMesh hintMesh, Map<List<Key>, HintGroup> hintGroupByPrefix,
-                                  Map<List<Key>, Integer> turnByPrefix,
-                                  HintGroup meshGroup, Hint hint) {
-        return hintMesh.prefixLength() == -1 ? meshGroup : hintGroupByPrefix.computeIfAbsent(
-                labelKeySequence(hint, hintMesh.prefixLength()),
+                                  Map<List<Key>, Integer> turnByPrefix, Hint hint) {
+        return hintGroupByPrefix.computeIfAbsent(groupPrefix(hintMesh, hint),
                 prefix -> new HintGroup(turnByPrefix.get(prefix)));
     }
 
-    private static List<Key> labelKeySequence(Hint hint, int prefixLength) {
-        return prefixLength == -1 ? hint.keySequence() :
-                hint.keySequence().subList(0, prefixLength);
+    /** Without prefixes, the whole grid is one group. */
+    private static List<Key> groupPrefix(HintMesh hintMesh, Hint hint) {
+        List<Key> keySequence = hint.keySequence();
+        if (hint.cellWidth() != -1)
+            return hintMesh.prefixLength() == -1 ? List.of() :
+                    keySequence.subList(0, hintMesh.prefixLength());
+        return keySequence.isEmpty() ? keySequence :
+                keySequence.subList(0, keySequence.size() - 1);
     }
 
-    private static Map<List<Key>, Integer> turnByKeySequence(List<Hint> hints,
-                                                                  int prefixLength) {
+    private static Map<List<Key>, Integer> turnByKeySequence(
+            List<Hint> hints, Function<Hint, List<Key>> keySequence) {
         Map<List<Key>, Integer> turnByKeySequence = new HashMap<>();
         for (Hint hint : hints)
-            turnByKeySequence.putIfAbsent(labelKeySequence(hint, prefixLength),
-                    turnByKeySequence.size());
+            turnByKeySequence.putIfAbsent(keySequence.apply(hint), turnByKeySequence.size());
         return turnByKeySequence;
     }
 
@@ -4110,11 +4108,11 @@ public final class HintMeshRenderer {
                 lastHintMeshKey.styleByFilter().get(ScreenFilter.of(screen));
         GradientColor boxColor = style.boxColor();
         if (boxColor.direction() == GradientDirection.IN_TURN) {
-            int prefixLength = boxColor.step() == GradientStep.GROUP ?
-                    Math.max(currentHintMesh.prefixLength(), 0) : -1;
+            Function<Hint, List<Key>> labelKeySequence = boxColor.step() == GradientStep.GROUP ?
+                    labelHint -> groupPrefix(currentHintMesh, labelHint) : Hint::keySequence;
             lastSelectedHintBoxHexColor = Color.hexColor(boxColor.turnRgb(
-                    turnByKeySequence(currentHintMesh.hints(), prefixLength)
-                            .get(labelKeySequence(hint, prefixLength))));
+                    turnByKeySequence(currentHintMesh.hints(), labelKeySequence)
+                            .get(labelKeySequence.apply(hint))));
         }
         else {
             Rectangle boxColorArea =
