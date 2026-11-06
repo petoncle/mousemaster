@@ -581,8 +581,9 @@ normal-mode.indicator.shadow-vertical-offset=2
 - **`shadow-stack-count`**: Number of times the shadow is composited on itself for a stronger effect (1-100, default 1)
 - **`shadow-horizontal-offset`** / **`shadow-vertical-offset`**: Shadow offset in pixels (-100 to 100, default 0)
 
-Each layer casts its own shadow. Layers with the same shadow cast it as one shape, and a shadow is
-never drawn over a layer, even a translucent one.
+Each layer casts its own shadow, from its whole shape whatever its fill and stroke opacities, as a
+hint box does. Layers with the same shadow cast it as one shape, and a shadow is never drawn over a
+layer, even a transparent one.
 
 #### Rendering as the system cursor
 

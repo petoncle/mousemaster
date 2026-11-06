@@ -1471,8 +1471,7 @@ public final class IndicatorRenderer {
         }
 
         private static QColor opaque(QColor color) {
-            return color.alpha() == 0 ? new QColor(0, 0, 0, 0) :
-                    new QColor(color.red(), color.green(), color.blue());
+            return new QColor(color.red(), color.green(), color.blue());
         }
 
         @Override
