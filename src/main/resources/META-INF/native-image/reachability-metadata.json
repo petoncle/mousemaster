@@ -7531,7 +7531,7 @@
           "parameterTypes": [
             "double",
             "mousemaster.ZoomAreaSize",
-            "mousemaster.ZoomCenter",
+            "mousemaster.HintGridAreaCenter",
             "boolean",
             "mousemaster.Easing",
             "double"
@@ -7541,7 +7541,7 @@
           "name": "<init>",
           "parameterTypes": [
             "double",
-            "mousemaster.ZoomCenter",
+            "mousemaster.HintGridAreaCenter",
             "boolean",
             "mousemaster.Easing",
             "double"

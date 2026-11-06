@@ -31,6 +31,8 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         return follow && area.size().source() == null &&
                !positions.contains(IndicatorPosition.PointIndicatorPosition.TARGET) &&
                !positions.contains(IndicatorPosition.PointIndicatorPosition.LAST_SELECTED_HINT) &&
+               !positions.contains(IndicatorPosition.PointIndicatorPosition.ACTIVE_WINDOW_CENTER) &&
+               !positions.contains(IndicatorPosition.PointIndicatorPosition.LAST_OVERLAY_AREA_CENTER) &&
                positions.stream().noneMatch(
                        IndicatorPosition.PositionHistoryIndicatorPosition.class::isInstance);
     }

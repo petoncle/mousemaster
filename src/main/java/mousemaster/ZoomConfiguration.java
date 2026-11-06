@@ -1,6 +1,6 @@
 package mousemaster;
 
-public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, ZoomCenter center,
+public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, HintGridAreaCenter center,
                                 boolean animationEnabled, Easing animationEasing,
                                 double animationDurationMillis) {
 
@@ -18,7 +18,7 @@ public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, ZoomCente
         private ZoomAreaSizeSource areaSizeSource;
         private Double areaWidthPercent;
         private Double areaHeightPercent;
-        private ZoomCenter center;
+        private HintGridAreaCenter center;
         private Boolean animationEnabled;
         private Easing animationEasing;
         private Double animationDurationMillis;
@@ -43,7 +43,7 @@ public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, ZoomCente
             return this;
         }
 
-        public ZoomConfigurationBuilder center(ZoomCenter center) {
+        public ZoomConfigurationBuilder center(HintGridAreaCenter center) {
             this.center = center;
             return this;
         }
@@ -79,7 +79,7 @@ public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, ZoomCente
             return areaHeightPercent;
         }
 
-        public ZoomCenter center() {
+        public HintGridAreaCenter center() {
             return center;
         }
 

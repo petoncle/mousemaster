@@ -254,6 +254,13 @@ class IndicatorLayerTest {
     }
 
     @Test
+    void aLayerOnTheActiveWindowOrTheLastOverlayAreaDoesNotFollowTheMouse() {
+        for (String position : List.of("active-window-center", "last-overlay-area-center"))
+            assertFalse(layer(parse("idle-mode.indicator.position=" + position).modeMap()
+                                    .get(Mode.IDLE_MODE_NAME), "indicator").followMouse());
+    }
+
+    @Test
     void aPositionIsRelativeToTheMouseOrTheScreen() {
         Mode mode = parse("idle-mode.indicator.position=mouse-top-left").modeMap()
                                                                      .get(Mode.IDLE_MODE_NAME);

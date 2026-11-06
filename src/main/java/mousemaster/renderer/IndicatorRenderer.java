@@ -695,7 +695,9 @@ public final class IndicatorRenderer {
                             screen.y() + screen.height() - layerSizeWithStroke.height() :
                             screen.y());
         if (position == PointIndicatorPosition.MOUSE || position == PointIndicatorPosition.TARGET ||
-            position == PointIndicatorPosition.LAST_SELECTED_HINT) {
+            position == PointIndicatorPosition.LAST_SELECTED_HINT ||
+            position == PointIndicatorPosition.ACTIVE_WINDOW_CENTER ||
+            position == PointIndicatorPosition.LAST_OVERLAY_AREA_CENTER) {
             double centerX = mouseRectangle.x() + anchor.cursorVisualCenter().x();
             double centerY = mouseRectangle.y() + anchor.cursorVisualCenter().y();
             centerX = Math.max(screen.x(), Math.min(centerX,

@@ -115,6 +115,22 @@ class OverlayTest {
     }
 
     @Test
+    void theOverlayTheZoomAndAnIndicatorLayerTakeTheSamePoints() {
+        for (String point : List.of("active-screen-center", "mouse", "target",
+                "last-selected-hint", "active-window-center", "last-overlay-area-center")) {
+            Mode mode = ConfigurationParser.parse(List.of("idle-mode.to.grid-mode=+g",
+                            "grid-mode.overlay.area-center=" + point,
+                            "grid-mode.overlay.ui-order=" + point,
+                            "grid-mode.zoom.center=" + point,
+                            "grid-mode.indicator.position=" + point),
+                    KeyboardLayout.keyboardLayout("00000409", null)).modeMap().get("grid-mode");
+            assertEquals(mode.hintMesh().type().area().center(), mode.zoom().center());
+            assertEquals(mode.hintMesh().type().area().center(),
+                    mode.hintMesh().type().order().center());
+        }
+    }
+
+    @Test
     void aTypeBranchGivesTheOverlayTheSettingsOfItsType() {
         HintMeshType grid = branchType("ui-vision", "grid");
         assertEquals(HintMeshType.HintMeshTypeType.GRID, grid.type());

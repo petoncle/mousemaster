@@ -55,6 +55,8 @@ public class UiHintOrderTest {
                 parse(uiMode + "ui-hint-mode.hint.ui-order=bottom-to-top\n")));
         assertEquals(UiHintOrder.MOUSE, uiHintOrder(
                 parse(uiMode + "ui-hint-mode.hint.ui-order=mouse\n")));
+        assertEquals(UiHintOrder.TARGET, uiHintOrder(
+                parse(uiMode + "ui-hint-mode.hint.ui-order=target\n")));
         assertEquals(UiHintOrder.ACTIVE_SCREEN_CENTER, uiHintOrder(
                 parse(uiMode + "ui-hint-mode.hint.ui-order=active-screen-center\n")));
         assertEquals(UiHintOrder.ACTIVE_WINDOW_CENTER, uiHintOrder(

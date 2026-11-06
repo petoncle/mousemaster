@@ -136,7 +136,7 @@ public class ConfigurationParser {
             .areaSizeSource(ZoomAreaSizeSource.PERCENT)
             .areaWidthPercent(1.0)
             .areaHeightPercent(1.0)
-            .center(ZoomCenter.ACTIVE_SCREEN_CENTER)
+            .center(HintGridAreaCenter.ACTIVE_SCREEN_CENTER)
             .animationEnabled(false)
             .animationEasing(new Easing.Smootherstep())
             .animationDurationMillis(200);
@@ -3081,7 +3081,7 @@ public class ConfigurationParser {
             case "area-size-source" -> ModePropertyHandler.of(prefix.append("areaSize", "source"), v -> parseZoomAreaSizeSource("zoom.area-size-source", v), v -> zoom.areaSizeSource(v));
             case "area-width-percent" -> ModePropertyHandler.of(prefix.append("areaSize", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> zoom.areaWidthPercent(v));
             case "area-height-percent" -> ModePropertyHandler.of(prefix.append("areaSize", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> zoom.areaHeightPercent(v));
-            case "center" -> ModePropertyHandler.of(prefix.append("center"), v -> parseZoomCenter("zoom.center", v), v -> zoom.center(v));
+            case "center" -> ModePropertyHandler.of(prefix.append("center"), v -> parseHintGridAreaCenter("zoom.center", v), v -> zoom.center(v));
             case "animation-enabled" -> ModePropertyHandler.of(prefix.append("animationEnabled"), v -> Boolean.parseBoolean(v), v -> zoom.animationEnabled(v));
             case "animation-easing" -> ModePropertyHandler.of(prefix.append("animationEasing"), v -> parseEasing(v), v -> zoom.animationEasing(v));
             case "animation-duration-millis" -> ModePropertyHandler.of(prefix.append("animationDurationMillis"), v -> parseDouble(v, true, 0, 10000), v -> zoom.animationDurationMillis(v));
@@ -3880,6 +3880,7 @@ public class ConfigurationParser {
             case "right-to-left" -> UiHintOrder.RIGHT_TO_LEFT;
             case "active-screen-center" -> UiHintOrder.ACTIVE_SCREEN_CENTER;
             case "mouse" -> UiHintOrder.MOUSE;
+            case "target" -> UiHintOrder.TARGET;
             case "last-selected-hint" -> UiHintOrder.LAST_SELECTED_HINT;
             case "active-window-center" -> UiHintOrder.ACTIVE_WINDOW_CENTER;
             case "last-overlay-area-center" -> UiHintOrder.LAST_OVERLAY_AREA_CENTER;
@@ -3887,7 +3888,7 @@ public class ConfigurationParser {
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": should be one of " +
                     List.of("top-to-bottom", "bottom-to-top", "left-to-right",
-                            "right-to-left", "active-screen-center", "mouse",
+                            "right-to-left", "active-screen-center", "mouse", "target",
                             "last-selected-hint", "active-window-center",
                             "last-overlay-area-center"));
         };
@@ -3914,12 +3915,13 @@ public class ConfigurationParser {
                 yield HintGridAreaCenter.ACTIVE_SCREEN_CENTER;
             }
             case "mouse" -> HintGridAreaCenter.MOUSE;
+            case "target" -> HintGridAreaCenter.TARGET;
             case "last-selected-hint" -> HintGridAreaCenter.LAST_SELECTED_HINT;
             case "active-window-center" -> HintGridAreaCenter.ACTIVE_WINDOW_CENTER;
             case "last-overlay-area-center" -> HintGridAreaCenter.LAST_OVERLAY_AREA_CENTER;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
-                    ": expected one of " + List.of("active-screen-center", "mouse",
+                    ": expected one of " + List.of("active-screen-center", "mouse", "target",
                             "last-selected-hint", "active-window-center",
                             "last-overlay-area-center"));
         };
@@ -3946,23 +3948,6 @@ public class ConfigurationParser {
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": expected one of " +
                     List.of("none", "pseudonymize", "anonymize"));
-        };
-    }
-
-    private static ZoomCenter parseZoomCenter(String propertyKey, String propertyValue) {
-        return switch (propertyValue) {
-            case "active-screen-center" -> ZoomCenter.ACTIVE_SCREEN_CENTER;
-            case "screen-center" -> {
-                logger.warn(propertyKey + "=screen-center has been deprecated: use " +
-                            propertyKey + "=active-screen-center instead");
-                yield ZoomCenter.ACTIVE_SCREEN_CENTER;
-            }
-            case "mouse" -> ZoomCenter.MOUSE;
-            case "last-selected-hint" -> ZoomCenter.LAST_SELECTED_HINT;
-            default -> throw new IllegalArgumentException(
-                    "Invalid property value in " + propertyKey + "=" + propertyValue +
-                    ": expected one of " +
-                    List.of("active-screen-center", "mouse", "last-selected-hint"));
         };
     }
 

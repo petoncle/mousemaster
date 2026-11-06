@@ -489,13 +489,15 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
 - **`position`**: `mouse` (default), `mouse-top-left`, `mouse-top-right`, `mouse-bottom-left`,
   `mouse-bottom-right`, `active-screen-center`, `active-screen-top-left`,
   `active-screen-top-right`, `active-screen-bottom-left`, `active-screen-bottom-right`, `target`,
-  `last-selected-hint`, or a position history (`position-history` or any
-  `<name>-position-history`). `mouse` centers the layer behind the cursor, best with a low
-  opacity so the cursor stays visible. Near a screen edge, a mouse corner position moves to the
+  `last-selected-hint`, `active-window-center`, `last-overlay-area-center`, or a position history
+  (`position-history` or any `<name>-position-history`). `mouse` centers the layer behind the
+  cursor, best with a low opacity so the cursor stays visible. Near a screen edge, a mouse corner position moves to the
   other side of the cursor, and a layer with a text moves inward instead of being cut. An active
   screen corner position puts the layer in that corner of the screen with the mouse cursor: `x`
   and `y` move it away from the edges. `target` and `last-selected-hint` center the layer on
-  those points of the overlay (see `mouse-follows-target`), not on the cursor. While the mouse
+  those points of the overlay (see `mouse-follows-target`), not on the cursor, and
+  `active-window-center` and `last-overlay-area-center` on those points of
+  [`area-center`](#overlay-area-and-layout). While the mouse
   follows the target, the target is the mouse, and a layer that follows the target is drawn
   again at each mouse move: to draw at the cursor, use `mouse`. A position history
   stands for the positions saved in it, in the order they were saved: the layer is drawn on each
@@ -680,8 +682,9 @@ hint2-2-mode.zoom.center=last-selected-hint
 ```
 
 - `zoom.percent` is between 1.0 (100%, no magnification) and 100.
-- `zoom.center` can either be `active-screen-center` (default), `mouse`
-  or `last-selected-hint`.
+- `zoom.center` is the point the zoom is centered on. It takes the values of
+  [`area-center`](#overlay-area-and-layout) (default `active-screen-center`). With `mouse` or
+  `target`, the zoom follows that point.
 - `zoom.area-size-source` is what the magnified area is sized from: `percent` (default), scaled by
   `zoom.area-width-percent` / `zoom.area-height-percent` (default `1.0`), or `last-selected-hint-cell`.
 - On macOS, zooming needs the Screen Recording permission to capture what it magnifies.
@@ -828,7 +831,7 @@ ui-hint-mode.overlay.area-center=mouse
 
 **`ui-order`** is the order the elements are labeled in, the first ones getting the shortest labels
 (default `top-to-bottom`): an edge (`top-to-bottom`, `bottom-to-top`, `left-to-right`,
-`right-to-left`) or a point of `area-center` (`active-screen-center`, `mouse`,
+`right-to-left`) or a point of `area-center` (`active-screen-center`, `mouse`, `target`,
 `last-selected-hint`, `active-window-center`, `last-overlay-area-center`). With a point, the
 elements nearest it come first, from where it was when the scan started: `active-screen-center`
 gives the shortest labels to the middle of the screen. With an edge, elements are labeled in rows
@@ -973,6 +976,7 @@ the point it is *centered* on. For UI hints it is the region the elements are lo
 - **`area-center`** (point the area is centered on):
   - `active-screen-center`: Center of the screen with the mouse cursor
   - `mouse`: Current mouse position
+  - `target`: Position of the target (see `mouse-follows-target`)
   - `last-selected-hint`: Position of the last selected hint
   - `active-window-center`: Center of the active window
   - `last-overlay-area-center`: Center of the area `last-overlay-area` names
@@ -1465,7 +1469,7 @@ cells out in it, UI hints look for the elements in it with a new query, and save
 the positions in it.
 
 A mode with the same `overlay.type`, area and layout keeps the overlay area where the commands left it. With
-`area-center=mouse`, a command first centers a grid on the mouse. With
+`area-center=mouse` or `area-center=target`, a command first centers a grid on that point. With
 `target-follows-overlay-center=true`, the target goes to the center of the overlay after each
 change. The mouse follows the target, unless `mouse-follows-target=false`: then it stays
 where it is.

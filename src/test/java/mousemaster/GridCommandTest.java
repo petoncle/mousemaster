@@ -26,6 +26,7 @@ class GridCommandTest {
 
     private final List<Object> mousePositions = new ArrayList<>();
     private final List<Object> mouseMoves = new ArrayList<>();
+    private HintMesh shownHintMesh;
     private double screenScale = 1;
     private List<UiElement> uiElements = List.of();
     private ModeMap modeMap;
@@ -58,7 +59,11 @@ class GridCommandTest {
         hintManager = new HintManager(configuration.positionHistoryConfigurationByName(),
                 screenManager, mouseManager,
                 (Overlay) Proxy.newProxyInstance(Overlay.class.getClassLoader(),
-                        new Class<?>[] {Overlay.class}, (proxy, method, args) -> null),
+                        new Class<?>[] {Overlay.class}, (proxy, method, args) -> {
+                            if (method.getName().equals("setHintMesh"))
+                                shownHintMesh = (HintMesh) args[0];
+                            return null;
+                        }),
                 new UiAutomation() {
                     @Override
                     public Future<List<UiElement>> startFindActiveWindowUiElements() {
@@ -274,6 +279,42 @@ class GridCommandTest {
         hintManager.mouseMoved(800, 600);
         hintManager.moveTargetToCellTop();
         assertEquals(List.of(700, 230, 800, 330), mousePositions);
+    }
+
+    @Test
+    void aGridCenteredOnTheTargetFollowsItBetweenTargetMoves() throws IOException {
+        start("""
+                grid-mode.overlay.area-width-percent=0.5
+                grid-mode.overlay.area-height-percent=0.25
+                grid-mode.overlay.area-center=target
+                grid-mode.overlay.mouse-follows-target=false
+                grid-mode.overlay.grid-max-row-count=1
+                grid-mode.overlay.grid-max-column-count=1
+                """);
+        hintManager.mouseMoved(700, 500);
+        switchMode("grid-mode");
+        hintManager.moveTargetToCellTop();
+        hintManager.moveTargetToCellTop();
+        assertEquals(new Point(700, 230), hintManager.targetPoint());
+    }
+
+    @Test
+    void aGridCenteredOnTheTargetIsBuiltOnTheMouseItFollowsAgain() throws IOException {
+        start("""
+                grid-mode.to.stopped-mode=+s
+                stopped-mode.overlay.mouse-follows-target=false
+                grid-mode.overlay.area-width-percent=0.5
+                grid-mode.overlay.area-height-percent=0.25
+                grid-mode.overlay.area-center=target
+                grid-mode.overlay.grid-max-row-count=1
+                grid-mode.overlay.grid-max-column-count=1
+                """);
+        hintManager.mouseMoved(100, 100);
+        switchMode("stopped-mode");
+        hintManager.mouseMoved(700, 500);
+        switchMode("grid-mode");
+        Hint hint = shownHintMesh.hints().getFirst();
+        assertEquals(new Point(700, 500), new Point(hint.centerX(), hint.centerY()));
     }
 
     @Test

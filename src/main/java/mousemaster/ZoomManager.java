@@ -2,13 +2,12 @@ package mousemaster;
 
 import mousemaster.platform.Overlay;
 
-public class ZoomManager implements ModeListener, MousePositionListener {
+public class ZoomManager implements ModeListener {
 
     private final ScreenManager screenManager;
     private final HintManager hintManager;
     private final Overlay overlay;
     private Mode currentMode;
-    private int mouseX, mouseY;
 
     private boolean animating;
     private boolean endIsNoZoom;
@@ -18,7 +17,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
     private double currentPercent = 1.0;
     private Point beginCenterPoint;
     private Point currentCenterPoint;
-    private ZoomCenter endCenter;
+    private HintGridAreaCenter endCenter;
     private Easing animationEasing;
     private double animationTotalDuration;
     /** Hidden while the image moves, shown again when it settles. */
@@ -44,19 +43,17 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         boolean anchoredOnHintSelection =
                 newMode.zoom().areaSize().source() ==
                 ZoomAreaSizeSource.LAST_SELECTED_HINT_CELL ||
-                newMode.zoom().center() == ZoomCenter.LAST_SELECTED_HINT;
+                newMode.zoom().center() == HintGridAreaCenter.LAST_SELECTED_HINT;
         if (previousMode != null && !anchoredOnHintSelection &&
             previousMode.zoom().equals(newMode.zoom()))
             return;
-        Point targetCenter = newMode.zoom().center().centerPoint(
-                screenManager.activeScreen().rectangle(), mouseX, mouseY,
-                hintManager.lastSelectedHintPoint());
+        Point targetCenter = hintManager.areaCenter(newMode.zoom().center());
         Rectangle targetScreen = screenManager.nearestScreenContaining(
                 targetCenter.x(), targetCenter.y()).rectangle();
         double targetPercent = newMode.zoom().percent(
                 hintManager.lastSelectedHintCell(), targetScreen);
         endIsNoZoom = targetPercent == 1
-                && newMode.zoom().center() == ZoomCenter.ACTIVE_SCREEN_CENTER;
+                && newMode.zoom().center() == HintGridAreaCenter.ACTIVE_SCREEN_CENTER;
         beginPercent = currentPercent;
         endPercent = endIsNoZoom ? 1.0 : targetPercent;
         beginCenterPoint = currentCenterPoint != null
@@ -76,9 +73,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
                 overlay.setZoom(null);
             }
             else {
-                Point centerPoint = newMode.zoom().center().centerPoint(
-                        screenManager.activeScreen().rectangle(), mouseX, mouseY,
-                        hintManager.lastSelectedHintPoint());
+                Point centerPoint = hintManager.areaCenter(newMode.zoom().center());
                 currentCenterPoint = centerPoint;
                 Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
                         centerPoint.y());
@@ -88,7 +83,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         }
         else {
             endCenter = endIsNoZoom
-                    ? ZoomCenter.ACTIVE_SCREEN_CENTER
+                    ? HintGridAreaCenter.ACTIVE_SCREEN_CENTER
                     : newMode.zoom().center();
             if (!zoomChanges) {
                 // Zoom configurations differing only in their animation settings, or a
@@ -120,15 +115,26 @@ public class ZoomManager implements ModeListener, MousePositionListener {
     }
 
     public void update(double delta) {
-        if (!animating)
+        if (!animating) {
+            HintGridAreaCenter center = currentMode.zoom().center();
+            if (!center.isMouseOrTarget())
+                return;
+            Point centerPoint = hintManager.areaCenter(center);
+            if (centerPoint.equals(currentCenterPoint))
+                return;
+            currentCenterPoint = centerPoint;
+            Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
+                    centerPoint.y());
+            overlay.setZoom(new Zoom(currentMode.zoom().percent(
+                    hintManager.lastSelectedHintCell(), screen.rectangle()),
+                    centerPoint, screen.rectangle()));
             return;
+        }
         animationDuration += delta;
         double t = Math.min(1.0, animationDuration / animationTotalDuration);
         double easedT = animationEasing.apply(t);
         currentPercent = beginPercent + (endPercent - beginPercent) * easedT;
-        Point endCenterPoint = endCenter.centerPoint(
-                screenManager.activeScreen().rectangle(), mouseX, mouseY,
-                hintManager.lastSelectedHintPoint());
+        Point endCenterPoint = hintManager.areaCenter(endCenter);
         int centerX = (int) Math.round(
                 beginCenterPoint.x() + (endCenterPoint.x() - beginCenterPoint.x()) * easedT);
         int centerY = (int) Math.round(
@@ -165,22 +171,5 @@ public class ZoomManager implements ModeListener, MousePositionListener {
     @Override
     public void modeTimedOut() {
         // No op.
-    }
-
-    @Override
-    public void mouseMoved(int x, int y) {
-        mouseX = x;
-        mouseY = y;
-        if (!animating && currentMode.zoom().center().equals(ZoomCenter.MOUSE)) {
-            Point centerPoint = currentMode.zoom().center().centerPoint(
-                    screenManager.activeScreen().rectangle(), mouseX, mouseY,
-                    hintManager.lastSelectedHintPoint());
-            currentCenterPoint = centerPoint;
-            Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
-                    centerPoint.y());
-            overlay.setZoom(new Zoom(currentMode.zoom().percent(
-                    hintManager.lastSelectedHintCell(), screen.rectangle()),
-                    centerPoint, screen.rectangle()));
-        }
     }
 }

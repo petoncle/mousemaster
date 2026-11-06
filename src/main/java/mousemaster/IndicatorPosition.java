@@ -18,7 +18,9 @@ public sealed interface IndicatorPosition {
         ACTIVE_SCREEN_BOTTOM_LEFT,
         ACTIVE_SCREEN_BOTTOM_RIGHT,
         TARGET,
-        LAST_SELECTED_HINT
+        LAST_SELECTED_HINT,
+        ACTIVE_WINDOW_CENTER,
+        LAST_OVERLAY_AREA_CENTER
     }
 
     /** The positions saved in the history, in the order they were saved. */
@@ -49,6 +51,8 @@ public sealed interface IndicatorPosition {
             }
             case "target" -> PointIndicatorPosition.TARGET;
             case "last-selected-hint" -> PointIndicatorPosition.LAST_SELECTED_HINT;
+            case "active-window-center" -> PointIndicatorPosition.ACTIVE_WINDOW_CENTER;
+            case "last-overlay-area-center" -> PointIndicatorPosition.LAST_OVERLAY_AREA_CENTER;
             case "center" -> throw new IllegalArgumentException(
                     "Invalid indicator position: center has been renamed mouse");
             case "top-left", "top-right", "bottom-left", "bottom-right" ->
@@ -57,7 +61,7 @@ public sealed interface IndicatorPosition {
                             value);
             default -> throw new IllegalArgumentException(
                     "Invalid indicator position: " + value +
-                    ", must be 'mouse', 'mouse-top-left', 'mouse-top-right', 'mouse-bottom-left', 'mouse-bottom-right', 'active-screen-center', 'active-screen-top-left', 'active-screen-top-right', 'active-screen-bottom-left', 'active-screen-bottom-right', 'target', 'last-selected-hint' or a position history");
+                    ", must be 'mouse', 'mouse-top-left', 'mouse-top-right', 'mouse-bottom-left', 'mouse-bottom-right', 'active-screen-center', 'active-screen-top-left', 'active-screen-top-right', 'active-screen-bottom-left', 'active-screen-bottom-right', 'target', 'last-selected-hint', 'active-window-center', 'last-overlay-area-center' or a position history");
         };
     }
 }

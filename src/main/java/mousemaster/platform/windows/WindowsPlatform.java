@@ -152,7 +152,6 @@ public class WindowsPlatform implements Platform {
             lastMousePosition = mousePosition;
             overlay.mouseMoved(mousePosition);
             for (MousePositionListener listener : mousePositionListeners) {
-                // ZoomListener can take up to 30ms.
                 listener.mouseMoved(mousePosition.x, mousePosition.y);
             }
         }

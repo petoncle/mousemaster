@@ -291,8 +291,7 @@ public class Mousemaster {
                 zoomManager,
                 indicatorManager,
                 hintManager,
-                List.of(mouseManager, hintManager, screenManager,
-                        zoomManager), activeKeyboardLayout);
+                List.of(mouseManager, hintManager, screenManager), activeKeyboardLayout);
         if (preWarmHints)
             hintManager.preWarmHintMeshes(configuration.modeMap());
         // Last, so the detector does not compete with the mesh pre-warm for cores.

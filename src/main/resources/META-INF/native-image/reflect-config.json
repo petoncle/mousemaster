@@ -887,7 +887,7 @@
 {
   "name":"mousemaster.ZoomConfiguration",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["double","mousemaster.ZoomAreaSize","mousemaster.ZoomCenter","boolean","mousemaster.Easing","double"] }, {"name":"<init>","parameterTypes":["double","mousemaster.ZoomCenter","boolean","mousemaster.Easing","double"] }, {"name":"animationDurationMillis","parameterTypes":[] }, {"name":"animationEasing","parameterTypes":[] }, {"name":"animationEnabled","parameterTypes":[] }, {"name":"areaSize","parameterTypes":[] }, {"name":"center","parameterTypes":[] }, {"name":"percent","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["double","mousemaster.ZoomAreaSize","mousemaster.HintGridAreaCenter","boolean","mousemaster.Easing","double"] }, {"name":"<init>","parameterTypes":["double","mousemaster.HintGridAreaCenter","boolean","mousemaster.Easing","double"] }, {"name":"animationDurationMillis","parameterTypes":[] }, {"name":"animationEasing","parameterTypes":[] }, {"name":"animationEnabled","parameterTypes":[] }, {"name":"areaSize","parameterTypes":[] }, {"name":"center","parameterTypes":[] }, {"name":"percent","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.platform.windows.ExtendedGDI32",

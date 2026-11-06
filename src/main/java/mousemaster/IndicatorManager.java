@@ -122,6 +122,14 @@ public class IndicatorManager implements ModeListener {
                     newPointsByPosition.put(position, List.copyOf(
                             hintManager.positionHistory(positionHistoryName, activeApp)
                                        .positions()));
+                else if (layer.enabled() &&
+                         position == IndicatorPosition.PointIndicatorPosition.ACTIVE_WINDOW_CENTER)
+                    newPointsByPosition.put(position, List.of(
+                            hintManager.areaCenter(HintGridAreaCenter.ACTIVE_WINDOW_CENTER)));
+                else if (layer.enabled() &&
+                         position == IndicatorPosition.PointIndicatorPosition.LAST_OVERLAY_AREA_CENTER)
+                    newPointsByPosition.put(position, List.of(
+                            hintManager.areaCenter(HintGridAreaCenter.LAST_OVERLAY_AREA_CENTER)));
         Map<HintGridArea, Rectangle> newRectangleByArea = new HashMap<>();
         for (IndicatorLayerConfiguration layer : indicator.layerByName().values())
             if (layer.enabled() && layer.area().size().source() != null)

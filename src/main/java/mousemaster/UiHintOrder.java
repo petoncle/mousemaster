@@ -8,6 +8,7 @@ public enum UiHintOrder {
     RIGHT_TO_LEFT(null),
     ACTIVE_SCREEN_CENTER(HintGridAreaCenter.ACTIVE_SCREEN_CENTER),
     MOUSE(HintGridAreaCenter.MOUSE),
+    TARGET(HintGridAreaCenter.TARGET),
     LAST_SELECTED_HINT(HintGridAreaCenter.LAST_SELECTED_HINT),
     ACTIVE_WINDOW_CENTER(HintGridAreaCenter.ACTIVE_WINDOW_CENTER),
     LAST_OVERLAY_AREA_CENTER(HintGridAreaCenter.LAST_OVERLAY_AREA_CENTER);
