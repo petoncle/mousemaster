@@ -7,8 +7,8 @@ import java.util.function.Function;
 
 public record HintMeshType(HintMeshTypeType type, Area area,
                            ScreenFilterMap<HintGridLayout> gridLayoutByFilter,
-                           UiHintOrder order, int density, double minSize,
-                           String positionHistoryName) {
+                           UiHintOrder order, LabelLength labelLength, int density,
+                           double minSize, String positionHistoryName) {
 
     public HintGridLayout layout(ScreenFilter filter) {
         HintGridLayout layout = gridLayoutByFilter.get(filter);
@@ -30,7 +30,8 @@ public record HintMeshType(HintMeshTypeType type, Area area,
         @Override
         public HintMeshType apply(HintMeshType hintMeshType) {
             return new HintMeshType(type, hintMeshType.area, hintMeshType.gridLayoutByFilter,
-                    hintMeshType.order, hintMeshType.density, hintMeshType.minSize,
+                    hintMeshType.order, hintMeshType.labelLength, hintMeshType.density,
+                    hintMeshType.minSize,
                     positionHistoryName == null ? hintMeshType.positionHistoryName :
                             positionHistoryName);
         }
@@ -43,6 +44,7 @@ public record HintMeshType(HintMeshTypeType type, Area area,
         private Area.AreaBuilder
                 area = new Area.AreaBuilder();
         private UiHintOrder uiOrder;
+        private LabelLength labelLength;
         private Integer visionDensity;
         private Double visionMinSize;
         private String positionHistoryName;
@@ -88,6 +90,15 @@ public record HintMeshType(HintMeshTypeType type, Area area,
             return this;
         }
 
+        public LabelLength labelLength() {
+            return labelLength;
+        }
+
+        public HintMeshTypeBuilder labelLength(LabelLength labelLength) {
+            this.labelLength = labelLength;
+            return this;
+        }
+
         public String positionHistoryName() {
             return positionHistoryName;
         }
@@ -114,7 +125,7 @@ public record HintMeshType(HintMeshTypeType type, Area area,
         public HintMeshType build() {
             return new HintMeshType(type, area.build(),
                     gridLayoutByFilter.build(HintGridLayoutBuilder::build), uiOrder,
-                    visionDensity, visionMinSize, positionHistoryName);
+                    labelLength, visionDensity, visionMinSize, positionHistoryName);
         }
     }
 

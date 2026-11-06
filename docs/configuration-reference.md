@@ -868,6 +868,23 @@ ui-hint-mode.overlay.ui-order=left-to-right
 
 `ui-order` only applies to `overlay.type=ui-accessibility` and `overlay.type=ui-vision`.
 
+**`label-length`** sets the length of the labels (default `shortest`):
+- `shortest`: the first elements get labels one key shorter than the others. The labels then
+  need the fewest key presses.
+- `equal`: all labels have the same length, the smallest length that gives a label to each
+  element. The labels that use only the first selection keys come first. A label with a later key
+  comes after all the labels without it, and labels with the same keys come in the order of the
+  sum of their key positions. Thus the labels use only the first keys that are necessary, and the
+  first elements get the labels made of the first keys. With 4 keys `a b c d`, the order is
+  `aa ab ba bb ac ca bc cb cc ad`.
+
+```properties
+ui-hint-mode.overlay.label-length=equal
+```
+
+`label-length` applies to `overlay.type=ui-accessibility`, `overlay.type=ui-vision` and position
+history hints.
+
 A scan that finds no element leaves the mode showing nothing. The built-in virtual key
 `isoverlayempty` is pressed then, so a combo can leave the mode:
 

@@ -815,7 +815,7 @@
 {
   "name":"mousemaster.HintMeshType",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintMeshType$HintMeshTypeType","mousemaster.Area","mousemaster.ScreenFilterMap","mousemaster.UiHintOrder","int","double","java.lang.String"] }, {"name":"area","parameterTypes":[] }, {"name":"density","parameterTypes":[] }, {"name":"gridLayoutByFilter","parameterTypes":[] }, {"name":"minSize","parameterTypes":[] }, {"name":"order","parameterTypes":[] }, {"name":"positionHistoryName","parameterTypes":[] }, {"name":"type","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintMeshType$HintMeshTypeType","mousemaster.Area","mousemaster.ScreenFilterMap","mousemaster.UiHintOrder","mousemaster.LabelLength","int","double","java.lang.String"] }, {"name":"area","parameterTypes":[] }, {"name":"density","parameterTypes":[] }, {"name":"gridLayoutByFilter","parameterTypes":[] }, {"name":"labelLength","parameterTypes":[] }, {"name":"minSize","parameterTypes":[] }, {"name":"order","parameterTypes":[] }, {"name":"positionHistoryName","parameterTypes":[] }, {"name":"type","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.IndicatorConfiguration",

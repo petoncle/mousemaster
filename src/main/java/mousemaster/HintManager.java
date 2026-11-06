@@ -1263,14 +1263,12 @@ public class HintManager implements ModeListener, MousePositionListener {
                  type.type() == HintMeshTypeType.UI_VISION) {
             int hintCount = uiElements.size();
             List<Hint> hints = new ArrayList<>(hintCount);
-            Set<Integer> prefixLengths = new HashSet<>();
             buildUiHints(hintMeshConfiguration, screenFilter,
                     sortedUiElements(uiElements, type.order(),
                             activeScreen.scale(), orderPoint),
-                    prefixLengths, hints);
+                    hints);
             hintMesh.hints(hints)
-                    .prefixLength(prefixLengths.size() == 1 ?
-                            prefixLengths.iterator().next() : -1)
+                    .prefixLength(-1)
                     .area(uiArea)
                     .backgroundArea(uiArea);
         }
@@ -1278,26 +1276,17 @@ public class HintManager implements ModeListener, MousePositionListener {
             List<Point> positions = currentPositionHistory.positions();
             int hintCount = positions.size();
             List<Hint> hints = new ArrayList<>(hintCount);
-            HintMeshKeys hintMeshKeys =
-                    hintMeshConfiguration.keysByFilter().get(screenFilter);
-            List<Key> selectionKeys = hintMeshKeys.selectionKeys();
-            Set<Integer> prefixLengths = new HashSet<>();
-            int rowKeyOffset = hintMeshKeys.rowKeyOffset();
+            List<List<Key>> keySequences = keySequences(
+                    hintMeshConfiguration.keysByFilter().get(screenFilter).selectionKeys(),
+                    hintCount, type.labelLength());
             for (Point point : positions) {
                 if (areaOverride != null && !areaOverride.contains(point.x(), point.y()))
                     continue;
-                List<Key> keySequence = hintKeySequence(
-                        selectionKeys, rowKeyOffset, hintCount,
-                        0, -1, currentPositionHistory.id(point),
-                        -1, -1,
-                        -1, -1,
-                        -1, -1, false, prefixLengths);
                 hints.add(new Hint(zoom.zoomedX(point.x()), zoom.zoomedY(point.y()),
-                        -1, -1, keySequence, null));
+                        -1, -1, keySequences.get(currentPositionHistory.id(point)), null));
             }
             hintMesh.hints(hints)
-                    .prefixLength(prefixLengths.size() == 1 ?
-                            prefixLengths.iterator().next() : -1);
+                    .prefixLength(-1);
             // Background covers all screens that contain at least one hint.
             List<Rectangle> screensWithHint = screenManager.screens()
                     .stream()
@@ -1411,21 +1400,64 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private void buildUiHints(HintMeshConfiguration hintMeshConfiguration,
                            ScreenFilter screenFilter,
-                           List<UiElement> uiElements,
-                              Set<Integer> prefixLengths, List<Hint> hints) {
-        HintMeshKeys hintMeshKeys =
-                hintMeshConfiguration.keysByFilter().get(screenFilter);
-        List<Key> selectionKeys = hintMeshKeys.selectionKeys();
-        int rowKeyOffset = hintMeshKeys.rowKeyOffset();
+                           List<UiElement> uiElements, List<Hint> hints) {
+        List<List<Key>> keySequences = keySequences(
+                hintMeshConfiguration.keysByFilter().get(screenFilter).selectionKeys(),
+                uiElements.size(), hintMeshConfiguration.type().labelLength());
         for (int i = 0; i < uiElements.size(); i++) {
             UiElement element = uiElements.get(i);
-            List<Key> keySequence = hintKeySequence(
-                    selectionKeys, rowKeyOffset, uiElements.size(),
-                    0, -1, i,
-                    -1, -1, -1, -1, -1, -1, false, prefixLengths);
             hints.add(new Hint(element.centerX(), element.centerY(),
-                    -1, -1, keySequence, element.rectangle()));
+                    -1, -1, keySequences.get(i), element.rectangle()));
         }
+    }
+
+    private static List<List<Key>> keySequences(List<Key> keys, int hintCount,
+                                                LabelLength labelLength) {
+        if (keys.isEmpty())
+            return Collections.nCopies(hintCount, List.of());
+        return switch (labelLength) {
+            case SHORTEST -> shortestLengthKeySequences(keys, hintCount);
+            case EQUAL -> equalLengthKeySequences(keys, hintCount);
+        };
+    }
+
+    private static List<List<Key>> shortestLengthKeySequences(List<Key> keys, int hintCount) {
+        List<List<Key>> keySequences = new ArrayList<>(hintCount);
+        for (int hintIndex = 0; hintIndex < hintCount; hintIndex++)
+            keySequences.add(shortestLengthKeySequence(keys, hintCount, hintIndex));
+        return keySequences;
+    }
+
+    private static List<List<Key>> equalLengthKeySequences(List<Key> keys, int hintCount) {
+        int length = 1;
+        for (long keySequenceCount = keys.size(); keySequenceCount < hintCount;
+             keySequenceCount *= keys.size())
+            length++;
+        List<List<Key>> keySequences = new ArrayList<>(hintCount);
+        for (int usedKeyCount = 1; keySequences.size() < hintCount; usedKeyCount++) {
+            int usedKeySequenceCount = 1;
+            for (int keyPosition = 0; keyPosition < length; keyPosition++)
+                usedKeySequenceCount *= usedKeyCount;
+            List<int[]> newKeyIndexSequences = new ArrayList<>();
+            for (int sequenceIndex = 0; sequenceIndex < usedKeySequenceCount; sequenceIndex++) {
+                int[] keyIndexes = new int[length];
+                int remainder = sequenceIndex;
+                for (int keyPosition = length - 1; keyPosition >= 0; keyPosition--) {
+                    keyIndexes[keyPosition] = remainder % usedKeyCount;
+                    remainder /= usedKeyCount;
+                }
+                if (Arrays.stream(keyIndexes).max().getAsInt() == usedKeyCount - 1)
+                    newKeyIndexSequences.add(keyIndexes);
+            }
+            newKeyIndexSequences.sort(
+                    Comparator.comparingInt(keyIndexes -> Arrays.stream(keyIndexes).sum()));
+            for (int[] keyIndexes : newKeyIndexSequences) {
+                if (keySequences.size() == hintCount)
+                    break;
+                keySequences.add(Arrays.stream(keyIndexes).mapToObj(keys::get).toList());
+            }
+        }
+        return keySequences;
     }
 
     static List<UiElement> sortedUiElements(List<UiElement> uiElements, UiHintOrder order,
@@ -1610,6 +1642,12 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
         // Give up trying to have (column prefix)(row suffix).
         // Just try to minimize the hint length.
+        return shortestLengthKeySequence(keys, hintCount, hintIndex);
+    }
+
+    private static List<Key> shortestLengthKeySequence(List<Key> keys, int hintCount,
+                                                       int hintIndex) {
+        int keyCount = keys.size();
         int shortHintCount = keyCount;
         int firstKeyDivisor = 1;
         while ((long) shortHintCount * keyCount <= hintCount) {

@@ -6888,6 +6888,7 @@
             "mousemaster.Area",
             "mousemaster.ScreenFilterMap",
             "mousemaster.UiHintOrder",
+            "mousemaster.LabelLength",
             "int",
             "double",
             "java.lang.String"
@@ -6907,6 +6908,10 @@
         },
         {
           "name": "order",
+          "parameterTypes": []
+        },
+        {
+          "name": "labelLength",
           "parameterTypes": []
         },
         {

@@ -323,6 +323,7 @@ public class ConfigurationParser {
                    .leftInset(0d)
                    .rightInset(0d);
         hintMeshTypeBuilder.uiOrder(UiHintOrder.TOP_TO_BOTTOM);
+        hintMeshTypeBuilder.labelLength(LabelLength.SHORTEST);
         hintMeshTypeBuilder.visionDensity(6);
         hintMeshTypeBuilder.visionMinSize(0d);
         return hintMesh;
@@ -3282,6 +3283,7 @@ public class ConfigurationParser {
                     hintMeshBuilder.type().positionHistoryName(typeChange.positionHistoryName());
             });
             case "ui-order" -> ModePropertyHandler.of(prefix.append("type", "order"), v -> parseUiHintOrder("overlay.ui-order", v), v -> hintMeshBuilder.type().uiOrder(v));
+            case "label-length" -> ModePropertyHandler.of(prefix.append("type", "labelLength"), v -> parseLabelLength("overlay.label-length", v), v -> hintMeshBuilder.type().labelLength(v));
             case "vision-density" -> ModePropertyHandler.of(prefix.append("type", "density"), v -> parseUnsignedInteger(v, 1, Vision.densities), v -> hintMeshBuilder.type().visionDensity(v));
             case "vision-min-size" -> ModePropertyHandler.of(prefix.append("type", "minSize"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.type().visionMinSize(v));
             // Area = size + center. Mutations set the record component directly
@@ -3912,6 +3914,16 @@ public class ConfigurationParser {
         };
     }
 
+    private static LabelLength parseLabelLength(String propertyKey, String propertyValue) {
+        return switch (propertyValue) {
+            case "shortest" -> LabelLength.SHORTEST;
+            case "equal" -> LabelLength.EQUAL;
+            default -> throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": should be one of " + List.of("shortest", "equal"));
+        };
+    }
+
     private static HintCellSizing.HintCellSizingType parseHintCellSizingType(
             String propertyKey, String propertyValue) {
         return switch (propertyValue) {
@@ -4229,6 +4241,8 @@ public class ConfigurationParser {
                 builder.type().area().extend(parent.type().area());
                 if (builder.type().uiOrder() == null)
                     builder.type().uiOrder(parent.type().uiOrder());
+                if (builder.type().labelLength() == null)
+                    builder.type().labelLength(parent.type().labelLength());
                 if (builder.type().visionDensity() == null)
                     builder.type().visionDensity(parent.type().visionDensity());
                 if (builder.type().visionMinSize() == null)
