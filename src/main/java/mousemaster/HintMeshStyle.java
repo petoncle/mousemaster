@@ -30,6 +30,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             double uiElementBoxBorderRadius,
                             double uiElementBoxHorizontalPadding,
                             double uiElementBoxVerticalPadding,
+                            Shadow uiElementBoxShadow,
                             GradientColor savedBoxColor,
                             Double savedBoxOpacity,
                             Color savedBoxBorderColor,
@@ -109,6 +110,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Double uiElementBoxBorderRadius;
         private Double uiElementBoxHorizontalPadding;
         private Double uiElementBoxVerticalPadding;
+        private Shadow.ShadowBuilder uiElementBoxShadow = new Shadow.ShadowBuilder();
         private GradientColor savedBoxColor;
         private Double savedBoxOpacity;
         private Color savedBoxBorderColor;
@@ -168,6 +170,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.uiElementBoxBorderRadius = style.uiElementBoxBorderRadius;
             this.uiElementBoxHorizontalPadding = style.uiElementBoxHorizontalPadding;
             this.uiElementBoxVerticalPadding = style.uiElementBoxVerticalPadding;
+            this.uiElementBoxShadow = new Shadow.ShadowBuilder(style.uiElementBoxShadow);
             this.savedBoxColor = style.savedBoxColor;
             this.savedBoxOpacity = style.savedBoxOpacity;
             this.savedBoxBorderColor = style.savedBoxBorderColor;
@@ -536,6 +539,10 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return uiElementBoxVerticalPadding;
         }
 
+        public Shadow.ShadowBuilder uiElementBoxShadow() {
+            return uiElementBoxShadow;
+        }
+
         public GradientColor savedBoxColor() {
             return savedBoxColor;
         }
@@ -623,6 +630,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         public HintMeshStyle build(HintMeshStyle defaultStyle) {
             if (defaultStyle != null) {
                 boxShadow.extend(new Shadow.ShadowBuilder(defaultStyle.boxShadow));
+                uiElementBoxShadow.extend(new Shadow.ShadowBuilder(defaultStyle.uiElementBoxShadow));
                 transition.extend(new Transition.TransitionBuilder(defaultStyle.transition));
                 fade.extend(new Transition.TransitionBuilder(defaultStyle.fade));
             }
@@ -658,6 +666,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     uiElementBoxBorderRadius == null ? defaultStyle.uiElementBoxBorderRadius : uiElementBoxBorderRadius,
                     uiElementBoxHorizontalPadding == null ? defaultStyle.uiElementBoxHorizontalPadding : uiElementBoxHorizontalPadding,
                     uiElementBoxVerticalPadding == null ? defaultStyle.uiElementBoxVerticalPadding : uiElementBoxVerticalPadding,
+                    uiElementBoxShadow.build(),
                     savedBoxColor == null && defaultStyle != null ? defaultStyle.savedBoxColor : savedBoxColor,
                     savedBoxOpacity == null && defaultStyle != null ? defaultStyle.savedBoxOpacity : savedBoxOpacity,
                     savedBoxBorderColor == null && defaultStyle != null ? defaultStyle.savedBoxBorderColor : savedBoxBorderColor,

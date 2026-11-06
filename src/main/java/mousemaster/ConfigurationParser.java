@@ -251,6 +251,7 @@ public class ConfigurationParser {
                 .horizontalOffset(0d)
                 .verticalOffset(0d)
                 .stackCount(1);
+        hintMeshStyleBuilder.uiElementBoxShadow().extend(hintMeshStyleBuilder.boxShadow());
         hintMeshStyleBuilder
                 .prefixBoxEnabled(false)
                 .prefixBoxBorderThickness(2d)
@@ -3458,6 +3459,12 @@ public class ConfigurationParser {
             case "ui-element-box-border-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxBorderRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).uiElementBoxBorderRadius(v));
             case "ui-element-box-horizontal-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxHorizontalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).uiElementBoxHorizontalPadding(v));
             case "ui-element-box-vertical-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxVerticalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).uiElementBoxVerticalPadding(v));
+            case "ui-element-box-shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxShadow", "blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).uiElementBoxShadow().blurRadius(v));
+            case "ui-element-box-shadow-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxShadow", "color"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).uiElementBoxShadow().color(v));
+            case "ui-element-box-shadow-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxShadow", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).uiElementBoxShadow().opacity(v));
+            case "ui-element-box-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxShadow", "stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> hintMeshBuilder.style(screenFilter).uiElementBoxShadow().stackCount(v));
+            case "ui-element-box-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxShadow", "horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).uiElementBoxShadow().horizontalOffset(v));
+            case "ui-element-box-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxShadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).uiElementBoxShadow().verticalOffset(v));
             // Style: box dimensions
             case "box-width-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxWidthPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).boxWidthPercent(v));
             case "box-height-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxHeightPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).boxHeightPercent(v));
@@ -4471,6 +4478,7 @@ public class ConfigurationParser {
                             HintMeshStyleBuilder::uiElementBoxVerticalPadding,
                             childStyleByFilter, filter))
                         childStyle.uiElementBoxVerticalPadding(parentStyle.uiElementBoxVerticalPadding());
+                    childStyle.uiElementBoxShadow().extend(parentStyle.uiElementBoxShadow());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::boxWidthPercent, childStyleByFilter,
                             filter))

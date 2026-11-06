@@ -6576,6 +6576,7 @@
             "double",
             "double",
             "double",
+            "mousemaster.Shadow",
             "mousemaster.GradientColor",
             "java.lang.Double",
             "mousemaster.Color",
@@ -6834,6 +6835,10 @@
         },
         {
           "name": "uiElementBoxVerticalPadding",
+          "parameterTypes": []
+        },
+        {
+          "name": "uiElementBoxShadow",
           "parameterTypes": []
         },
         {

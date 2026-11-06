@@ -1456,8 +1456,10 @@ public final class HintMeshRenderer {
                 scaledLength(style.prefixBoxBorderThickness(), screenScale);
         int prefixBoxBorderLength = scaledLength(style.prefixBoxBorderLength(), screenScale);
         Shadow boxShadow = scaledShadow(style.boxShadow(), screenScale);
+        Shadow elementBoxShadow = scaledShadow(style.uiElementBoxShadow(), screenScale);
         boolean elementBoxVisible =
-                style.uiElementBoxOpacity() != 0 || style.uiElementBoxBorderOpacity() != 0;
+                style.uiElementBoxOpacity() != 0 || style.uiElementBoxBorderOpacity() != 0 ||
+                elementBoxShadow.opacity() != 0;
         boolean savedElementBoxVisible = savedStyle.uiElementBoxOpacity() != 0 ||
                                          savedStyle.uiElementBoxBorderOpacity() != 0;
         Rectangle savedElementBoxGradientArea =
@@ -1763,16 +1765,19 @@ public final class HintMeshRenderer {
             maxHintBottom += borderPad;
         }
         // Expand container bounds to accommodate box shadow extent.
-        if (boxShadow.opacity() > 0) {
-            int shadowPadLeft = (int) Math.ceil((boxShadow.blurRadius() + Math.max(0, -boxShadow.horizontalOffset())) / qtScaleFactor);
-            int shadowPadRight = (int) Math.ceil((boxShadow.blurRadius() + Math.max(0, boxShadow.horizontalOffset())) / qtScaleFactor);
-            int shadowPadTop = (int) Math.ceil((boxShadow.blurRadius() + Math.max(0, -boxShadow.verticalOffset())) / qtScaleFactor);
-            int shadowPadBottom = (int) Math.ceil((boxShadow.blurRadius() + Math.max(0, boxShadow.verticalOffset())) / qtScaleFactor);
-            minHintLeft -= shadowPadLeft;
-            minHintTop -= shadowPadTop;
-            maxHintRight += shadowPadRight;
-            maxHintBottom += shadowPadBottom;
+        int shadowPadLeft = 0, shadowPadRight = 0, shadowPadTop = 0, shadowPadBottom = 0;
+        for (Shadow shadow : List.of(boxShadow, elementBoxShadow)) {
+            if (shadow.opacity() == 0)
+                continue;
+            shadowPadLeft = Math.max(shadowPadLeft, (int) Math.ceil((shadow.blurRadius() + Math.max(0, -shadow.horizontalOffset())) / qtScaleFactor));
+            shadowPadRight = Math.max(shadowPadRight, (int) Math.ceil((shadow.blurRadius() + Math.max(0, shadow.horizontalOffset())) / qtScaleFactor));
+            shadowPadTop = Math.max(shadowPadTop, (int) Math.ceil((shadow.blurRadius() + Math.max(0, -shadow.verticalOffset())) / qtScaleFactor));
+            shadowPadBottom = Math.max(shadowPadBottom, (int) Math.ceil((shadow.blurRadius() + Math.max(0, shadow.verticalOffset())) / qtScaleFactor));
         }
+        minHintLeft -= shadowPadLeft;
+        minHintTop -= shadowPadTop;
+        maxHintRight += shadowPadRight;
+        maxHintBottom += shadowPadBottom;
         if (hintMesh.decoration() != null) {
             Rectangle area = hintMesh.decoration().backgroundArea();
             int horizontalPadding =
@@ -1891,9 +1896,13 @@ public final class HintMeshRenderer {
         int containerWidth = maxHintRight - minHintLeft;
         int containerHeight = maxHintBottom - minHintTop;
         container.setGeometry(offsetX, offsetY, containerWidth, containerHeight);
-        // Layer 0: Element boxes.
+        // Layer 0: Element box shadow and element boxes.
+        HintPaintLayer elementBoxShadowLayer = new HintPaintLayer(container, List.of(), List.of());
+        elementBoxShadowLayer.setGeometry(0, 0, containerWidth, containerHeight);
         HintPaintLayer elementBoxLayer = new HintPaintLayer(container, elementBoxes, List.of());
         elementBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
+        applyBoxShadow(elementBoxShadowLayer, elementBoxes, elementBoxShadow,
+                containerWidth, containerHeight, qtScaleFactor);
         // Layer 1: Box shadow (painted underneath boxes; empty unless shadow is active).
         HintPaintLayer boxShadowLayer = new HintPaintLayer(container, List.of(), List.of());
         boxShadowLayer.setGeometry(0, 0, containerWidth, containerHeight);
@@ -2427,6 +2436,7 @@ public final class HintMeshRenderer {
         return Stream.of(Stream.of(style.boxColor(), style.boxBorderColor(),
                                  style.boxShadow().color(), style.prefixBoxBorderColor(),
                                  style.uiElementBoxColor(), style.uiElementBoxBorderColor(),
+                                 style.uiElementBoxShadow().color(),
                                  style.savedBoxColor(), style.savedBoxBorderColor(),
                                  style.savedUiElementBoxColor(),
                                  style.savedUiElementBoxBorderColor()),
@@ -3589,13 +3599,13 @@ public final class HintMeshRenderer {
 
     /** Pre-renders the box shadow off-screen into the shadow layer, which crops with the content. */
     private void applyBoxShadow(HintPaintLayer boxShadowLayer,
-                                       List<HintBox> hintBoxes,
+                                       List<HintBox> boxes,
                                        Shadow boxShadow,
                                        int containerWidth,
                                        int containerHeight,
                                        double qtScaleFactor) {
         QColor shadowColor = QtColorUtil.shadow(boxShadow, lastSelectedHintBoxHexColor);
-        if (shadowColor.alpha() == 0) {
+        if (shadowColor.alpha() == 0 || boxes.isEmpty()) {
             shadowColor.dispose();
             return;
         }
@@ -3609,7 +3619,7 @@ public final class HintMeshRenderer {
         sourceImage.fill(fillColor);
         fillColor.dispose();
         QPainter srcPainter = new QPainter(sourceImage);
-        for (HintBox box : hintBoxes)
+        for (HintBox box : boxes)
             box.paintOpaque(srcPainter);
         srcPainter.end();
         srcPainter.dispose();

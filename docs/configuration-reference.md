@@ -904,10 +904,12 @@ The **`ui-element-box-*`** properties draw the box of each element, behind its h
 the same as the `box-*` properties: `ui-element-box-color`, `ui-element-box-opacity`,
 `ui-element-box-border-thickness`, `ui-element-box-border-length`, `ui-element-box-border-color`,
 `ui-element-box-border-opacity`, `ui-element-box-border-radius`,
-`ui-element-box-horizontal-padding` and `ui-element-box-vertical-padding`. The box is the element,
-and its border is inside it, as in a hint box. The paddings grow the box around the element: with
-paddings equal to the border thickness, the border goes around the element and does not cover it.
-The two opacities are 0 by default, so no element box is drawn:
+`ui-element-box-horizontal-padding`, `ui-element-box-vertical-padding` and the six
+`ui-element-box-shadow-` properties. The box is the element, and its border is inside it, as in a
+hint box. The paddings grow the box around the element: with paddings equal to the border
+thickness, the border goes around the element and does not cover it. The shadow is outside the box
+only, so it does not cover the element either. The three opacities are 0 by default, so no element
+box is drawn:
 
 ```properties
 ui-hint-mode.overlay.ui-element-box-border-color=#2EA043
