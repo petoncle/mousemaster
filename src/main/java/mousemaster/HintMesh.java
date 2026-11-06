@@ -1,6 +1,8 @@
 package mousemaster;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Unlike a grid, it does not necessarily have fixed-size cells.
@@ -17,6 +19,19 @@ public record HintMesh(boolean visible, boolean excludeFromCapture, List<Hint> h
 
     public HintMeshBuilder builder() {
         return new HintMeshBuilder(this);
+    }
+
+    public HintMesh withTransitionsOf(HintMesh other) {
+        Map<ScreenFilter, HintMeshStyle> newStyleByFilter = new HashMap<>();
+        styleByFilter.map().forEach((filter, style) -> newStyleByFilter.put(filter,
+                style.withTransitionsOf(other.styleByFilter.get(filter))));
+        return builder()
+                .styleByFilter(new ScreenFilterMap<>(newStyleByFilter))
+                .decoration(decoration == null || other.decoration == null ? decoration :
+                        decoration.withTransitionsOf(other.decoration))
+                .subDecoration(subDecoration == null || other.subDecoration == null ?
+                        subDecoration : subDecoration.withTransitionsOf(other.subDecoration))
+                .build();
     }
 
     public static class HintMeshBuilder {

@@ -38,7 +38,7 @@ public class FadeAnimator {
     }
 
     public void cancel() {
-        opacity.settle();
+        opacity.jumpTo(1);
         fadingOut = false;
     }
 

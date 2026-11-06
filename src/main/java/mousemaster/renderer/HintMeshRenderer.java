@@ -334,12 +334,15 @@ public final class HintMeshRenderer {
             hideHintMesh();
             return;
         }
-        if (showingHintMesh && currentHintMesh != null && currentHintMesh.equals(hintMesh))
-            return;
-        fadeIn = false;
-        boolean wasShowing = showingHintMesh;
         if (hintMeshFadeAnimator != null && hintMeshFadeAnimator.isFadingOut())
             hintMeshFadeAnimator.fadeIn(style(hintMesh).fade());
+        if (showingHintMesh && currentHintMesh != null &&
+            hintMesh.withTransitionsOf(currentHintMesh).equals(currentHintMesh)) {
+            currentHintMesh = hintMesh;
+            return;
+        }
+        fadeIn = false;
+        boolean wasShowing = showingHintMesh;
         if (hintMesh.hints().isEmpty()) {
             currentHintMesh = hintMesh;
             setHintMeshEndAnimation(false);
@@ -358,12 +361,7 @@ public final class HintMeshRenderer {
                             w.window().setWindowOpacity(opacity);
                     },
                     this::doHideHintMesh);
-            Transition fade = style(currentHintMesh).fade();
-            if (fade.enabled()) {
-                for (HintMeshWindow w : hintMeshWindows.values())
-                    w.window().setWindowOpacity(0.0);
-                hintMeshFadeAnimator.fadeIn(fade);
-            }
+            hintMeshFadeAnimator.fadeIn(style(currentHintMesh).fade());
         }
     }
 
@@ -4160,7 +4158,7 @@ public final class HintMeshRenderer {
                     boxColor.rgbAt(GradientColor.unitArea, 0.5, 0.5) :
                     boxColor.rgbAt(boxColorArea, hint.centerX(), hint.centerY()));
         }
-        if (!style.transition().enabled())
+        if (!currentHintMesh.styleByFilter().get(ScreenFilter.of(screen)).transition().enabled())
             return;
         boolean isHintGrid = lastHintMeshKey.hints().getFirst().cellWidth() != -1 &&
                              lastHintMeshKey.hints().size() > 1;

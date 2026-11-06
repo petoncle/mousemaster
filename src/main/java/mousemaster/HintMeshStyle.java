@@ -82,6 +82,15 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         return saved.build(null);
     }
 
+    public HintMeshStyle withTransitionsOf(HintMeshStyle other) {
+        if (transition.equals(other.transition) && fade.equals(other.fade))
+            return this;
+        HintMeshStyleBuilder builder = new HintMeshStyleBuilder(this);
+        builder.transition = new Transition.TransitionBuilder(other.transition);
+        builder.fade = new Transition.TransitionBuilder(other.fade);
+        return builder.build(null);
+    }
+
     public static class HintMeshStyleBuilder {
         private HintFontStyle.HintFontStyleBuilder fontStyle = new HintFontStyle.HintFontStyleBuilder();
         private Boolean prefixInBackground;
