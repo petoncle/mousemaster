@@ -136,7 +136,7 @@ public class ConfigurationParser {
             .areaSizeSource(ZoomAreaSizeSource.PERCENT)
             .areaWidthPercent(1.0)
             .areaHeightPercent(1.0)
-            .center(HintGridAreaCenter.ACTIVE_SCREEN_CENTER);
+            .center(AreaCenter.ACTIVE_SCREEN_CENTER);
         zoom.transition()
             .enabled(false)
             .duration(Duration.ofMillis(200))
@@ -314,15 +314,14 @@ public class ConfigurationParser {
                            .layoutRowCount(1_000_000)
                            .layoutColumnCount(1)
                            .layoutRowOriented(true);
-        HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =
-                hintMesh.type().area();
-        hintGridAreaBuilder.source(HintGridAreaSizeSource.ACTIVE_SCREEN)
-                           .widthPercent(1.0)
-                           .heightPercent(1.0)
-                           .topInset(0d)
-                           .bottomInset(0d)
-                           .leftInset(0d)
-                           .rightInset(0d);
+        Area.AreaBuilder areaBuilder = hintMesh.type().area();
+        areaBuilder.source(AreaSizeSource.ACTIVE_SCREEN)
+                   .widthPercent(1.0)
+                   .heightPercent(1.0)
+                   .topInset(0d)
+                   .bottomInset(0d)
+                   .leftInset(0d)
+                   .rightInset(0d);
         hintMeshTypeBuilder.uiOrder(UiHintOrder.TOP_TO_BOTTOM);
         hintMeshTypeBuilder.visionDensity(6);
         hintMeshTypeBuilder.visionMinSize(0d);
@@ -3098,7 +3097,7 @@ public class ConfigurationParser {
             case "area-size-source" -> ModePropertyHandler.of(prefix.append("areaSize", "source"), v -> parseZoomAreaSizeSource("zoom.area-size-source", v), v -> zoom.areaSizeSource(v));
             case "area-width-percent" -> ModePropertyHandler.of(prefix.append("areaSize", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> zoom.areaWidthPercent(v));
             case "area-height-percent" -> ModePropertyHandler.of(prefix.append("areaSize", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> zoom.areaHeightPercent(v));
-            case "center" -> ModePropertyHandler.of(prefix.append("center"), v -> parseHintGridAreaCenter("zoom.center", v), v -> zoom.center(v));
+            case "center" -> ModePropertyHandler.of(prefix.append("center"), v -> parseAreaCenter("zoom.center", v), v -> zoom.center(v));
             case "transition-enabled" -> ModePropertyHandler.of(prefix.append("transition", "enabled"), v -> Boolean.parseBoolean(v), v -> zoom.transition().enabled(v));
             case "transition-duration-millis" -> ModePropertyHandler.of(prefix.append("transition", "duration"), v -> parseDuration(v), v -> zoom.transition().duration(v));
             case "transition-easing" -> ModePropertyHandler.of(prefix.append("transition", "easing"), v -> parseEasing(v), v -> zoom.transition().easing(v));
@@ -3173,14 +3172,14 @@ public class ConfigurationParser {
             case "position-anchor" -> ModePropertyHandler.of(prefix.append("positionAnchor"), v -> PositionAnchor.fromString(v), v -> layer.positionAnchor(v));
             case "end-position" -> ModePropertyHandler.of(prefix.append("endPosition"), v -> IndicatorPosition.fromString(layerName + ".end-position", v, positionHistoryNames), v -> layer.endPosition(v));
             case "end-position-anchor" -> ModePropertyHandler.of(prefix.append("endPositionAnchor"), v -> PositionAnchor.fromString(v), v -> layer.endPositionAnchor(v));
-            case "area" -> ModePropertyHandler.of(prefix.append("area", "size", "source"), v -> parseHintGridAreaSizeSource(layerName + ".area", v), v -> layer.area().source(v));
+            case "area" -> ModePropertyHandler.of(prefix.append("area", "size", "source"), v -> parseAreaSizeSource(layerName + ".area", v), v -> layer.area().source(v));
             case "area-width-percent" -> ModePropertyHandler.of(prefix.append("area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> layer.area().widthPercent(v));
             case "area-height-percent" -> ModePropertyHandler.of(prefix.append("area", "size", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> layer.area().heightPercent(v));
             case "area-top-inset" -> ModePropertyHandler.of(prefix.append("area", "size", "topInset"), v -> parseDouble(v, true, -10_000, 10_000), v -> layer.area().topInset(v));
             case "area-bottom-inset" -> ModePropertyHandler.of(prefix.append("area", "size", "bottomInset"), v -> parseDouble(v, true, -10_000, 10_000), v -> layer.area().bottomInset(v));
             case "area-left-inset" -> ModePropertyHandler.of(prefix.append("area", "size", "leftInset"), v -> parseDouble(v, true, -10_000, 10_000), v -> layer.area().leftInset(v));
             case "area-right-inset" -> ModePropertyHandler.of(prefix.append("area", "size", "rightInset"), v -> parseDouble(v, true, -10_000, 10_000), v -> layer.area().rightInset(v));
-            case "area-center" -> ModePropertyHandler.of(prefix.append("area", "center"), v -> parseHintGridAreaCenter(layerName + ".area-center", v), v -> layer.area().center(v));
+            case "area-center" -> ModePropertyHandler.of(prefix.append("area", "center"), v -> parseAreaCenter(layerName + ".area-center", v), v -> layer.area().center(v));
             case "follow" -> ModePropertyHandler.of(prefix.append("follow"), v -> Boolean.parseBoolean(v), v -> layer.follow(v));
             // @formatter:on
             default -> null;
@@ -3287,14 +3286,14 @@ public class ConfigurationParser {
             case "vision-min-size" -> ModePropertyHandler.of(prefix.append("type", "minSize"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.type().visionMinSize(v));
             // Area = size + center. Mutations set the record component directly
             // (the mutator keeps the sibling component), so no Function is needed.
-            case "area" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "source"), v -> parseHintGridAreaSizeSource("overlay.area", v), v -> hintMeshBuilder.type().area().source(v));
+            case "area" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "source"), v -> parseAreaSizeSource("overlay.area", v), v -> hintMeshBuilder.type().area().source(v));
             case "area-width-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().area().widthPercent(v));
             case "area-height-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().area().heightPercent(v));
             case "area-top-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "topInset"), v -> parseDouble(v, true, -10_000, 10_000), v -> hintMeshBuilder.type().area().topInset(v));
             case "area-bottom-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "bottomInset"), v -> parseDouble(v, true, -10_000, 10_000), v -> hintMeshBuilder.type().area().bottomInset(v));
             case "area-left-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "leftInset"), v -> parseDouble(v, true, -10_000, 10_000), v -> hintMeshBuilder.type().area().leftInset(v));
             case "area-right-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "rightInset"), v -> parseDouble(v, true, -10_000, 10_000), v -> hintMeshBuilder.type().area().rightInset(v));
-            case "area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseHintGridAreaCenter("overlay.area-center", v), v -> hintMeshBuilder.type().area().center(v));
+            case "area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseAreaCenter("overlay.area-center", v), v -> hintMeshBuilder.type().area().center(v));
             // Grid layout properties (screen-filtered)
             case "grid-max-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxRowCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(screenFilter).maxRowCount(v));
             case "grid-max-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxColumnCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(screenFilter).maxColumnCount(v));
@@ -3876,13 +3875,13 @@ public class ConfigurationParser {
         };
     }
 
-    private static HintGridAreaSizeSource parseHintGridAreaSizeSource(String propertyKey, String propertyValue) {
+    private static AreaSizeSource parseAreaSizeSource(String propertyKey, String propertyValue) {
         return switch (propertyValue) {
-            case "active-screen" -> HintGridAreaSizeSource.ACTIVE_SCREEN;
-            case "active-window" -> HintGridAreaSizeSource.ACTIVE_WINDOW;
-            case "all-screens" -> HintGridAreaSizeSource.ALL_SCREENS;
-            case "last-selected-hint-cell" -> HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL;
-            case "last-overlay-area" -> HintGridAreaSizeSource.LAST_OVERLAY_AREA;
+            case "active-screen" -> AreaSizeSource.ACTIVE_SCREEN;
+            case "active-window" -> AreaSizeSource.ACTIVE_WINDOW;
+            case "all-screens" -> AreaSizeSource.ALL_SCREENS;
+            case "last-selected-hint-cell" -> AreaSizeSource.LAST_SELECTED_HINT_CELL;
+            case "last-overlay-area" -> AreaSizeSource.LAST_OVERLAY_AREA;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": should be one of " +
@@ -3924,20 +3923,19 @@ public class ConfigurationParser {
         };
     }
 
-    private static HintGridAreaCenter parseHintGridAreaCenter(
-            String propertyKey, String propertyValue) {
+    private static AreaCenter parseAreaCenter(String propertyKey, String propertyValue) {
         return switch (propertyValue) {
-            case "active-screen-center" -> HintGridAreaCenter.ACTIVE_SCREEN_CENTER;
+            case "active-screen-center" -> AreaCenter.ACTIVE_SCREEN_CENTER;
             case "screen-center" -> {
                 logger.warn(propertyKey + "=screen-center has been deprecated: use " +
                             propertyKey + "=active-screen-center instead");
-                yield HintGridAreaCenter.ACTIVE_SCREEN_CENTER;
+                yield AreaCenter.ACTIVE_SCREEN_CENTER;
             }
-            case "mouse" -> HintGridAreaCenter.MOUSE;
-            case "target" -> HintGridAreaCenter.TARGET;
-            case "last-selected-hint" -> HintGridAreaCenter.LAST_SELECTED_HINT;
-            case "active-window-center" -> HintGridAreaCenter.ACTIVE_WINDOW_CENTER;
-            case "last-overlay-area-center" -> HintGridAreaCenter.LAST_OVERLAY_AREA_CENTER;
+            case "mouse" -> AreaCenter.MOUSE;
+            case "target" -> AreaCenter.TARGET;
+            case "last-selected-hint" -> AreaCenter.LAST_SELECTED_HINT;
+            case "active-window-center" -> AreaCenter.ACTIVE_WINDOW_CENTER;
+            case "last-overlay-area-center" -> AreaCenter.LAST_OVERLAY_AREA_CENTER;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": expected one of " + List.of("active-screen-center", "mouse", "target",

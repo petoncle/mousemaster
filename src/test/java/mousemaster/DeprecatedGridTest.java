@@ -33,7 +33,7 @@ class DeprecatedGridTest {
         assertFalse(hint.visible());
         assertFalse(hint.mouseFollowsTarget());
         assertFalse(hint.targetFollowsOverlayCenter());
-        assertEquals(HintGridAreaSizeSource.ACTIVE_WINDOW,
+        assertEquals(AreaSizeSource.ACTIVE_WINDOW,
                 hint.type().area().size().source());
         assertEquals(HintCellSizing.HintCellSizingType.FIT, layout(hint).cellSizing().type());
         assertEquals(2, layout(hint).maxRowCount());
@@ -66,7 +66,7 @@ class DeprecatedGridTest {
 
     @Test
     void aGridCenteredOnTheMouseIsAHintAreaCenteredOnTheMouse() {
-        assertEquals(HintGridAreaCenter.MOUSE, hint("grid-mode", "idle-mode.to.grid-mode=+g",
+        assertEquals(AreaCenter.MOUSE, hint("grid-mode", "idle-mode.to.grid-mode=+g",
                 "grid-mode.grid.synchronization=grid-center-follows-mouse").type().area().center());
     }
 

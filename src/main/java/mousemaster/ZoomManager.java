@@ -11,7 +11,7 @@ public class ZoomManager implements ModeListener {
 
     private boolean animating;
     private boolean endIsNoZoom;
-    private HintGridAreaCenter endCenter;
+    private AreaCenter endCenter;
     private final TransitionedValue percent = new TransitionedValue(1);
     private final TransitionedValue centerX = new TransitionedValue(0);
     private final TransitionedValue centerY = new TransitionedValue(0);
@@ -39,22 +39,22 @@ public class ZoomManager implements ModeListener {
         boolean anchoredOnHintSelection =
                 newMode.zoom().areaSize().source() ==
                 ZoomAreaSizeSource.LAST_SELECTED_HINT_CELL ||
-                newMode.zoom().center() == HintGridAreaCenter.LAST_SELECTED_HINT;
+                newMode.zoom().center() == AreaCenter.LAST_SELECTED_HINT;
         if (previousMode != null && !anchoredOnHintSelection &&
             previousMode.zoom().equals(newMode.zoom()))
             return;
-        Point targetCenter = hintManager.areaCenter(newMode.zoom().center());
+        Point targetCenter = hintManager.areaCenterPoint(newMode.zoom().center());
         Rectangle targetScreen = screenManager.nearestScreenContaining(
                 targetCenter.x(), targetCenter.y()).rectangle();
         double targetPercent = newMode.zoom().percent(
                 hintManager.lastSelectedHintCell(), targetScreen);
         endIsNoZoom = targetPercent == 1
-                && newMode.zoom().center() == HintGridAreaCenter.ACTIVE_SCREEN_CENTER;
+                && newMode.zoom().center() == AreaCenter.ACTIVE_SCREEN_CENTER;
         double endPercent = endIsNoZoom ? 1.0 : targetPercent;
         endCenter = endIsNoZoom
-                ? HintGridAreaCenter.ACTIVE_SCREEN_CENTER
+                ? AreaCenter.ACTIVE_SCREEN_CENTER
                 : newMode.zoom().center();
-        Point endCenterPoint = hintManager.areaCenter(endCenter);
+        Point endCenterPoint = hintManager.areaCenterPoint(endCenter);
         if (!zoomShown) {
             Point screenCenter = screenManager.activeScreen().rectangle().center();
             percent.jumpTo(1);
@@ -94,10 +94,10 @@ public class ZoomManager implements ModeListener {
 
     public void update(double delta) {
         if (!animating) {
-            HintGridAreaCenter center = currentMode.zoom().center();
+            AreaCenter center = currentMode.zoom().center();
             if (!center.isMouseOrTarget())
                 return;
-            Point centerPoint = hintManager.areaCenter(center);
+            Point centerPoint = hintManager.areaCenterPoint(center);
             if (centerX.value() == centerPoint.x() && centerY.value() == centerPoint.y())
                 return;
             Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
@@ -112,7 +112,7 @@ public class ZoomManager implements ModeListener {
         percent.update(delta);
         centerX.update(delta);
         centerY.update(delta);
-        Point endCenterPoint = hintManager.areaCenter(endCenter);
+        Point endCenterPoint = hintManager.areaCenterPoint(endCenter);
         centerX.follow(endCenterPoint.x());
         centerY.follow(endCenterPoint.y());
         overlay.setZoom(zoom());

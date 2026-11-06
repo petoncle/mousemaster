@@ -1,7 +1,7 @@
 package mousemaster.platform;
 
 import mousemaster.Hint;
-import mousemaster.HintGridArea;
+import mousemaster.Area;
 import mousemaster.HintMesh;
 import mousemaster.HintMeshConfiguration;
 import mousemaster.HintRectangles;
@@ -37,7 +37,7 @@ public interface Overlay {
                       Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey,
                       Set<String> layerNamesToAnchor,
                       Map<IndicatorPosition, List<Point>> pointsByPosition,
-                      Map<HintGridArea, Rectangle> rectangleByArea,
+                      Map<Area, Rectangle> rectangleByArea,
                       Map<Point, HintRectangles> hintRectanglesByPoint, int overlayZ,
                       boolean animating, boolean includeOriginalCursor);
 

@@ -72,7 +72,7 @@ class IndicatorLayerTest {
                 "idle-mode.indicator.area-top-inset=-0.5").modeMap().get(Mode.IDLE_MODE_NAME),
                 "indicator");
         assertEquals(-0.5, layer.area().size().topInset());
-        assertEquals(HintGridAreaCenter.ACTIVE_WINDOW_CENTER, layer.area().centerOrDefault());
+        assertEquals(AreaCenter.ACTIVE_WINDOW_CENTER, layer.area().centerOrDefault());
         assertFalse(layer.followMouse());
         assertThrows(IllegalArgumentException.class,
                 () -> parse("idle-mode.indicator.area=active-window",

@@ -80,7 +80,7 @@ public final class IndicatorRenderer {
     private record LayerAnchor(Rectangle mouseRectangle, Point cursorVisualCenter,
                                Screen activeScreen,
                                Map<IndicatorPosition, List<Point>> pointsByPosition,
-                               Map<HintGridArea, Rectangle> rectangleByArea,
+                               Map<Area, Rectangle> rectangleByArea,
                                Map<Point, HintRectangles> hintRectanglesByPoint) {
     }
 
@@ -398,7 +398,7 @@ public final class IndicatorRenderer {
 
     private void anchor(Set<String> layerNamesToAnchor,
                         Map<IndicatorPosition, List<Point>> pointsByPosition,
-                        Map<HintGridArea, Rectangle> rectangleByArea,
+                        Map<Area, Rectangle> rectangleByArea,
                         Map<Point, HintRectangles> hintRectanglesByPoint,
                         Rectangle mouseRectangle, Point cursorVisualCenter,
                         Screen activeScreen) {
@@ -553,7 +553,7 @@ public final class IndicatorRenderer {
     private void addLayerOverRectangle(List<PositionedLayer> positionedLayers,
                                        IndicatorLayerConfiguration layer, Point first,
                                        Point last, LayerAnchor anchor, double scale) {
-        HintGridAreaSize size = layer.area().size();
+        AreaSize size = layer.area().size();
         double screenScale = anchor.activeScreen().scale();
         first = new Point(first.x() + size.leftInset() * screenScale,
                 first.y() + size.topInset() * screenScale);
@@ -782,7 +782,7 @@ public final class IndicatorRenderer {
     public WindowImage renderWindowImage(IndicatorConfiguration indicator,
                                          Set<String> layerNamesToAnchor,
                                          Map<IndicatorPosition, List<Point>> pointsByPosition,
-                                         Map<HintGridArea, Rectangle> rectangleByArea,
+                                         Map<Area, Rectangle> rectangleByArea,
                                          Map<Point, HintRectangles> hintRectanglesByPoint,
                                          Rectangle mouseRectangle, Point cursorVisualCenter,
                                          Screen activeScreen, Zoom zoom,

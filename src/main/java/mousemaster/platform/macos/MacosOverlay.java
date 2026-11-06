@@ -2,7 +2,7 @@ package mousemaster.platform.macos;
 
 import io.qt.core.QPoint;
 import mousemaster.Hint;
-import mousemaster.HintGridArea;
+import mousemaster.Area;
 import mousemaster.HintMesh;
 import mousemaster.HintMeshConfiguration;
 import mousemaster.HintRectangles;
@@ -187,7 +187,7 @@ public class MacosOverlay implements Overlay {
                              Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey,
                              Set<String> layerNamesToAnchor,
                              Map<IndicatorPosition, List<Point>> pointsByPosition,
-                             Map<HintGridArea, Rectangle> rectangleByArea,
+                             Map<Area, Rectangle> rectangleByArea,
                              Map<Point, HintRectangles> hintRectanglesByPoint,
                              int overlayZ, boolean animating,
                              boolean includeOriginalCursor) {
@@ -229,7 +229,7 @@ public class MacosOverlay implements Overlay {
             Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey,
             Set<String> layerNamesToAnchor,
             Map<IndicatorPosition, List<Point>> pointsByPosition,
-            Map<HintGridArea, Rectangle> rectangleByArea,
+            Map<Area, Rectangle> rectangleByArea,
             Map<Point, HintRectangles> hintRectanglesByPoint, QPoint mousePosition) {
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
         List<MacosIndicatorWindow> windows = new ArrayList<>();
@@ -278,7 +278,7 @@ public class MacosOverlay implements Overlay {
     private IndicatorRenderer.WindowImage windowImage(
             IndicatorRenderer renderer, IndicatorConfiguration indicator,
             Set<String> layerNamesToAnchor, Map<IndicatorPosition, List<Point>> pointsByPosition,
-            Map<HintGridArea, Rectangle> rectangleByArea,
+            Map<Area, Rectangle> rectangleByArea,
             Map<Point, HintRectangles> hintRectanglesByPoint, QPoint mousePosition) {
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
         return renderer.renderWindowImage(indicator, layerNamesToAnchor, pointsByPosition,

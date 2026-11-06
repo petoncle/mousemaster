@@ -1,6 +1,6 @@
 package mousemaster;
 
-public enum HintGridAreaCenter {
+public enum AreaCenter {
 
     ACTIVE_SCREEN_CENTER,
     MOUSE,

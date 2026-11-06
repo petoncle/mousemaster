@@ -27,7 +27,7 @@ public class IndicatorManager implements ModeListener {
     private final Map<String, IndicatorLayerConfiguration> anchoredLayerByName = new HashMap<>();
     private final Set<String> layerNamesToAnchor = new HashSet<>();
     private Map<IndicatorPosition, List<Point>> pointsByPosition = Map.of();
-    private Map<HintGridArea, Rectangle> rectangleByArea = Map.of();
+    private Map<Area, Rectangle> rectangleByArea = Map.of();
     private Map<Point, HintRectangles> hintRectanglesByPoint = Map.of();
     private double frameWait;
 
@@ -135,12 +135,12 @@ public class IndicatorManager implements ModeListener {
                 else if (layer.enabled() &&
                          position == IndicatorPosition.PointIndicatorPosition.ACTIVE_WINDOW_CENTER)
                     newPointsByPosition.put(position, List.of(
-                            hintManager.areaCenter(HintGridAreaCenter.ACTIVE_WINDOW_CENTER)));
+                            hintManager.areaCenterPoint(AreaCenter.ACTIVE_WINDOW_CENTER)));
                 else if (layer.enabled() &&
                          position == IndicatorPosition.PointIndicatorPosition.LAST_OVERLAY_AREA_CENTER)
                     newPointsByPosition.put(position, List.of(
-                            hintManager.areaCenter(HintGridAreaCenter.LAST_OVERLAY_AREA_CENTER)));
-        Map<HintGridArea, Rectangle> newRectangleByArea = new HashMap<>();
+                            hintManager.areaCenterPoint(AreaCenter.LAST_OVERLAY_AREA_CENTER)));
+        Map<Area, Rectangle> newRectangleByArea = new HashMap<>();
         for (IndicatorLayerConfiguration layer : indicator.layerByName().values())
             if (layer.enabled() && layer.area().size().source() != null)
                 newRectangleByArea.put(layer.area(), hintManager.indicatorArea(layer.area()));

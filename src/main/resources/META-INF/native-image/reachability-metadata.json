@@ -6329,13 +6329,13 @@
       ]
     },
     {
-      "type": "mousemaster.HintGridArea",
+      "type": "mousemaster.Area",
       "methods": [
         {
           "name": "<init>",
           "parameterTypes": [
-            "mousemaster.HintGridAreaSize",
-            "mousemaster.HintGridAreaCenter"
+            "mousemaster.AreaSize",
+            "mousemaster.AreaCenter"
           ]
         },
         {
@@ -6349,12 +6349,12 @@
       ]
     },
     {
-      "type": "mousemaster.HintGridAreaSize",
+      "type": "mousemaster.AreaSize",
       "methods": [
         {
           "name": "<init>",
           "parameterTypes": [
-            "mousemaster.HintGridAreaSizeSource",
+            "mousemaster.AreaSizeSource",
             "double",
             "double",
             "double",
@@ -6885,7 +6885,7 @@
           "name": "<init>",
           "parameterTypes": [
             "mousemaster.HintMeshType$HintMeshTypeType",
-            "mousemaster.HintGridArea",
+            "mousemaster.Area",
             "mousemaster.ScreenFilterMap",
             "mousemaster.UiHintOrder",
             "int",
@@ -6979,7 +6979,7 @@
             "mousemaster.PositionAnchor",
             "mousemaster.IndicatorPosition",
             "mousemaster.PositionAnchor",
-            "mousemaster.HintGridArea",
+            "mousemaster.Area",
             "boolean"
           ]
         },
@@ -7546,7 +7546,7 @@
           "parameterTypes": [
             "double",
             "mousemaster.ZoomAreaSize",
-            "mousemaster.HintGridAreaCenter",
+            "mousemaster.AreaCenter",
             "mousemaster.Transition"
           ]
         },
@@ -7554,7 +7554,7 @@
           "name": "<init>",
           "parameterTypes": [
             "double",
-            "mousemaster.HintGridAreaCenter",
+            "mousemaster.AreaCenter",
             "boolean",
             "mousemaster.Easing",
             "double"

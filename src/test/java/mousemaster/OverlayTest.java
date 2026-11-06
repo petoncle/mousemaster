@@ -173,7 +173,7 @@ class OverlayTest {
         HintMeshType ui = branchType("grid", "ui-accessibility");
         assertEquals(HintMeshType.HintMeshTypeType.UI_ACCESSIBILITY, ui.type());
         assertEquals(UiHintOrder.LEFT_TO_RIGHT, ui.order());
-        assertEquals(HintGridAreaSizeSource.ACTIVE_WINDOW, ui.area().size().source());
+        assertEquals(AreaSizeSource.ACTIVE_WINDOW, ui.area().size().source());
     }
 
     private static HintMeshType branchType(String type, String branchType) {

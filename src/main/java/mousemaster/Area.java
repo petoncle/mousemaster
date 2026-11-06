@@ -1,91 +1,91 @@
 package mousemaster;
 
-public record HintGridArea(HintGridAreaSize size, HintGridAreaCenter center) {
+public record Area(AreaSize size, AreaCenter center) {
 
     /** The center area-center sets, else the one of the area, which a mutation can change. */
-    public HintGridAreaCenter centerOrDefault() {
+    public AreaCenter centerOrDefault() {
         return center != null || size.source() == null ? center : defaultCenter(size.source());
     }
 
-    private static HintGridAreaCenter defaultCenter(HintGridAreaSizeSource source) {
+    private static AreaCenter defaultCenter(AreaSizeSource source) {
         return switch (source) {
-            case ACTIVE_SCREEN, ALL_SCREENS -> HintGridAreaCenter.ACTIVE_SCREEN_CENTER;
-            case ACTIVE_WINDOW -> HintGridAreaCenter.ACTIVE_WINDOW_CENTER;
-            case LAST_SELECTED_HINT_CELL -> HintGridAreaCenter.LAST_SELECTED_HINT;
-            case LAST_OVERLAY_AREA -> HintGridAreaCenter.LAST_OVERLAY_AREA_CENTER;
+            case ACTIVE_SCREEN, ALL_SCREENS -> AreaCenter.ACTIVE_SCREEN_CENTER;
+            case ACTIVE_WINDOW -> AreaCenter.ACTIVE_WINDOW_CENTER;
+            case LAST_SELECTED_HINT_CELL -> AreaCenter.LAST_SELECTED_HINT;
+            case LAST_OVERLAY_AREA -> AreaCenter.LAST_OVERLAY_AREA_CENTER;
         };
     }
 
-    public HintGridAreaBuilder builder() {
-        return new HintGridAreaBuilder(this);
+    public AreaBuilder builder() {
+        return new AreaBuilder(this);
     }
 
-    public static class HintGridAreaBuilder {
-        private HintGridAreaSizeSource source;
+    public static class AreaBuilder {
+        private AreaSizeSource source;
         private Double widthPercent;
         private Double heightPercent;
         private Double topInset;
         private Double bottomInset;
         private Double leftInset;
         private Double rightInset;
-        private HintGridAreaCenter center;
+        private AreaCenter center;
 
-        public HintGridAreaBuilder() {
+        public AreaBuilder() {
 
         }
 
-        public HintGridAreaBuilder(HintGridArea gridArea) {
-            this.source = gridArea.size.source();
-            this.widthPercent = gridArea.size.widthPercent();
-            this.heightPercent = gridArea.size.heightPercent();
-            this.topInset = gridArea.size.topInset();
-            this.bottomInset = gridArea.size.bottomInset();
-            this.leftInset = gridArea.size.leftInset();
-            this.rightInset = gridArea.size.rightInset();
-            this.center = gridArea.center;
+        public AreaBuilder(Area area) {
+            this.source = area.size.source();
+            this.widthPercent = area.size.widthPercent();
+            this.heightPercent = area.size.heightPercent();
+            this.topInset = area.size.topInset();
+            this.bottomInset = area.size.bottomInset();
+            this.leftInset = area.size.leftInset();
+            this.rightInset = area.size.rightInset();
+            this.center = area.center;
         }
 
-        public HintGridAreaBuilder source(HintGridAreaSizeSource source) {
+        public AreaBuilder source(AreaSizeSource source) {
             this.source = source;
             return this;
         }
 
-        public HintGridAreaBuilder widthPercent(Double widthPercent) {
+        public AreaBuilder widthPercent(Double widthPercent) {
             this.widthPercent = widthPercent;
             return this;
         }
 
-        public HintGridAreaBuilder heightPercent(Double heightPercent) {
+        public AreaBuilder heightPercent(Double heightPercent) {
             this.heightPercent = heightPercent;
             return this;
         }
 
-        public HintGridAreaBuilder topInset(Double topInset) {
+        public AreaBuilder topInset(Double topInset) {
             this.topInset = topInset;
             return this;
         }
 
-        public HintGridAreaBuilder bottomInset(Double bottomInset) {
+        public AreaBuilder bottomInset(Double bottomInset) {
             this.bottomInset = bottomInset;
             return this;
         }
 
-        public HintGridAreaBuilder leftInset(Double leftInset) {
+        public AreaBuilder leftInset(Double leftInset) {
             this.leftInset = leftInset;
             return this;
         }
 
-        public HintGridAreaBuilder rightInset(Double rightInset) {
+        public AreaBuilder rightInset(Double rightInset) {
             this.rightInset = rightInset;
             return this;
         }
 
-        public HintGridAreaBuilder center(HintGridAreaCenter center) {
+        public AreaBuilder center(AreaCenter center) {
             this.center = center;
             return this;
         }
 
-        public HintGridAreaSizeSource source() {
+        public AreaSizeSource source() {
             return source;
         }
 
@@ -113,11 +113,11 @@ public record HintGridArea(HintGridAreaSize size, HintGridAreaCenter center) {
             return rightInset;
         }
 
-        public HintGridAreaCenter center() {
+        public AreaCenter center() {
             return center;
         }
 
-        public void extend(HintGridAreaBuilder parent) {
+        public void extend(AreaBuilder parent) {
             if (source == null) source = parent.source;
             if (widthPercent == null) widthPercent = parent.widthPercent;
             if (heightPercent == null) heightPercent = parent.heightPercent;
@@ -128,10 +128,10 @@ public record HintGridArea(HintGridAreaSize size, HintGridAreaCenter center) {
             if (center == null) center = parent.center;
         }
 
-        public HintGridArea build() {
-            HintGridAreaSize size = new HintGridAreaSize(source, widthPercent, heightPercent,
+        public Area build() {
+            AreaSize size = new AreaSize(source, widthPercent, heightPercent,
                     topInset, bottomInset, leftInset, rightInset);
-            return new HintGridArea(size, center);
+            return new Area(size, center);
         }
     }
 }

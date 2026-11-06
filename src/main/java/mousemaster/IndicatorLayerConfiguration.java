@@ -1,6 +1,6 @@
 package mousemaster;
 
-import mousemaster.HintGridArea.HintGridAreaBuilder;
+import mousemaster.Area.AreaBuilder;
 import mousemaster.IndicatorStroke.IndicatorStrokeBuilder;
 import mousemaster.Shadow.ShadowBuilder;
 
@@ -20,7 +20,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
                                           PositionAnchor positionAnchor,
                                           IndicatorPosition endPosition,
                                           PositionAnchor endPositionAnchor,
-                                          HintGridArea area, boolean follow) {
+                                          Area area, boolean follow) {
 
     public List<IndicatorPosition> positions() {
         return endPosition == null ? List.of(position) : List.of(position, endPosition);
@@ -68,7 +68,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
         private PositionAnchor positionAnchor;
         private IndicatorPosition endPosition;
         private PositionAnchor endPositionAnchor;
-        private HintGridAreaBuilder area = new HintGridAreaBuilder();
+        private AreaBuilder area = new AreaBuilder();
         private Boolean follow;
 
         public IndicatorLayerConfigurationBuilder() {
@@ -320,7 +320,7 @@ public record IndicatorLayerConfiguration(boolean enabled, int z,
             return endPositionAnchor;
         }
 
-        public HintGridAreaBuilder area() {
+        public AreaBuilder area() {
             return area;
         }
 

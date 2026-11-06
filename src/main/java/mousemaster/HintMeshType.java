@@ -5,7 +5,7 @@ import mousemaster.ScreenFilterMap.ScreenFilterMapBuilder;
 
 import java.util.function.Function;
 
-public record HintMeshType(HintMeshTypeType type, HintGridArea area,
+public record HintMeshType(HintMeshTypeType type, Area area,
                            ScreenFilterMap<HintGridLayout> gridLayoutByFilter,
                            UiHintOrder order, int density, double minSize,
                            String positionHistoryName) {
@@ -40,8 +40,8 @@ public record HintMeshType(HintMeshTypeType type, HintGridArea area,
     public static class HintMeshTypeBuilder {
 
         private HintMeshTypeType type;
-        private HintGridArea.HintGridAreaBuilder
-                area = new HintGridArea.HintGridAreaBuilder();
+        private Area.AreaBuilder
+                area = new Area.AreaBuilder();
         private UiHintOrder uiOrder;
         private Integer visionDensity;
         private Double visionMinSize;
@@ -57,7 +57,7 @@ public record HintMeshType(HintMeshTypeType type, HintGridArea area,
             return type;
         }
 
-        public HintGridArea.HintGridAreaBuilder area() {
+        public Area.AreaBuilder area() {
             return area;
         }
 

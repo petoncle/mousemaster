@@ -1,6 +1,6 @@
 package mousemaster;
 
-public enum HintGridAreaSizeSource {
+public enum AreaSizeSource {
 
     ACTIVE_SCREEN,
     ACTIVE_WINDOW,

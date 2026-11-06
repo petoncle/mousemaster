@@ -36,7 +36,7 @@ public class UiHintAreaTest {
             ui-hint-mode.hint.type=ui
             """;
 
-    private static HintGridArea uiHintArea(Configuration configuration) {
+    private static Area uiHintArea(Configuration configuration) {
         HintMeshType type = configuration.modeMap()
                                          .get("ui-hint-mode")
                                          .hintMesh()
@@ -47,23 +47,23 @@ public class UiHintAreaTest {
     /** Same default as a grid hint mesh: the area does not depend on the hint type. */
     @Test
     void uiHintAreaDefaultsToActiveScreen() throws IOException {
-        assertEquals(HintGridAreaSizeSource.ACTIVE_SCREEN,
+        assertEquals(AreaSizeSource.ACTIVE_SCREEN,
                 uiHintArea(parse(uiMode)).size().source());
     }
 
     @Test
     void uiHintAreaCanBeAWindowOrEveryScreen() throws IOException {
-        assertEquals(HintGridAreaSizeSource.ACTIVE_WINDOW, uiHintArea(
+        assertEquals(AreaSizeSource.ACTIVE_WINDOW, uiHintArea(
                 parse(uiMode + "ui-hint-mode.hint.area=active-window\n")).size().source());
-        assertEquals(HintGridAreaSizeSource.ALL_SCREENS, uiHintArea(
+        assertEquals(AreaSizeSource.ALL_SCREENS, uiHintArea(
                 parse(uiMode + "ui-hint-mode.hint.area=all-screens\n")).size().source());
     }
 
     @Test
     void uiHintAreaCanBeScaledAndCentered() throws IOException {
-        assertEquals(new HintGridArea(
-                        new HintGridAreaSize(HintGridAreaSizeSource.ACTIVE_SCREEN, 0.3, 0.4, 0, 0, 0, 0),
-                        HintGridAreaCenter.MOUSE),
+        assertEquals(new Area(
+                        new AreaSize(AreaSizeSource.ACTIVE_SCREEN, 0.3, 0.4, 0, 0, 0, 0),
+                        AreaCenter.MOUSE),
                 uiHintArea(parse(uiMode + """
                         ui-hint-mode.hint.area-width-percent=0.3
                         ui-hint-mode.hint.area-height-percent=0.4
@@ -176,7 +176,7 @@ public class UiHintAreaTest {
 
     @Test
     void theDeprecatedGridAreaAndUiAreaStillSetTheArea() throws IOException {
-        assertEquals(HintGridAreaSizeSource.ACTIVE_WINDOW, uiHintArea(
+        assertEquals(AreaSizeSource.ACTIVE_WINDOW, uiHintArea(
                 parse(uiMode + "ui-hint-mode.hint.ui-area=active-window\n")).size().source());
         HintMeshType type = parse("""
                 idle-mode.to.hint-mode=+h
@@ -185,7 +185,7 @@ public class UiHintAreaTest {
                 hint-mode.hint.type=grid
                 hint-mode.hint.grid-area-center=mouse
                 """).modeMap().get("hint-mode").hintMesh().type();
-        assertEquals(HintGridAreaCenter.MOUSE,
+        assertEquals(AreaCenter.MOUSE,
                 type.area().center());
     }
 
@@ -215,13 +215,13 @@ public class UiHintAreaTest {
         }));
         comboWatcher.modeChanged(configuration.modeMap().get(Mode.IDLE_MODE_NAME));
         comboWatcher.update(0.01);
-        assertEquals(HintGridAreaSizeSource.ACTIVE_WINDOW, mutatedUiHintAreaSource(comboWatcher));
+        assertEquals(AreaSizeSource.ACTIVE_WINDOW, mutatedUiHintAreaSource(comboWatcher));
         comboWatcher.setVirtualKeyPressed(BuiltInVirtualKey.IS_IDLING, true);
         comboWatcher.update(0.01);
-        assertEquals(HintGridAreaSizeSource.ALL_SCREENS, mutatedUiHintAreaSource(comboWatcher));
+        assertEquals(AreaSizeSource.ALL_SCREENS, mutatedUiHintAreaSource(comboWatcher));
     }
 
-    private static HintGridAreaSizeSource mutatedUiHintAreaSource(ComboWatcher comboWatcher) {
+    private static AreaSizeSource mutatedUiHintAreaSource(ComboWatcher comboWatcher) {
         return comboWatcher.getMutatedMode().hintMesh().type().area().size().source();
     }
 
@@ -235,7 +235,7 @@ public class UiHintAreaTest {
                 """);
         HintMeshType type =
                 configuration.modeMap().get("hint-mode").hintMesh().type();
-        assertEquals(HintGridAreaSizeSource.ACTIVE_SCREEN,
+        assertEquals(AreaSizeSource.ACTIVE_SCREEN,
                 type.area().size().source());
     }
 

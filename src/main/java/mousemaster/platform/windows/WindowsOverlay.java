@@ -270,7 +270,7 @@ public class WindowsOverlay implements Overlay {
             Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey,
             Set<String> layerNamesToAnchor,
             Map<IndicatorPosition, List<Point>> pointsByPosition,
-            Map<HintGridArea, Rectangle> rectangleByArea,
+            Map<Area, Rectangle> rectangleByArea,
             Map<Point, HintRectangles> hintRectanglesByPoint, WinDef.POINT mousePosition) {
         List<WindowsIndicatorWindow> windows = new ArrayList<>();
         List<List<IndicatorRenderer.WindowImage>> windowImages = new ArrayList<>();
@@ -350,7 +350,7 @@ public class WindowsOverlay implements Overlay {
     private IndicatorRenderer.WindowImage windowImage(
             IndicatorRenderer renderer, IndicatorConfiguration indicator,
             Set<String> layerNamesToAnchor, Map<IndicatorPosition, List<Point>> pointsByPosition,
-            Map<HintGridArea, Rectangle> rectangleByArea,
+            Map<Area, Rectangle> rectangleByArea,
             Map<Point, HintRectangles> hintRectanglesByPoint, WinDef.POINT mousePosition) {
         return renderer.renderWindowImage(indicator, layerNamesToAnchor,
                 pointsByPosition, rectangleByArea, hintRectanglesByPoint,
@@ -482,7 +482,7 @@ public class WindowsOverlay implements Overlay {
                              Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey,
                              Set<String> layerNamesToAnchor,
                              Map<IndicatorPosition, List<Point>> pointsByPosition,
-                             Map<HintGridArea, Rectangle> rectangleByArea,
+                             Map<Area, Rectangle> rectangleByArea,
                              Map<Point, HintRectangles> hintRectanglesByPoint,
                              int overlayZ, boolean animating,
                              boolean includeOriginalCursor) {

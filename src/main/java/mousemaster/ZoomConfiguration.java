@@ -1,6 +1,6 @@
 package mousemaster;
 
-public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, HintGridAreaCenter center,
+public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, AreaCenter center,
                                 Transition transition) {
 
     /** The effective zoom, given the last selected hint cell (null if none). PERCENT uses percent;
@@ -17,7 +17,7 @@ public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, HintGridA
         private ZoomAreaSizeSource areaSizeSource;
         private Double areaWidthPercent;
         private Double areaHeightPercent;
-        private HintGridAreaCenter center;
+        private AreaCenter center;
         private final Transition.TransitionBuilder transition = new Transition.TransitionBuilder();
 
         public ZoomConfigurationBuilder percent(double percent) {
@@ -40,7 +40,7 @@ public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, HintGridA
             return this;
         }
 
-        public ZoomConfigurationBuilder center(HintGridAreaCenter center) {
+        public ZoomConfigurationBuilder center(AreaCenter center) {
             this.center = center;
             return this;
         }
@@ -61,7 +61,7 @@ public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, HintGridA
             return areaHeightPercent;
         }
 
-        public HintGridAreaCenter center() {
+        public AreaCenter center() {
             return center;
         }
 
