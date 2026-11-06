@@ -1522,7 +1522,7 @@ public final class IndicatorRenderer {
                         shadow.blurRadius() * renderer.shadowScale,
                         shadow.horizontalOffset() * renderer.shadowScale,
                         shadow.verticalOffset() * renderer.shadowScale, shadowCast.color(),
-                        shadowCast.brush(), shadow.stackCount());
+                        shadowCast.brush(), shadow.stackCount(), true);
                 if (castPixmap != sourcePixmap)
                     castPixmap.dispose();
             }

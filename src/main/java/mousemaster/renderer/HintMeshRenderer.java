@@ -1444,6 +1444,9 @@ public final class HintMeshRenderer {
         GradientColor boxBorderColor = gradientColor(style.boxBorderColor());
         Rectangle boxBorderGradientArea =
                 gradientArea(boxBorderColor.area(), hintMeshWindow, hintMesh);
+        GradientColor boxShadowColor = gradientColor(style.boxShadow().color());
+        Rectangle boxShadowGradientArea =
+                gradientArea(boxShadowColor.area(), hintMeshWindow, hintMesh);
         GradientColor prefixBoxBorderColor = gradientColor(style.prefixBoxBorderColor());
         Rectangle prefixBoxBorderGradientArea =
                 gradientArea(prefixBoxBorderColor.area(), hintMeshWindow, hintMesh);
@@ -1473,6 +1476,9 @@ public final class HintMeshRenderer {
         GradientColor elementBoxBorderColor = gradientColor(style.uiElementBoxBorderColor());
         Rectangle elementBoxBorderGradientArea =
                 gradientArea(elementBoxBorderColor.area(), hintMeshWindow, hintMesh);
+        GradientColor elementBoxShadowColor = gradientColor(style.uiElementBoxShadow().color());
+        Rectangle elementBoxShadowGradientArea =
+                gradientArea(elementBoxShadowColor.area(), hintMeshWindow, hintMesh);
         int elementBoxBorderThickness =
                 scaledLength(style.uiElementBoxBorderThickness(), screenScale);
         int elementBoxBorderLength = scaledLength(style.uiElementBoxBorderLength(), screenScale);
@@ -1831,6 +1837,8 @@ public final class HintMeshRenderer {
                         isHintPartOfGrid ? windowPixelRectangle : hintBox.pixelRectangle(0, 0),
                         isHintPartOfGrid ? windowOrigin : sweepOrigin));
             }
+            hintBox.setShadowColor(brush(boxShadowColor, 1, boxShadowGradientArea, hintGroup,
+                    hintCenter, turn, hintBox.pixelRectangle(0, 0), sweepOrigin));
             HintMeshStyle hintStyle = hintSaved ? savedStyle : style;
             if (sampledText(hintStyle, hasForegroundPrefixKeys)) {
                 Rectangle box = hintBox.pixelRectangle(0, 0);
@@ -1860,6 +1868,9 @@ public final class HintMeshRenderer {
             elementBox.setBorderColor(brush(elementBoxBorderColor,
                     style.uiElementBoxBorderOpacity(), elementBoxBorderGradientArea, hintGroup,
                     hintCenter, turn, pixelRectangle, sweepOrigin));
+            elementBox.setShadowColor(brush(elementBoxShadowColor, 1,
+                    elementBoxShadowGradientArea, hintGroup, hintCenter, turn, pixelRectangle,
+                    sweepOrigin));
             if (savedHints.contains(elementBox.hint)) {
                 elementBox.setColor(brush(savedStyle.uiElementBoxColor(),
                         savedStyle.uiElementBoxOpacity(), savedElementBoxGradientArea,
@@ -2524,6 +2535,7 @@ public final class HintMeshRenderer {
         private final int borderThickness;
         private QBrush color;
         private QBrush borderColor;
+        private QBrush shadowColor;
         private final int borderRadius;
         private int x, y, width, height;
         /** Set while drawBorders records where it would paint instead of painting. */
@@ -2571,6 +2583,10 @@ public final class HintMeshRenderer {
 
         void setBorderColor(QBrush borderColor) {
             this.borderColor = borderColor;
+        }
+
+        void setShadowColor(QBrush shadowColor) {
+            this.shadowColor = shadowColor;
         }
 
         public void setGeometry(int x, int y, int width, int height) {
@@ -2833,23 +2849,21 @@ public final class HintMeshRenderer {
         }
 
         /**
-         * Paints the box shape with opaque white, used as the source image for shadow rendering.
-         * The overall box silhouette (fill area including border thickness) is all that matters.
+         * Paints the box shape in its opaque shadow color, the source image for shadow rendering.
          * That image is in pixels, so this paints without the scale a widget needs.
          */
         public void paintOpaque(QPainter painter) {
             painter.save();
-            painter.translate(pixels(x), pixels(y));
-            painter.setBrush(QtColorUtil.opaqueWhiteBrush());
+            painter.setBrush(shadowColor);
             painter.setPen(Qt.PenStyle.NoPen);
             if (borderRadius > 0) {
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-                painter.drawRoundedRect(0, 0, pixels(width), pixels(height), borderRadius,
-                        borderRadius);
+                painter.drawRoundedRect(pixels(x), pixels(y), pixels(width), pixels(height),
+                        borderRadius, borderRadius);
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
             else {
-                painter.drawRect(0, 0, pixels(width), pixels(height));
+                painter.drawRect(pixels(x), pixels(y), pixels(width), pixels(height));
             }
             painter.restore();
         }
@@ -3625,7 +3639,8 @@ public final class HintMeshRenderer {
         srcPainter.dispose();
         StackedShadowEffect.ShadowImage shadow = StackedShadowEffect.renderShadowOnly(sourceImage, shadowColor,
                 boxShadow.blurRadius(), boxShadow.horizontalOffset(),
-                boxShadow.verticalOffset(), sourceWidth, sourceHeight);
+                boxShadow.verticalOffset(), sourceWidth, sourceHeight,
+                !gradientColor(boxShadow.color()).gradient());
         shadowColor.dispose();
         QImage shadowImage = StackedShadowEffect.bakeStacking(
                 shadow.image(), boxShadow.stackCount());
@@ -3761,7 +3776,7 @@ public final class HintMeshRenderer {
                         StackedShadowEffect.renderShadowOnly(sourceImage,
                                 shadowStyle.shadowColor(), shadowStyle.shadowBlurRadius(),
                                 shadowStyle.shadowHorizontalOffset(),
-                                shadowStyle.shadowVerticalOffset(), width, height) :
+                                shadowStyle.shadowVerticalOffset(), width, height, true) :
                         StackedShadowEffect.renderShadow(sourceImage, shadowStyle.shadowColor(),
                                 shadowStyle.shadowBlurRadius(),
                                 shadowStyle.shadowHorizontalOffset(),
@@ -3824,7 +3839,7 @@ public final class HintMeshRenderer {
             QColor shadowColor = new QColor(group.r(), group.g(), group.b(), group.a());
             StackedShadowEffect.ShadowImage shadow = StackedShadowEffect.renderShadowOnly(sourceImage, shadowColor,
                     group.blurRadius(), group.horizontalOffset(), group.verticalOffset(),
-                    width, height);
+                    width, height, true);
             shadowColor.dispose();
             QImage stackedShadow = StackedShadowEffect.bakeStacking(shadow.image(), group.stackCount());
             int boundsX = shadow.x();

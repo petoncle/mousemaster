@@ -21,7 +21,7 @@ import java.util.concurrent.Future;
  *
  * <p>The blur is a pair of one-dimensional passes with a transpose between them, and every row of a
  * pass is independent of the others, so spreading rows over threads computes exactly what one
- * thread would. Only the alpha channel takes part, so it runs on a one-byte-per-pixel plane.
+ * thread would. A channel is blurred on its own, as a one-byte-per-pixel plane.
  */
 public final class ExpBlur {
 
@@ -44,28 +44,25 @@ public final class ExpBlur {
     }
 
     /**
-     * The alpha plane of an ARGB32_Premultiplied image.
+     * One channel of an ARGB32_Premultiplied image, 3 being alpha.
      */
-    public static byte[] alphaPlane(byte[] pixels, int width, int height) {
+    public static byte[] plane(byte[] pixels, int width, int height, int channel) {
         byte[] plane = new byte[width * height];
         overRange(height, 64, (from, to) -> {
             for (int y = from; y < to; y++)
                 for (int x = 0; x < width; x++)
-                    plane[y * width + x] = pixels[(y * width + x) * 4 + 3];
+                    plane[y * width + x] = pixels[(y * width + x) * 4 + channel];
         });
         return plane;
     }
 
-    /** The blurred plane back in an ARGB32_Premultiplied image. Its color channels stay zero:
-     *  the shadow's color comes from the SourceIn fill that follows, which reads only alpha. */
-    public static byte[] planeAsImage(byte[] plane, int width, int height) {
-        byte[] pixels = new byte[width * height * 4];
+    /** The blurred plane back in one channel of an ARGB32_Premultiplied image. */
+    public static void setPlane(byte[] pixels, byte[] plane, int width, int height, int channel) {
         overRange(height, 64, (from, to) -> {
             for (int y = from; y < to; y++)
                 for (int x = 0; x < width; x++)
-                    pixels[(y * width + x) * 4 + 3] = plane[y * width + x];
+                    pixels[(y * width + x) * 4 + channel] = plane[y * width + x];
         });
-        return pixels;
     }
 
     public static void blurPlane(byte[] plane, int width, int height, double radius) {

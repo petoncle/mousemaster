@@ -33,7 +33,6 @@ public final class QtColorUtil {
     private static final Map<QBrush, Map<PenKey, QPen>> penByKeyByBrush =
             new IdentityHashMap<>();
     private static QBrush noBrush;
-    private static QBrush opaqueWhiteBrush;
 
     private record PenKey(int width, Qt.PenCapStyle capStyle, Qt.PenJoinStyle joinStyle) {
     }
@@ -202,12 +201,6 @@ public final class QtColorUtil {
         if (noBrush == null)
             noBrush = new QBrush(Qt.BrushStyle.NoBrush);
         return noBrush;
-    }
-
-    public static QBrush opaqueWhiteBrush() {
-        if (opaqueWhiteBrush == null)
-            opaqueWhiteBrush = new QBrush(new QColor(255, 255, 255, 255));
-        return opaqueWhiteBrush;
     }
 
     public static QPen qPen(QColor color, int width, Qt.PenCapStyle capStyle,

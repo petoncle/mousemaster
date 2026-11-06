@@ -73,7 +73,7 @@ public class StackedShadowEffect extends QtDropShadowEffect {
         painter.setWorldTransform(identity);
         QColor shadowColor = color();
         drawShadow(painter, sourcePixmap, sourceOffset, blurRadius(), xOffset(), yOffset(),
-                shadowColor, shadowBrush(), stackCount);
+                shadowColor, shadowBrush(), stackCount, alphaOnly());
         shadowColor.dispose();
         painter.setWorldTransform(savedTransform);
         savedTransform.dispose();
@@ -87,10 +87,10 @@ public class StackedShadowEffect extends QtDropShadowEffect {
     /** Draws the shadow of the source where the source goes, the painter's transform reset. */
     protected static void drawShadow(QPainter painter, QPixmap sourcePixmap, QPoint sourceOffset,
                                      double blurRadius, double xOffset, double yOffset,
-                                     QColor color, QBrush brush, int stackCount) {
+                                     QColor color, QBrush brush, int stackCount, boolean alphaOnly) {
         if (stackCount <= 1) {
-            QImage shadow = blurredShadow(sourcePixmap, xOffset, yOffset, blurRadius);
-            tint(shadow, color, brush);
+            QImage shadow = blurredShadow(sourcePixmap, xOffset, yOffset, blurRadius, alphaOnly);
+            tint(shadow, color, brush, alphaOnly);
             painter.drawImage(sourceOffset, shadow);
             shadow.dispose();
             return;
@@ -103,12 +103,12 @@ public class StackedShadowEffect extends QtDropShadowEffect {
         boolean brushed = brush != null;
         QColor shadowColor = brushed ? new QColor(255, 255, 255) : color;
         ShadowImage shadow = renderShadowOnly(sourceImage, shadowColor,
-                blurRadius, xOffset, yOffset, w, h);
+                blurRadius, xOffset, yOffset, w, h, alphaOnly);
         if (brushed)
             shadowColor.dispose();
         QImage stackedShadow = bakeStacking(shadow.image(), stackCount);
         if (brushed)
-            tint(stackedShadow, color, brush);
+            tint(stackedShadow, color, brush, alphaOnly);
         painter.drawImage(sourceOffset.x() + shadow.x(),
                 sourceOffset.y() + shadow.y(), stackedShadow);
         stackedShadow.dispose();
@@ -168,9 +168,9 @@ public class StackedShadowEffect extends QtDropShadowEffect {
         QPixmap sourcePixmap = QPixmap.fromImage(sourceImage);
         sourceImage.dispose();
         QImage shadowImage = blurredShadow(sourcePixmap, horizontalOffset, verticalOffset,
-                blurRadius);
+                blurRadius, true);
         sourcePixmap.dispose();
-        tint(shadowImage, shadowColor, null);
+        tint(shadowImage, shadowColor, null, true);
         return new ShadowImage(shadowImage, 0, 0);
     }
 
@@ -181,7 +181,7 @@ public class StackedShadowEffect extends QtDropShadowEffect {
     public static ShadowImage renderShadowOnly(
             QImage sourceImage, QColor shadowColor, double blurRadius,
             double horizontalOffset, double verticalOffset,
-            int containerWidth, int containerHeight) {
+            int containerWidth, int containerHeight, boolean alphaOnly) {
         QGraphicsScene scene = new QGraphicsScene();
         QPixmap sourcePixmap = QPixmap.fromImage(sourceImage);
         QGraphicsPixmapItem item = scene.addPixmap(sourcePixmap);
@@ -190,6 +190,7 @@ public class StackedShadowEffect extends QtDropShadowEffect {
         effect.setOffset(horizontalOffset, verticalOffset);
         effect.setColor(shadowColor);
         effect.setStackCount(1);
+        effect.setAlphaOnly(alphaOnly);
         item.setGraphicsEffect(effect);
         QRectF bounds = scene.itemsBoundingRect();
         int boundsX = (int) Math.floor(bounds.x());

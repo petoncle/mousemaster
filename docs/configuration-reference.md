@@ -1317,8 +1317,10 @@ hint-mode.overlay.background-opacity=0
       hint-mode.overlay.box-color=per-subgrid in-turn #E06C75 #98C379 #61AFEF
       ```
   - `box-border-color`: One color, or a gradient as for `box-color`. So are
-    `prefix-box-border-color`, `ui-element-box-color`, `ui-element-box-border-color` and
-    `<level>-box-border-color`.
+    `prefix-box-border-color`, `box-shadow-color`, `ui-element-box-color`,
+    `ui-element-box-border-color`, `ui-element-box-shadow-color` and `<level>-box-border-color`.
+    A shadow color is taken at each box as a box color is, and where two shadows meet, their
+    colors mix.
     ```properties
     hint-mode.overlay.box-border-color=across-screen per-pixel center-to-edge #F97316 #3B82F6
     ```
@@ -1328,7 +1330,7 @@ hint-mode.overlay.background-opacity=0
   - `box-border-length`: Higher values create continuous lines between hint boxes, lower values create dotted separators
   - `box-border-radius`: Radius for rounded corners (0-1000, default 0).
   - `box-shadow-blur-radius`: Shadow blur radius (0-1000, default 10).
-  - `box-shadow-color`: Shadow color (hex, default #000000).
+  - `box-shadow-color`: Shadow color (default #000000).
   - `box-shadow-opacity`: Shadow opacity (0-1, default 0 = disabled).
   - `box-shadow-stack-count`: Number of times the shadow is composited on itself for stronger effect (1-100, default 1).
   - `box-shadow-horizontal-offset`: Horizontal shadow offset (-100 to 100, default 0).
