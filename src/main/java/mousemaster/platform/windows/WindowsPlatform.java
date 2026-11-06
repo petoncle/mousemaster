@@ -162,8 +162,8 @@ public class WindowsPlatform implements Platform {
             overlay.mouseMoved(lastMousePosition);
         }
         pumpEvents();
-        // A hint transition's, a zoom animation's and an indicator animation's frames are
-        // painted once per iteration, so this sleep is what every one of them waits on.
+        // A frame is painted on the first iteration after its frame interval, so this sleep
+        // sets how late a frame can be.
         long sleepMillis =
                 overlay.hintTransitionAnimating() || zoomManager.animating() ||
                 indicatorManager.animating() || hintManager.waitingForUiElements() ||

@@ -12,6 +12,7 @@ import java.util.*;
 public class Mousemaster {
 
     private static final Logger logger = LoggerFactory.getLogger(Mousemaster.class);
+    public static final double FRAME_INTERVAL = 0.016;
 
     private final Path configurationPath;
     private final Platform platform;

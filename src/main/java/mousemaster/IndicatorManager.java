@@ -29,6 +29,7 @@ public class IndicatorManager implements ModeListener {
     private Map<IndicatorPosition, List<Point>> pointsByPosition = Map.of();
     private Map<HintGridArea, Rectangle> rectangleByArea = Map.of();
     private Map<Point, HintRectangles> hintRectanglesByPoint = Map.of();
+    private double frameWait;
 
     public IndicatorManager(Overlay overlay, AnimationPlayer animationPlayer,
                             HintManager hintManager, Supplier<App> activeApp) {
@@ -43,7 +44,16 @@ public class IndicatorManager implements ModeListener {
     }
 
     public void update(double delta) {
-        drawnIndicator = resolve(delta);
+        IndicatorConfiguration indicator = resolve(delta);
+        frameWait -= delta;
+        if (animating() && frameWait > 0)
+            return;
+        draw(indicator);
+    }
+
+    private void draw(IndicatorConfiguration indicator) {
+        drawnIndicator = indicator;
+        frameWait = Mousemaster.FRAME_INTERVAL;
         if (!drawnIndicator.enabled() && copyByKey.isEmpty()) {
             overlay.hideIndicator();
             layerNamesToAnchor.clear();
@@ -74,14 +84,14 @@ public class IndicatorManager implements ModeListener {
             resolve(0);
         currentMode = newMode;
         if (!entryCombosPending && !hintManager.waitingForUiElements())
-            update(0);
+            draw(resolve(0));
     }
 
     @Override
     public void entryCombosRan() {
         entryCombosPending = false;
         if (!hintManager.waitingForUiElements())
-            update(0);
+            draw(resolve(0));
     }
 
     private IndicatorConfiguration resolve(double delta) {
@@ -263,6 +273,7 @@ public class IndicatorManager implements ModeListener {
                     elapsed, current == null ?
                     ModePropertyMutator.getModeProperty(currentMode.indicator(),
                             indicatorFieldNames(propertyPath)) : current));
+            frameWait = 0;
             if (propertyPath.fieldNames().get(1).equals("layerByName"))
                 layerNamesToAnchor.add(propertyPath.fieldNames().get(2));
         }

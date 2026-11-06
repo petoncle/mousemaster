@@ -34,7 +34,6 @@ public final class HintMeshRenderer {
     private static final long SLOW_PAINT_MS = 5;
     /** What a layer costs besides its blur, whatever its size, in pixels that would be blurred in the same time. */
     private static final long LAYER_COST_PIXELS = 50_000;
-    private static final double TRANSITION_FRAME_INTERVAL = 0.016;
 
     private final Map<HintMesh, PixmapAndPosition> hintMeshPixmaps = new HashMap<>();
     private final Map<HintMesh, Map<List<Key>, Rectangle>> hintBoxRectanglesByHintMeshKey =
@@ -201,7 +200,7 @@ public final class HintMeshRenderer {
             return;
         }
         frameDelta += delta;
-        if (frameDelta < TRANSITION_FRAME_INTERVAL)
+        if (frameDelta < Mousemaster.FRAME_INTERVAL)
             return;
         for (TransparentWindow window : List.copyOf(containerCropByWindow.keySet())) {
             ContainerCrop containerCrop = containerCropByWindow.get(window);

@@ -9,6 +9,7 @@ import mousemaster.HintRectangles;
 import mousemaster.IndicatorConfiguration;
 import mousemaster.IndicatorLayerCopyKey;
 import mousemaster.IndicatorPosition;
+import mousemaster.Mousemaster;
 import mousemaster.Point;
 import mousemaster.Rectangle;
 import mousemaster.Screen;
@@ -22,7 +23,6 @@ import mousemaster.renderer.IndicatorRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -33,8 +33,6 @@ import java.util.Set;
 public class MacosOverlay implements Overlay {
 
     private static final Logger logger = LoggerFactory.getLogger(MacosOverlay.class);
-
-    private static final Duration zoomFrameInterval = Duration.ofMillis(16);
 
     private final MacosMouseController mouse;
     private final HintMeshRenderer hintMeshRenderer;
@@ -55,7 +53,7 @@ public class MacosOverlay implements Overlay {
     private boolean hintMeshExcludedFromCapture;
     private MacosZoomRenderer zoomRenderer;
     private Zoom currentZoom;
-    private long nextZoomFrameNanos;
+    private double zoomFrameWait;
 
     public MacosOverlay(MacosMouseController mouse) {
         this.mouse = mouse;
@@ -72,7 +70,7 @@ public class MacosOverlay implements Overlay {
     public void update(double delta) {
         hintMeshRenderer.update(delta);
         hintMeshRenderer.runPendingWork();
-        updateZoomWindow();
+        updateZoomWindow(delta);
     }
 
     @Override
@@ -375,10 +373,10 @@ public class MacosOverlay implements Overlay {
     public void setZoom(Zoom zoom) {
         if (currentZoom != null && currentZoom.equals(zoom))
             return;
+        if (currentZoom == null)
+            zoomFrameWait = 0;
         currentZoom = zoom;
-        if (currentZoom != null)
-            nextZoomFrameNanos = System.nanoTime();
-        else if (zoomRenderer != null)
+        if (currentZoom == null && zoomRenderer != null)
             zoomRenderer.hide();
     }
 
@@ -386,18 +384,20 @@ public class MacosOverlay implements Overlay {
      * The loop iterates far more often than the screen refreshes, and every frame captures
      * and hands over a screen sized image over whatever else is drawing.
      */
-    private void updateZoomWindow() {
-        if (currentZoom == null || System.nanoTime() < nextZoomFrameNanos)
+    private void updateZoomWindow(double delta) {
+        if (currentZoom == null)
+            return;
+        zoomFrameWait -= delta;
+        if (zoomFrameWait > 0)
             return;
         if (zoomRenderer == null)
             zoomRenderer = new MacosZoomRenderer();
         long before = System.nanoTime();
         zoomRenderer.render(currentZoom);
-        long after = System.nanoTime();
+        double renderDuration = (System.nanoTime() - before) / 1e9;
         // Capturing over a busy compositor takes tens of milliseconds and holds up the
-        // keyboard with it, so give the loop as long as the frame cost before asking again.
-        nextZoomFrameNanos =
-                after + Math.max(zoomFrameInterval.toNanos(), after - before);
+        // keyboard with it, so give the loop as long as the render took before asking again.
+        zoomFrameWait = Math.max(Mousemaster.FRAME_INTERVAL, 2 * renderDuration);
     }
 
     /** The window server composites a whole frame at once, so nothing tears. */

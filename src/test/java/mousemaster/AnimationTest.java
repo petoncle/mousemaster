@@ -256,9 +256,9 @@ class AnimationTest {
         assertEquals(14, drawnSize(), 1e-9);
         tick(0.03);
         assertEquals(30, copyLayer(0).size(), 1e-9);
-        tick(0);
+        tick(0.02);
         assertEquals(Map.of(), drawnIndicatorByCopyKey);
-        assertEquals(20, drawnSize(), 1e-9);
+        assertEquals(24, drawnSize(), 1e-9);
     }
 
     @Test
@@ -455,7 +455,7 @@ class AnimationTest {
         tick(0);
         tick(0.049);
         assertEquals(10, drawnSize(), 1e-9);
-        tick(0.002);
+        tick(0.02);
         assertEquals(40, drawnSize(), 1e-9);
     }
 
@@ -483,9 +483,9 @@ class AnimationTest {
         tick(0);
         tick(0.05);
         assertEquals(10, drawnSize(), 1e-9);
-        tick(0.049);
+        tick(0.03);
         assertEquals(10, drawnSize(), 1e-9);
-        tick(0.001);
+        tick(0.02);
         assertEquals(30, drawnSize(), 1e-9);
     }
 

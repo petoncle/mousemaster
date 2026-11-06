@@ -462,9 +462,9 @@ class IndicatorEffectsTest {
         tap("a");
         tick(0.01);
         assertEquals(IndicatorShape.CIRCLE, drawn("indicator").shape());
-        tick(0.03);
-        assertEquals(IndicatorShape.CIRCLE, drawn("indicator").shape(), "40%: still the first keyframe");
-        tick(0.01);
+        tick(0.02);
+        assertEquals(IndicatorShape.CIRCLE, drawn("indicator").shape(), "30%: still the first keyframe");
+        tick(0.02);
         assertEquals(IndicatorShape.STAR, drawn("indicator").shape(), "50%: the keyframe is reached");
     }
 
