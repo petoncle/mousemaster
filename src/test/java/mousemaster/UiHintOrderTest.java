@@ -10,6 +10,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,6 +66,22 @@ public class UiHintOrderTest {
                 parse(uiMode + "ui-hint-mode.hint.ui-order=last-selected-hint\n")));
         assertEquals(UiHintOrder.LAST_OVERLAY_AREA_CENTER, uiHintOrder(
                 parse(uiMode + "ui-hint-mode.hint.ui-order=last-overlay-area-center\n")));
+        assertEquals(UiHintOrder.RANDOM, uiHintOrder(
+                parse(uiMode + "ui-hint-mode.hint.ui-order=random\n")));
+    }
+
+    @Test
+    void theSameElementsGetTheSameRandomOrder() {
+        List<UiElement> elements = new ArrayList<>();
+        for (int i = 0; i < 10; i++)
+            elements.add(new UiElement(new Rectangle(100, 100 * i, 0, 0)));
+        List<UiElement> shuffledElements =
+                HintManager.sortedUiElements(elements, UiHintOrder.RANDOM, 1, new Point(0, 0));
+        assertNotEquals(elements, shuffledElements);
+        assertEquals(Set.copyOf(elements), Set.copyOf(shuffledElements));
+        assertEquals(shuffledElements,
+                HintManager.sortedUiElements(elements.reversed(), UiHintOrder.RANDOM, 1,
+                        new Point(0, 0)));
     }
 
     @Test

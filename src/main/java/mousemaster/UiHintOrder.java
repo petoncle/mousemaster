@@ -6,6 +6,7 @@ public enum UiHintOrder {
     BOTTOM_TO_TOP(null),
     LEFT_TO_RIGHT(null),
     RIGHT_TO_LEFT(null),
+    RANDOM(null),
     ACTIVE_SCREEN_CENTER(AreaCenter.ACTIVE_SCREEN_CENTER),
     MOUSE(AreaCenter.MOUSE),
     TARGET(AreaCenter.TARGET),

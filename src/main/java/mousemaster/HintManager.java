@@ -1471,6 +1471,12 @@ public class HintManager implements ModeListener, MousePositionListener {
                     UiElement::centerY, scale);
             case RIGHT_TO_LEFT -> bandSortedUiElements(uiElements,
                     uiElement -> -uiElement.centerX(), UiElement::centerY, scale);
+            case RANDOM -> {
+                List<UiElement> shuffledElements = bandSortedUiElements(uiElements,
+                        UiElement::centerY, UiElement::centerX, scale);
+                Collections.shuffle(shuffledElements, new Random(0));
+                yield shuffledElements;
+            }
             case ACTIVE_SCREEN_CENTER, MOUSE, TARGET, LAST_SELECTED_HINT, ACTIVE_WINDOW_CENTER,
                  LAST_OVERLAY_AREA_CENTER -> uiElements.stream()
                     .sorted(Comparator.comparingDouble(uiElement -> Math.hypot(

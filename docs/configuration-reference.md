@@ -853,8 +853,8 @@ ui-hint-mode.overlay.area-center=mouse
 
 **`ui-order`** is the order the elements are labeled in, the first ones getting the shortest labels
 (default `top-to-bottom`): an edge (`top-to-bottom`, `bottom-to-top`, `left-to-right`,
-`right-to-left`) or a point of `area-center` (`active-screen-center`, `mouse`, `target`,
-`last-selected-hint`, `active-window-center`, `last-overlay-area-center`). With a point, the
+`right-to-left`), a point of `area-center` (`active-screen-center`, `mouse`, `target`,
+`last-selected-hint`, `active-window-center`, `last-overlay-area-center`) or `random`. With a point, the
 elements nearest it come first, from where it was when the scan started: `active-screen-center`
 gives the shortest labels to the middle of the screen. With an edge, elements are labeled in rows
 from it, each read from left to right (in columns read from top to bottom for `left-to-right` and
@@ -865,6 +865,9 @@ apart horizontally, is one column labeled from top to bottom:
 ```properties
 ui-hint-mode.overlay.ui-order=left-to-right
 ```
+
+With `random`, the elements get an order that looks random but does not change: the same elements
+always get the same labels.
 
 `ui-order` only applies to `overlay.type=ui-accessibility` and `overlay.type=ui-vision`.
 

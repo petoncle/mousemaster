@@ -3898,6 +3898,7 @@ public class ConfigurationParser {
             case "bottom-to-top" -> UiHintOrder.BOTTOM_TO_TOP;
             case "left-to-right" -> UiHintOrder.LEFT_TO_RIGHT;
             case "right-to-left" -> UiHintOrder.RIGHT_TO_LEFT;
+            case "random" -> UiHintOrder.RANDOM;
             case "active-screen-center" -> UiHintOrder.ACTIVE_SCREEN_CENTER;
             case "mouse" -> UiHintOrder.MOUSE;
             case "target" -> UiHintOrder.TARGET;
@@ -3908,7 +3909,7 @@ public class ConfigurationParser {
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": should be one of " +
                     List.of("top-to-bottom", "bottom-to-top", "left-to-right",
-                            "right-to-left", "active-screen-center", "mouse", "target",
+                            "right-to-left", "random", "active-screen-center", "mouse", "target",
                             "last-selected-hint", "active-window-center",
                             "last-overlay-area-center"));
         };
