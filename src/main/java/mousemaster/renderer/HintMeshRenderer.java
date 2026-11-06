@@ -3600,6 +3600,9 @@ public final class HintMeshRenderer {
         }
     }
 
+    private record ShadowPixmap(QPixmap pixmap, int x, int y, int stackCount) {
+    }
+
     private record ShadowGroupKey(int r, int g, int b, int a,
                                   int stackCount, double blurRadius,
                                   double horizontalOffset, double verticalOffset) {
@@ -3632,23 +3635,18 @@ public final class HintMeshRenderer {
         QColor fillColor = new QColor(0, 0, 0, 0);
         sourceImage.fill(fillColor);
         fillColor.dispose();
-        QPainter srcPainter = new QPainter(sourceImage);
+        QPainter sourcePainter = new QPainter(sourceImage);
         for (HintBox box : boxes)
-            box.paintOpaque(srcPainter);
-        srcPainter.end();
-        srcPainter.dispose();
-        StackedShadowEffect.ShadowImage shadow = StackedShadowEffect.renderShadowOnly(sourceImage, shadowColor,
+            box.paintOpaque(sourcePainter);
+        sourcePainter.end();
+        sourcePainter.dispose();
+        QImage shadowImage = StackedShadowEffect.renderShadowOnly(sourceImage, shadowColor,
                 boxShadow.blurRadius(), boxShadow.horizontalOffset(),
-                boxShadow.verticalOffset(), sourceWidth, sourceHeight,
-                !gradientColor(boxShadow.color()).gradient());
+                boxShadow.verticalOffset(), !gradientColor(boxShadow.color()).gradient());
         shadowColor.dispose();
-        QImage shadowImage = StackedShadowEffect.bakeStacking(
-                shadow.image(), boxShadow.stackCount());
         QPixmap shadowPixmap = QPixmap.fromImage(shadowImage);
         shadowPixmap.setDevicePixelRatio(qtScaleFactor);
-        boxShadowLayer.setShadowPixmap(shadowPixmap,
-                (int) Math.round(shadow.x() / qtScaleFactor),
-                (int) Math.round(shadow.y() / qtScaleFactor));
+        boxShadowLayer.addShadowPixmap(shadowPixmap, 0, 0, boxShadow.stackCount());
         shadowImage.dispose();
     }
 
@@ -3764,27 +3762,25 @@ public final class HintMeshRenderer {
         QColor fillColor = new QColor(0, 0, 0, 0);
         sourceImage.fill(fillColor);
         fillColor.dispose();
-        QPainter srcPainter = new QPainter(sourceImage);
-        srcPainter.translate(-left, -top);
+        QPainter sourcePainter = new QPainter(sourceImage);
+        sourcePainter.translate(-left, -top);
         for (HintLabel label : labels) {
-            label.paintOpaque(srcPainter);
+            label.paintOpaque(sourcePainter);
         }
-        srcPainter.end();
-        srcPainter.dispose();
-        StackedShadowEffect.ShadowImage shadow =
+        sourcePainter.end();
+        sourcePainter.dispose();
+        QImage shadowImage =
                 style.hasTransparency() || shadowStyle.shadowStackCount() != 1 ?
                         StackedShadowEffect.renderShadowOnly(sourceImage,
                                 shadowStyle.shadowColor(), shadowStyle.shadowBlurRadius(),
                                 shadowStyle.shadowHorizontalOffset(),
-                                shadowStyle.shadowVerticalOffset(), width, height, true) :
+                                shadowStyle.shadowVerticalOffset(), true) :
                         StackedShadowEffect.renderShadow(sourceImage, shadowStyle.shadowColor(),
                                 shadowStyle.shadowBlurRadius(),
                                 shadowStyle.shadowHorizontalOffset(),
                                 shadowStyle.shadowVerticalOffset());
-        QImage shadowImage = StackedShadowEffect.bakeStacking(shadow.image(), shadowStyle.shadowStackCount());
         QPixmap shadowPixmap = QPixmap.fromImage(shadowImage);
-        layer.setShadowPixmap(shadowPixmap,
-                left + shadow.x(), top + shadow.y());
+        layer.addShadowPixmap(shadowPixmap, left, top, shadowStyle.shadowStackCount());
         shadowImage.dispose();
     }
 
@@ -3793,8 +3789,7 @@ public final class HintMeshRenderer {
 
     /**
      * Per-group shadow rendering: groups keys by their effective shadow
-     * settings (state + prefix/non-prefix), renders each group separately,
-     * bakes stacking, and composites into a single shadow pixmap.
+     * settings (state + prefix/non-prefix) and renders each group separately.
      */
     private void preRenderPerGroupShadow(
             HintPaintLayer layer, List<HintLabel> labels,
@@ -3816,8 +3811,6 @@ public final class HintMeshRenderer {
         int left = layer.originX, top = layer.originY;
         int width = layer.width(), height = layer.height();
         // 2. Render each group.
-        QImage combinedShadow = null;
-        int combinedX = 0, combinedY = 0;
         for (ShadowGroupKey group : groups) {
             if (group.a() == 0)
                 continue;
@@ -3825,64 +3818,23 @@ public final class HintMeshRenderer {
             QImage sourceImage = new QImage(width, height,
                     QImage.Format.Format_ARGB32_Premultiplied);
             setQImageDpiForScreen(sourceImage, screenScale);
-            QColor srcFillColor = new QColor(0, 0, 0, 0);
-            sourceImage.fill(srcFillColor);
-            srcFillColor.dispose();
-            QPainter srcPainter = new QPainter(sourceImage);
-            srcPainter.translate(-left, -top);
+            QColor fillColor = new QColor(0, 0, 0, 0);
+            sourceImage.fill(fillColor);
+            fillColor.dispose();
+            QPainter sourcePainter = new QPainter(sourceImage);
+            sourcePainter.translate(-left, -top);
             for (HintLabel label : labels) {
-                label.paintOpaqueFiltered(srcPainter,
+                label.paintOpaqueFiltered(sourcePainter,
                         keyText -> label.shadowGroupKey(keyText).equals(group));
             }
-            srcPainter.end();
-            srcPainter.dispose();
+            sourcePainter.end();
+            sourcePainter.dispose();
             QColor shadowColor = new QColor(group.r(), group.g(), group.b(), group.a());
-            StackedShadowEffect.ShadowImage shadow = StackedShadowEffect.renderShadowOnly(sourceImage, shadowColor,
-                    group.blurRadius(), group.horizontalOffset(), group.verticalOffset(),
-                    width, height, true);
+            QImage shadow = StackedShadowEffect.renderShadowOnly(sourceImage, shadowColor,
+                    group.blurRadius(), group.horizontalOffset(), group.verticalOffset(), true);
             shadowColor.dispose();
-            QImage stackedShadow = StackedShadowEffect.bakeStacking(shadow.image(), group.stackCount());
-            int boundsX = shadow.x();
-            int boundsY = shadow.y();
-            // Composite into final image.
-            if (combinedShadow == null) {
-                combinedShadow = stackedShadow;
-                combinedX = boundsX;
-                combinedY = boundsY;
-            }
-            else {
-                int newX = Math.min(combinedX, boundsX);
-                int newY = Math.min(combinedY, boundsY);
-                int newRight = Math.max(combinedX + combinedShadow.width(),
-                        boundsX + stackedShadow.width());
-                int newBottom = Math.max(combinedY + combinedShadow.height(),
-                        boundsY + stackedShadow.height());
-                int newW = newRight - newX;
-                int newH = newBottom - newY;
-                QImage newCombined = new QImage(newW, newH,
-                        QImage.Format.Format_ARGB32_Premultiplied);
-                QColor combineFillColor = new QColor(0, 0, 0, 0);
-                newCombined.fill(combineFillColor);
-                combineFillColor.dispose();
-                QPainter combinePainter = new QPainter(newCombined);
-                combinePainter.drawImage(combinedX - newX, combinedY - newY,
-                        combinedShadow);
-                combinePainter.drawImage(boundsX - newX, boundsY - newY,
-                        stackedShadow);
-                combinePainter.end();
-                combinePainter.dispose();
-                combinedShadow.dispose();
-                stackedShadow.dispose();
-                combinedShadow = newCombined;
-                combinedX = newX;
-                combinedY = newY;
-            }
-        }
-        if (combinedShadow != null) {
-            QPixmap combinedPixmap = QPixmap.fromImage(combinedShadow);
-            layer.setShadowPixmap(combinedPixmap,
-                    left + combinedX, top + combinedY);
-            combinedShadow.dispose();
+            layer.addShadowPixmap(QPixmap.fromImage(shadow), left, top, group.stackCount());
+            shadow.dispose();
         }
     }
 
@@ -3893,9 +3845,7 @@ public final class HintMeshRenderer {
         private final BiConsumer<HintBox, QPainter> boxPainter;
         /** Where the layer sits when it covers only its ink; everything it paints shifts by it. */
         private int originX, originY;
-        // Pre-rendered shadow-only pixmap (null if no shadow or opaque text).
-        private QPixmap shadowPixmap;
-        private int shadowPixmapX, shadowPixmapY;
+        private final List<ShadowPixmap> shadowPixmaps = new ArrayList<>();
         private QRect crop;
         // Where an enclosing border puts ink, kept out of what this layer paints. The outgoing
         // borders are kept out of their own grids' enclosing ink, which is still on screen too.
@@ -4014,19 +3964,14 @@ public final class HintMeshRenderer {
             repaint();
         }
 
-        void setShadowPixmap(QPixmap shadowPixmap, int x, int y) {
-            if (this.shadowPixmap != null)
-                this.shadowPixmap.dispose();
-            this.shadowPixmap = shadowPixmap;
-            this.shadowPixmapX = x;
-            this.shadowPixmapY = y;
+        void addShadowPixmap(QPixmap shadowPixmap, int x, int y, int stackCount) {
+            shadowPixmaps.add(new ShadowPixmap(shadowPixmap, x, y, stackCount));
         }
 
         void disposeBuffers() {
-            if (shadowPixmap != null) {
-                shadowPixmap.dispose();
-                shadowPixmap = null;
-            }
+            for (ShadowPixmap shadowPixmap : shadowPixmaps)
+                shadowPixmap.pixmap().dispose();
+            shadowPixmaps.clear();
             if (enclosingInk != null) {
                 enclosingInk.dispose();
                 enclosingInk = null;
@@ -4096,8 +4041,9 @@ public final class HintMeshRenderer {
             }
             for (HintBox box : boxes)
                 boxPainter.accept(box, painter);
-            if (shadowPixmap != null)
-                painter.drawPixmap(shadowPixmapX, shadowPixmapY, shadowPixmap);
+            for (ShadowPixmap shadowPixmap : shadowPixmaps)
+                for (int stack = 0; stack < shadowPixmap.stackCount(); stack++)
+                    painter.drawPixmap(shadowPixmap.x(), shadowPixmap.y(), shadowPixmap.pixmap());
             for (HintLabel label : labels)
                 label.paint(painter);
             painter.end();

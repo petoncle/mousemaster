@@ -1,8 +1,6 @@
 package mousemaster.qt;
 
 import io.qt.core.QPoint;
-import io.qt.core.QRect;
-import io.qt.core.QRectF;
 import io.qt.core.Qt;
 import io.qt.gui.QBrush;
 import io.qt.gui.QColor;
@@ -10,12 +8,8 @@ import io.qt.gui.QImage;
 import io.qt.gui.QPainter;
 import io.qt.gui.QPixmap;
 import io.qt.gui.QTransform;
-import io.qt.widgets.QGraphicsPixmapItem;
-import io.qt.widgets.QGraphicsScene;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.ByteBuffer;
 
 /**
  * A drop-shadow effect that supports stacking (compositing the shadow on itself for a
@@ -62,8 +56,6 @@ public class StackedShadowEffect extends QtDropShadowEffect {
             redrawSourceOverShadow(painter);
             return;
         }
-        // Pre-render the shadow separately, bake stacking, then draw
-        // the stacked shadow and source independently.
         QPoint sourceOffset = new QPoint();
         QPixmap sourcePixmap = sourcePixmap(
                 Qt.CoordinateSystem.DeviceCoordinates, sourceOffset,
@@ -84,34 +76,18 @@ public class StackedShadowEffect extends QtDropShadowEffect {
         redrawSourceOverShadow(painter);
     }
 
-    /** Draws the shadow of the source where the source goes, the painter's transform reset. */
+    /** Draws the shadow of the source where the source goes, stackCount times, the painter's
+     *  transform reset. */
     protected static void drawShadow(QPainter painter, QPixmap sourcePixmap, QPoint sourceOffset,
                                      double blurRadius, double xOffset, double yOffset,
                                      QColor color, QBrush brush, int stackCount, boolean alphaOnly) {
-        if (stackCount <= 1) {
-            QImage shadow = blurredShadow(sourcePixmap, xOffset, yOffset, blurRadius, alphaOnly);
-            tint(shadow, color, brush, alphaOnly);
-            painter.drawImage(sourceOffset, shadow);
-            shadow.dispose();
-            return;
-        }
         QImage sourceImage = sourcePixmap.toImage();
-        int w = sourceImage.width();
-        int h = sourceImage.height();
-        // A brush supplies both color and opacity, so the silhouette it tints is rendered
-        // opaque and stacking shapes the alpha alone.
-        boolean brushed = brush != null;
-        QColor shadowColor = brushed ? new QColor(255, 255, 255) : color;
-        ShadowImage shadow = renderShadowOnly(sourceImage, shadowColor,
-                blurRadius, xOffset, yOffset, w, h, alphaOnly);
-        if (brushed)
-            shadowColor.dispose();
-        QImage stackedShadow = bakeStacking(shadow.image(), stackCount);
-        if (brushed)
-            tint(stackedShadow, color, brush, alphaOnly);
-        painter.drawImage(sourceOffset.x() + shadow.x(),
-                sourceOffset.y() + shadow.y(), stackedShadow);
-        stackedShadow.dispose();
+        QImage shadow = blurredShadow(sourceImage, xOffset, yOffset, blurRadius, alphaOnly);
+        sourceImage.dispose();
+        tint(shadow, color, brush, alphaOnly);
+        for (int stack = 0; stack < stackCount; stack++)
+            painter.drawImage(sourceOffset, shadow);
+        shadow.dispose();
     }
 
     protected void redrawSourceOverShadow(QPainter painter) {
@@ -121,130 +97,34 @@ public class StackedShadowEffect extends QtDropShadowEffect {
     }
 
     /**
-     * Intensifies an image by computing the closed-form result of compositing
-     * it on top of itself stackCount times (premultiplied alpha geometric series).
-     * Consumes {@code image}: it is returned as is, or disposed and replaced by the
-     * intensified one. Dispose the returned image, never the argument.
-     */
-    public static QImage bakeStacking(QImage image, int stackCount) {
-        if (stackCount <= 1)
-            return image;
-        int w = image.width();
-        int h = image.height();
-        int totalBytes = w * h * 4;
-        ByteBuffer buf = image.bits();
-        byte[] pixels = new byte[totalBytes];
-        buf.position(0);
-        buf.get(pixels);
-        // Precompute multiplier for each possible alpha value.
-        // For premultiplied alpha, stacking N times multiplies all channels by
-        // (1 - t^N) / (1 - t) where t = 1 - a/255.
-        double[] multiplier = new double[256];
-        for (int a = 1; a <= 255; a++) {
-            double t = 1.0 - a / 255.0;
-            multiplier[a] = (1.0 - Math.pow(t, stackCount)) / (a / 255.0);
-        }
-        // ARGB32_Premultiplied, little-endian: B, G, R, A.
-        for (int i = 0; i < totalBytes; i += 4) {
-            int a = pixels[i + 3] & 0xFF;
-            if (a == 0) continue;
-            double m = multiplier[a];
-            pixels[i]     = (byte) Math.min(255, (int) (((pixels[i]     & 0xFF) * m) + 0.5));
-            pixels[i + 1] = (byte) Math.min(255, (int) (((pixels[i + 1] & 0xFF) * m) + 0.5));
-            pixels[i + 2] = (byte) Math.min(255, (int) (((pixels[i + 2] & 0xFF) * m) + 0.5));
-            pixels[i + 3] = (byte) Math.min(255, (int) ((a * m) + 0.5));
-        }
-        image.dispose();
-        return new QImage(pixels, w, h, QImage.Format.Format_ARGB32_Premultiplied);
-    }
-
-    /**
      * Renders the shadow {@code sourceImage} casts, as the effect draws it under the source.
-     * Consumes {@code sourceImage}. Dispose the returned image, never the argument.
+     * Consumes {@code sourceImage}.
      */
-    public static ShadowImage renderShadow(QImage sourceImage, QColor shadowColor,
-                                           double blurRadius, double horizontalOffset,
-                                           double verticalOffset) {
-        QPixmap sourcePixmap = QPixmap.fromImage(sourceImage);
-        sourceImage.dispose();
-        QImage shadowImage = blurredShadow(sourcePixmap, horizontalOffset, verticalOffset,
+    public static QImage renderShadow(QImage sourceImage, QColor shadowColor, double blurRadius,
+                                      double horizontalOffset, double verticalOffset) {
+        QImage shadowImage = blurredShadow(sourceImage, horizontalOffset, verticalOffset,
                 blurRadius, true);
-        sourcePixmap.dispose();
+        sourceImage.dispose();
         tint(shadowImage, shadowColor, null, true);
-        return new ShadowImage(shadowImage, 0, 0);
+        return shadowImage;
     }
 
     /**
-     * Renders the shadow {@code sourceImage} casts, with the source itself subtracted out.
-     * Consumes {@code sourceImage}. Dispose the returned image, never the argument.
+     * Renders the shadow {@code sourceImage} casts, with the source itself cut out.
+     * Consumes {@code sourceImage}.
      */
-    public static ShadowImage renderShadowOnly(
-            QImage sourceImage, QColor shadowColor, double blurRadius,
-            double horizontalOffset, double verticalOffset,
-            int containerWidth, int containerHeight, boolean alphaOnly) {
-        QGraphicsScene scene = new QGraphicsScene();
-        QPixmap sourcePixmap = QPixmap.fromImage(sourceImage);
-        QGraphicsPixmapItem item = scene.addPixmap(sourcePixmap);
-        StackedShadowEffect effect = new StackedShadowEffect();
-        effect.setBlurRadius(blurRadius);
-        effect.setOffset(horizontalOffset, verticalOffset);
-        effect.setColor(shadowColor);
-        effect.setStackCount(1);
-        effect.setAlphaOnly(alphaOnly);
-        item.setGraphicsEffect(effect);
-        QRectF bounds = scene.itemsBoundingRect();
-        int boundsX = (int) Math.floor(bounds.x());
-        int boundsY = (int) Math.floor(bounds.y());
-        int boundsW = (int) Math.ceil(bounds.x() + bounds.width()) - boundsX;
-        int boundsH = (int) Math.ceil(bounds.y() + bounds.height()) - boundsY;
-        bounds.dispose();
-        QRectF intBounds = new QRectF(boundsX, boundsY, boundsW, boundsH);
-        QImage resultImage = new QImage(boundsW, boundsH,
-                QImage.Format.Format_ARGB32_Premultiplied);
-        QColor fillColor = new QColor(0, 0, 0, 0);
-        resultImage.fill(fillColor);
-        fillColor.dispose();
-        QPainter resultPainter = new QPainter(resultImage);
-        QRect resultRect = resultImage.rect();
-        QRectF targetRect = new QRectF(resultRect);
-        scene.render(resultPainter, targetRect, intBounds);
-        resultRect.dispose();
-        targetRect.dispose();
-        intBounds.dispose();
-        resultPainter.end();
-        resultPainter.dispose();
-        scene.dispose();
-        sourcePixmap.dispose();
-        ByteBuffer combinedBuf = resultImage.bits();
-        ByteBuffer sourceBuf = sourceImage.bits();
-        int resultBytesPerLine = boundsW * 4;
-        int sourceBytesPerLine = containerWidth * 4;
-        int totalBytes = resultBytesPerLine * boundsH;
-        byte[] shadowBytes = new byte[totalBytes];
-        combinedBuf.get(0, shadowBytes, 0, totalBytes);
-        int srcOffX = -boundsX;
-        int srcOffY = -boundsY;
-        int overlapW = Math.min(containerWidth, boundsW - srcOffX);
-        int overlapH = Math.min(containerHeight, boundsH - srcOffY);
-        // A row of the source at a time: taking it byte by byte out of its buffer costs more than
-        // the subtraction itself, there being tens of millions of them.
-        byte[] sourceRow = new byte[overlapW * 4];
-        for (int py = 0; py < overlapH; py++) {
-            int resultRowStart = (py + srcOffY) * resultBytesPerLine + srcOffX * 4;
-            sourceBuf.get(py * sourceBytesPerLine, sourceRow, 0, sourceRow.length);
-            for (int i = 0; i < sourceRow.length; i++) {
-                int c = shadowBytes[resultRowStart + i] & 0xFF;
-                int s = sourceRow[i] & 0xFF;
-                shadowBytes[resultRowStart + i] = (byte) Math.max(0, c - s);
-            }
-        }
-        resultImage.dispose();
+    public static QImage renderShadowOnly(QImage sourceImage, QColor shadowColor,
+                                          double blurRadius, double horizontalOffset,
+                                          double verticalOffset, boolean alphaOnly) {
+        QImage shadowImage = blurredShadow(sourceImage, horizontalOffset, verticalOffset,
+                blurRadius, alphaOnly);
+        tint(shadowImage, shadowColor, null, alphaOnly);
+        QPainter painter = new QPainter(shadowImage);
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationOut);
+        painter.drawImage(0, 0, sourceImage);
+        painter.end();
+        painter.dispose();
         sourceImage.dispose();
-        QImage shadowImage = new QImage(shadowBytes, boundsW, boundsH,
-                QImage.Format.Format_ARGB32_Premultiplied);
-        return new ShadowImage(shadowImage, boundsX, boundsY);
-    }
-
-    public record ShadowImage(QImage image, int x, int y) {
+        return shadowImage;
     }
 }

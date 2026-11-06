@@ -9,7 +9,6 @@
 package mousemaster.qt;
 
 import io.qt.core.QPoint;
-import io.qt.core.QPointF;
 import io.qt.core.QRect;
 import io.qt.core.Qt;
 import io.qt.gui.QBrush;
@@ -19,6 +18,9 @@ import io.qt.gui.QPainter;
 import io.qt.gui.QPixmap;
 import io.qt.gui.QTransform;
 import io.qt.widgets.QGraphicsDropShadowEffect;
+
+import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 
 /**
  * Qt's drop shadow with its blur swapped for {@link ExpBlur}. Qt still pads the source, upscales
@@ -78,7 +80,9 @@ public class QtDropShadowEffect extends QGraphicsDropShadowEffect {
             sourceOffset.dispose();
             return;
         }
-        QImage shadow = blurredShadow(sourcePixmap, xOffset(), yOffset(), blurRadius(), alphaOnly);
+        QImage sourceImage = sourcePixmap.toImage();
+        QImage shadow = blurredShadow(sourceImage, xOffset(), yOffset(), blurRadius(), alphaOnly);
+        sourceImage.dispose();
         QColor shadowColor = color();
         tint(shadow, shadowColor, shadowBrush, alphaOnly);
         shadowColor.dispose();
@@ -96,46 +100,39 @@ public class QtDropShadowEffect extends QGraphicsDropShadowEffect {
         sourceOffset.dispose();
     }
 
-    /** The source shifted by the offset and blurred, in an image of its size, to be colored. */
-    protected static QImage blurredShadow(QPixmap sourcePixmap, double xOffset, double yOffset,
+    /** The source moved by the offset and blurred, in an image of its size, to be colored. */
+    protected static QImage blurredShadow(QImage source, double xOffset, double yOffset,
                                           double blurRadius, boolean alphaOnly) {
-        int width = sourcePixmap.width(), height = sourcePixmap.height();
-        QImage shifted = transparentImage(width, height);
-        QPainter shiftPainter = new QPainter(shifted);
-        shiftPainter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
-        QPointF shadowOffset = new QPointF(xOffset, yOffset);
-        shiftPainter.drawPixmap(shadowOffset, sourcePixmap);
-        shadowOffset.dispose();
-        shiftPainter.end();
-        shiftPainter.dispose();
-
-        byte[] pixels = new byte[width * height * 4];
-        shifted.bits().get(0, pixels, 0, pixels.length);
-        shifted.dispose();
+        int width = source.width(), height = source.height();
         double radius = blurRadius;
-        double scale = 1;
-        int blurWidth = width, blurHeight = height;
+        int scale = 1;
         // qt_blurImage halves the image once the radius reaches 4, and scales it back afterwards.
-        boolean halfScaled = radius >= 4 && width >= 2 && height >= 2;
-        if (halfScaled) {
-            blurWidth = width / 2;
-            blurHeight = height / 2;
+        if (radius >= 4 && width >= 2 && height >= 2) {
             scale = 2;
             radius *= 0.5;
         }
+        int blurWidth = width / scale, blurHeight = height / scale;
+        IntBuffer pixels = source.bits().order(ByteOrder.LITTLE_ENDIAN).asIntBuffer();
+        // Qt moves the source with a blit, which rounds the offset to whole pixels.
+        int dx = (int) Math.round(xOffset), dy = (int) Math.round(yOffset);
         byte[] blurredPixels = new byte[blurWidth * blurHeight * 4];
         for (int channel = alphaOnly ? 3 : 0; channel < 4; channel++) {
-            byte[] plane = ExpBlur.plane(pixels, width, height, channel);
-            if (halfScaled)
-                plane = ExpBlur.halfScaledPlane(plane, width, height);
+            byte[] plane = ExpBlur.plane(pixels, width, height, channel, dx, dy, scale);
             ExpBlur.blurPlane(plane, blurWidth, blurHeight, radius);
             ExpBlur.setPlane(blurredPixels, plane, blurWidth, blurHeight, channel);
         }
-
         QImage blurredImage = new QImage(blurredPixels, blurWidth, blurHeight,
                 QImage.Format.Format_ARGB32_Premultiplied);
-        QImage shadow = transparentImage(width, height);
+        if (scale == 1)
+            return blurredImage;
+        QImage shadow = new QImage(width, height, QImage.Format.Format_ARGB32_Premultiplied);
         QPainter blurPainter = new QPainter(shadow);
+        blurPainter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
+        // The halved image covers all but an odd last column or row.
+        QColor transparent = new QColor(0, 0, 0, 0);
+        blurPainter.fillRect(2 * blurWidth, 0, width - 2 * blurWidth, height, transparent);
+        blurPainter.fillRect(0, 2 * blurHeight, width, height - 2 * blurHeight, transparent);
+        transparent.dispose();
         blurPainter.scale(scale, scale);
         blurPainter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform);
         QRect blurredRect = new QRect(0, 0, blurWidth, blurHeight);
@@ -145,13 +142,5 @@ public class QtDropShadowEffect extends QGraphicsDropShadowEffect {
         blurPainter.dispose();
         blurredImage.dispose();
         return shadow;
-    }
-
-    private static QImage transparentImage(int width, int height) {
-        QImage image = new QImage(width, height, QImage.Format.Format_ARGB32_Premultiplied);
-        QColor transparent = new QColor(0, 0, 0, 0);
-        image.fill(transparent);
-        transparent.dispose();
-        return image;
     }
 }

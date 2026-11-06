@@ -8,7 +8,9 @@
 // LGPL-3.0-only. See THIRD-PARTY-NOTICES.md.
 package mousemaster.qt;
 
+import java.nio.IntBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -31,6 +33,9 @@ public final class ExpBlur {
     /** Transposing a tile at a time keeps both sides of the copy in cache. */
     private static final int TILE = 32;
 
+    /** Fewer pixels than this per thread cost more to hand over than to process. */
+    private static final int CHUNK_PIXELS = 1 << 16;
+
     private static final int threadCount = Runtime.getRuntime().availableProcessors();
 
     private static final ExecutorService rowPool = Executors.newFixedThreadPool(threadCount,
@@ -44,24 +49,52 @@ public final class ExpBlur {
     }
 
     /**
-     * One channel of an ARGB32_Premultiplied image, 3 being alpha.
+     * One channel of an ARGB32_Premultiplied image, 3 being alpha, moved by (dx, dy) and, when
+     * scale is 2, halved as qt_halfScaled halves it: each value is the average of a 2x2 block,
+     * rounded down.
      */
-    public static byte[] plane(byte[] pixels, int width, int height, int channel) {
-        byte[] plane = new byte[width * height];
-        overRange(height, 64, (from, to) -> {
-            for (int y = from; y < to; y++)
-                for (int x = 0; x < width; x++)
-                    plane[y * width + x] = pixels[(y * width + x) * 4 + channel];
+    public static byte[] plane(IntBuffer pixels, int width, int height, int channel, int dx,
+                               int dy, int scale) {
+        int planeWidth = width / scale, planeHeight = height / scale;
+        byte[] plane = new byte[planeWidth * planeHeight];
+        overRange(planeHeight, width, (from, to) -> {
+            int[] sourceRow = new int[width];
+            int[] top = new int[width];
+            int[] bottom = new int[width];
+            for (int y = from; y < to; y++) {
+                movedRow(pixels, width, height, channel, dx, scale * y - dy, sourceRow, top);
+                if (scale == 1) {
+                    for (int x = 0; x < planeWidth; x++)
+                        plane[y * planeWidth + x] = (byte) top[x];
+                    continue;
+                }
+                movedRow(pixels, width, height, channel, dx, scale * y + 1 - dy, sourceRow,
+                        bottom);
+                for (int x = 0; x < planeWidth; x++)
+                    plane[y * planeWidth + x] = (byte) (((top[2 * x] + top[2 * x + 1] >> 1) +
+                                                         (bottom[2 * x] + bottom[2 * x + 1] >> 1))
+                                                        >> 1);
+            }
         });
         return plane;
     }
 
-    /** The blurred plane back in one channel of an ARGB32_Premultiplied image. */
+    /** The channel of the image's row y, moved right by dx, with zero where nothing lands. */
+    private static void movedRow(IntBuffer pixels, int width, int height, int channel, int dx,
+                                 int y, int[] sourceRow, int[] row) {
+        Arrays.fill(row, 0);
+        if (y < 0 || y >= height)
+            return;
+        pixels.get(y * width, sourceRow);
+        for (int x = Math.max(0, dx); x < Math.min(width, width + dx); x++)
+            row[x] = sourceRow[x - dx] >>> 8 * channel & 0xFF;
+    }
+
+    /** Puts the blurred plane in one channel of ARGB32_Premultiplied pixels. */
     public static void setPlane(byte[] pixels, byte[] plane, int width, int height, int channel) {
-        overRange(height, 64, (from, to) -> {
-            for (int y = from; y < to; y++)
-                for (int x = 0; x < width; x++)
-                    pixels[(y * width + x) * 4 + channel] = plane[y * width + x];
+        overRange(height, width, (from, to) -> {
+            for (int i = from * width; i < to * width; i++)
+                pixels[i * 4 + channel] = plane[i];
         });
     }
 
@@ -69,18 +102,18 @@ public final class ExpBlur {
         int alpha = radius <= 1e-5 ? (1 << APREC) - 1
                 : (int) Math.round((1 << APREC) * (1 - Math.pow(2 * (1 / 255.0), 1 / radius)));
         byte[] rotated = new byte[width * height];
-        overRange(height, 64, (from, to) -> blurRows(plane, width, from, to, alpha));
+        overRange(height, width, (from, to) -> blurRows(plane, width, from, to, alpha));
         // qt_memrotate270: dest(x, height - 1 - y) = src(y, x).
-        overRange(tiles(width), 1, (from, to) -> {
+        overRange(tiles(width), TILE * height, (from, to) -> {
             for (int tile = from; tile < to; tile++)
                 for (int y0 = 0; y0 < height; y0 += TILE)
                     for (int x = tile * TILE, xEnd = Math.min(x + TILE, width); x < xEnd; x++)
                         for (int y = y0, yEnd = Math.min(y0 + TILE, height); y < yEnd; y++)
                             rotated[x * height + height - 1 - y] = plane[y * width + x];
         });
-        overRange(width, 64, (from, to) -> blurRows(rotated, height, from, to, alpha));
+        overRange(width, height, (from, to) -> blurRows(rotated, height, from, to, alpha));
         // qt_memrotate90: dest(height - 1 - x, y) = src(y, x), over the rotated plane.
-        overRange(tiles(width), 1, (from, to) -> {
+        overRange(tiles(width), TILE * height, (from, to) -> {
             for (int tile = from; tile < to; tile++)
                 for (int x0 = 0; x0 < height; x0 += TILE)
                     for (int y = tile * TILE, yEnd = Math.min(y + TILE, width); y < yEnd; y++)
@@ -97,8 +130,8 @@ public final class ExpBlur {
         void run(int from, int to);
     }
 
-    private static void overRange(int count, int smallestChunk, Range range) {
-        int chunks = Math.min(threadCount, count / smallestChunk);
+    private static void overRange(int count, int pixelsPerUnit, Range range) {
+        int chunks = (int) Math.min(threadCount, (long) count * pixelsPerUnit / CHUNK_PIXELS);
         if (chunks <= 1) {
             range.run(0, count);
             return;
@@ -165,25 +198,5 @@ public final class ExpBlur {
             z += alpha * (((plane[at] & 0xFF) << ZPREC) - (z >> APREC));
             plane[at] = (byte) (z >> (ZPREC + APREC));
         }
-    }
-
-    /**
-     * qt_halfScaled's alpha channel: each output value is the average of a 2x2 block, rounded
-     * down. qt_blurImage halves the image before blurring once the radius reaches 4, and scales it
-     * back afterwards.
-     */
-    public static byte[] halfScaledPlane(byte[] plane, int width, int height) {
-        int halfWidth = width / 2, halfHeight = height / 2;
-        byte[] scaled = new byte[halfWidth * halfHeight];
-        overRange(halfHeight, 64, (from, to) -> {
-            for (int y = from; y < to; y++)
-                for (int x = 0; x < halfWidth; x++) {
-                    int topLeft = 2 * y * width + 2 * x, bottomLeft = topLeft + width;
-                    int top = ((plane[topLeft] & 0xFF) + (plane[topLeft + 1] & 0xFF)) >> 1;
-                    int bottom = ((plane[bottomLeft] & 0xFF) + (plane[bottomLeft + 1] & 0xFF)) >> 1;
-                    scaled[y * halfWidth + x] = (byte) ((top + bottom) >> 1);
-                }
-        });
-        return scaled;
     }
 }
