@@ -18,7 +18,7 @@ From any app:
 | `Ctrl+Alt+Shift+Enter` | Drag: what to grab, then where to drop it               |
 | `Ctrl+\`               | Sticky hints                                            |
 
-The hints mark what computer vision finds on every screen. The first hint keys (`j f k d l s a …`) make the shortest labels, near the center of the screen. A tool hotkey pressed in the hints changes the tool without a new scan.
+The hints mark what computer vision finds on every screen. All labels have the same length, and the labels of the first hint keys (`j f k d l s a …`) go near the center of the active window. A tool hotkey pressed in the hints changes the tool without a new scan.
 
 While the hints are open, every key but Print Screen goes to mousemaster. A toast at the bottom left names each change.
 
