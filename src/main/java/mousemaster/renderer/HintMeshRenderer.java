@@ -33,8 +33,8 @@ public final class HintMeshRenderer {
     private static final Logger logger = LoggerFactory.getLogger(HintMeshRenderer.class);
 
     private static final long SLOW_PAINT_MS = 5;
-    /** What a layer costs besides its blur, whatever its size, in pixels that would be blurred in the same time. */
-    private static final long LAYER_COST_PIXELS = 50_000;
+    /** What blurring an area apart costs besides its pixels, in pixels blurred in the same time. */
+    private static final long AREA_COST_PIXELS = 100_000;
 
     private final Map<HintMesh, PixmapAndPosition> hintMeshPixmaps = new HashMap<>();
     private final Map<HintMesh, Map<List<Key>, Rectangle>> hintBoxRectanglesByHintMeshKey =
@@ -1931,13 +1931,13 @@ public final class HintMeshRenderer {
         for (HintBox prefixBox : prefixBoxes)
             prefixBox.collectBorderInk(0, 0, enclosingInk);
         // Layer 3: Prefix labels.
-        addLabelLayers(container, prefixLabels, prefixQtHintFontStyle, hasSelectedKeys,
+        addLabelLayer(container, prefixLabels, prefixQtHintFontStyle, hasSelectedKeys,
                 containerWidth, containerHeight, screenScale);
         // Layer 4: Hint labels.
-        addLabelLayers(container, unsavedHintLabels, labelFontStyle, hasSelectedKeys,
+        addLabelLayer(container, unsavedHintLabels, labelFontStyle, hasSelectedKeys,
                 containerWidth, containerHeight, screenScale);
         if (!savedHintLabels.isEmpty())
-            addLabelLayers(container, savedHintLabels, savedLabelFontStyle, hasSelectedKeys,
+            addLabelLayer(container, savedHintLabels, savedLabelFontStyle, hasSelectedKeys,
                     containerWidth, containerHeight, screenScale);
         // Layer 5: whole-area decoration (index 0), anchored to the grid area it was laid out in, not
         // to the container: a grid drilled past a screen edge has cells the container cannot show.
@@ -3628,26 +3628,115 @@ public final class HintMeshRenderer {
         }
         // The source is in pixels, as the blur radius and the offsets are: a box's shadow is as
         // many pixels as it is configured to be, whatever the screen.
-        int sourceWidth = (int) Math.round(containerWidth * qtScaleFactor);
-        int sourceHeight = (int) Math.round(containerHeight * qtScaleFactor);
-        QImage sourceImage = new QImage(sourceWidth, sourceHeight,
-                QImage.Format.Format_ARGB32_Premultiplied);
-        QColor fillColor = new QColor(0, 0, 0, 0);
-        sourceImage.fill(fillColor);
-        fillColor.dispose();
-        QPainter sourcePainter = new QPainter(sourceImage);
-        for (HintBox box : boxes)
-            box.paintOpaque(sourcePainter);
-        sourcePainter.end();
-        sourcePainter.dispose();
-        QImage shadowImage = StackedShadowEffect.renderShadowOnly(sourceImage, shadowColor,
-                boxShadow.blurRadius(), boxShadow.horizontalOffset(),
-                boxShadow.verticalOffset(), !gradientColor(boxShadow.color()).gradient());
+        Rectangle container = new Rectangle(0, 0, (int) Math.round(containerWidth * qtScaleFactor),
+                (int) Math.round(containerHeight * qtScaleFactor));
+        boolean alphaOnly = !gradientColor(boxShadow.color()).gradient();
+        for (Map.Entry<Rectangle, List<HintBox>> entry :
+                byShadowArea(boxes, box -> box.pixelRectangle(0, 0),
+                        shadowPadding(boxShadow.blurRadius(), boxShadow.horizontalOffset(),
+                                boxShadow.verticalOffset()), container).entrySet()) {
+            Rectangle area = entry.getKey();
+            QImage sourceImage = new QImage(area.width(), area.height(),
+                    QImage.Format.Format_ARGB32_Premultiplied);
+            QColor fillColor = new QColor(0, 0, 0, 0);
+            sourceImage.fill(fillColor);
+            fillColor.dispose();
+            QPainter sourcePainter = new QPainter(sourceImage);
+            sourcePainter.translate(-area.x(), -area.y());
+            for (HintBox box : entry.getValue())
+                box.paintOpaque(sourcePainter);
+            sourcePainter.end();
+            sourcePainter.dispose();
+            QImage shadowImage = StackedShadowEffect.renderShadowOnly(sourceImage, shadowColor,
+                    boxShadow.blurRadius(), boxShadow.horizontalOffset(),
+                    boxShadow.verticalOffset(), alphaOnly);
+            QPixmap shadowPixmap = QPixmap.fromImage(shadowImage);
+            shadowPixmap.setDevicePixelRatio(qtScaleFactor);
+            boxShadowLayer.addShadowPixmap(shadowPixmap,
+                    (int) Math.round(area.x() / qtScaleFactor),
+                    (int) Math.round(area.y() / qtScaleFactor), boxShadow.stackCount());
+            shadowImage.dispose();
+        }
         shadowColor.dispose();
-        QPixmap shadowPixmap = QPixmap.fromImage(shadowImage);
-        shadowPixmap.setDevicePixelRatio(qtScaleFactor);
-        boxShadowLayer.addShadowPixmap(shadowPixmap, 0, 0, boxShadow.stackCount());
-        shadowImage.dispose();
+    }
+
+    /** Boxes or labels by the area their shadows land in: those whose shadows can meet share an
+     *  area, and areas are merged until none overlap. Areas are blurred apart when that costs less
+     *  than blurring their union. An area starts on an even pixel, as the halved blur does, so it
+     *  blurs as the whole container would. */
+    private static <T> Map<Rectangle, List<T>> byShadowArea(List<T> casters,
+                                                            Function<T, Rectangle> rectangle,
+                                                            int padding, Rectangle container) {
+        Map<Rectangle, List<T>> castersByArea = new LinkedHashMap<>();
+        for (T caster : casters) {
+            Rectangle casterRectangle = rectangle.apply(caster);
+            castersByArea.computeIfAbsent(new Rectangle(casterRectangle.x() - padding,
+                                  casterRectangle.y() - padding,
+                                  casterRectangle.width() + 2 * padding,
+                                  casterRectangle.height() + 2 * padding),
+                                  area -> new ArrayList<>())
+                         .add(caster);
+        }
+        Map<Rectangle, List<T>> mergedCastersByArea = byMergedArea(castersByArea);
+        while (mergedCastersByArea.size() < castersByArea.size()) {
+            castersByArea = mergedCastersByArea;
+            mergedCastersByArea = byMergedArea(castersByArea);
+        }
+        Rectangle union = Rectangle.union(castersByArea.keySet());
+        long areasCost = (castersByArea.size() - 1) * AREA_COST_PIXELS;
+        for (Rectangle area : castersByArea.keySet())
+            areasCost += (long) area.width() * area.height();
+        if (areasCost >= (long) union.width() * union.height())
+            castersByArea = Map.of(union, casters);
+        Map<Rectangle, List<T>> castersByShadowArea = new LinkedHashMap<>();
+        for (Map.Entry<Rectangle, List<T>> entry : castersByArea.entrySet()) {
+            Rectangle area = entry.getKey().intersection(container);
+            int left = area.x() / 2 * 2, top = area.y() / 2 * 2;
+            castersByShadowArea.put(new Rectangle(left, top, area.x() + area.width() - left,
+                    area.y() + area.height() - top), entry.getValue());
+        }
+        return castersByShadowArea;
+    }
+
+    /** What overlapping areas hold together, by the union of those areas. */
+    private static <T> Map<Rectangle, List<T>> byMergedArea(Map<Rectangle, List<T>> castersByArea) {
+        List<Rectangle> areas = new ArrayList<>(castersByArea.keySet());
+        int[] parents = new int[areas.size()];
+        for (int index = 0; index < parents.length; index++)
+            parents[index] = index;
+        Integer[] indexesByLeft = new Integer[areas.size()];
+        for (int index = 0; index < indexesByLeft.length; index++)
+            indexesByLeft[index] = index;
+        Arrays.sort(indexesByLeft, Comparator.comparingInt(index -> areas.get(index).x()));
+        for (int i = 0; i < indexesByLeft.length; i++) {
+            Rectangle area = areas.get(indexesByLeft[i]);
+            for (int j = i + 1; j < indexesByLeft.length; j++) {
+                Rectangle otherArea = areas.get(indexesByLeft[j]);
+                if (otherArea.x() >= area.x() + area.width())
+                    break;
+                if (otherArea.y() < area.y() + area.height() &&
+                    area.y() < otherArea.y() + otherArea.height())
+                    parents[root(parents, indexesByLeft[i])] = root(parents, indexesByLeft[j]);
+            }
+        }
+        Map<Integer, List<Rectangle>> areasByRoot = new LinkedHashMap<>();
+        for (int index = 0; index < parents.length; index++)
+            areasByRoot.computeIfAbsent(root(parents, index), groupRoot -> new ArrayList<>())
+                       .add(areas.get(index));
+        Map<Rectangle, List<T>> castersByMergedArea = new LinkedHashMap<>();
+        for (List<Rectangle> mergedAreas : areasByRoot.values()) {
+            List<T> mergedCasters = new ArrayList<>();
+            for (Rectangle area : mergedAreas)
+                mergedCasters.addAll(castersByArea.get(area));
+            castersByMergedArea.put(Rectangle.union(mergedAreas), mergedCasters);
+        }
+        return castersByMergedArea;
+    }
+
+    private static int root(int[] parents, int index) {
+        while (parents[index] != index)
+            index = parents[index] = parents[parents[index]];
+        return index;
     }
 
     /** One layer per decoration depth, drawing that depth's labels above the boxes carrying them, so
@@ -3677,38 +3766,17 @@ public final class HintMeshRenderer {
         }
     }
 
-    /** A shadow blurs its layer whole, and one layer over every label is mostly gaps. */
-    private void addLabelLayers(QWidget container, List<HintLabel> labels,
-                                QtHintFontStyle style,
-                                boolean hasSelectedKeys,
-                                int containerWidth,
-                                int containerHeight,
-                                double screenScale) {
-        List<List<HintLabel>> labelLayers = layerPerLabel(labels, style) ?
-                labels.stream().map(List::of).toList() : List.of(labels);
-        for (List<HintLabel> layerLabels : labelLayers) {
-            HintPaintLayer layer = new HintPaintLayer(container, List.of(), layerLabels);
-            layer.setGeometry(0, 0, containerWidth, containerHeight);
-            if (style != null)
-                applyLabelShadow(layer, layerLabels, style, hasSelectedKeys,
-                        containerWidth, containerHeight, screenScale);
-        }
-    }
-
-    /** Whether a layer each costs less than one layer over them all. */
-    private static boolean layerPerLabel(List<HintLabel> labels, QtHintFontStyle style) {
-        if (style == null || labels.isEmpty())
-            return false;
-        if (!style.perKeyShadow() && style.defaultStyle().shadowColor().alpha() == 0)
-            return false;
-        int padding = shadowPadding(style.defaultStyle());
-        List<Rectangle> ink = labelInk(labels);
-        long layersCost = (ink.size() - 1) * LAYER_COST_PIXELS;
-        for (Rectangle rectangle : ink)
-            layersCost += (long) (rectangle.width() + 2 * padding) *
-                          (rectangle.height() + 2 * padding);
-        Rectangle union = Rectangle.union(ink);
-        return layersCost < (long) union.width() * union.height();
+    private void addLabelLayer(QWidget container, List<HintLabel> labels,
+                               QtHintFontStyle style,
+                               boolean hasSelectedKeys,
+                               int containerWidth,
+                               int containerHeight,
+                               double screenScale) {
+        HintPaintLayer layer = new HintPaintLayer(container, List.of(), labels);
+        layer.setGeometry(0, 0, containerWidth, containerHeight);
+        if (style != null)
+            applyLabelShadow(layer, labels, style, hasSelectedKeys, containerWidth,
+                    containerHeight, screenScale);
     }
 
     /** How far the shadow of a glyph reaches past it: the blur, plus how far it is offset. */
@@ -3741,7 +3809,8 @@ public final class HintMeshRenderer {
                                          double screenScale) {
         // Shadowing a layer that draws nothing still costs a blur of the whole layer, which for a
         // screen-sized hint mesh is tens of milliseconds.
-        if (labels.isEmpty() || style.invisible(hasSelectedKeys))
+        if (labels.isEmpty() || labels.getFirst().keyTexts.isEmpty() ||
+            style.invisible(hasSelectedKeys))
             return;
         if (style.perKeyShadow()) {
             preRenderPerGroupShadow(layer, labels, containerWidth, containerHeight, screenScale);
@@ -3750,38 +3819,37 @@ public final class HintMeshRenderer {
         QtFontStyle shadowStyle = style.defaultStyle();
         if (shadowStyle.shadowColor().alpha() == 0)
             return;
-        if (!layer.fitToInk(labelInk(labels), shadowPadding(shadowStyle),
-                containerWidth, containerHeight))
-            return;
-        int left = layer.originX, top = layer.originY;
-        int width = layer.width(), height = layer.height();
-        // Render labels into a source image with forced opaque colors.
-        QImage sourceImage = new QImage(width, height,
-                QImage.Format.Format_ARGB32_Premultiplied);
-        setQImageDpiForScreen(sourceImage, screenScale);
-        QColor fillColor = new QColor(0, 0, 0, 0);
-        sourceImage.fill(fillColor);
-        fillColor.dispose();
-        QPainter sourcePainter = new QPainter(sourceImage);
-        sourcePainter.translate(-left, -top);
-        for (HintLabel label : labels) {
-            label.paintOpaque(sourcePainter);
+        for (Map.Entry<Rectangle, List<HintLabel>> entry : byShadowArea(labels, HintLabel::ink,
+                shadowPadding(shadowStyle),
+                new Rectangle(0, 0, containerWidth, containerHeight)).entrySet()) {
+            Rectangle area = entry.getKey();
+            // Render labels into a source image with forced opaque colors.
+            QImage sourceImage = new QImage(area.width(), area.height(),
+                    QImage.Format.Format_ARGB32_Premultiplied);
+            setQImageDpiForScreen(sourceImage, screenScale);
+            QColor fillColor = new QColor(0, 0, 0, 0);
+            sourceImage.fill(fillColor);
+            fillColor.dispose();
+            QPainter sourcePainter = new QPainter(sourceImage);
+            sourcePainter.translate(-area.x(), -area.y());
+            for (HintLabel label : entry.getValue())
+                label.paintOpaque(sourcePainter);
+            sourcePainter.end();
+            sourcePainter.dispose();
+            QImage shadowImage =
+                    style.hasTransparency() || shadowStyle.shadowStackCount() != 1 ?
+                            StackedShadowEffect.renderShadowOnly(sourceImage,
+                                    shadowStyle.shadowColor(), shadowStyle.shadowBlurRadius(),
+                                    shadowStyle.shadowHorizontalOffset(),
+                                    shadowStyle.shadowVerticalOffset(), true) :
+                            StackedShadowEffect.renderShadow(sourceImage,
+                                    shadowStyle.shadowColor(), shadowStyle.shadowBlurRadius(),
+                                    shadowStyle.shadowHorizontalOffset(),
+                                    shadowStyle.shadowVerticalOffset());
+            layer.addShadowPixmap(QPixmap.fromImage(shadowImage), area.x(), area.y(),
+                    shadowStyle.shadowStackCount());
+            shadowImage.dispose();
         }
-        sourcePainter.end();
-        sourcePainter.dispose();
-        QImage shadowImage =
-                style.hasTransparency() || shadowStyle.shadowStackCount() != 1 ?
-                        StackedShadowEffect.renderShadowOnly(sourceImage,
-                                shadowStyle.shadowColor(), shadowStyle.shadowBlurRadius(),
-                                shadowStyle.shadowHorizontalOffset(),
-                                shadowStyle.shadowVerticalOffset(), true) :
-                        StackedShadowEffect.renderShadow(sourceImage, shadowStyle.shadowColor(),
-                                shadowStyle.shadowBlurRadius(),
-                                shadowStyle.shadowHorizontalOffset(),
-                                shadowStyle.shadowVerticalOffset());
-        QPixmap shadowPixmap = QPixmap.fromImage(shadowImage);
-        layer.addShadowPixmap(shadowPixmap, left, top, shadowStyle.shadowStackCount());
-        shadowImage.dispose();
     }
 
 
