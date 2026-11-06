@@ -318,6 +318,24 @@ class GridCommandTest {
     }
 
     @Test
+    void aCellCommandActsOnTheDrawnCellsOfAnAreaWithAnInset() throws IOException {
+        start("""
+                grid-mode.overlay.area-width-percent=0.5
+                grid-mode.overlay.area-height-percent=0.5
+                grid-mode.overlay.area-top-inset=100
+                grid-mode.overlay.area-center=mouse
+                grid-mode.overlay.grid-max-row-count=1
+                grid-mode.overlay.grid-max-column-count=1
+                """);
+        hintManager.mouseMoved(700, 500);
+        switchMode("grid-mode");
+        hintManager.moveToCellCenter();
+        hintManager.mouseMoved(800, 600);
+        hintManager.moveToCellCenter();
+        assertEquals(List.of(700, 550, 800, 650), mousePositions);
+    }
+
+    @Test
     void aModeWithTheSameGridKeepsTheAreaOverride() throws IOException {
         start("""
                 grid-mode.to.other-grid-mode=+o

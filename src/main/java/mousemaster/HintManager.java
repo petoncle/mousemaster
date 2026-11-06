@@ -30,6 +30,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final Vision vision;
     private ModeController modeController;
     private HintMesh hintMesh;
+    private Point drawnAreaCenterPoint;
     private ScreenFilter screenFilter;
     private final Map<HintMeshKey, HintMeshState> hintMeshStates = new HashMap<>();
     private boolean hintJustSelected = false;
@@ -482,17 +483,20 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (point == null)
             return;
         moveTo(point);
-        if (currentMode.hintMesh().type().type() == HintMeshTypeType.GRID &&
-            currentMode.hintMesh().type().area().centerOrDefault().isMouseOrTarget())
-            modeChanged(currentMode);
+        centerGridOnAreaCenterPoint();
     }
 
     private void moveTargetToNearestCell(Point point) {
         if (point == null)
             return;
         moveTargetTo(point);
+        centerGridOnAreaCenterPoint();
+    }
+
+    private void centerGridOnAreaCenterPoint() {
+        AreaCenter center = currentMode.hintMesh().type().area().centerOrDefault();
         if (currentMode.hintMesh().type().type() == HintMeshTypeType.GRID &&
-            currentMode.hintMesh().type().area().centerOrDefault().isMouseOrTarget())
+            center.isMouseOrTarget() && !areaCenterPoint(center).equals(drawnAreaCenterPoint))
             modeChanged(currentMode);
     }
 
@@ -560,7 +564,7 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     /**
      * The cells of the overlay, in desktop coordinates. A grid centered on the mouse or the target
-     * is where that point is now, not where it was when the grid was built.
+     * moves as far as that point moved since the grid was built.
      */
     private List<Rectangle> cells() {
         if (hintMesh == null)
@@ -576,9 +580,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             !center.isMouseOrTarget())
             return cells;
         Point centerPoint = areaCenterPoint(center);
-        Point cellsCenter = Rectangle.union(cells).center();
-        int deltaX = (int) centerPoint.x() - (int) cellsCenter.x();
-        int deltaY = (int) centerPoint.y() - (int) cellsCenter.y();
+        int deltaX = (int) Math.round(centerPoint.x() - drawnAreaCenterPoint.x());
+        int deltaY = (int) Math.round(centerPoint.y() - drawnAreaCenterPoint.y());
         return cells.stream()
                     .map(cell -> new Rectangle(cell.x() + deltaX, cell.y() + deltaY,
                             cell.width(), cell.height()))
@@ -799,6 +802,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                         newMode.zoom()),
                 new HintMeshState(newHintMesh, lastSelectedHintPoint, lastSelectedHintCell));
         hintMesh = newHintMesh;
+        drawnAreaCenterPoint =
+                areaCenterPoint(hintMeshConfiguration.type().area().centerOrDefault());
         if (!hintMeshUnchanged) {
             if (hintMesh.hints().isEmpty())
                 overlay.hideHintMesh();
