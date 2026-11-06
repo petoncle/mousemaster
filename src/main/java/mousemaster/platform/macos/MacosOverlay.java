@@ -70,6 +70,7 @@ public class MacosOverlay implements Overlay {
 
     @Override
     public void update(double delta) {
+        hintMeshRenderer.update(delta);
         hintMeshRenderer.runPendingWork();
         updateZoomWindow();
     }

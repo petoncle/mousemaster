@@ -1,8 +1,7 @@
 package mousemaster;
 
 public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, HintGridAreaCenter center,
-                                boolean animationEnabled, Easing animationEasing,
-                                double animationDurationMillis) {
+                                Transition transition) {
 
     /** The effective zoom, given the last selected hint cell (null if none). PERCENT uses percent;
      *  LAST_SELECTED_HINT_CELL fits the cell scaled by width/heightPercent into the screen. */
@@ -19,9 +18,7 @@ public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, HintGridA
         private Double areaWidthPercent;
         private Double areaHeightPercent;
         private HintGridAreaCenter center;
-        private Boolean animationEnabled;
-        private Easing animationEasing;
-        private Double animationDurationMillis;
+        private final Transition.TransitionBuilder transition = new Transition.TransitionBuilder();
 
         public ZoomConfigurationBuilder percent(double percent) {
             this.percent = percent;
@@ -48,21 +45,6 @@ public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, HintGridA
             return this;
         }
 
-        public ZoomConfigurationBuilder animationEnabled(boolean animationEnabled) {
-            this.animationEnabled = animationEnabled;
-            return this;
-        }
-
-        public ZoomConfigurationBuilder animationEasing(Easing animationEasing) {
-            this.animationEasing = animationEasing;
-            return this;
-        }
-
-        public ZoomConfigurationBuilder animationDurationMillis(double animationDurationMillis) {
-            this.animationDurationMillis = animationDurationMillis;
-            return this;
-        }
-
         public Double percent() {
             return percent;
         }
@@ -83,22 +65,14 @@ public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, HintGridA
             return center;
         }
 
-        public Boolean animationEnabled() {
-            return animationEnabled;
-        }
-
-        public Easing animationEasing() {
-            return animationEasing;
-        }
-
-        public Double animationDurationMillis() {
-            return animationDurationMillis;
+        public Transition.TransitionBuilder transition() {
+            return transition;
         }
 
         public ZoomConfiguration build() {
             return new ZoomConfiguration(percent,
                     new ZoomAreaSize(areaSizeSource, areaWidthPercent, areaHeightPercent),
-                    center, animationEnabled, animationEasing, animationDurationMillis);
+                    center, transition.build());
         }
 
     }

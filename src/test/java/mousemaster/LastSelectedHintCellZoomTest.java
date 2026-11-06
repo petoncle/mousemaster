@@ -104,7 +104,7 @@ class LastSelectedHintCellZoomTest {
 
     @Test
     void aZoomConfigurationThatDoesNotZoomKeepsTheHintMatchAnimation() throws IOException {
-        start("screen-hint-mode.zoom.animation-enabled=true");
+        start("screen-hint-mode.zoom.transition-enabled=true");
         switchMode("screen-hint-mode");
         selectBottomRightHint();
         switchMode("idle-mode");

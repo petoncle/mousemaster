@@ -136,10 +136,11 @@ public class ConfigurationParser {
             .areaSizeSource(ZoomAreaSizeSource.PERCENT)
             .areaWidthPercent(1.0)
             .areaHeightPercent(1.0)
-            .center(HintGridAreaCenter.ACTIVE_SCREEN_CENTER)
-            .animationEnabled(false)
-            .animationEasing(new Easing.Smootherstep())
-            .animationDurationMillis(200);
+            .center(HintGridAreaCenter.ACTIVE_SCREEN_CENTER);
+        zoom.transition()
+            .enabled(false)
+            .duration(Duration.ofMillis(200))
+            .easing(new Easing.Smootherstep());
         // @formatter:off
         return Stream.of( //
                 new Property<>("stop-commands-from-previous-mode", stopCommandsFromPreviousMode),
@@ -235,6 +236,14 @@ public class ConfigurationParser {
                 .boxBorderOpacity(0.4d)
                 .boxBorderRadius(0d)
                 .boxFramed(true);
+        hintMeshStyleBuilder.transition()
+                .enabled(true)
+                .duration(Duration.ofMillis(100))
+                .easing(new Easing.Smootherstep());
+        hintMeshStyleBuilder.fade()
+                .enabled(true)
+                .duration(Duration.ofMillis(100))
+                .easing(new Easing.Smootherstep());
         hintMeshStyleBuilder.boxShadow()
                 .blurRadius(10d)
                 .color(Color.parse("#000000"))
@@ -262,10 +271,6 @@ public class ConfigurationParser {
                 .boxHeightPercent(1d)
                 .boxHorizontalPadding(0d)
                 .boxVerticalPadding(0d)
-                .transitionAnimationEnabled(true)
-                .transitionAnimationDuration(Duration.ofMillis(100))
-                .fadeAnimationEnabled(true)
-                .fadeAnimationDuration(Duration.ofMillis(100))
                 .backgroundColor(Color.parse("#000000"))
                 .backgroundOpacity(0d)
                 .backgroundBorderThickness(1d)
@@ -350,7 +355,7 @@ public class ConfigurationParser {
         properties = desugarOverlayKeys(properties);
         properties = desugarHintMeshEmpty(properties);
         properties = desugarIndicatorStates(properties);
-        properties = desugarIndicatorKeys(properties);
+        properties = desugarIndicatorAndZoomKeys(properties);
         properties = desugarMouseMovement(desugarGrid(properties));
         properties = desugarPositionHistoryAndAnimationCommands(properties);
         properties = desugarOverlaySelect(properties);
@@ -904,11 +909,10 @@ public class ConfigurationParser {
             Map.entry("line-opacity", "box-border-opacity"),
             Map.entry("background-color", "box-color"),
             Map.entry("background-opacity", "box-opacity"),
-            Map.entry("transition-animation-enabled", "transition-animation-enabled"),
-            Map.entry("transition-animation-duration-millis",
-                    "transition-animation-duration-millis"),
-            Map.entry("fade-animation-enabled", "fade-animation-enabled"),
-            Map.entry("fade-animation-duration-millis", "fade-animation-duration-millis"));
+            Map.entry("transition-animation-enabled", "transition-enabled"),
+            Map.entry("transition-animation-duration-millis", "transition-duration-millis"),
+            Map.entry("fade-animation-enabled", "fade-enabled"),
+            Map.entry("fade-animation-duration-millis", "fade-duration-millis"));
 
     private static final Map<String, String> HINT_PROPERTY_BY_SYNCHRONIZATION = Map.of(
             "mouse-follows-grid-center", "mouse-movement=mouse-follows-overlay-center",
@@ -927,15 +931,19 @@ public class ConfigurationParser {
                                             command instanceof MoveTargetToLastSelectedHint));
     }
 
-    private static final Map<String, String> OVERLAY_KEY_BY_DEPRECATED_KEY = Map.of(
-            "grid-area", "area",
-            "ui-area", "area",
-            "grid-area-width-percent", "area-width-percent",
-            "grid-area-height-percent", "area-height-percent",
-            "grid-area-center", "area-center",
-            "active-screen-grid-area-center", "area-center",
-            "cell-horizontal-padding", "box-horizontal-padding",
-            "cell-vertical-padding", "box-vertical-padding");
+    private static final Map<String, String> OVERLAY_KEY_BY_DEPRECATED_KEY = Map.ofEntries(
+            Map.entry("grid-area", "area"),
+            Map.entry("ui-area", "area"),
+            Map.entry("grid-area-width-percent", "area-width-percent"),
+            Map.entry("grid-area-height-percent", "area-height-percent"),
+            Map.entry("grid-area-center", "area-center"),
+            Map.entry("active-screen-grid-area-center", "area-center"),
+            Map.entry("cell-horizontal-padding", "box-horizontal-padding"),
+            Map.entry("cell-vertical-padding", "box-vertical-padding"),
+            Map.entry("transition-animation-enabled", "transition-enabled"),
+            Map.entry("transition-animation-duration-millis", "transition-duration-millis"),
+            Map.entry("fade-animation-enabled", "fade-enabled"),
+            Map.entry("fade-animation-duration-millis", "fade-duration-millis"));
 
     private static final Pattern hintMeshEmptyPattern =
             Pattern.compile("(?<![\\w-])ishintmeshempty(?![\\w-])");
@@ -1008,25 +1016,34 @@ public class ConfigurationParser {
     private static final Map<String, String> INDICATOR_KEY_BY_DEPRECATED_KEY =
             Map.of("follow-mouse", "follow");
 
+    private static final Map<String, String> ZOOM_KEY_BY_DEPRECATED_KEY = Map.of(
+            "animation-enabled", "transition-enabled",
+            "animation-easing", "transition-easing",
+            "animation-duration-millis", "transition-duration-millis");
+
     /**
-     * Rewrites the deprecated indicator keys: a-mode.indicator.follow-mouse=false becomes
-     * a-mode.indicator.follow=false.
+     * Rewrites the deprecated indicator and zoom keys: a-mode.indicator.follow-mouse=false
+     * becomes a-mode.indicator.follow=false, and a-mode.zoom.animation-enabled=true becomes
+     * a-mode.zoom.transition-enabled=true.
      */
-    private static List<String> desugarIndicatorKeys(List<String> properties) {
+    private static List<String> desugarIndicatorAndZoomKeys(List<String> properties) {
         List<String> desugared = new ArrayList<>(properties.size());
         for (String property : properties) {
             Matcher lineMatcher = propertyLinePattern.matcher(property);
             Matcher keyMatcher = modeKeyPattern.matcher(
                     lineMatcher.matches() ? lineMatcher.group(1).strip() : "");
-            if (!keyMatcher.matches() || keyMatcher.group(3) == null ||
-                !isIndicatorName(keyMatcher.group(3)) || keyMatcher.group(5) == null ||
-                !INDICATOR_KEY_BY_DEPRECATED_KEY.containsKey(keyMatcher.group(5)) ||
+            Map<String, String> keyByDeprecatedKey =
+                    !keyMatcher.matches() || keyMatcher.group(3) == null ? Map.of() :
+                    isIndicatorName(keyMatcher.group(3)) ? INDICATOR_KEY_BY_DEPRECATED_KEY :
+                    keyMatcher.group(3).equals("zoom") ? ZOOM_KEY_BY_DEPRECATED_KEY : Map.of();
+            if (keyByDeprecatedKey.isEmpty() || keyMatcher.group(5) == null ||
+                !keyByDeprecatedKey.containsKey(keyMatcher.group(5)) ||
                 keyMatcher.group(7) != null) {
                 desugared.add(property);
                 continue;
             }
             String propertyKey = keyMatcher.group(1) + "." + keyMatcher.group(3) + "." +
-                                 INDICATOR_KEY_BY_DEPRECATED_KEY.get(keyMatcher.group(5));
+                                 keyByDeprecatedKey.get(keyMatcher.group(5));
             logger.warn(lineMatcher.group(1).strip() + " has been deprecated: use " +
                         propertyKey + " instead");
             desugared.add(propertyKey + "=" + lineMatcher.group(2).strip());
@@ -3082,9 +3099,9 @@ public class ConfigurationParser {
             case "area-width-percent" -> ModePropertyHandler.of(prefix.append("areaSize", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> zoom.areaWidthPercent(v));
             case "area-height-percent" -> ModePropertyHandler.of(prefix.append("areaSize", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> zoom.areaHeightPercent(v));
             case "center" -> ModePropertyHandler.of(prefix.append("center"), v -> parseHintGridAreaCenter("zoom.center", v), v -> zoom.center(v));
-            case "animation-enabled" -> ModePropertyHandler.of(prefix.append("animationEnabled"), v -> Boolean.parseBoolean(v), v -> zoom.animationEnabled(v));
-            case "animation-easing" -> ModePropertyHandler.of(prefix.append("animationEasing"), v -> parseEasing(v), v -> zoom.animationEasing(v));
-            case "animation-duration-millis" -> ModePropertyHandler.of(prefix.append("animationDurationMillis"), v -> parseDouble(v, true, 0, 10000), v -> zoom.animationDurationMillis(v));
+            case "transition-enabled" -> ModePropertyHandler.of(prefix.append("transition", "enabled"), v -> Boolean.parseBoolean(v), v -> zoom.transition().enabled(v));
+            case "transition-duration-millis" -> ModePropertyHandler.of(prefix.append("transition", "duration"), v -> parseDuration(v), v -> zoom.transition().duration(v));
+            case "transition-easing" -> ModePropertyHandler.of(prefix.append("transition", "easing"), v -> parseEasing(v), v -> zoom.transition().easing(v));
             // @formatter:on
             default -> null;
         };
@@ -3446,11 +3463,13 @@ public class ConfigurationParser {
             case "box-horizontal-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxHorizontalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).boxHorizontalPadding(v));
             case "box-vertical-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxVerticalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).boxVerticalPadding(v));
             case "label-override" -> ModePropertyHandler.of(prefix.append("styleByFilter", "labelOverride"), v -> parseKeyList(v, keyAliases, keyResolver), v -> hintMeshBuilder.style(screenFilter).labelOverride(v));
-            // Style: animation & background
-            case "transition-animation-enabled" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transitionAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(screenFilter).transitionAnimationEnabled(v));
-            case "transition-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transitionAnimationDuration"), v -> parseDuration(v), v -> hintMeshBuilder.style(screenFilter).transitionAnimationDuration(v));
-            case "fade-animation-enabled" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fadeAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(screenFilter).fadeAnimationEnabled(v));
-            case "fade-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fadeAnimationDuration"), v -> parseDuration(v), v -> hintMeshBuilder.style(screenFilter).fadeAnimationDuration(v));
+            // Style: transitions & background
+            case "transition-enabled" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transition", "enabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(screenFilter).transition().enabled(v));
+            case "transition-duration-millis" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transition", "duration"), v -> parseDuration(v), v -> hintMeshBuilder.style(screenFilter).transition().duration(v));
+            case "transition-easing" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transition", "easing"), v -> parseEasing(v), v -> hintMeshBuilder.style(screenFilter).transition().easing(v));
+            case "fade-enabled" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fade", "enabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(screenFilter).fade().enabled(v));
+            case "fade-duration-millis" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fade", "duration"), v -> parseDuration(v), v -> hintMeshBuilder.style(screenFilter).fade().duration(v));
+            case "fade-easing" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fade", "easing"), v -> parseEasing(v), v -> hintMeshBuilder.style(screenFilter).fade().easing(v));
             case "background-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundColor"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).backgroundColor(v));
             case "background-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).backgroundOpacity(v));
             case "background-border-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundBorderThickness"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(screenFilter).backgroundBorderThickness(v));
@@ -4168,12 +4187,7 @@ public class ConfigurationParser {
                         builder.areaHeightPercent(parent.areaHeightPercent());
                     if (builder.center() == null)
                         builder.center(parent.center());
-                    if (builder.animationEnabled() == null)
-                        builder.animationEnabled(parent.animationEnabled());
-                    if (builder.animationEasing() == null)
-                        builder.animationEasing(parent.animationEasing());
-                    if (builder.animationDurationMillis() == null)
-                        builder.animationDurationMillis(parent.animationDurationMillis());
+                    builder.transition().extend(parent.transition());
                 }
             };
         }
@@ -4490,26 +4504,8 @@ public class ConfigurationParser {
                         if (!childDoesNotNeedParentProperty(b -> b.decoration(i).boxVerticalPadding(), childStyleByFilter, filter))
                             cd.boxVerticalPadding(pd.boxVerticalPadding());
                     }
-                    if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::transitionAnimationEnabled,
-                            childStyleByFilter, filter))
-                        childStyle.transitionAnimationEnabled(
-                                parentStyle.transitionAnimationEnabled());
-                    if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::transitionAnimationDuration,
-                            childStyleByFilter, filter))
-                        childStyle.transitionAnimationDuration(
-                                parentStyle.transitionAnimationDuration());
-                    if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::fadeAnimationEnabled,
-                            childStyleByFilter, filter))
-                        childStyle.fadeAnimationEnabled(
-                                parentStyle.fadeAnimationEnabled());
-                    if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::fadeAnimationDuration,
-                            childStyleByFilter, filter))
-                        childStyle.fadeAnimationDuration(
-                                parentStyle.fadeAnimationDuration());
+                    childStyle.transition().extend(parentStyle.transition());
+                    childStyle.fade().extend(parentStyle.fade());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::backgroundColor,
                             childStyleByFilter, filter))

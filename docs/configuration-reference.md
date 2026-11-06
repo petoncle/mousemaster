@@ -14,6 +14,7 @@
 - [Indicator properties](#indicator-properties)
 - [Cursor properties](#cursor-properties)
 - [Zoom properties](#zoom-properties)
+- [Transitions](#transitions)
 - [Mouse move commands](#mouse-move-commands)
 - [Mouse button click commands](#mouse-button-click-commands)
 - [Wheel commands](#wheel-scrolling-commands)
@@ -663,7 +664,7 @@ _indicator-mode.indicator.stroke-opacity=1 | _{clickburstanimation} -> 0% 1; 250
   text, `follow`...) switches at its keyframe.
 - The frame at 100% is drawn before the animation ends.
 - Keyframes need a branch that names exactly one animation, and only indicator and `hide-cursor`
-  properties take them.
+  properties take them. The overlay and the zoom change with [transitions](#transitions).
 
 ### Cursor properties
 
@@ -689,16 +690,37 @@ hint2-2-mode.zoom.center=last-selected-hint
   `zoom.area-width-percent` / `zoom.area-height-percent` (default `1.0`), or `last-selected-hint-cell`.
 - On macOS, zooming needs the Screen Recording permission to capture what it magnifies.
 
-Optional animation can be enabled to smoothly transition in and out of zoom:
+A [transition](#transitions) moves the zoom from what it shows to the new zoom:
 ```properties
-zoom-mode.zoom.animation-enabled=true
-zoom-mode.zoom.animation-easing=smootherstep
-zoom-mode.zoom.animation-duration-millis=300
+zoom-mode.zoom.transition-enabled=true
+zoom-mode.zoom.transition-easing=smootherstep
+zoom-mode.zoom.transition-duration-millis=300
 ```
 
-- `zoom.animation-enabled` defaults to `false`.
-- `zoom.animation-easing` can be `smoothstep`, `smootherstep`, `logarithmic`, `exponential`, or a number (the polynomial exponent, `1` = linear). Defaults to `smootherstep`.
-- `zoom.animation-duration-millis` is the duration of a full zoom transition (from 1x to the configured percent). Partial transitions (e.g. interrupted animations) are proportionally shorter. Defaults to `200`.
+- `zoom.transition-enabled` defaults to `false`.
+- `zoom.transition-duration-millis` is the time each change of the zoom takes (default `200`).
+
+### Transitions
+
+An animation changes a value that you write, from a time that a combo sets. The overlay and the
+zoom also change to states that you do not write: the hints that stay after a key, the result of a
+UI scan, a zoom that fits a cell, a zoom center that follows the mouse. A transition moves what is
+shown to such a state. You set its duration and its easing, not its values:
+
+- `overlay.transition-*`: the hints change while the overlay shows.
+- `overlay.fade-*`: the overlay shows or hides.
+- `zoom.transition-*`: the zoom changes.
+
+Each one has `-enabled`, `-duration-millis` and `-easing`. The easing takes the values of a
+keyframe easing: a polynomial exponent (`1` is linear), `smoothstep`, `smootherstep` (the
+default), `logarithmic`, `exponential`, `exponential-out-<n>` or `step`.
+
+- A transition uses the settings of the state it goes to. A transition to nothing (the overlay
+  hides, or the zoom goes back to 100%) uses the settings of the state it leaves.
+- A transition that interrupts a running one does not stop it. The running one finishes its own
+  part of the change, and the new one adds the rest, from the old target to the new one. What is
+  shown keeps its place, and with an easing that starts at rest (such as `smootherstep`), it also
+  keeps its speed.
 
 ### Mouse move commands
 
@@ -1219,13 +1241,15 @@ hint-mode.overlay.prefix-box-border-opacity=0.8
 hint-mode.overlay.prefix-box-framed=true
 hint-mode.overlay.prefix-in-background=true
 
-# Animation
-hint-mode.overlay.transition-animation-enabled=true
-hint-mode.overlay.transition-animation-duration-millis=100
+# Transition (when the hints change)
+hint-mode.overlay.transition-enabled=true
+hint-mode.overlay.transition-duration-millis=100
+hint-mode.overlay.transition-easing=smootherstep
 
-# Fade animation (when hints appear or disappear)
-hint-mode.overlay.fade-animation-enabled=true
-hint-mode.overlay.fade-animation-duration-millis=100
+# Fade (when the hints appear or disappear)
+hint-mode.overlay.fade-enabled=true
+hint-mode.overlay.fade-duration-millis=100
+hint-mode.overlay.fade-easing=smootherstep
 
 # Background, mostly useful for UI hints and position history hints
 hint-mode.overlay.background-color=#000000
@@ -1305,9 +1329,9 @@ hint-mode.overlay.background-opacity=0
 - Font appearance: controls how hint labels appear
     - `font-spacing-percent`: Controls character spacing (0=touching, 1=evenly distributed, 0.5=minimal spacing with alignment)
 
-- Animation:
-    - `transition-animation-enabled` / `transition-animation-duration-millis`: animates hint boxes sliding to their new positions when the hint set changes (e.g. after typing a key in a multi-level hint mode). Default enabled, 100ms.
-    - `fade-animation-enabled` / `fade-animation-duration-millis`: fades hints in when they first appear and out when they disappear. Default enabled, 100ms. Suppressed when the surrounding mode change also changes zoom.
+- [Transitions](#transitions):
+    - `transition-enabled` / `transition-duration-millis` / `transition-easing`: moves the hint boxes to their new places when the hints change, for example after a key in a multi-level hint mode. Default enabled, 100ms.
+    - `fade-enabled` / `fade-duration-millis` / `fade-easing`: fades the hints in when they appear and out when they disappear. Default enabled, 100ms. A mode change that also changes the zoom does not fade.
 
 ### Hint prefix
 

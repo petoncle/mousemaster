@@ -1,31 +1,16 @@
 package mousemaster.qt;
 
-import io.qt.core.QAbstractAnimation;
-import io.qt.core.QEasingCurve;
-import io.qt.core.QMetaObject;
-import io.qt.core.QVariantAnimation;
+import mousemaster.Transition;
+import mousemaster.TransitionedValue;
 
-import java.time.Duration;
 import java.util.function.Consumer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class FadeAnimator {
 
-    private static final Logger logger = LoggerFactory.getLogger(FadeAnimator.class);
-
     private final Consumer<Double> applyOpacity;
     private final Runnable onFadeOutComplete;
-
-    private QVariantAnimation animation;
-    private long startNanos;
-    private boolean firstFrameSeen;
+    private final TransitionedValue opacity = new TransitionedValue(0);
     private boolean fadingOut;
-    private double currentOpacity = 1.0; // Tracked so an interrupted fade continues from here.
-
-    // Store callback instances as fields to prevent GC.
-    private ValueChanged valueChangedCallback;
-    private Finished finishedCallback;
 
     public FadeAnimator(Consumer<Double> applyOpacity, Runnable onFadeOutComplete) {
         this.applyOpacity = applyOpacity;
@@ -36,105 +21,48 @@ public class FadeAnimator {
         return fadingOut;
     }
 
-    public void startFadeIn(Duration duration) {
-        disposeAnimation();
-        currentOpacity = 0.0;
-        animation = createAnimation(0.0, 1.0, duration);
-        startAnimation();
+    public boolean transitioning() {
+        return opacity.transitioning();
     }
 
-    /**
-     * Starts the fade-out if it is not already running.
-     * Returns true if the caller should defer the hide.
-     */
-    public boolean shouldDeferHide(Duration duration) {
+    public void fadeIn(Transition fade) {
+        fadingOut = false;
+        fadeTo(1, fade);
+    }
+
+    public void fadeOut(Transition fade) {
         if (fadingOut)
-            return true;
-        // Cancel any in-progress fade-in and fade out from wherever it got to.
-        disposeAnimation();
+            return;
         fadingOut = true;
-        animation = createAnimation(currentOpacity, 0.0, duration);
-        startAnimation();
-        return true;
+        fadeTo(0, fade);
     }
 
     public void cancel() {
-        disposeAnimation();
+        opacity.settle();
         fadingOut = false;
     }
 
-    public void cancelAndResetOpacity() {
-        cancel();
-        currentOpacity = 1.0;
-        applyOpacity.accept(1.0);
-    }
-
-    private QVariantAnimation createAnimation(double from, double to, Duration duration) {
-        QVariantAnimation anim = new QVariantAnimation();
-        anim.setStartValue(from);
-        anim.setEndValue(to);
-        anim.setDuration((int) Math.round(duration.toMillis() * Math.abs(to - from)));
-        anim.setEasingCurve(QEasingCurve.Type.InOutQuad);
-        valueChangedCallback = new ValueChanged();
-        anim.valueChanged.connect(valueChangedCallback);
-        finishedCallback = new Finished(to);
-        anim.finished.connect(finishedCallback);
-        return anim;
-    }
-
-    private void startAnimation() {
-        startNanos = System.nanoTime();
-        firstFrameSeen = false;
-        animation.start();
-    }
-
-    /** Qt withholds a newly started animation's first value for about two timer intervals. */
-    public void advanceToFirstFrame() {
-        if (animation == null || animation.getCurrentTime() != 0 ||
-            animation.getState() != QAbstractAnimation.State.Running)
+    public void update(double delta) {
+        if (!opacity.transitioning())
             return;
-        animation.setCurrentTime((int) ((System.nanoTime() - startNanos) / 1_000_000));
+        opacity.update(delta);
+        applyOpacity.accept(opacity.value());
+        if (!opacity.transitioning())
+            finish();
     }
 
-    private void disposeAnimation() {
-        if (animation != null) {
-            animation.stop();
-            QtDisposal.disposeLater(animation);
-            animation = null;
-        }
+    private void fadeTo(double endOpacity, Transition fade) {
+        opacity.transitionTo(fade, endOpacity);
+        applyOpacity.accept(opacity.value());
+        if (!opacity.transitioning())
+            finish();
     }
 
-    private class ValueChanged implements QMetaObject.Slot1<Object> {
-
-        @Override
-        public void invoke(Object arg) {
-            if (!firstFrameSeen) {
-                firstFrameSeen = true;
-                logger.trace("Fade first frame after " +
-                             (System.nanoTime() - startNanos) / 1_000_000 + "ms of " +
-                             animation.getDuration() + "ms");
-            }
-            currentOpacity = (Double) arg;
-            applyOpacity.accept(currentOpacity);
-        }
-    }
-
-    private class Finished implements QMetaObject.Slot0 {
-
-        private final double to;
-
-        Finished(double to) {
-            this.to = to;
-        }
-
-        @Override
-        public void invoke() {
-            currentOpacity = to;
-            if (to == 0.0)
-                onFadeOutComplete.run();
-            else
-                applyOpacity.accept(1.0);
-        }
+    private void finish() {
+        if (fadingOut)
+            onFadeOutComplete.run();
+        else
+            applyOpacity.accept(1.0);
     }
 
 }

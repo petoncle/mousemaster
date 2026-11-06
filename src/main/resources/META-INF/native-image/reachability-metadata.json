@@ -6589,10 +6589,8 @@
             "double",
             "double",
             "java.util.List",
-            "boolean",
-            "java.time.Duration",
-            "boolean",
-            "java.time.Duration",
+            "mousemaster.Transition",
+            "mousemaster.Transition",
             "mousemaster.Color",
             "double",
             "double",
@@ -6763,14 +6761,6 @@
           "parameterTypes": []
         },
         {
-          "name": "fadeAnimationDuration",
-          "parameterTypes": []
-        },
-        {
-          "name": "fadeAnimationEnabled",
-          "parameterTypes": []
-        },
-        {
           "name": "fontStyle",
           "parameterTypes": []
         },
@@ -6808,14 +6798,6 @@
         },
         {
           "name": "prefixInBackground",
-          "parameterTypes": []
-        },
-        {
-          "name": "transitionAnimationDuration",
-          "parameterTypes": []
-        },
-        {
-          "name": "transitionAnimationEnabled",
           "parameterTypes": []
         },
         {
@@ -6884,6 +6866,14 @@
         },
         {
           "name": "savedUiElementBoxBorderOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "transition",
+          "parameterTypes": []
+        },
+        {
+          "name": "fade",
           "parameterTypes": []
         }
       ]
@@ -7449,6 +7439,31 @@
       ]
     },
     {
+      "type": "mousemaster.Transition",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean",
+            "java.time.Duration",
+            "mousemaster.Easing"
+          ]
+        },
+        {
+          "name": "duration",
+          "parameterTypes": []
+        },
+        {
+          "name": "easing",
+          "parameterTypes": []
+        },
+        {
+          "name": "enabled",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
       "type": "mousemaster.VelocityConfiguration",
       "methods": [
         {
@@ -7532,9 +7547,7 @@
             "double",
             "mousemaster.ZoomAreaSize",
             "mousemaster.HintGridAreaCenter",
-            "boolean",
-            "mousemaster.Easing",
-            "double"
+            "mousemaster.Transition"
           ]
         },
         {
@@ -7548,18 +7561,6 @@
           ]
         },
         {
-          "name": "animationDurationMillis",
-          "parameterTypes": []
-        },
-        {
-          "name": "animationEasing",
-          "parameterTypes": []
-        },
-        {
-          "name": "animationEnabled",
-          "parameterTypes": []
-        },
-        {
           "name": "areaSize",
           "parameterTypes": []
         },
@@ -7569,6 +7570,10 @@
         },
         {
           "name": "percent",
+          "parameterTypes": []
+        },
+        {
+          "name": "transition",
           "parameterTypes": []
         }
       ]

@@ -11,15 +11,11 @@ public class ZoomManager implements ModeListener {
 
     private boolean animating;
     private boolean endIsNoZoom;
-    private double animationDuration;
-    private double beginPercent;
-    private double endPercent;
-    private double currentPercent = 1.0;
-    private Point beginCenterPoint;
-    private Point currentCenterPoint;
     private HintGridAreaCenter endCenter;
-    private Easing animationEasing;
-    private double animationTotalDuration;
+    private final TransitionedValue percent = new TransitionedValue(1);
+    private final TransitionedValue centerX = new TransitionedValue(0);
+    private final TransitionedValue centerY = new TransitionedValue(0);
+    private boolean zoomShown;
     /** Hidden while the image moves, shown again when it settles. */
     private boolean hintMeshHidden;
 
@@ -54,64 +50,46 @@ public class ZoomManager implements ModeListener {
                 hintManager.lastSelectedHintCell(), targetScreen);
         endIsNoZoom = targetPercent == 1
                 && newMode.zoom().center() == HintGridAreaCenter.ACTIVE_SCREEN_CENTER;
-        beginPercent = currentPercent;
-        endPercent = endIsNoZoom ? 1.0 : targetPercent;
-        beginCenterPoint = currentCenterPoint != null
-                ? currentCenterPoint
-                : screenManager.activeScreen().rectangle().center();
-        boolean zoomChanges = beginPercent != endPercent || !beginCenterPoint.equals(targetCenter);
-        if (zoomChanges)
+        double endPercent = endIsNoZoom ? 1.0 : targetPercent;
+        endCenter = endIsNoZoom
+                ? HintGridAreaCenter.ACTIVE_SCREEN_CENTER
+                : newMode.zoom().center();
+        Point endCenterPoint = hintManager.areaCenter(endCenter);
+        if (!zoomShown) {
+            Point screenCenter = screenManager.activeScreen().rectangle().center();
+            percent.jumpTo(1);
+            centerX.jumpTo(screenCenter.x());
+            centerY.jumpTo(screenCenter.y());
+        }
+        if (percent.value() != endPercent || centerX.value() != endCenterPoint.x() ||
+            centerY.value() != endCenterPoint.y()) {
             overlay.stopHintMatchAnimation();
-        // When transitioning to no-zoom, use previous mode's animation configuration.
-        ZoomConfiguration animationConfig =
-                (endIsNoZoom && previousMode != null) ? previousMode.zoom() : newMode.zoom();
-        if (!animationConfig.animationEnabled()) {
-            // Apply immediately, no animation.
-            currentPercent = endPercent;
-            if (endIsNoZoom) {
-                currentCenterPoint = null;
-                overlay.setZoom(null);
-            }
-            else {
-                Point centerPoint = hintManager.areaCenter(newMode.zoom().center());
-                currentCenterPoint = centerPoint;
-                Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
-                        centerPoint.y());
-                overlay.setZoom(new Zoom(endPercent,
-                        centerPoint, screen.rectangle()));
-            }
+            // When transitioning to no-zoom, use previous mode's transition.
+            Transition transition = (endIsNoZoom && previousMode != null ? previousMode :
+                    newMode).zoom().transition();
+            percent.transitionTo(transition, endPercent);
+            centerX.transitionTo(transition, endCenterPoint.x());
+            centerY.transitionTo(transition, endCenterPoint.y());
         }
         else {
-            endCenter = endIsNoZoom
-                    ? HintGridAreaCenter.ACTIVE_SCREEN_CENTER
-                    : newMode.zoom().center();
-            if (!zoomChanges) {
-                // Zoom configurations differing only in their animation settings, or a
-                // zoom released before a single frame of it was drawn.
-                currentPercent = endPercent;
-                settle(beginCenterPoint);
-                return;
-            }
-            animating = true;
-            animationDuration = 0;
-            animationEasing = animationConfig.animationEasing();
-            // Scale duration proportionally to the actual zoom change.
-            // E.g. if the configured duration covers 1x→3x but we only need
-            // 1.2x→1x (interrupted at 10%), use 10% of the configured duration.
-            double fullRange = Math.abs(animationConfig.percent() - 1.0);
-            double actualRange = Math.abs(beginPercent - endPercent);
-            double durationScale = fullRange > 0 ? Math.min(1.0, actualRange / fullRange) : 1.0;
-            animationTotalDuration = animationConfig.animationDurationMillis() / 1000.0
-                    * durationScale;
-            HintMesh hintMesh = hintManager.hintMesh();
-            hintMeshHidden = newMode.hintMesh().enabled() && hintMesh != null &&
-                             hintMesh.visible();
-            if (hintMeshHidden)
-                overlay.hideHintMesh();
-            Screen screen = screenManager.nearestScreenContaining(
-                    beginCenterPoint.x(), beginCenterPoint.y());
-            overlay.setZoom(new Zoom(beginPercent, beginCenterPoint, screen.rectangle()));
+            // Zoom configurations differing only in their transition settings, or a
+            // zoom released before a single frame of it was drawn.
+            percent.jumpTo(endPercent);
+            centerX.jumpTo(endCenterPoint.x());
+            centerY.jumpTo(endCenterPoint.y());
         }
+        if (!transitioning()) {
+            settle();
+            return;
+        }
+        animating = true;
+        zoomShown = true;
+        HintMesh hintMesh = hintManager.hintMesh();
+        hintMeshHidden = newMode.hintMesh().enabled() && hintMesh != null &&
+                         hintMesh.visible();
+        if (hintMeshHidden)
+            overlay.hideHintMesh();
+        overlay.setZoom(zoom());
     }
 
     public void update(double delta) {
@@ -120,41 +98,37 @@ public class ZoomManager implements ModeListener {
             if (!center.isMouseOrTarget())
                 return;
             Point centerPoint = hintManager.areaCenter(center);
-            if (centerPoint.equals(currentCenterPoint))
+            if (centerX.value() == centerPoint.x() && centerY.value() == centerPoint.y())
                 return;
-            currentCenterPoint = centerPoint;
             Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
                     centerPoint.y());
-            overlay.setZoom(new Zoom(currentMode.zoom().percent(
-                    hintManager.lastSelectedHintCell(), screen.rectangle()),
-                    centerPoint, screen.rectangle()));
+            percent.jumpTo(currentMode.zoom().percent(hintManager.lastSelectedHintCell(),
+                    screen.rectangle()));
+            centerX.jumpTo(centerPoint.x());
+            centerY.jumpTo(centerPoint.y());
+            overlay.setZoom(zoom());
             return;
         }
-        animationDuration += delta;
-        double t = Math.min(1.0, animationDuration / animationTotalDuration);
-        double easedT = animationEasing.apply(t);
-        currentPercent = beginPercent + (endPercent - beginPercent) * easedT;
+        percent.update(delta);
+        centerX.update(delta);
+        centerY.update(delta);
         Point endCenterPoint = hintManager.areaCenter(endCenter);
-        int centerX = (int) Math.round(
-                beginCenterPoint.x() + (endCenterPoint.x() - beginCenterPoint.x()) * easedT);
-        int centerY = (int) Math.round(
-                beginCenterPoint.y() + (endCenterPoint.y() - beginCenterPoint.y()) * easedT);
-        Point centerPoint = new Point(centerX, centerY);
-        currentCenterPoint = centerPoint;
-        Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
-                centerPoint.y());
-        Zoom currentZoom = new Zoom(currentPercent, centerPoint, screen.rectangle());
-        overlay.setZoom(currentZoom);
-        if (t >= 1.0)
-            settle(centerPoint);
+        centerX.follow(endCenterPoint.x());
+        centerY.follow(endCenterPoint.y());
+        overlay.setZoom(zoom());
+        if (!transitioning())
+            settle();
+    }
+
+    private boolean transitioning() {
+        return percent.transitioning() || centerX.transitioning() || centerY.transitioning();
     }
 
     /** The image has arrived, so the mesh hidden for the move can come back over it. */
-    private void settle(Point centerPoint) {
+    private void settle() {
         animating = false;
-        Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
-                centerPoint.y());
-        Zoom zoom = new Zoom(currentPercent, centerPoint, screen.rectangle());
+        zoomShown = !endIsNoZoom;
+        Zoom zoom = zoom();
         overlay.setZoom(endIsNoZoom ? null : zoom);
         if (hintMeshHidden) {
             hintMeshHidden = false;
@@ -164,8 +138,13 @@ public class ZoomManager implements ModeListener {
             if (hintMesh != null)
                 overlay.restoreHintMesh(hintMesh, zoom);
         }
-        if (endIsNoZoom)
-            currentCenterPoint = null;
+    }
+
+    private Zoom zoom() {
+        Point center = new Point(Math.round(centerX.value()),
+                Math.round(centerY.value()));
+        return new Zoom(percent.value(), center,
+                screenManager.nearestScreenContaining(center.x(), center.y()).rectangle());
     }
 
     @Override

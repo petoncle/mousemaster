@@ -115,6 +115,41 @@ class OverlayTest {
     }
 
     @Test
+    void theAnimationKeysOfTheOverlayAndTheZoomAreTransitionKeys() {
+        assertEquals(
+                ConfigurationParser.parse(List.of("idle-mode.to.grid-mode=+g",
+                        "grid-mode.overlay.transition-enabled=false",
+                        "grid-mode.overlay.transition-duration-millis=200",
+                        "grid-mode.overlay.fade-enabled=false | _{leftctrl} -> true",
+                        "grid-mode.overlay.fade-duration-millis=50",
+                        "grid-mode.zoom.transition-enabled=true",
+                        "grid-mode.zoom.transition-easing=smoothstep",
+                        "grid-mode.zoom.transition-duration-millis=300"),
+                        KeyboardLayout.keyboardLayout("00000409", null)).modeMap().get("grid-mode"),
+                ConfigurationParser.parse(List.of("idle-mode.to.grid-mode=+g",
+                        "grid-mode.overlay.transition-animation-enabled=false",
+                        "grid-mode.overlay.transition-animation-duration-millis=200",
+                        "grid-mode.overlay.fade-animation-enabled=false | _{leftctrl} -> true",
+                        "grid-mode.overlay.fade-animation-duration-millis=50",
+                        "grid-mode.zoom.animation-enabled=true",
+                        "grid-mode.zoom.animation-easing=smoothstep",
+                        "grid-mode.zoom.animation-duration-millis=300"),
+                        KeyboardLayout.keyboardLayout("00000409", null)).modeMap().get("grid-mode"));
+    }
+
+    @Test
+    void everyTransitionTakesAnEasing() {
+        Mode mode = ConfigurationParser.parse(List.of("idle-mode.to.grid-mode=+g",
+                        "grid-mode.overlay.transition-easing=smoothstep",
+                        "grid-mode.overlay.fade-easing=2"),
+                KeyboardLayout.keyboardLayout("00000409", null)).modeMap().get("grid-mode");
+        HintMeshStyle style = mode.hintMesh().styleByFilter().map().values().iterator().next();
+        assertEquals(new Easing.Smoothstep(), style.transition().easing());
+        assertEquals(new Easing.Polynomial(2), style.fade().easing());
+        assertEquals(new Easing.Smootherstep(), mode.zoom().transition().easing());
+    }
+
+    @Test
     void theOverlayTheZoomAndAnIndicatorLayerTakeTheSamePoints() {
         for (String point : List.of("active-screen-center", "mouse", "target",
                 "last-selected-hint", "active-window-center", "last-overlay-area-center")) {

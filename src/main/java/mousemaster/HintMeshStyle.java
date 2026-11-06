@@ -1,6 +1,5 @@
 package mousemaster;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,10 +43,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             double boxHorizontalPadding,
                             double boxVerticalPadding,
                             List<Decoration> decorations,
-                            boolean transitionAnimationEnabled,
-                            Duration transitionAnimationDuration,
-                            boolean fadeAnimationEnabled,
-                            Duration fadeAnimationDuration,
+                            Transition transition,
+                            Transition fade,
                             Color backgroundColor,
                             double backgroundOpacity,
                             double backgroundBorderThickness,
@@ -129,10 +126,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                 List.of(new Decoration.DecorationBuilder(),
                         new Decoration.DecorationBuilder(),
                         new Decoration.DecorationBuilder()));
-        private Boolean transitionAnimationEnabled;
-        private Duration transitionAnimationDuration;
-        private Boolean fadeAnimationEnabled;
-        private Duration fadeAnimationDuration;
+        private Transition.TransitionBuilder transition = new Transition.TransitionBuilder();
+        private Transition.TransitionBuilder fade = new Transition.TransitionBuilder();
         private Color backgroundColor;
         private Double backgroundOpacity;
         private Double backgroundBorderThickness;
@@ -188,10 +183,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.decorations.clear();
             for (Decoration decoration : style.decorations)
                 this.decorations.add(decoration.builder());
-            this.transitionAnimationEnabled = style.transitionAnimationEnabled;
-            this.transitionAnimationDuration = style.transitionAnimationDuration;
-            this.fadeAnimationEnabled = style.fadeAnimationEnabled;
-            this.fadeAnimationDuration = style.fadeAnimationDuration;
+            this.transition = new Transition.TransitionBuilder(style.transition);
+            this.fade = new Transition.TransitionBuilder(style.fade);
             this.backgroundColor = style.backgroundColor;
             this.backgroundOpacity = style.backgroundOpacity;
             this.backgroundBorderThickness = style.backgroundBorderThickness;
@@ -388,26 +381,6 @@ public record HintMeshStyle(HintFontStyle fontStyle,
 
         public List<Decoration.DecorationBuilder> decorations() {
             return decorations;
-        }
-
-        public HintMeshStyleBuilder transitionAnimationEnabled(Boolean transitionAnimationEnabled) {
-            this.transitionAnimationEnabled = transitionAnimationEnabled;
-            return this;
-        }
-
-        public HintMeshStyleBuilder transitionAnimationDuration(Duration transitionAnimationDuration) {
-            this.transitionAnimationDuration = transitionAnimationDuration;
-            return this;
-        }
-
-        public HintMeshStyleBuilder fadeAnimationEnabled(Boolean fadeAnimationEnabled) {
-            this.fadeAnimationEnabled = fadeAnimationEnabled;
-            return this;
-        }
-
-        public HintMeshStyleBuilder fadeAnimationDuration(Duration fadeAnimationDuration) {
-            this.fadeAnimationDuration = fadeAnimationDuration;
-            return this;
         }
 
         public HintMeshStyleBuilder backgroundColor(Color backgroundColor) {
@@ -611,20 +584,12 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return boxVerticalPadding;
         }
 
-        public Boolean transitionAnimationEnabled() {
-            return transitionAnimationEnabled;
+        public Transition.TransitionBuilder transition() {
+            return transition;
         }
 
-        public Duration transitionAnimationDuration() {
-            return transitionAnimationDuration;
-        }
-
-        public Boolean fadeAnimationEnabled() {
-            return fadeAnimationEnabled;
-        }
-
-        public Duration fadeAnimationDuration() {
-            return fadeAnimationDuration;
+        public Transition.TransitionBuilder fade() {
+            return fade;
         }
 
         public Color backgroundColor() {
@@ -658,6 +623,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         public HintMeshStyle build(HintMeshStyle defaultStyle) {
             if (defaultStyle != null) {
                 boxShadow.extend(new Shadow.ShadowBuilder(defaultStyle.boxShadow));
+                transition.extend(new Transition.TransitionBuilder(defaultStyle.transition));
+                fade.extend(new Transition.TransitionBuilder(defaultStyle.fade));
             }
             List<Decoration> builtDecorations = new ArrayList<>();
             for (int i = 0; i < decorations.size(); i++)
@@ -704,10 +671,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     boxHorizontalPadding == null ? defaultStyle.boxHorizontalPadding : boxHorizontalPadding,
                     boxVerticalPadding == null ? defaultStyle.boxVerticalPadding : boxVerticalPadding,
                     builtDecorations,
-                    transitionAnimationEnabled == null ? defaultStyle.transitionAnimationEnabled : transitionAnimationEnabled,
-                    transitionAnimationDuration == null ? defaultStyle.transitionAnimationDuration : transitionAnimationDuration,
-                    fadeAnimationEnabled == null ? defaultStyle.fadeAnimationEnabled : fadeAnimationEnabled,
-                    fadeAnimationDuration == null ? defaultStyle.fadeAnimationDuration : fadeAnimationDuration,
+                    transition.build(),
+                    fade.build(),
                     backgroundColor == null ? defaultStyle.backgroundColor : backgroundColor,
                     backgroundOpacity == null ? defaultStyle.backgroundOpacity : backgroundOpacity,
                     backgroundBorderThickness == null ? defaultStyle.backgroundBorderThickness : backgroundBorderThickness,
