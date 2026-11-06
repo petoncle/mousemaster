@@ -239,8 +239,8 @@ public class ConfigurationParser {
                 .blurRadius(10d)
                 .color(Color.parse("#000000"))
                 .opacity(0d)
-                .horizontalOffset(2d)
-                .verticalOffset(2d)
+                .horizontalOffset(0d)
+                .verticalOffset(0d)
                 .stackCount(1);
         hintMeshStyleBuilder
                 .prefixBoxEnabled(false)

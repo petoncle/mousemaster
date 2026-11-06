@@ -1160,8 +1160,8 @@ hint-mode.overlay.box-shadow-blur-radius=10
 hint-mode.overlay.box-shadow-color=#000000
 hint-mode.overlay.box-shadow-opacity=0
 hint-mode.overlay.box-shadow-stack-count=1
-hint-mode.overlay.box-shadow-horizontal-offset=2
-hint-mode.overlay.box-shadow-vertical-offset=2
+hint-mode.overlay.box-shadow-horizontal-offset=0
+hint-mode.overlay.box-shadow-vertical-offset=0
 
 # Box size relative to the grid cell (for the hint grid only). Below 1, a box is at least as
 # large as its label and padding, so 0 fits each box to its label.
@@ -1271,8 +1271,8 @@ hint-mode.overlay.background-opacity=0
   - `box-shadow-color`: Shadow color (hex, default #000000).
   - `box-shadow-opacity`: Shadow opacity (0-1, default 0 = disabled).
   - `box-shadow-stack-count`: Number of times the shadow is composited on itself for stronger effect (1-100, default 1).
-  - `box-shadow-horizontal-offset`: Horizontal shadow offset (-100 to 100, default 2).
-  - `box-shadow-vertical-offset`: Vertical shadow offset (-100 to 100, default 2).
+  - `box-shadow-horizontal-offset`: Horizontal shadow offset (-100 to 100, default 0).
+  - `box-shadow-vertical-offset`: Vertical shadow offset (-100 to 100, default 0).
   - `background-color`: Background color behind all hint boxes, mostly useful for UI hints (hex, default #000000).
   - `background-opacity`: Background opacity, mostly useful for UI hints (0-1, default 0 = no background).
   - `background-border-thickness` / `background-border-color` / `background-border-opacity`: A
