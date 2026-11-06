@@ -136,7 +136,7 @@ public class ZoomManager implements ModeListener {
             // for the zoom that has since been left behind.
             HintMesh hintMesh = hintManager.hintMesh();
             if (hintMesh != null)
-                overlay.restoreHintMesh(hintMesh, zoom);
+                overlay.setHintMesh(hintMesh, zoom, false);
         }
     }
 

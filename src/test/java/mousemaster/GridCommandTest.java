@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,6 +28,7 @@ class GridCommandTest {
     private final List<Object> mousePositions = new ArrayList<>();
     private final List<Object> mouseMoves = new ArrayList<>();
     private HintMesh shownHintMesh;
+    private boolean shownHintMeshAnimated;
     private double screenScale = 1;
     private List<UiElement> uiElements = List.of();
     private ModeMap modeMap;
@@ -60,8 +62,10 @@ class GridCommandTest {
                 screenManager, mouseManager,
                 (Overlay) Proxy.newProxyInstance(Overlay.class.getClassLoader(),
                         new Class<?>[] {Overlay.class}, (proxy, method, args) -> {
-                            if (method.getName().equals("setHintMesh"))
+                            if (method.getName().equals("setHintMesh")) {
                                 shownHintMesh = (HintMesh) args[0];
+                                shownHintMeshAnimated = (boolean) args[2];
+                            }
                             return null;
                         }),
                 new UiAutomation() {
@@ -333,6 +337,63 @@ class GridCommandTest {
         hintManager.mouseMoved(800, 600);
         hintManager.moveToCellCenter();
         assertEquals(List.of(700, 550, 800, 650), mousePositions);
+    }
+
+    @Test
+    void aGridCenteredOnTheMouseFollowsItWithoutATransition() throws IOException {
+        start("""
+                grid-mode.overlay.area-width-percent=0.5
+                grid-mode.overlay.area-height-percent=0.25
+                grid-mode.overlay.area-center=mouse
+                grid-mode.overlay.grid-max-row-count=1
+                grid-mode.overlay.grid-max-column-count=1
+                """);
+        hintManager.mouseMoved(700, 500);
+        switchMode("grid-mode");
+        assertTrue(shownHintMeshAnimated);
+        hintManager.mouseMoved(800, 600);
+        update(0);
+        Hint hint = shownHintMesh.hints().getFirst();
+        assertEquals(new Point(800, 600), new Point(hint.centerX(), hint.centerY()));
+        assertFalse(shownHintMeshAnimated);
+    }
+
+    @Test
+    void aGridThatFollowsTheTargetDoesNotSendItToItsCenter() throws IOException {
+        start("""
+                grid-mode.overlay.area-width-percent=0.5
+                grid-mode.overlay.area-height-percent=0.5
+                grid-mode.overlay.area-top-inset=100
+                grid-mode.overlay.area-center=mouse
+                grid-mode.overlay.target-follows-overlay-center=true
+                grid-mode.overlay.grid-max-row-count=1
+                grid-mode.overlay.grid-max-column-count=1
+                """);
+        hintManager.mouseMoved(700, 500);
+        switchMode("grid-mode");
+        hintManager.mouseMoved(710, 500);
+        update(0);
+        Hint hint = shownHintMesh.hints().getFirst();
+        assertEquals(new Point(710, 550), new Point(hint.centerX(), hint.centerY()));
+        assertEquals(List.of(), mousePositions);
+    }
+
+    @Test
+    void aGridCenteredOnTheTargetDoesNotStopTheTargetMove() throws IOException {
+        start("""
+                grid-mode.stop-commands-from-previous-mode=true
+                grid-mode.overlay.mouse-follows-target=false
+                grid-mode.overlay.area-center=target
+                grid-mode.target.initial-velocity=1000
+                grid-mode.target.max-velocity=1000
+                grid-mode.target.deceleration=0
+                """);
+        hintManager.mouseMoved(100, 100);
+        switchMode("grid-mode");
+        hintManager.startMoveTargetRight();
+        update(0.1);
+        update(0.1);
+        assertEquals(new Point(300, 100), hintManager.targetPoint());
     }
 
     @Test

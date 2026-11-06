@@ -52,11 +52,7 @@ public interface Overlay {
 
     void hideIndicator();
 
-    void setHintMesh(HintMesh hintMesh, Zoom zoom);
-
-    void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch);
-
-    void restoreHintMesh(HintMesh hintMesh, Zoom zoom);
+    void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean animate);
 
     void hideHintMesh();
 

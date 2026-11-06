@@ -317,7 +317,7 @@ public final class HintMeshRenderer {
             return;
         preWarming = true;
         try {
-            createOrUpdateHintMeshWindows(hintMesh, zoom, screens);
+            createOrUpdateHintMeshWindows(hintMesh, zoom, true, screens);
             runPendingWork();
         }
         finally {
@@ -327,16 +327,14 @@ public final class HintMeshRenderer {
             hintMeshWindow.hints().clear();
     }
 
-    public boolean setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch,
-                               boolean allowFade, Set<Screen> screens) {
-        boolean nonMatchShown = false;
+    public void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean animate, Set<Screen> screens) {
         Objects.requireNonNull(hintMesh);
         if (!hintMesh.visible()) {
             hideHintMesh();
-            return false;
+            return;
         }
         if (showingHintMesh && currentHintMesh != null && currentHintMesh.equals(hintMesh))
-            return false;
+            return;
         fadeIn = false;
         boolean wasShowing = showingHintMesh;
         if (hintMeshFadeAnimator != null && hintMeshFadeAnimator.isFadingOut())
@@ -344,28 +342,15 @@ public final class HintMeshRenderer {
         if (hintMesh.hints().isEmpty()) {
             currentHintMesh = hintMesh;
             setHintMeshEndAnimation(false);
-            createOrUpdateHintMeshWindows(currentHintMesh, zoom, screens);
+            createOrUpdateHintMeshWindows(currentHintMesh, zoom, animate, screens);
             showingHintMesh = true;
-            return false;
+            return;
         }
-        boolean isHintGrid = hintMesh.hints().getFirst().cellWidth() != -1;
-        if (hintMatch) {
-            if (isHintGrid)
-                setHintMeshEndAnimation(true);
-            else {
-                // No animation for position history hints.
-                // hideHintMesh() will be called by the switch mode command.
-                return false;
-            }
-        }
-        else {
-            setHintMeshEndAnimation(false);
-            nonMatchShown = true;
-        }
+        setHintMeshEndAnimation(false);
         currentHintMesh = hintMesh;
-        createOrUpdateHintMeshWindows(currentHintMesh, zoom, screens);
+        createOrUpdateHintMeshWindows(currentHintMesh, zoom, animate, screens);
         showingHintMesh = true;
-        if (allowFade && (!wasShowing || fadeIn) && !hintMeshWindows.isEmpty()) {
+        if (animate && (!wasShowing || fadeIn) && !hintMeshWindows.isEmpty()) {
             hintMeshFadeAnimator = new FadeAnimator(
                     opacity -> {
                         for (HintMeshWindow w : hintMeshWindows.values())
@@ -379,7 +364,6 @@ public final class HintMeshRenderer {
                 hintMeshFadeAnimator.fadeIn(fade);
             }
         }
-        return nonMatchShown;
     }
 
     public String lastSelectedHintBoxHexColor() {
@@ -461,7 +445,7 @@ public final class HintMeshRenderer {
         }
     }
 
-    private void createOrUpdateHintMeshWindows(HintMesh hintMesh, Zoom zoom,
+    private void createOrUpdateHintMeshWindows(HintMesh hintMesh, Zoom zoom, boolean animate,
                                                Set<Screen> screens) {
         Map<Screen, List<Hint>> hintsByScreen = hintsByScreen(hintMesh.hints(), screens);
         if (hintsByScreen.isEmpty() && hintMesh.backgroundArea() != null) {
@@ -488,7 +472,7 @@ public final class HintMeshRenderer {
                         createHintMeshWindow(screen, hintsInScreen, zoom);
                 hintMeshWindows.put(screen, hintMeshWindow);
                 setHintMeshWindow(hintMeshWindow, hintMesh,
-                        screen.scale(), style, false);
+                        screen.scale(), style, animate);
             }
             else {
                 HintMeshWindow hintMeshWindow = new HintMeshWindow(existingWindow.window(),
@@ -499,7 +483,7 @@ public final class HintMeshRenderer {
 //                TransparentWindow window = existingWindow.window;
 //                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + existingWindow.window.x() + " " + existingWindow.window.y() + " " + existingWindow.window.width() + " " + existingWindow.window.height());
                 setHintMeshWindow(hintMeshWindow, hintMesh,
-                        screen.scale(), style, zoomChanged);
+                        screen.scale(), style, animate && !zoomChanged);
             }
         }
     }
@@ -670,14 +654,14 @@ public final class HintMeshRenderer {
     public void setHintMeshWindow(HintMeshWindow hintMeshWindow,
                                   HintMesh hintMesh, double screenScale,
                                   HintMeshStyle style,
-                                  boolean zoomChanged) {
-        setHintMeshWindow(hintMeshWindow, hintMesh, screenScale, style, zoomChanged, null);
+                                  boolean animate) {
+        setHintMeshWindow(hintMeshWindow, hintMesh, screenScale, style, animate, null);
     }
 
     private void setHintMeshWindow(HintMeshWindow hintMeshWindow,
                                           HintMesh hintMesh, double screenScale,
                                           HintMeshStyle style,
-                                          boolean zoomChanged,
+                                          boolean animate,
                                           PixmapAndPosition matchBoxPixmap) {
         TransparentWindow window = hintMeshWindow.window;
         cacheQtHintWindowIntoPixmapRunnables.remove(window);
@@ -833,7 +817,7 @@ public final class HintMeshRenderer {
                     (int) Math.round(pixmapAndPosition.pixmap().height() / grabScale));
             pixmapLabel.setScaledContents(true);
             newContainer = pixmapLabel;
-            boolean animateTransition = style.transition().enabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
+            boolean animateTransition = style.transition().enabled() && isHintGrid && !oldContainerHidden && animate;
             showBackground(window, backgroundColor, backgroundRect, backgroundRadius,
                     backgroundBorderColor, backgroundBorderThickness);
             transitionHintContainers(animateTransition, oldContainer, newContainer,
@@ -881,7 +865,7 @@ public final class HintMeshRenderer {
                             disposeWidget(container);
                             return;
                         }
-                        boolean animateTransition = style.transition().enabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
+                        boolean animateTransition = style.transition().enabled() && isHintGrid && !oldContainerHidden && animate;
                         showBackground(window, backgroundColor, backgroundRect, backgroundRadius,
                                 backgroundBorderColor, backgroundBorderThickness);
                         transitionHintContainers(animateTransition,
@@ -4117,7 +4101,7 @@ public final class HintMeshRenderer {
         PixmapAndPosition pixmapAndPosition =
                 new PixmapAndPosition(pixmap, boxWindowX, boxWindowY, null, List.of(), hintMesh,
                         hintMeshWindow.window.x(), hintMeshWindow.window.y());
-        setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style, false,
+        setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style, true,
                 pixmapAndPosition);
     }
 

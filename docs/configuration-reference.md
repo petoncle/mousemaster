@@ -1008,7 +1008,7 @@ the point it is *centered* on. For UI hints it is the region the elements are lo
   `last-selected-hint` (grid stays over the cell), `last-overlay-area` →
   `last-overlay-area-center`. The size and center compose freely — e.g. an
   `active-window`-sized grid with `area-center=mouse` is a window-sized grid centered on the
-  cursor.
+  cursor. With `mouse` or `target`, a grid follows that point.
 
 - **Grid dimensions**: Control the size of each hint cell:
   - `grid-cell-width`: Width of each hint cell in pixels
@@ -1140,7 +1140,9 @@ hint-mode.overlay.label-override=plus
   another hint grid.
 - **`target-follows-overlay-center`**: Whether the target goes to the center of the overlay
   when the overlay shows, and when a selection key or `deselect` changes its hints (default
-  `false`). The mouse goes there too, unless `mouse-follows-target=false`.
+  `false`). The mouse goes there too, unless `mouse-follows-target=false`. It does nothing for a
+  grid that follows the target: with `area-center=target`, or with `area-center=mouse` while the
+  mouse follows the target.
 - **`move-to.<point>`** / **`move-target-to.<point>`**: Like `to.<mode-name>`, commands of the
   mode, not overlay properties. `move-to` moves the mouse to the point, and `move-target-to` the
   target:
@@ -1493,7 +1495,6 @@ cells out in it, UI hints look for the elements in it with a new query, and save
 the positions in it.
 
 A mode with the same `overlay.type`, area and layout keeps the overlay area where the commands left it. With
-`area-center=mouse` or `area-center=target`, a command first centers a grid on that point. With
 `target-follows-overlay-center=true`, the target goes to the center of the overlay after each
 change. The mouse follows the target, unless `mouse-follows-target=false`: then it stays
 where it is.

@@ -317,26 +317,13 @@ public class MacosOverlay implements Overlay {
     }
 
     @Override
-    public void setHintMesh(HintMesh hintMesh, Zoom zoom) {
-        setHintMesh(hintMesh, zoom, false);
-    }
-
-    @Override
-    public void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch) {
+    public void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean animate) {
         if (hintMesh.excludeFromCapture() != hintMeshExcludedFromCapture) {
             hintMeshExcludedFromCapture = hintMesh.excludeFromCapture();
             for (TransparentWindow window : hintMeshRenderer.windows())
                 MacosWindow.setExcludedFromCapture(window, hintMeshExcludedFromCapture);
         }
-        hintMeshRenderer.setHintMesh(hintMesh, zoom, hintMatch, true,
-                MacosScreens.screens());
-    }
-
-    /** The mesh was concealed while the zoom moved, so putting it back is not it appearing. */
-    @Override
-    public void restoreHintMesh(HintMesh hintMesh, Zoom zoom) {
-        hintMeshRenderer.setHintMesh(hintMesh, zoom, false, false,
-                MacosScreens.screens());
+        hintMeshRenderer.setHintMesh(hintMesh, zoom, animate, MacosScreens.screens());
     }
 
     @Override

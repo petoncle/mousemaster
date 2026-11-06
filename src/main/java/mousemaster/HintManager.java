@@ -456,14 +456,15 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     public void update(double delta) {
         Point move = targetMover.move(delta);
-        if (move == null)
-            return;
-        double scale = screenManager.nearestScreenContaining(stoppedTargetPoint.x(),
-                stoppedTargetPoint.y()).scale();
-        double x = stoppedTargetPoint.x() + (long) move.x() * scale;
-        double y = stoppedTargetPoint.y() + (long) move.y() * scale;
-        stoppedTargetPoint =
-                screenManager.nearestScreenContaining(x, y).rectangle().nearestPoint(x, y);
+        if (move != null) {
+            double scale = screenManager.nearestScreenContaining(stoppedTargetPoint.x(),
+                    stoppedTargetPoint.y()).scale();
+            double x = stoppedTargetPoint.x() + (long) move.x() * scale;
+            double y = stoppedTargetPoint.y() + (long) move.y() * scale;
+            stoppedTargetPoint =
+                    screenManager.nearestScreenContaining(x, y).rectangle().nearestPoint(x, y);
+        }
+        centerGridOnAreaCenterPoint();
     }
 
     private void moveToNearestCellEdge(boolean horizontal, boolean forward) {
@@ -483,21 +484,28 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (point == null)
             return;
         moveTo(point);
-        centerGridOnAreaCenterPoint();
     }
 
     private void moveTargetToNearestCell(Point point) {
         if (point == null)
             return;
         moveTargetTo(point);
-        centerGridOnAreaCenterPoint();
     }
 
     private void centerGridOnAreaCenterPoint() {
-        AreaCenter center = currentMode.hintMesh().type().area().centerOrDefault();
-        if (currentMode.hintMesh().type().type() == HintMeshTypeType.GRID &&
-            center.isMouseOrTarget() && !areaCenterPoint(center).equals(drawnAreaCenterPoint))
-            modeChanged(currentMode);
+        HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
+        Area area = hintMeshConfiguration.type().area();
+        if (hintMesh == null || hintMeshConfiguration.type().type() != HintMeshTypeType.GRID ||
+            !area.centerOrDefault().isMouseOrTarget() ||
+            areaCenterPoint(area.centerOrDefault()).equals(drawnAreaCenterPoint))
+            return;
+        if (area.size().source() == AreaSizeSource.LAST_SELECTED_HINT_CELL)
+            recomputeTopLevelArea(area.size(), area.centerOrDefault());
+        ScreenFilter newScreenFilter = screenFilter(hintMeshConfiguration);
+        Zoom newZoom = zoom(currentMode);
+        HintMesh newHintMesh = buildHintMesh(hintMeshConfiguration, currentMode.zoom(), newZoom,
+                newScreenFilter, null, null, null, screenManager.activeScreen());
+        showHintMesh(currentMode, newHintMesh, newScreenFilter, newZoom, false);
     }
 
     private Point overlayCenter() {
@@ -727,14 +735,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMesh = null;
             overlay.hideHintMesh();
         }
-        Point zoomCenterPoint = areaCenterPoint(newMode.zoom().center());
-        Rectangle zoomScreen = screenManager.nearestScreenContaining(zoomCenterPoint.x(),
-                zoomCenterPoint.y()).rectangle();
-        Zoom newZoom = new Zoom(newMode.zoom().percent(lastSelectedHintCell, zoomScreen),
-                zoomCenterPoint, zoomScreen);
-        Zoom noZoom = new Zoom(1, zoomScreen.center(), zoomScreen);
-        if (!newZoom.equals(noZoom) && !overlay.canZoom(zoomScreen))
-            newZoom = noZoom;
+        Zoom newZoom = zoom(newMode);
         HintMesh newHintMesh;
         if (hintMeshConfiguration.type().type() == HintMeshTypeType.UI_ACCESSIBILITY ||
             hintMeshConfiguration.type().type() == HintMeshTypeType.UI_VISION) {
@@ -779,41 +780,58 @@ public class HintManager implements ModeListener, MousePositionListener {
             newHintMesh = buildHintMesh(hintMeshConfiguration, newMode.zoom(), newZoom,
                     newScreenFilter, null, null, null, screenManager.activeScreen());
         }
+        showHintMesh(newMode, newHintMesh, newScreenFilter, newZoom, true);
+    }
+
+    private Zoom zoom(Mode mode) {
+        Point zoomCenterPoint = areaCenterPoint(mode.zoom().center());
+        Rectangle screenRectangle = screenManager.nearestScreenContaining(zoomCenterPoint.x(),
+                zoomCenterPoint.y()).rectangle();
+        Zoom newZoom = new Zoom(mode.zoom().percent(lastSelectedHintCell, screenRectangle),
+                zoomCenterPoint, screenRectangle);
+        Zoom noZoom = new Zoom(1, screenRectangle.center(), screenRectangle);
+        return newZoom.equals(noZoom) || overlay.canZoom(screenRectangle) ? newZoom : noZoom;
+    }
+
+    private void showHintMesh(Mode newMode, HintMesh newHintMesh, ScreenFilter newScreenFilter,
+                              Zoom newZoom, boolean animate) {
         boolean hintMeshUnchanged =
                 newHintMesh.equals(hintMesh) && newZoom.equals(currentZoom);
         boolean hintMeshConfigurationUnchanged = currentMode != null &&
-                hintMeshConfiguration.equals(currentMode.hintMesh());
+                newMode.hintMesh().equals(currentMode.hintMesh());
         currentMode = newMode;
         currentZoom = newZoom;
         screenFilter = newScreenFilter;
         if (hintMeshUnchanged && hintMeshConfigurationUnchanged)
             return;
-        activateHintMesh(newMode, newHintMesh, hintMeshConfiguration, newScreenFilter,
-                newZoom, hintMeshUnchanged);
+        activateHintMesh(newMode, newHintMesh, newMode.hintMesh(), newScreenFilter, newZoom,
+                hintMeshUnchanged, animate);
     }
 
     private void activateHintMesh(Mode newMode, HintMesh newHintMesh,
                                   HintMeshConfiguration hintMeshConfiguration,
                                   ScreenFilter newScreenFilter, Zoom newZoom,
-                                  boolean hintMeshUnchanged) {
+                                  boolean hintMeshUnchanged, boolean animate) {
         List<Key> newSelectionKeys =
                 hintMeshConfiguration.keysByFilter().get(newScreenFilter).selectionKeys();
         hintMeshStates.put(new HintMeshKey(hintMeshConfiguration.type(), newSelectionKeys,
                         newMode.zoom()),
                 new HintMeshState(newHintMesh, lastSelectedHintPoint, lastSelectedHintCell));
         hintMesh = newHintMesh;
-        drawnAreaCenterPoint =
-                areaCenterPoint(hintMeshConfiguration.type().area().centerOrDefault());
+        AreaCenter center = hintMeshConfiguration.type().area().centerOrDefault();
+        drawnAreaCenterPoint = areaCenterPoint(center);
         if (!hintMeshUnchanged) {
             if (hintMesh.hints().isEmpty())
                 overlay.hideHintMesh();
             else
-                overlay.setHintMesh(hintMesh, newZoom);
+                overlay.setHintMesh(hintMesh, newZoom, animate);
         }
-        if (hintMeshConfiguration.targetFollowsOverlayCenter()) {
-            moveTargetTo(unzoomedPoint(
-                    hintMeshCenter(hintMesh.hints(), hintMesh.selectedKeySequence())));
-        }
+        boolean gridFollowsTarget =
+                hintMeshConfiguration.type().type() == HintMeshTypeType.GRID &&
+                (center == AreaCenter.TARGET ||
+                 center == AreaCenter.MOUSE && hintMeshConfiguration.mouseFollowsTarget());
+        if (hintMeshConfiguration.targetFollowsOverlayCenter() && !gridFollowsTarget)
+            moveTargetToOverlayCenter();
     }
 
     private static Rectangle hintCenterBounds(List<Hint> hints, Zoom zoom) {
@@ -904,7 +922,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 uiElements, uiElementQueryArea, uiElementQueryOrderPoint,
                 screenManager.activeScreen());
         activateHintMesh(currentMode, newHintMesh, hintMeshConfiguration, screenFilter,
-                currentZoom, false);
+                currentZoom, false, true);
         overlay.runPendingHintMeshWork();
     }
 
@@ -1388,7 +1406,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 (k, hintMeshState) -> new HintMeshState(hintMesh,
                         hintMeshState.previousModeSelectedHintPoint,
                         hintMeshState.previousModeSelectedHintCell));
-        overlay.setHintMesh(hintMesh, currentZoom);
+        overlay.setHintMesh(hintMesh, currentZoom, true);
     }
 
     private void buildUiHints(HintMeshConfiguration hintMeshConfiguration,
@@ -1896,32 +1914,15 @@ public class HintManager implements ModeListener, MousePositionListener {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (!hintMeshConfiguration.enabled())
             return;
-        HintMeshKeys hintMeshKeys = hintMeshConfiguration.keysByFilter()
-                                                         .get(screenFilter);
         hintJustSelected = false;
         List<Key> selectedKeySequence = hintMesh.selectedKeySequence();
         if (!selectedKeySequence.isEmpty()) {
-            hintMesh = hintMesh.builder()
-                               .selectedKeySequence(selectedKeySequence.subList(0,
-                                       Math.max(0, selectedKeySequence.size() - keyCount)))
-                               .build();
-            HintMeshKey hintMeshKey =
-                    new HintMeshKey(hintMeshConfiguration.type(),
-                            hintMeshKeys.selectionKeys(),
-                            currentMode.zoom());
-            hintMeshStates.compute(
-                    hintMeshKey,
-                    (k, hintMeshState) -> new HintMeshState(
-                            hintMesh,
-                            hintMeshState.previousModeSelectedHintPoint,
-                            hintMeshState.previousModeSelectedHintCell
-                    )
-            );
-            overlay.setHintMesh(hintMesh, currentZoom);
-            if (hintMeshConfiguration.targetFollowsOverlayCenter()) {
-                moveTargetTo(unzoomedPoint(hintMeshCenter(hintMesh.hints(),
-                        hintMesh.selectedKeySequence())));
-            }
+            activateHintMesh(currentMode,
+                    hintMesh.builder()
+                            .selectedKeySequence(selectedKeySequence.subList(0,
+                                    Math.max(0, selectedKeySequence.size() - keyCount)))
+                            .build(),
+                    hintMeshConfiguration, screenFilter, currentZoom, false, true);
             lastHintCommandSupercedesOtherCommands = true;
         }
     }
@@ -1975,23 +1976,9 @@ public class HintManager implements ModeListener, MousePositionListener {
             finalizeHintSelection(exactMatchHint, newSelectedKeySequence);
         }
         else {
-            hintMesh =
-                    hintMesh.builder().selectedKeySequence(newSelectedKeySequence).build();
-            HintMeshKey hintMeshKey =
-                    new HintMeshKey(hintMeshConfiguration.type(),
-                            hintMeshKeys.selectionKeys(), currentMode.zoom());
-            hintMeshStates.compute(
-                    hintMeshKey,
-                    (k, hintMeshState) -> new HintMeshState(
-                            hintMesh,
-                            hintMeshState.previousModeSelectedHintPoint,
-                            hintMeshState.previousModeSelectedHintCell
-                    ));
-            overlay.setHintMesh(hintMesh, currentZoom);
-            if (hintMeshConfiguration.targetFollowsOverlayCenter()) {
-                moveTargetTo(unzoomedPoint(
-                        hintMeshCenter(hintMesh.hints(), newSelectedKeySequence)));
-            }
+            activateHintMesh(currentMode,
+                    hintMesh.builder().selectedKeySequence(newSelectedKeySequence).build(),
+                    hintMeshConfiguration, screenFilter, currentZoom, false, true);
             lastHintCommandSupercedesOtherCommands = true;
         }
     }
