@@ -8,8 +8,12 @@ import io.qt.gui.QImage;
 import io.qt.gui.QPainter;
 import io.qt.gui.QPixmap;
 import io.qt.gui.QTransform;
+import mousemaster.Rectangle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.function.BiConsumer;
 
 /**
  * A drop-shadow effect that supports stacking (compositing the shadow on itself for a
@@ -82,9 +86,8 @@ public class StackedShadowEffect extends QtDropShadowEffect {
                                      double blurRadius, double xOffset, double yOffset,
                                      QColor color, QBrush brush, int stackCount, boolean alphaOnly) {
         QImage sourceImage = sourcePixmap.toImage();
-        QImage shadow = blurredShadow(sourceImage, xOffset, yOffset, blurRadius, alphaOnly);
-        sourceImage.dispose();
-        tint(shadow, color, brush, alphaOnly);
+        QImage shadow = shadows(List.of(sourceImage), sourceImage.height(), xOffset, yOffset,
+                blurRadius, color, brush, alphaOnly, false).getFirst();
         for (int stack = 0; stack < stackCount; stack++)
             painter.drawImage(sourceOffset, shadow);
         shadow.dispose();
@@ -97,34 +100,42 @@ public class StackedShadowEffect extends QtDropShadowEffect {
     }
 
     /**
-     * Renders the shadow {@code sourceImage} casts, as the effect draws it under the source.
-     * Consumes {@code sourceImage}.
+     * Renders the shadow of what chunkPainter paints in the area, as the effect draws it under the
+     * source, in chunks of rows from the top, with the source cut out when cutOut. The chunks of
+     * the source are made on the blur's threads, at dotsPerMeter, and chunkPainter paints each of
+     * them, given the part of the area it covers.
      */
-    public static QImage renderShadow(QImage sourceImage, QColor shadowColor, double blurRadius,
-                                      double horizontalOffset, double verticalOffset) {
-        QImage shadowImage = blurredShadow(sourceImage, horizontalOffset, verticalOffset,
-                blurRadius, true);
-        sourceImage.dispose();
-        tint(shadowImage, shadowColor, null, true);
-        return shadowImage;
-    }
-
-    /**
-     * Renders the shadow {@code sourceImage} casts, with the source itself cut out.
-     * Consumes {@code sourceImage}.
-     */
-    public static QImage renderShadowOnly(QImage sourceImage, QColor shadowColor,
-                                          double blurRadius, double horizontalOffset,
-                                          double verticalOffset, boolean alphaOnly) {
-        QImage shadowImage = blurredShadow(sourceImage, horizontalOffset, verticalOffset,
-                blurRadius, alphaOnly);
-        tint(shadowImage, shadowColor, null, alphaOnly);
-        QPainter painter = new QPainter(shadowImage);
-        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationOut);
-        painter.drawImage(0, 0, sourceImage);
-        painter.end();
-        painter.dispose();
-        sourceImage.dispose();
-        return shadowImage;
+    public static List<QImage> renderShadow(Rectangle area, int dotsPerMeter,
+                                            BiConsumer<QPainter, Rectangle> chunkPainter,
+                                            QColor shadowColor, double blurRadius,
+                                            double horizontalOffset, double verticalOffset,
+                                            boolean alphaOnly, boolean cutOut) {
+        int chunkHeight = ExpBlur.chunkHeight(area.width(), area.height());
+        QImage[] sourceImages = new QImage[(area.height() + chunkHeight - 1) / chunkHeight];
+        ExpBlur.overRange(sourceImages.length, area.width() * chunkHeight, (from, to) -> {
+            for (int chunk = from; chunk < to; chunk++) {
+                QImage sourceImage = new QImage(area.width(),
+                        Math.min(chunkHeight, area.height() - chunk * chunkHeight),
+                        QImage.Format.Format_ARGB32_Premultiplied);
+                sourceImage.setDotsPerMeterX(dotsPerMeter);
+                sourceImage.setDotsPerMeterY(dotsPerMeter);
+                QColor fillColor = new QColor(0, 0, 0, 0);
+                sourceImage.fill(fillColor);
+                fillColor.dispose();
+                sourceImages[chunk] = sourceImage;
+            }
+        });
+        // Painting goes through caches that only this thread uses.
+        for (int chunk = 0; chunk < sourceImages.length; chunk++) {
+            Rectangle chunkArea = new Rectangle(area.x(), area.y() + chunk * chunkHeight,
+                    area.width(), sourceImages[chunk].height());
+            QPainter painter = new QPainter(sourceImages[chunk]);
+            painter.translate(-chunkArea.x(), -chunkArea.y());
+            chunkPainter.accept(painter, chunkArea);
+            painter.end();
+            painter.dispose();
+        }
+        return shadows(List.of(sourceImages), chunkHeight, horizontalOffset, verticalOffset,
+                blurRadius, shadowColor, null, alphaOnly, cutOut);
     }
 }
