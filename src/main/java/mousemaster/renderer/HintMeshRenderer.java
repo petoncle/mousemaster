@@ -45,6 +45,7 @@ public final class HintMeshRenderer {
             ThreadLocal.withInitial(QRectF::new);
 
     private final Map<PixmapKey, PixmapsAndPosition> hintMeshPixmaps = new HashMap<>();
+    private final Map<ShadowKey, List<QPixmap>> boxShadowPixmaps = new HashMap<>();
     private final Map<HintMesh, Map<List<Key>, Rectangle>> hintBoxRectanglesByHintMeshKey =
             new HashMap<>();
     private boolean hintMeshEndAnimation;
@@ -293,6 +294,7 @@ public final class HintMeshRenderer {
         for (PixmapsAndPosition pixmapsAndPosition : hintMeshPixmaps.values())
             pixmapsAndPosition.pixelRowChunks().forEach(QPixmap::dispose);
         hintMeshPixmaps.clear();
+        clearBoxShadowPixmaps();
         hintBoxRectanglesByHintMeshKey.clear();
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
             hintMeshWindow.lastHintMeshKeyReference().set(null);
@@ -317,6 +319,7 @@ public final class HintMeshRenderer {
         }
         finally {
             preWarming = false;
+            clearBoxShadowPixmaps();
         }
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
             hintMeshWindow.hints().clear();
@@ -419,6 +422,7 @@ public final class HintMeshRenderer {
         if (hintMeshFadeAnimator != null)
             hintMeshFadeAnimator.cancel();
         cancelPendingBuild();
+        clearBoxShadowPixmaps();
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
             // Drop the crop before hiding children, or update() would call container.setMask()
             // on a widget whose C++ object has been destroyed.
@@ -2768,6 +2772,10 @@ public final class HintMeshRenderer {
                     pixels(height));
         }
 
+        CasterKey casterKey() {
+            return new CasterKey(pixelRectangle(0, 0), borderRadius, shadowColor);
+        }
+
         public void paint(QPainter painter) {
             painter.save();
             scaleToPixels(painter);
@@ -3758,6 +3766,13 @@ public final class HintMeshRenderer {
     private record ShadowPixmap(QPixmap pixmap, int x, int y, int stackCount) {
     }
 
+    private record ShadowKey(Rectangle area, List<CasterKey> casters, Shadow shadow, int rgba,
+                             boolean alphaOnly, int dotsPerMeter, double qtScaleFactor) {
+    }
+
+    private record CasterKey(Rectangle ink, int borderRadius, QBrush shadowColor) {
+    }
+
     /** Shadows that differ only in color blur together, each in its own color. */
     private record ShadowGroupKey(int alpha,
                                   int stackCount, double blurRadius,
@@ -3790,19 +3805,41 @@ public final class HintMeshRenderer {
         boolean alphaOnly = !gradientColor(boxShadow.color()).gradient();
         int padding = shadowPadding(boxShadow.blurRadius(), boxShadow.horizontalOffset(),
                 boxShadow.verticalOffset());
+        int dotsPerMeter = dotsPerMeter(screenScale);
         for (Map.Entry<Rectangle, Map<HintBox, Rectangle>> entry :
                 byShadowArea(boxes, box -> box.pixelRectangle(0, 0), padding,
                         container).entrySet()) {
             Rectangle area = entry.getKey();
-            boxShadowLayer.addShadowPixmaps(StackedShadowEffect.renderShadow(area,
-                    dotsPerMeter(screenScale),
-                    (painter, chunk) -> paintCasters(painter, chunk, entry.getValue(), padding,
-                            HintBox::paintOpaque),
-                    shadowColor, boxShadow.blurRadius(), boxShadow.horizontalOffset(),
-                    boxShadow.verticalOffset(), alphaOnly, true), area.x(), area.y(),
-                    qtScaleFactor, boxShadow.stackCount());
+            ShadowKey shadowKey = new ShadowKey(area,
+                    entry.getValue().keySet().stream().map(HintBox::casterKey).toList(),
+                    boxShadow, shadowColor.rgba(), alphaOnly, dotsPerMeter, qtScaleFactor);
+            List<QPixmap> shadowPixmaps = boxShadowPixmaps.computeIfAbsent(shadowKey,
+                    key -> shadowPixmaps(StackedShadowEffect.renderShadow(area, dotsPerMeter,
+                            (painter, chunk) -> paintCasters(painter, chunk, entry.getValue(),
+                                    padding, HintBox::paintOpaque),
+                            shadowColor, boxShadow.blurRadius(), boxShadow.horizontalOffset(),
+                            boxShadow.verticalOffset(), alphaOnly, true), qtScaleFactor));
+            boxShadowLayer.addShadowPixmaps(shadowPixmaps.stream().map(QPixmap::new).toList(),
+                    area.x(), area.y(), boxShadow.stackCount());
         }
         shadowColor.dispose();
+    }
+
+    /** Consumes the chunks. */
+    private static List<QPixmap> shadowPixmaps(List<QImage> shadowImages, double scaleFactor) {
+        List<QPixmap> shadowPixmaps = new ArrayList<>();
+        for (QImage shadowImage : shadowImages) {
+            QPixmap shadowPixmap = QPixmap.fromImage(shadowImage);
+            shadowPixmap.setDevicePixelRatio(scaleFactor);
+            shadowPixmaps.add(shadowPixmap);
+            shadowImage.dispose();
+        }
+        return shadowPixmaps;
+    }
+
+    private void clearBoxShadowPixmaps() {
+        boxShadowPixmaps.values().forEach(shadowPixmaps -> shadowPixmaps.forEach(QPixmap::dispose));
+        boxShadowPixmaps.clear();
     }
 
     /** Boxes or labels, each with its ink, by the area their shadows land in: those whose shadows
@@ -3947,7 +3984,7 @@ public final class HintMeshRenderer {
             Rectangle area = new Rectangle(layer.originX, layer.originY, layer.width(),
                     layer.height());
             QColor shadowColor = shadowColor(shadowRgbs, labelStyle.shadowColor().alpha());
-            layer.addShadowPixmaps(StackedShadowEffect.renderShadow(area,
+            layer.addShadowPixmaps(shadowPixmaps(StackedShadowEffect.renderShadow(area,
                     dotsPerMeter(screenScale),
                     (painter, chunk) -> paintCasters(painter, chunk, inkByBox, padding,
                             (box, boxPainter) -> box.paintDecorationLabels(boxPainter,
@@ -3955,8 +3992,8 @@ public final class HintMeshRenderer {
                     shadowColor, labelStyle.shadowBlurRadius(),
                     labelStyle.shadowHorizontalOffset(), labelStyle.shadowVerticalOffset(),
                     shadowRgbs.size() == 1,
-                    labelStyle.hasTransparency() || labelStyle.shadowStackCount() != 1),
-                    area.x(), area.y(), 1, labelStyle.shadowStackCount());
+                    labelStyle.hasTransparency() || labelStyle.shadowStackCount() != 1), 1),
+                    area.x(), area.y(), labelStyle.shadowStackCount());
             shadowColor.dispose();
         }
     }
@@ -4016,15 +4053,15 @@ public final class HintMeshRenderer {
             for (HintLabel label : entry.getValue().keySet())
                 shadowRgbs.add(label.labelFontStyle.defaultStyle().shadowColor().rgb());
             QColor shadowColor = shadowColor(shadowRgbs, shadowStyle.shadowColor().alpha());
-            layer.addShadowPixmaps(StackedShadowEffect.renderShadow(area,
+            layer.addShadowPixmaps(shadowPixmaps(StackedShadowEffect.renderShadow(area,
                     dotsPerMeter(screenScale),
                     (painter, chunk) -> paintCasters(painter, chunk, entry.getValue(), padding,
                             HintLabel::paintOpaque),
                     shadowColor, shadowStyle.shadowBlurRadius(),
                     shadowStyle.shadowHorizontalOffset(), shadowStyle.shadowVerticalOffset(),
                     shadowRgbs.size() == 1,
-                    style.hasTransparency() || shadowStyle.shadowStackCount() != 1),
-                    area.x(), area.y(), 1, shadowStyle.shadowStackCount());
+                    style.hasTransparency() || shadowStyle.shadowStackCount() != 1), 1),
+                    area.x(), area.y(), shadowStyle.shadowStackCount());
             shadowColor.dispose();
         }
     }
@@ -4083,7 +4120,8 @@ public final class HintMeshRenderer {
                     shadowColor, group.blurRadius(), group.horizontalOffset(),
                     group.verticalOffset(), entry.getValue().size() == 1, true);
             shadowColor.dispose();
-            layer.addShadowPixmaps(shadowImages, area.x(), area.y(), 1, group.stackCount());
+            layer.addShadowPixmaps(shadowPixmaps(shadowImages, 1), area.x(), area.y(),
+                    group.stackCount());
         }
     }
 
@@ -4215,18 +4253,16 @@ public final class HintMeshRenderer {
             repaint();
         }
 
-        /** Adds the chunks of a shadow from (x, y) down, in pixels that the scale factor turns into
-         *  the layer's coordinates. Consumes the chunks. */
-        void addShadowPixmaps(List<QImage> shadowImages, int x, int y, double scaleFactor,
-                              int stackCount) {
+        /** Adds the chunks of a shadow from (x, y) down, in pixels that their device pixel ratio
+         *  turns into the layer's coordinates. */
+        void addShadowPixmaps(List<QPixmap> shadowPixmaps, int x, int y, int stackCount) {
             int top = y;
-            for (QImage shadowImage : shadowImages) {
-                QPixmap shadowPixmap = QPixmap.fromImage(shadowImage);
-                shadowPixmap.setDevicePixelRatio(scaleFactor);
-                shadowPixmaps.add(new ShadowPixmap(shadowPixmap, (int) Math.round(x / scaleFactor),
-                        (int) Math.round(top / scaleFactor), stackCount));
-                top += shadowImage.height();
-                shadowImage.dispose();
+            for (QPixmap shadowPixmap : shadowPixmaps) {
+                double scaleFactor = shadowPixmap.devicePixelRatio();
+                this.shadowPixmaps.add(new ShadowPixmap(shadowPixmap,
+                        (int) Math.round(x / scaleFactor), (int) Math.round(top / scaleFactor),
+                        stackCount));
+                top += shadowPixmap.height();
             }
         }
 
