@@ -8,13 +8,8 @@
 package mousemaster.qt;
 
 import java.nio.IntBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 /**
  * Qt's exponential blur, ported so it can run off the GUI thread and across cores. Qt's own blur
@@ -29,18 +24,6 @@ public final class ExpBlur {
 
     /** expblur's fixed-point precisions, as qt_blurImage instantiates them. */
     private static final int APREC = 12, ZPREC = 10;
-
-    /** Fewer pixels than this per thread cost more to hand over than to process. */
-    private static final int CHUNK_PIXELS = 1 << 16;
-
-    private static final int threadCount = Runtime.getRuntime().availableProcessors();
-
-    private static final ExecutorService rowPool = Executors.newFixedThreadPool(threadCount,
-            runnable -> {
-                Thread thread = new Thread(runnable, "blur-rows");
-                thread.setDaemon(true);
-                return thread;
-            });
 
     private ExpBlur() {
     }
@@ -60,7 +43,7 @@ public final class ExpBlur {
         int alpha = radius <= 1e-5 ? (1 << APREC) - 1
                 : (int) Math.round((1 << APREC) * (1 - Math.pow(2 * (1 / 255.0), 1 / radius)));
         byte[] pixels = new byte[stride * blurHeight];
-        overRange(blurHeight, width, (from, to) -> {
+        ImageChunks.overRange(blurHeight, width, (from, to) -> {
             int[] top = new int[width];
             int[] bottom = new int[width];
             for (int y = from; y < to; y++) {
@@ -77,7 +60,7 @@ public final class ExpBlur {
             }
             blurRows(pixels, stride, blurWidth, channels, from, to, alpha);
         });
-        overRange(blurWidth, blurHeight, (from, to) ->
+        ImageChunks.overRange(blurWidth, blurHeight, (from, to) ->
                 blurColumns(pixels, stride, blurHeight, from * channels, to * channels, alpha));
         return pixels;
     }
@@ -95,18 +78,6 @@ public final class ExpBlur {
     /** qt_halfScaled's AVG: each channel of the two pixels averaged, rounded down. */
     private static int average(int pixel, int otherPixel) {
         return (((pixel ^ otherPixel) & 0xFEFEFEFE) >>> 1) + (pixel & otherPixel);
-    }
-
-    /** The rows a thread takes of an image: each chunk but the last has this many, an even number
-     *  so it starts where a row of the halved image does. */
-    static int chunkHeight(int width, int height) {
-        int chunks = Math.max(1, chunks((long) width * height));
-        int chunkHeight = (height + chunks - 1) / chunks;
-        return chunkHeight + chunkHeight % 2;
-    }
-
-    private static int chunks(long pixels) {
-        return (int) Math.min(threadCount, pixels / CHUNK_PIXELS);
     }
 
     /**
@@ -129,32 +100,6 @@ public final class ExpBlur {
             z += alpha * (((pixels[rowStart + x] & 0xFF) << ZPREC) - (z >> APREC));
             pixels[rowStart + x] = (byte) (z >> (ZPREC + APREC));
             states[x - from] = z;
-        }
-    }
-
-    interface Range {
-        void run(int from, int to);
-    }
-
-    static void overRange(int count, int pixelsPerUnit, Range range) {
-        int chunks = chunks((long) count * pixelsPerUnit);
-        if (chunks <= 1) {
-            range.run(0, count);
-            return;
-        }
-        List<Callable<Void>> chunked = new ArrayList<>(chunks);
-        for (int chunk = 0; chunk < chunks; chunk++) {
-            int from = chunk * count / chunks, to = (chunk + 1) * count / chunks;
-            chunked.add(() -> {
-                range.run(from, to);
-                return null;
-            });
-        }
-        try {
-            for (Future<Void> chunk : rowPool.invokeAll(chunked))
-                chunk.get();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to blur the shadow", e);
         }
     }
 

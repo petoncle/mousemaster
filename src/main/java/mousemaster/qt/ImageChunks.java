@@ -1,0 +1,105 @@
+package mousemaster.qt;
+
+import io.qt.gui.QImage;
+import io.qt.gui.QPainter;
+import mousemaster.Rectangle;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.function.BiConsumer;
+
+/** An image worked on across cores, in chunks of rows or in ranges of any of its units, one per
+ *  thread. */
+public final class ImageChunks {
+
+    /** Fewer pixels than this per thread cost more to hand over than to process. */
+    private static final int CHUNK_PIXELS = 1 << 16;
+
+    private static final int threadCount = Runtime.getRuntime().availableProcessors();
+
+    private static final ExecutorService pool = Executors.newFixedThreadPool(threadCount,
+            runnable -> {
+                Thread thread = new Thread(runnable, "image-chunks");
+                thread.setDaemon(true);
+                return thread;
+            });
+
+    private ImageChunks() {
+    }
+
+    /** The rows a thread takes of an image: each chunk but the last has this many, an even number
+     *  so it starts where a row of the halved image does. */
+    static int chunkHeight(int width, int height) {
+        int chunks = Math.max(1, chunks((long) width * height));
+        int chunkHeight = (height + chunks - 1) / chunks;
+        return chunkHeight + chunkHeight % 2;
+    }
+
+    private static int chunks(long pixels) {
+        return (int) Math.min(threadCount, pixels / CHUNK_PIXELS);
+    }
+
+    interface Range {
+        void run(int from, int to);
+    }
+
+    static void overRange(int count, int pixelsPerUnit, Range range) {
+        int chunks = chunks((long) count * pixelsPerUnit);
+        if (chunks <= 1) {
+            range.run(0, count);
+            return;
+        }
+        List<Callable<Void>> chunked = new ArrayList<>(chunks);
+        for (int chunk = 0; chunk < chunks; chunk++) {
+            int from = chunk * count / chunks, to = (chunk + 1) * count / chunks;
+            chunked.add(() -> {
+                range.run(from, to);
+                return null;
+            });
+        }
+        try {
+            for (Future<Void> chunk : pool.invokeAll(chunked))
+                chunk.get();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed on the image chunk threads", e);
+        }
+    }
+
+    /**
+     * Paints the area in chunks of rows from the top, one per thread, at devicePixelRatio and
+     * dotsPerMeter: chunkPainter paints each chunk, given the part of the area it covers.
+     */
+    public static List<QImage> paintChunks(Rectangle area, double devicePixelRatio,
+                                           int dotsPerMeter,
+                                           BiConsumer<QPainter, Rectangle> chunkPainter) {
+        int width = (int) Math.round(area.width() * devicePixelRatio);
+        int height = (int) Math.round(area.height() * devicePixelRatio);
+        int chunkHeight = chunkHeight(width, height);
+        QImage[] images = new QImage[(height + chunkHeight - 1) / chunkHeight];
+        overRange(images.length, width * chunkHeight, (from, to) -> {
+            for (int chunk = from; chunk < to; chunk++) {
+                QImage image = new QImage(width,
+                        Math.min(chunkHeight, height - chunk * chunkHeight),
+                        QImage.Format.Format_ARGB32_Premultiplied);
+                image.setDevicePixelRatio(devicePixelRatio);
+                image.setDotsPerMeterX(dotsPerMeter);
+                image.setDotsPerMeterY(dotsPerMeter);
+                image.fill(0);
+                Rectangle chunkArea = new Rectangle(area.x(),
+                        area.y() + (int) Math.round(chunk * chunkHeight / devicePixelRatio),
+                        area.width(), (int) Math.round(image.height() / devicePixelRatio));
+                QPainter painter = new QPainter(image);
+                painter.translate(-chunkArea.x(), -chunkArea.y());
+                chunkPainter.accept(painter, chunkArea);
+                painter.end();
+                painter.dispose();
+                images[chunk] = image;
+            }
+        });
+        return List.of(images);
+    }
+}

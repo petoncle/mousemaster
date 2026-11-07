@@ -12,6 +12,9 @@ import mousemaster.Shadow;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public final class QtColorUtil {
 
@@ -33,6 +36,7 @@ public final class QtColorUtil {
     /** By instance: QBrush equality is a native call, and every brush comes from these caches. */
     private static final Map<QBrush, Map<PenKey, QPen>> penByKeyByBrush =
             new IdentityHashMap<>();
+    private static final Lock penLock = new ReentrantLock();
     private static QBrush noBrush;
 
     private record PenKey(int width, Qt.PenCapStyle capStyle, Qt.PenJoinStyle joinStyle) {
@@ -187,7 +191,7 @@ public final class QtColorUtil {
         opaqueByRgba.clear();
     }
 
-    private static final Map<Integer, QColor> opaqueByRgba = new HashMap<>();
+    private static final Map<Integer, QColor> opaqueByRgba = new ConcurrentHashMap<>();
 
     /** The color at full alpha. Shadow sources are drawn opaque so the shadow keeps its strength,
      *  which asks for the same few variants once per label. */
@@ -206,20 +210,33 @@ public final class QtColorUtil {
 
     public static QPen qPen(QColor color, int width, Qt.PenCapStyle capStyle,
                             Qt.PenJoinStyle joinStyle) {
-        return qPen(qBrush(color), width, capStyle, joinStyle);
+        penLock.lock();
+        try {
+            return qPen(qBrush(color), width, capStyle, joinStyle);
+        }
+        finally {
+            penLock.unlock();
+        }
     }
 
     public static QPen qPen(QBrush brush, int width, Qt.PenCapStyle capStyle,
                             Qt.PenJoinStyle joinStyle) {
-        return penByKeyByBrush.computeIfAbsent(brush, key -> new HashMap<>())
-                              .computeIfAbsent(new PenKey(width, capStyle, joinStyle), key -> {
-                                  QPen pen = new QPen();
-                                  pen.setBrush(brush);
-                                  pen.setCapStyle(capStyle);
-                                  pen.setJoinStyle(joinStyle);
-                                  pen.setWidth(width);
-                                  return pen;
-                              });
+        penLock.lock();
+        try {
+            return penByKeyByBrush.computeIfAbsent(brush, key -> new HashMap<>())
+                                  .computeIfAbsent(new PenKey(width, capStyle, joinStyle),
+                                          key -> {
+                                              QPen pen = new QPen();
+                                              pen.setBrush(brush);
+                                              pen.setCapStyle(capStyle);
+                                              pen.setJoinStyle(joinStyle);
+                                              pen.setWidth(width);
+                                              return pen;
+                                          });
+        }
+        finally {
+            penLock.unlock();
+        }
     }
 
     public static QColor shadow(Shadow shadow, LastSelectedHintColors lastSelectedHintColors) {

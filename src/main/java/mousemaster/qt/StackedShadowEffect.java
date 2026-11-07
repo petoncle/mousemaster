@@ -101,41 +101,16 @@ public class StackedShadowEffect extends QtDropShadowEffect {
 
     /**
      * Renders the shadow of what chunkPainter paints in the area, as the effect draws it under the
-     * source, in chunks of rows from the top, with the source cut out when cutOut. The chunks of
-     * the source are made on the blur's threads, at dotsPerMeter, and chunkPainter paints each of
-     * them, given the part of the area it covers.
+     * source, in chunks of rows from the top, with the source cut out when cutOut. The source is
+     * painted by ImageChunks.paintChunks.
      */
     public static List<QImage> renderShadow(Rectangle area, int dotsPerMeter,
                                             BiConsumer<QPainter, Rectangle> chunkPainter,
                                             QColor shadowColor, double blurRadius,
                                             double horizontalOffset, double verticalOffset,
                                             boolean alphaOnly, boolean cutOut) {
-        int chunkHeight = ExpBlur.chunkHeight(area.width(), area.height());
-        QImage[] sourceImages = new QImage[(area.height() + chunkHeight - 1) / chunkHeight];
-        ExpBlur.overRange(sourceImages.length, area.width() * chunkHeight, (from, to) -> {
-            for (int chunk = from; chunk < to; chunk++) {
-                QImage sourceImage = new QImage(area.width(),
-                        Math.min(chunkHeight, area.height() - chunk * chunkHeight),
-                        QImage.Format.Format_ARGB32_Premultiplied);
-                sourceImage.setDotsPerMeterX(dotsPerMeter);
-                sourceImage.setDotsPerMeterY(dotsPerMeter);
-                QColor fillColor = new QColor(0, 0, 0, 0);
-                sourceImage.fill(fillColor);
-                fillColor.dispose();
-                sourceImages[chunk] = sourceImage;
-            }
-        });
-        // Painting goes through caches that only this thread uses.
-        for (int chunk = 0; chunk < sourceImages.length; chunk++) {
-            Rectangle chunkArea = new Rectangle(area.x(), area.y() + chunk * chunkHeight,
-                    area.width(), sourceImages[chunk].height());
-            QPainter painter = new QPainter(sourceImages[chunk]);
-            painter.translate(-chunkArea.x(), -chunkArea.y());
-            chunkPainter.accept(painter, chunkArea);
-            painter.end();
-            painter.dispose();
-        }
-        return shadows(List.of(sourceImages), chunkHeight, horizontalOffset, verticalOffset,
-                blurRadius, shadowColor, null, alphaOnly, cutOut);
+        return shadows(ImageChunks.paintChunks(area, 1, dotsPerMeter, chunkPainter),
+                ImageChunks.chunkHeight(area.width(), area.height()), horizontalOffset,
+                verticalOffset, blurRadius, shadowColor, null, alphaOnly, cutOut);
     }
 }

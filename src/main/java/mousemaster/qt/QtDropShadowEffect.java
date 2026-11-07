@@ -108,7 +108,7 @@ public class QtDropShadowEffect extends QGraphicsDropShadowEffect {
                 alphaOnly), width / scale, height / scale, alphaOnly ? QImage.Format.Format_Alpha8 :
                 QImage.Format.Format_ARGB32_Premultiplied);
         QImage[] shadows = new QImage[sources.size()];
-        ExpBlur.overRange(shadows.length, width * chunkHeight, (from, to) -> {
+        ImageChunks.overRange(shadows.length, width * chunkHeight, (from, to) -> {
             for (int chunk = from; chunk < to; chunk++) {
                 QImage source = sources.get(chunk);
                 shadows[chunk] = shadow(source, chunk * chunkHeight, blurredImage, scale, width,

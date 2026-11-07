@@ -129,20 +129,24 @@ public class TransparentWindow extends QWidget {
         beforePaint.run();
         if (backgroundRect != null) {
             QPainter painter = new QPainter(this);
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, backgroundRadius > 0);
-            if (backgroundColor != null) {
-                painter.setPen(Qt.PenStyle.NoPen);
-                painter.setBrush(backgroundColor);
-                painter.drawRoundedRect(backgroundRect.x(), backgroundRect.y(),
-                        backgroundRect.width(), backgroundRect.height(), backgroundRadius,
-                        backgroundRadius);
-            }
-            paintBorder(painter, backgroundBorderColor, backgroundBorderThickness,
-                    backgroundRect.x(), backgroundRect.y(), backgroundRect.width(),
-                    backgroundRect.height(), backgroundRadius);
+            paintBackground(painter, backgroundColor, backgroundRect, backgroundRadius,
+                    backgroundBorderColor, backgroundBorderThickness);
             painter.end();
             painter.dispose();
         }
+    }
+
+    public static void paintBackground(QPainter painter, QBrush color, QRect rect, int radius,
+                                       QBrush borderColor, int borderThickness) {
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, radius > 0);
+        if (color != null) {
+            painter.setPen(Qt.PenStyle.NoPen);
+            painter.setBrush(color);
+            painter.drawRoundedRect(rect.x(), rect.y(), rect.width(), rect.height(), radius,
+                    radius);
+        }
+        paintBorder(painter, borderColor, borderThickness, rect.x(), rect.y(), rect.width(),
+                rect.height(), radius);
     }
 
     public void hideChildren() {
