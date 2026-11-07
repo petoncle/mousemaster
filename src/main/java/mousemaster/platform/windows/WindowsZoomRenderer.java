@@ -126,25 +126,25 @@ final class WindowsZoomRenderer {
     }
 
     /** False means Direct3D is unusable. */
-    boolean prepare(WinDef.HWND hwnd, Rectangle screenRect) {
+    boolean prepare(WinDef.HWND hwnd, Rectangle screenRectangle) {
         if (unavailable)
             return false;
         try {
-            if (!duplication.ensureInitialized(screenRect))
+            if (!duplication.ensureInitialized(screenRectangle))
                 return false;
             // The duplication takes its device down with it, and these resources are the
             // device's children.
-            if (hwnd.equals(this.hwnd) && screenRect.equals(windowBounds) &&
+            if (hwnd.equals(this.hwnd) && screenRectangle.equals(windowBounds) &&
                 duplication.device().equals(device))
                 return true;
             releaseResources();
             this.hwnd = hwnd;
-            windowBounds = screenRect;
+            windowBounds = screenRectangle;
             device = duplication.device();
             outputBounds = duplication.outputBounds();
-            createSwapChain(screenRect);
+            createSwapChain(screenRectangle);
             createPipeline();
-            logger.debug("Initialized the zoom renderer on " + screenRect);
+            logger.debug("Initialized the zoom renderer on " + screenRectangle);
             return true;
         }
         catch (Throwable e) {
@@ -223,7 +223,7 @@ final class WindowsZoomRenderer {
         callVoid(context, CTX_DRAW, 3, 0);
     }
 
-    private void createSwapChain(Rectangle screenRect) {
+    private void createSwapChain(Rectangle screenRectangle) {
         Pointer dxgiDevice = queryInterface(device, IID_IDXGIDevice);
         PointerByReference adapterOut = new PointerByReference();
         check(call(dxgiDevice, IDXGIDEVICE_GETADAPTER, adapterOut), "GetAdapter");
@@ -236,8 +236,8 @@ final class WindowsZoomRenderer {
         Pointer factory = factoryOut.getValue();
 
         SwapChainDesc1 desc = new SwapChainDesc1();
-        desc.width = screenRect.width();
-        desc.height = screenRect.height();
+        desc.width = screenRectangle.width();
+        desc.height = screenRectangle.height();
         desc.format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
         desc.sampleCount = 1;
         desc.bufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;

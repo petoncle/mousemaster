@@ -724,21 +724,21 @@ public final class HintMeshRenderer {
         window.clearWindow();
         // The window and the container clear paint the same background.
         Rectangle backgroundArea = hintMesh.backgroundArea();
-        Rectangle backgroundRect = backgroundArea == null || style.backgroundOpacity() == 0 &&
+        Rectangle backgroundRectangle = backgroundArea == null || style.backgroundOpacity() == 0 &&
                                    style.backgroundBorderOpacity() == 0 ? null :
-                backgroundRect(window, backgroundArea, qtScaleFactor);
-        QBrush backgroundColor = backgroundRect == null ? null :
+                backgroundRectangle(window, backgroundArea, qtScaleFactor);
+        QBrush backgroundColor = backgroundRectangle == null ? null :
                 backgroundBrush(style.backgroundColor(), style.backgroundOpacity(),
-                        backgroundRect, hintMeshWindow, hintMesh, qtScaleFactor);
-        QBrush backgroundBorderColor = backgroundRect == null ? null :
+                        backgroundRectangle, hintMeshWindow, hintMesh, qtScaleFactor);
+        QBrush backgroundBorderColor = backgroundRectangle == null ? null :
                 backgroundBrush(style.backgroundBorderColor(), style.backgroundBorderOpacity(),
-                        backgroundRect, hintMeshWindow, hintMesh, qtScaleFactor);
+                        backgroundRectangle, hintMeshWindow, hintMesh, qtScaleFactor);
         int backgroundRadius =
                 scaledLength(style.backgroundBorderRadius(), screenScale / qtScaleFactor);
         int backgroundBorderThickness =
                 scaledLength(style.backgroundBorderThickness(), screenScale / qtScaleFactor);
         if (hintMeshWindow.hints().isEmpty()) {
-            showBackground(window, backgroundColor, backgroundRect, backgroundRadius,
+            showBackground(window, backgroundColor, backgroundRectangle, backgroundRadius,
                     backgroundBorderColor, backgroundBorderThickness);
             QWidget container = new QWidget(window);
             container.setGeometry(0, 0, 0, 0);
@@ -781,7 +781,7 @@ public final class HintMeshRenderer {
                     (int) Math.round(pixmapsAndPosition.height() / pixmapScale));
             newContainer = pixmapLabel;
             boolean animateTransition = style.transition().enabled() && isHintGrid && !oldContainerHidden && animate;
-            showBackground(window, backgroundColor, backgroundRect, backgroundRadius,
+            showBackground(window, backgroundColor, backgroundRectangle, backgroundRadius,
                     backgroundBorderColor, backgroundBorderThickness);
             transitionHintContainers(animateTransition, oldContainer, newContainer,
                     window, hintMeshWindow, style.transition());
@@ -814,8 +814,9 @@ public final class HintMeshRenderer {
                             disposeWidget(container);
                             return;
                         }
-                        paintPixmaps(container, backgroundColor, backgroundRect, backgroundRadius,
-                                backgroundBorderColor, backgroundBorderThickness, screenScale);
+                        paintPixmaps(container, backgroundColor, backgroundRectangle,
+                                backgroundRadius, backgroundBorderColor, backgroundBorderThickness,
+                                screenScale);
                         if (!preWarming)
                             logger.debug("Built hint mesh window in " +
                                     (long) ((System.nanoTime() - before) / 1e6) + "ms");
@@ -830,8 +831,8 @@ public final class HintMeshRenderer {
                             return;
                         }
                         boolean animateTransition = style.transition().enabled() && isHintGrid && !oldContainerHidden && animate;
-                        showBackground(window, backgroundColor, backgroundRect, backgroundRadius,
-                                backgroundBorderColor, backgroundBorderThickness);
+                        showBackground(window, backgroundColor, backgroundRectangle,
+                                backgroundRadius, backgroundBorderColor, backgroundBorderThickness);
                         transitionHintContainers(animateTransition,
                                 oldContainer, newContainer,
                                 window, hintMeshWindow, style.transition());
@@ -856,8 +857,8 @@ public final class HintMeshRenderer {
         }
     }
 
-    private static Rectangle backgroundRect(TransparentWindow window, Rectangle backgroundArea,
-                                            double qtScaleFactor) {
+    private static Rectangle backgroundRectangle(TransparentWindow window,
+                                                 Rectangle backgroundArea, double qtScaleFactor) {
         Rectangle background = inWindowPoints(backgroundArea, window, qtScaleFactor);
         int left = Math.max(0, background.x());
         int top = Math.max(0, background.y());
@@ -877,7 +878,7 @@ public final class HintMeshRenderer {
     }
 
     /** A background is drawn as a box is. Null when it is not drawn. */
-    private QBrush backgroundBrush(Color color, double opacity, Rectangle backgroundRect,
+    private QBrush backgroundBrush(Color color, double opacity, Rectangle backgroundRectangle,
                                    HintMeshWindow hintMeshWindow, HintMesh hintMesh,
                                    double qtScaleFactor) {
         if (opacity == 0)
@@ -886,19 +887,19 @@ public final class HintMeshRenderer {
         Rectangle gradientArea = gradientArea(gradientColor.area(), hintMeshWindow, hintMesh);
         return brush(gradientColor, opacity, gradientArea == null ? null :
                         inWindowPoints(gradientArea, hintMeshWindow.window(), qtScaleFactor),
-                null, backgroundRect.center(), 0, backgroundRect, new Point(0, 0));
+                null, backgroundRectangle.center(), 0, backgroundRectangle, new Point(0, 0));
     }
 
     private static void showBackground(TransparentWindow window, QBrush backgroundColor,
-                                       Rectangle backgroundRect, int backgroundRadius,
+                                       Rectangle backgroundRectangle, int backgroundRadius,
                                        QBrush backgroundBorderColor,
                                        int backgroundBorderThickness) {
-        if (backgroundRect == null) {
+        if (backgroundRectangle == null) {
             window.setBackground(null, null, 0, null, 0);
             return;
         }
-        QRect rect = new QRect(backgroundRect.x(), backgroundRect.y(),
-                backgroundRect.width(), backgroundRect.height());
+        QRect rect = new QRect(backgroundRectangle.x(), backgroundRectangle.y(),
+                backgroundRectangle.width(), backgroundRectangle.height());
         window.setBackground(backgroundColor, rect, backgroundRadius, backgroundBorderColor,
                 backgroundBorderThickness);
     }
@@ -2345,7 +2346,7 @@ public final class HintMeshRenderer {
     /** Paints the container's background and layers into its pixmaps, as Qt paints the widgets,
      *  then drops the layers. */
     private void paintPixmaps(ClearBackgroundQLabel container, QBrush backgroundColor,
-                              Rectangle backgroundRect, int backgroundRadius,
+                              Rectangle backgroundRectangle, int backgroundRadius,
                               QBrush backgroundBorderColor, int backgroundBorderThickness,
                               double screenScale) {
         List<HintPaintLayer> layers = new ArrayList<>();
@@ -2356,9 +2357,9 @@ public final class HintMeshRenderer {
                 .map(layer -> new Rectangle(layer.x(), layer.y(), layer.width(), layer.height()))
                 .toList();
         int containerX = container.x(), containerY = container.y();
-        QRect background = backgroundRect == null ? null :
-                new QRect(backgroundRect.x(), backgroundRect.y(), backgroundRect.width(),
-                        backgroundRect.height());
+        QRect background = backgroundRectangle == null ? null :
+                new QRect(backgroundRectangle.x(), backgroundRectangle.y(),
+                        backgroundRectangle.width(), backgroundRectangle.height());
         List<QImage> images = ImageChunks.paintChunks(
                 new Rectangle(0, 0, container.width(), container.height()),
                 container.devicePixelRatio(), dotsPerMeter(screenScale), (painter, chunk) -> {
