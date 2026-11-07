@@ -12,7 +12,7 @@ public record QtFontStyle(QFont font, QFontMetrics metrics,
                           double shadowBlurRadius,
                           double shadowHorizontalOffset, double shadowVerticalOffset) {
 
-    public QtFontStyle withColor(QColor color) {
+    public QtFontStyle withColors(QColor color, QColor outlineColor, QColor shadowColor) {
         return new QtFontStyle(font, metrics, color, outlineColor, outlineThickness, shadowColor,
                 shadowStackCount, shadowBlurRadius, shadowHorizontalOffset, shadowVerticalOffset);
     }

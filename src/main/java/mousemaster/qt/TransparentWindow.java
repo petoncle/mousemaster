@@ -4,7 +4,7 @@ import io.qt.core.QObject;
 import io.qt.core.QRect;
 import io.qt.core.QRectF;
 import io.qt.core.Qt;
-import io.qt.gui.QColor;
+import io.qt.gui.QBrush;
 import io.qt.gui.QPaintEvent;
 import io.qt.gui.QPainter;
 import io.qt.gui.QPen;
@@ -17,10 +17,10 @@ import mousemaster.Screen;
 
 public class TransparentWindow extends QWidget {
 
-    private QColor backgroundColor;
+    private QBrush backgroundColor;
     private QRect backgroundRect;
     private int backgroundRadius;
-    private QColor backgroundBorderColor;
+    private QBrush backgroundBorderColor;
     private int backgroundBorderThickness;
     private double pointsPerPixel = 1;
     private Runnable beforePaint = () -> {};
@@ -36,7 +36,8 @@ public class TransparentWindow extends QWidget {
         this.beforePaint = beforePaint;
     }
 
-    public void setBackground(QColor color, QRect rect, int radius, QColor borderColor,
+    /** A null color paints nothing. */
+    public void setBackground(QBrush color, QRect rect, int radius, QBrush borderColor,
                               int borderThickness) {
         if (this.backgroundRect != null) {
             update(this.backgroundRect);
@@ -51,11 +52,12 @@ public class TransparentWindow extends QWidget {
 
     /** Inside the edge of the background, so that a background the size of the screen shows all
      *  of it. */
-    public static void paintBorder(QPainter painter, QColor color, int thickness, int x, int y,
+    public static void paintBorder(QPainter painter, QBrush color, int thickness, int x, int y,
                                    int width, int height, int radius) {
-        if (color.alpha() == 0 || thickness == 0)
+        if (color == null || thickness == 0)
             return;
-        QPen pen = new QPen(color);
+        QPen pen = new QPen();
+        pen.setBrush(color);
         pen.setWidth(thickness);
         painter.setPen(pen);
         painter.setBrush(Qt.BrushStyle.NoBrush);
@@ -128,11 +130,13 @@ public class TransparentWindow extends QWidget {
         if (backgroundRect != null) {
             QPainter painter = new QPainter(this);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, backgroundRadius > 0);
-            painter.setPen(Qt.PenStyle.NoPen);
-            painter.setBrush(QtColorUtil.qBrush(backgroundColor));
-            painter.drawRoundedRect(backgroundRect.x(), backgroundRect.y(),
-                    backgroundRect.width(), backgroundRect.height(), backgroundRadius,
-                    backgroundRadius);
+            if (backgroundColor != null) {
+                painter.setPen(Qt.PenStyle.NoPen);
+                painter.setBrush(backgroundColor);
+                painter.drawRoundedRect(backgroundRect.x(), backgroundRect.y(),
+                        backgroundRect.width(), backgroundRect.height(), backgroundRadius,
+                        backgroundRadius);
+            }
             paintBorder(painter, backgroundBorderColor, backgroundBorderThickness,
                     backgroundRect.x(), backgroundRect.y(), backgroundRect.width(),
                     backgroundRect.height(), backgroundRadius);

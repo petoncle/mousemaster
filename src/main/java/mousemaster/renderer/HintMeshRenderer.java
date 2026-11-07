@@ -557,21 +557,17 @@ public final class HintMeshRenderer {
             super(parent);
         }
 
-        private QColor clearColor = new QColor(0, 0, 0, 0);
+        private QBrush clearColor;
         private Rectangle clearRect = new Rectangle(0, 0, 0, 0);
         private int clearRadius;
-        private QColor clearBorderColor = new QColor(0, 0, 0, 0);
+        private QBrush clearBorderColor;
         private int clearBorderThickness;
         /** Crop region, clipped in paintEvent instead of via setMask (which recomposites the whole
          *  window). Null paints the full pixmap. */
         private QRect crop;
 
-        void setClearColor(QColor clearColor, Rectangle clearRect, int clearRadius,
-                           QColor clearBorderColor, int clearBorderThickness) {
-            if (this.clearColor != null)
-                this.clearColor.dispose();
-            if (this.clearBorderColor != null)
-                this.clearBorderColor.dispose();
+        void setClearColor(QBrush clearColor, Rectangle clearRect, int clearRadius,
+                           QBrush clearBorderColor, int clearBorderThickness) {
             this.clearColor = clearColor;
             this.clearRect = clearRect;
             this.clearRadius = clearRadius;
@@ -618,7 +614,7 @@ public final class HintMeshRenderer {
             if (crop != null) {
                 QPainter painter = new QPainter(this);
                 painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
-                painter.fillRect(event.rect(), clearColor);
+                painter.fillRect(event.rect(), QtColorUtil.qBrush(0));
                 QRect drawRegion = crop.intersected(event.rect());
                 if (!drawRegion.isEmpty()) {
                     painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
@@ -637,18 +633,24 @@ public final class HintMeshRenderer {
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
             // Clear what's behind (when we're drawing the old container behind).
             QRect r = rect();
-            painter.fillRect(r, clearColor);
+            painter.fillRect(r, QtColorUtil.qBrush(0));
             r.dispose();
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
+            // The background is in the coordinates of the window.
+            painter.save();
+            painter.translate(-x(), -y());
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, clearRadius > 0);
-            painter.setPen(Qt.PenStyle.NoPen);
-            painter.setBrush(QtColorUtil.qBrush(clearColor));
-            painter.drawRoundedRect(clearRect.x() - x(), clearRect.y() - y(),
-                    clearRect.width(), clearRect.height(), clearRadius, clearRadius);
+            if (clearColor != null) {
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
+                painter.setPen(Qt.PenStyle.NoPen);
+                painter.setBrush(clearColor);
+                painter.drawRoundedRect(clearRect.x(), clearRect.y(), clearRect.width(),
+                        clearRect.height(), clearRadius, clearRadius);
+            }
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             TransparentWindow.paintBorder(painter, clearBorderColor, clearBorderThickness,
-                    clearRect.x() - x(), clearRect.y() - y(), clearRect.width(),
-                    clearRect.height(), clearRadius);
+                    clearRect.x(), clearRect.y(), clearRect.width(), clearRect.height(),
+                    clearRadius);
+            painter.restore();
             painter.end();
             painter.dispose();
             super.paintEvent(event);
@@ -764,17 +766,17 @@ public final class HintMeshRenderer {
         QWidget oldContainer = oldContainers.isEmpty() ? null : oldContainers.getFirst();
         boolean oldContainerHidden = oldContainer == null || oldContainer.isHidden();
         window.clearWindow();
-        // Compute background color for both the window and the container clear.
+        // The window and the container clear paint the same background.
         Rectangle backgroundArea = hintMesh.backgroundArea();
-        QColor backgroundColor = QtColorUtil.qColor(
-                style.backgroundColor().hexColor(lastSelectedHintBoxHexColor),
-                style.backgroundOpacity());
-        QColor backgroundBorderColor = QtColorUtil.qColor(
-                style.backgroundBorderColor().hexColor(lastSelectedHintBoxHexColor),
-                style.backgroundBorderOpacity());
         Rectangle backgroundRect = backgroundArea == null || style.backgroundOpacity() == 0 &&
                                    style.backgroundBorderOpacity() == 0 ? null :
                 backgroundRect(window, backgroundArea, qtScaleFactor);
+        QBrush backgroundColor = backgroundRect == null ? null :
+                backgroundBrush(style.backgroundColor(), style.backgroundOpacity(),
+                        backgroundRect, hintMeshWindow, hintMesh, qtScaleFactor);
+        QBrush backgroundBorderColor = backgroundRect == null ? null :
+                backgroundBrush(style.backgroundBorderColor(), style.backgroundBorderOpacity(),
+                        backgroundRect, hintMeshWindow, hintMesh, qtScaleFactor);
         int backgroundRadius =
                 scaledLength(style.backgroundBorderRadius(), screenScale / qtScaleFactor);
         int backgroundBorderThickness =
@@ -908,23 +910,40 @@ public final class HintMeshRenderer {
 
     private static Rectangle backgroundRect(TransparentWindow window, Rectangle backgroundArea,
                                             double qtScaleFactor) {
-        int backgroundX = (int) Math.round(
-                (backgroundArea.x() - window.xInPixels()) / qtScaleFactor);
-        int backgroundY = (int) Math.round(
-                (backgroundArea.y() - window.yInPixels()) / qtScaleFactor);
-        int left = Math.max(0, backgroundX);
-        int top = Math.max(0, backgroundY);
-        int right = Math.min(window.width(),
-                backgroundX + (int) Math.round(backgroundArea.width() / qtScaleFactor));
-        int bottom = Math.min(window.height(),
-                backgroundY + (int) Math.round(backgroundArea.height() / qtScaleFactor));
+        Rectangle background = inWindowPoints(backgroundArea, window, qtScaleFactor);
+        int left = Math.max(0, background.x());
+        int top = Math.max(0, background.y());
+        int right = Math.min(window.width(), background.x() + background.width());
+        int bottom = Math.min(window.height(), background.y() + background.height());
         return right > left && bottom > top ?
                 new Rectangle(left, top, right - left, bottom - top) : null;
     }
 
-    private static void showBackground(TransparentWindow window, QColor backgroundColor,
+    private static Rectangle inWindowPoints(Rectangle pixelRectangle, TransparentWindow window,
+                                            double qtScaleFactor) {
+        return new Rectangle(
+                (int) Math.round((pixelRectangle.x() - window.xInPixels()) / qtScaleFactor),
+                (int) Math.round((pixelRectangle.y() - window.yInPixels()) / qtScaleFactor),
+                (int) Math.round(pixelRectangle.width() / qtScaleFactor),
+                (int) Math.round(pixelRectangle.height() / qtScaleFactor));
+    }
+
+    /** A background is drawn as a box is. Null when it is not drawn. */
+    private QBrush backgroundBrush(Color color, double opacity, Rectangle backgroundRect,
+                                   HintMeshWindow hintMeshWindow, HintMesh hintMesh,
+                                   double qtScaleFactor) {
+        if (opacity == 0)
+            return null;
+        GradientColor gradientColor = gradientColor(color);
+        Rectangle gradientArea = gradientArea(gradientColor.area(), hintMeshWindow, hintMesh);
+        return brush(gradientColor, opacity, gradientArea == null ? null :
+                        inWindowPoints(gradientArea, hintMeshWindow.window(), qtScaleFactor),
+                null, backgroundRect.center(), 0, backgroundRect, new Point(0, 0));
+    }
+
+    private static void showBackground(TransparentWindow window, QBrush backgroundColor,
                                        Rectangle backgroundRect, int backgroundRadius,
-                                       QColor backgroundBorderColor,
+                                       QBrush backgroundBorderColor,
                                        int backgroundBorderThickness) {
         if (backgroundRect == null) {
             window.setBackground(null, null, 0, null, 0);
@@ -1844,7 +1863,9 @@ public final class HintMeshRenderer {
                     hintCenter, turn, hintBox.pixelRectangle(0, 0), sweepOrigin));
             HintMeshStyle hintStyle = hintSaved ? savedStyle : style;
             if (sampledText(hintStyle, hasForegroundPrefixKeys)) {
-                Rectangle box = hintBox.pixelRectangle(0, 0);
+                // On the screen, as the hint center is.
+                Rectangle box = hintBox.pixelRectangle((int) Math.round(sweepOrigin.x()),
+                        (int) Math.round(sweepOrigin.y()));
                 hintLabel.labelFontStyle = sampledLabelFontStyle(
                         hintLabel.labelFontStyle, hintStyle,
                         color -> color.area() == GradientArea.ELEMENT ? box :
@@ -1852,7 +1873,7 @@ public final class HintMeshRenderer {
                                         area -> gradientArea(area, hintMeshWindow, hintMesh)),
                         hintGroup, hintCenter, turn);
             }
-            setDecorationBorderColors(hintBox, hintBox.pixelRectangle(0, 0),
+            setDecorationColors(hintBox, hintBox.pixelRectangle(0, 0),
                     subDecorationStyles, 0, hintGroup, turn, sweepOrigin);
             hintBoxRectangles.put(hintBox.hint.keySequence(),
                     new Rectangle(hintBox.x(), hintBox.y(), hintBox.width(), hintBox.height()));
@@ -1926,8 +1947,9 @@ public final class HintMeshRenderer {
         hintBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
         applyBoxShadow(boxShadowLayer, hintBoxes, boxShadow,
                 containerWidth, containerHeight, screenScale, qtScaleFactor);
-        addDecorationLabelLayers(container, hintBoxes, subDecorationStyles,
-                containerWidth, containerHeight);
+        List<HintPaintLayer> decorationLabelLayers =
+                addDecorationLabelLayers(container, hintBoxes, subDecorationStyles,
+                        containerWidth, containerHeight);
         // Layer 3: Prefix boxes.
         HintPaintLayer prefixBoxLayer = new HintPaintLayer(container, prefixBoxes, List.of());
         prefixBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
@@ -1946,6 +1968,7 @@ public final class HintMeshRenderer {
         // to the container: a grid drilled past a screen edge has cells the container cannot show.
         HintBox areaBox = null;
         List<DecorationStyle> areaDecorationStyles = List.of();
+        List<HintPaintLayer> areaDecorationLabelLayers = List.of();
         if (hintMesh.decoration() != null) {
             Rectangle area = hintMesh.decoration().backgroundArea();
             int areaLeft = (int) Math.round(area.x() / qtScaleFactor) - minHintLeft;
@@ -1963,7 +1986,7 @@ public final class HintMeshRenderer {
                     screenScale, hintMeshWindow, hintMesh));
             addDecorationBoxes(areaBox, areaWidth, areaHeight,
                     hintMesh.decoration(), areaDecorationStyles, 0, qtScaleFactor);
-            setDecorationBorderColors(areaBox, areaBox.pixelRectangle(0, 0),
+            setDecorationColors(areaBox, areaBox.pixelRectangle(0, 0),
                     areaDecorationStyles, 0, null, 0, sweepOrigin);
             List<Rectangle> areaInk = new ArrayList<>();
             areaBox.collectBorderInk(0, 0, areaInk);
@@ -1972,13 +1995,18 @@ public final class HintMeshRenderer {
             HintPaintLayer areaDecorationLayer =
                     new HintPaintLayer(container, List.of(areaBox), List.of());
             areaDecorationLayer.setGeometry(0, 0, containerWidth, containerHeight);
-            addDecorationLabelLayers(container, List.of(areaBox), areaDecorationStyles,
-                    containerWidth, containerHeight);
+            areaDecorationLabelLayers = addDecorationLabelLayers(container, List.of(areaBox),
+                    areaDecorationStyles, containerWidth, containerHeight);
         }
         dropOverlappingDecorationLabels(hintBoxes, areaBox,
                 style.fontStyle().defaultFontStyle().opacity() != 0 &&
                 !hints.getFirst().keySequence().isEmpty(),
                 subDecorationStyles, areaDecorationStyles);
+        addDecorationLabelShadows(decorationLabelLayers, hintBoxes, subDecorationStyles,
+                containerWidth, containerHeight, screenScale);
+        if (areaBox != null)
+            addDecorationLabelShadows(areaDecorationLabelLayers, List.of(areaBox),
+                    areaDecorationStyles, containerWidth, containerHeight, screenScale);
         hintBoxRectanglesByHintMeshKey.put(hintMeshKey, hintBoxRectangles);
         logger.debug(
                 "Built {} hint boxes: metrics {}ms, boxes {}ms, groups {}ms, layers {}ms",
@@ -2126,16 +2154,22 @@ public final class HintMeshRenderer {
     }
 
     private static boolean sampledText(HintFontStyle fontStyle) {
-        return gradient(fontStyle.defaultFontStyle()) || gradient(fontStyle.selectedFontStyle()) ||
-               gradient(fontStyle.focusedFontStyle());
+        return sampledText(fontStyle.defaultFontStyle()) ||
+               sampledText(fontStyle.selectedFontStyle()) ||
+               sampledText(fontStyle.focusedFontStyle());
     }
 
-    private static boolean gradient(FontStyle fontStyle) {
-        return fontStyle.color() instanceof GradientColor color && color.gradient();
+    private static boolean sampledText(FontStyle fontStyle) {
+        return gradient(fontStyle.color()) || gradient(fontStyle.outlineColor()) ||
+               gradient(fontStyle.shadow().color());
     }
 
-    /** A key's text is drawn in one color, so a gradient font color is sampled at the hint,
-     *  the way a box samples a gradient. */
+    private static boolean gradient(Color color) {
+        return color instanceof GradientColor gradientColor && gradientColor.gradient();
+    }
+
+    /** A key's text, outline and shadow are each drawn in one color, so a gradient is sampled
+     *  at the hint, the way a box samples a gradient. */
     private static QtHintFontStyle sampledLabelFontStyle(
             QtHintFontStyle labelFontStyle, HintMeshStyle style,
             Function<GradientColor, Rectangle> gradientArea, HintGroup hintGroup, Point center,
@@ -2162,15 +2196,29 @@ public final class HintMeshRenderer {
     private static QtFontStyle sampledFontStyle(QtFontStyle qtFontStyle, FontStyle fontStyle,
                                                 Function<GradientColor, Rectangle> gradientArea,
                                                 HintGroup hintGroup, Point center, int turn) {
-        if (!gradient(fontStyle))
+        if (!sampledText(fontStyle))
             return qtFontStyle;
-        GradientColor color = (GradientColor) fontStyle.color();
-        if (color.direction() == GradientDirection.IN_TURN)
-            return qtFontStyle.withColor(QColor.fromRgba(QtColorUtil.rgba(
-                    color.turnRgb(sampledTurn(color, hintGroup, turn)),
-                    fontStyle.opacity())));
-        return qtFontStyle.withColor(QtColorUtil.qColor(color, fontStyle.opacity(),
-                sampledPosition(color, gradientArea.apply(color), hintGroup, center)));
+        return qtFontStyle.withColors(
+                sampledColor(qtFontStyle.color(), fontStyle.color(), fontStyle.opacity(),
+                        gradientArea, hintGroup, center, turn),
+                sampledColor(qtFontStyle.outlineColor(), fontStyle.outlineColor(),
+                        fontStyle.outlineOpacity(), gradientArea, hintGroup, center, turn),
+                sampledColor(qtFontStyle.shadowColor(), fontStyle.shadow().color(),
+                        fontStyle.shadow().opacity(), gradientArea, hintGroup, center, turn));
+    }
+
+    /** unsampled when color is not a gradient. */
+    private static QColor sampledColor(QColor unsampled, Color color, double opacity,
+                                       Function<GradientColor, Rectangle> gradientArea,
+                                       HintGroup hintGroup, Point center, int turn) {
+        if (!gradient(color))
+            return unsampled;
+        GradientColor gradientColor = (GradientColor) color;
+        if (gradientColor.direction() == GradientDirection.IN_TURN)
+            return QColor.fromRgba(QtColorUtil.rgba(
+                    gradientColor.turnRgb(sampledTurn(gradientColor, hintGroup, turn)), opacity));
+        return QtColorUtil.qColor(gradientColor, opacity, sampledPosition(gradientColor,
+                gradientArea.apply(gradientColor), hintGroup, center));
     }
 
     /** A saved hint stays when the selected keys hide the other hints. */
@@ -2199,33 +2247,49 @@ public final class HintMeshRenderer {
                 GradientColor.parse(color.hexColor(lastSelectedHintBoxHexColor));
     }
 
-    /** Gives the decoration boxes of box, which lands on boxPixelRectangle, their border brush. */
-    private static void setDecorationBorderColors(HintBox box, Rectangle boxPixelRectangle,
-                                                  List<DecorationStyle> decorationStyles,
-                                                  int depth, HintGroup hintGroup,
-                                                  int turn, Point sweepOrigin) {
+    /** Gives the decoration boxes of box, which lands on boxPixelRectangle, their colors, as a
+     *  hint box and its label take theirs. */
+    private static void setDecorationColors(HintBox box, Rectangle boxPixelRectangle,
+                                            List<DecorationStyle> decorationStyles,
+                                            int depth, HintGroup hintGroup,
+                                            int turn, Point sweepOrigin) {
         for (HintBox decorationBox : box.decorationBoxes) {
             DecorationStyle decorationStyle = decorationStyles.get(depth);
             Rectangle pixelRectangle =
                     decorationBox.pixelRectangle(boxPixelRectangle.x(), boxPixelRectangle.y());
+            Point center = new Point(sweepOrigin.x() + pixelRectangle.center().x(),
+                    sweepOrigin.y() + pixelRectangle.center().y());
+            Rectangle screenRectangle = new Rectangle(
+                    pixelRectangle.x() + (int) Math.round(sweepOrigin.x()),
+                    pixelRectangle.y() + (int) Math.round(sweepOrigin.y()),
+                    pixelRectangle.width(), pixelRectangle.height());
+            Function<GradientColor, Rectangle> gradientArea = color ->
+                    color.area() == GradientArea.ELEMENT ? screenRectangle :
+                            decorationStyle.gradientAreaByArea().get(color.area());
+            decorationBox.setColor(brush(decorationStyle.boxColor(),
+                    decorationStyle.boxOpacity(), gradientArea.apply(decorationStyle.boxColor()),
+                    hintGroup, center, turn, pixelRectangle, sweepOrigin));
             decorationBox.setBorderColor(brush(decorationStyle.boxBorderColor(),
-                    decorationStyle.boxBorderOpacity(), decorationStyle.boxBorderGradientArea(),
-                    hintGroup, new Point(sweepOrigin.x() + pixelRectangle.center().x(),
-                            sweepOrigin.y() + pixelRectangle.center().y()),
-                    turn, pixelRectangle, sweepOrigin));
-            setDecorationBorderColors(decorationBox, pixelRectangle, decorationStyles,
+                    decorationStyle.boxBorderOpacity(),
+                    gradientArea.apply(decorationStyle.boxBorderColor()), hintGroup, center, turn,
+                    pixelRectangle, sweepOrigin));
+            decorationBox.setDecorationLabelColors(sampledFontStyle(decorationStyle.labelStyle(),
+                    decorationStyle.labelFont(), gradientArea, hintGroup, center, turn));
+            setDecorationColors(decorationBox, pixelRectangle, decorationStyles,
                     depth + 1, hintGroup, turn, sweepOrigin);
         }
     }
 
     /** The Qt drawing resources for one decoration. */
-    private record DecorationStyle(QBrush boxColor, GradientColor boxBorderColor,
-                                   double boxBorderOpacity, Rectangle boxBorderGradientArea,
+    private record DecorationStyle(GradientColor boxColor, double boxOpacity,
+                                   GradientColor boxBorderColor, double boxBorderOpacity,
+                                   Map<GradientArea, Rectangle> gradientAreaByArea,
                                    int borderThicknessPx, int borderLengthPx,
                                    int borderRadiusPx, int horizontalPaddingPx,
                                    int verticalPaddingPx, boolean boxFramed,
                                    boolean labelVisible,
                                    QtFontStyle labelStyle,
+                                   FontStyle labelFont,
                                    List<Key> labelOverride,
                                    FontVerticalAlignment labelVerticalAlignment) {
     }
@@ -2233,11 +2297,14 @@ public final class HintMeshRenderer {
     private DecorationStyle decorationStyle(Decoration decoration, double screenScale,
                                             HintMeshWindow hintMeshWindow, HintMesh hintMesh) {
         FontStyle font = decoration.fontStyle().defaultFontStyle();
-        GradientColor boxBorderColor = gradientColor(decoration.boxBorderColor());
+        Map<GradientArea, Rectangle> gradientAreaByArea = new EnumMap<>(GradientArea.class);
+        for (GradientArea area : GradientArea.values())
+            if (area != GradientArea.ELEMENT)
+                gradientAreaByArea.put(area, gradientArea(area, hintMeshWindow, hintMesh));
         return new DecorationStyle(
-                fillBrush(decoration.boxColor(), decoration.boxOpacity()),
-                boxBorderColor, decoration.boxBorderOpacity(),
-                gradientArea(boxBorderColor.area(), hintMeshWindow, hintMesh),
+                decoration.boxColor(), decoration.boxOpacity(),
+                gradientColor(decoration.boxBorderColor()), decoration.boxBorderOpacity(),
+                gradientAreaByArea,
                 scaledLength(decoration.boxBorderThickness(), screenScale),
                 scaledLength(decoration.boxBorderLength(), screenScale),
                 scaledLength(decoration.boxBorderRadius(), screenScale),
@@ -2246,6 +2313,7 @@ public final class HintMeshRenderer {
                 decoration.boxFramed(),
                 font.opacity() != 0,
                 QtHintFont.qtFontStyle(font, screenScale, lastSelectedHintBoxHexColor),
+                font,
                 decoration.labelOverride(),
                 font.verticalAlignment());
     }
@@ -2277,7 +2345,7 @@ public final class HintMeshRenderer {
             List<Key> labelKeys = decorationStyle.labelOverride().isEmpty() ?
                     cell.keySequence() : decorationStyle.labelOverride();
             HintBox decorationBox = new HintBox(null, decorationStyle.borderLengthPx(),
-                    decorationStyle.borderThicknessPx(), decorationStyle.boxColor(),
+                    decorationStyle.borderThicknessPx(), QtColorUtil.qBrush(0),
                     null, true,
                     decorationBoxLeft == 0, decorationBoxTop == 0,
                     decorationBoxRight == parentWidth, decorationBoxBottom == parentHeight,
@@ -2545,6 +2613,7 @@ public final class HintMeshRenderer {
         private String decorationLabel;
         private QFont decorationLabelFont;
         private QColor decorationLabelColor;
+        private QColor decorationLabelShadowColor;
         private int decorationLabelX;
         private double decorationLabelY;
         private int decorationLabelWidth, decorationLabelAscent, decorationLabelDescent;
@@ -2605,7 +2674,6 @@ public final class HintMeshRenderer {
                                        FontVerticalAlignment verticalAlignment) {
             this.decorationLabel = label;
             this.decorationLabelFont = labelStyle.font();
-            this.decorationLabelColor = labelStyle.color();
             if (!label.isEmpty()) {
                 QFontMetrics metrics = labelStyle.metrics();
                 int advance = metrics.horizontalAdvance(label);
@@ -2625,8 +2693,7 @@ public final class HintMeshRenderer {
         void collectDecorationLabelBounds(int depth, int offsetX, int offsetY,
                                           List<Rectangle> bounds) {
             if (depth == 0) {
-                if (decorationLabel != null && !decorationLabel.isEmpty()
-                    && decorationLabelFont != null)
+                if (decorationLabelDrawn())
                     bounds.add(new Rectangle(offsetX + x + decorationLabelX,
                             offsetY + y + (int) Math.round(decorationLabelY) - decorationLabelAscent,
                             decorationLabelWidth,
@@ -2743,23 +2810,44 @@ public final class HintMeshRenderer {
             }
         }
 
+        void setDecorationLabelColors(QtFontStyle labelStyle) {
+            decorationLabelColor = labelStyle.color();
+            decorationLabelShadowColor = labelStyle.shadowColor();
+        }
+
         /** Draws the decoration labels nested {@code depth} levels down. They are painted on their own
-         *  layer, one per depth, so a depth's shadow applies to the layer as hint label shadows do. */
-        void paintDecorationLabels(QPainter painter, int depth) {
+         *  layer, one per depth, so a depth's shadow applies to the layer as hint label shadows do.
+         *  forceOpaque paints them in their opaque shadow colors, as the shape of their shadow. */
+        void paintDecorationLabels(QPainter painter, int depth, boolean forceOpaque) {
             painter.save();
             painter.translate(x, y);
             if (depth == 0) {
-                if (decorationLabel != null && !decorationLabel.isEmpty()
-                    && decorationLabelFont != null) {
+                if (decorationLabelDrawn()) {
                     painter.setFont(decorationLabelFont);
-                    painter.setPen(decorationLabelColor);
+                    painter.setPen(forceOpaque ? QtColorUtil.opaque(decorationLabelShadowColor) :
+                            decorationLabelColor);
                     painter.drawText(new QPointF(decorationLabelX, decorationLabelY), decorationLabel);
                 }
             }
             else
                 for (HintBox decorationBox : decorationBoxes)
-                    decorationBox.paintDecorationLabels(painter, depth - 1);
+                    decorationBox.paintDecorationLabels(painter, depth - 1, forceOpaque);
             painter.restore();
+        }
+
+        private boolean decorationLabelDrawn() {
+            return decorationLabel != null && !decorationLabel.isEmpty() &&
+                   decorationLabelFont != null;
+        }
+
+        void collectDecorationLabelShadowRgbs(int depth, Set<Integer> rgbs) {
+            if (depth == 0) {
+                if (decorationLabelDrawn())
+                    rgbs.add(decorationLabelShadowColor.rgb());
+                return;
+            }
+            for (HintBox decorationBox : decorationBoxes)
+                decorationBox.collectDecorationLabelShadowRgbs(depth - 1, rgbs);
         }
 
         /** Everything but the box's own border — the part that crops with the container. */
@@ -3473,7 +3561,7 @@ public final class HintMeshRenderer {
                     continue;
                 if (labelFontStyle.perKeyFont())
                     painter.setFont(qtFontStyle.font());
-                painter.setPen(forceOpaque ? opaqueColor(color) : color);
+                painter.setPen(forceOpaque ? opaqueColor(qtFontStyle.shadowColor()) : color);
                 painter.drawText(new QPointF(keyText.x() - left, keyText.y() - top), keyText.text());
             }
             painter.restore();
@@ -3494,7 +3582,7 @@ public final class HintMeshRenderer {
             if (!hasKeys)
                 return;
             QColor outlineColor = forceOpaque ?
-                    opaqueColor(qtFontStyle.outlineColor()) : qtFontStyle.outlineColor();
+                    opaqueColor(qtFontStyle.shadowColor()) : qtFontStyle.outlineColor();
             List<GlyphPlacement> glyphs = new ArrayList<>(keyTexts.size());
             for (HintKeyText keyText : keyTexts)
                 if (filter.test(keyText))
@@ -3552,8 +3640,7 @@ public final class HintMeshRenderer {
 
         ShadowGroupKey shadowGroupKey(HintKeyText keyText) {
             QtFontStyle qtFontStyle = hintKeyTextQtFontStyle(keyText);
-            QColor c = qtFontStyle.shadowColor();
-            return new ShadowGroupKey(c.red(), c.green(), c.blue(), c.alpha(),
+            return new ShadowGroupKey(qtFontStyle.shadowColor().alpha(),
                                       qtFontStyle.shadowStackCount(), qtFontStyle.shadowBlurRadius(),
                                       qtFontStyle.shadowHorizontalOffset(), qtFontStyle.shadowVerticalOffset());
         }
@@ -3594,7 +3681,7 @@ public final class HintMeshRenderer {
                     continue;
                 if (labelFontStyle.perKeyFont())
                     painter.setFont(qtFontStyle.font());
-                painter.setPen(opaqueColor(color));
+                painter.setPen(opaqueColor(qtFontStyle.shadowColor()));
                 painter.drawText(new QPointF(keyText.x() - left, keyText.y() - top), keyText.text());
             }
             painter.restore();
@@ -3604,7 +3691,8 @@ public final class HintMeshRenderer {
     private record ShadowPixmap(QPixmap pixmap, int x, int y, int stackCount) {
     }
 
-    private record ShadowGroupKey(int r, int g, int b, int a,
+    /** Shadows that differ only in color blur together, each in its own color. */
+    private record ShadowGroupKey(int alpha,
                                   int stackCount, double blurRadius,
                                   double horizontalOffset, double verticalOffset) {
     }
@@ -3749,28 +3837,60 @@ public final class HintMeshRenderer {
 
     /** One layer per decoration depth, drawing that depth's labels above the boxes carrying them, so
      *  its shadow applies to the whole layer at once the way a hint label shadow does. */
-    private void addDecorationLabelLayers(QWidget container, List<HintBox> boxes,
-                                          List<DecorationStyle> decorationStyles,
-                                          int containerWidth, int containerHeight) {
+    private List<HintPaintLayer> addDecorationLabelLayers(QWidget container, List<HintBox> boxes,
+                                                          List<DecorationStyle> decorationStyles,
+                                                          int containerWidth,
+                                                          int containerHeight) {
+        List<HintPaintLayer> layers = new ArrayList<>();
         for (int depth = 0; depth < decorationStyles.size(); depth++) {
             int labelDepth = depth + 1;
             HintPaintLayer layer = new HintPaintLayer(container, boxes, List.of(),
-                    (box, painter) -> box.paintDecorationLabels(painter, labelDepth));
+                    (box, painter) -> box.paintDecorationLabels(painter, labelDepth, false));
             layer.setGeometry(0, 0, containerWidth, containerHeight);
+            layers.add(layer);
+        }
+        return layers;
+    }
+
+    /** Pre-renders the shadow of each decoration label layer, as a hint label layer's. */
+    private void addDecorationLabelShadows(List<HintPaintLayer> layers, List<HintBox> boxes,
+                                           List<DecorationStyle> decorationStyles,
+                                           int containerWidth, int containerHeight,
+                                           double screenScale) {
+        for (int depth = 0; depth < layers.size(); depth++) {
+            int labelDepth = depth + 1;
             QtFontStyle labelStyle = decorationStyles.get(depth).labelStyle();
             if (labelStyle.shadowColor().alpha() == 0 || labelStyle.invisible())
                 continue;
-            List<Rectangle> ink = new ArrayList<>();
-            for (HintBox box : boxes)
+            Map<HintBox, Rectangle> inkByBox = new LinkedHashMap<>();
+            Set<Integer> shadowRgbs = new HashSet<>();
+            for (HintBox box : boxes) {
+                List<Rectangle> ink = new ArrayList<>();
                 box.collectDecorationLabelBounds(labelDepth, 0, 0, ink);
-            layer.fitToInk(ink, shadowPadding(labelStyle), containerWidth, containerHeight);
-            StackedShadowEffect effect = new StackedShadowEffect();
-            effect.setBlurRadius(labelStyle.shadowBlurRadius());
-            effect.setOffset(labelStyle.shadowHorizontalOffset(),
-                    labelStyle.shadowVerticalOffset());
-            effect.setColor(labelStyle.shadowColor());
-            effect.setStackCount(labelStyle.shadowStackCount());
-            layer.setGraphicsEffect(effect);
+                if (ink.isEmpty())
+                    continue;
+                inkByBox.put(box, Rectangle.union(ink));
+                box.collectDecorationLabelShadowRgbs(labelDepth, shadowRgbs);
+            }
+            int padding = shadowPadding(labelStyle);
+            HintPaintLayer layer = layers.get(depth);
+            if (inkByBox.isEmpty() || !layer.fitToInk(List.copyOf(inkByBox.values()), padding,
+                    containerWidth, containerHeight))
+                continue;
+            Rectangle area = new Rectangle(layer.originX, layer.originY, layer.width(),
+                    layer.height());
+            QColor shadowColor = shadowColor(shadowRgbs, labelStyle.shadowColor().alpha());
+            layer.addShadowPixmaps(StackedShadowEffect.renderShadow(area,
+                    dotsPerMeter(screenScale),
+                    (painter, chunk) -> paintCasters(painter, chunk, inkByBox, padding,
+                            (box, boxPainter) -> box.paintDecorationLabels(boxPainter,
+                                    labelDepth, true)),
+                    shadowColor, labelStyle.shadowBlurRadius(),
+                    labelStyle.shadowHorizontalOffset(), labelStyle.shadowVerticalOffset(),
+                    shadowRgbs.size() == 1,
+                    labelStyle.hasTransparency() || labelStyle.shadowStackCount() != 1),
+                    area.x(), area.y(), 1, labelStyle.shadowStackCount());
+            shadowColor.dispose();
         }
     }
 
@@ -3825,15 +3945,27 @@ public final class HintMeshRenderer {
                 HintLabel::ink, padding,
                 new Rectangle(0, 0, containerWidth, containerHeight)).entrySet()) {
             Rectangle area = entry.getKey();
+            Set<Integer> shadowRgbs = new HashSet<>();
+            for (HintLabel label : entry.getValue().keySet())
+                shadowRgbs.add(label.labelFontStyle.defaultStyle().shadowColor().rgb());
+            QColor shadowColor = shadowColor(shadowRgbs, shadowStyle.shadowColor().alpha());
             layer.addShadowPixmaps(StackedShadowEffect.renderShadow(area,
                     dotsPerMeter(screenScale),
                     (painter, chunk) -> paintCasters(painter, chunk, entry.getValue(), padding,
                             HintLabel::paintOpaque),
-                    shadowStyle.shadowColor(), shadowStyle.shadowBlurRadius(),
+                    shadowColor, shadowStyle.shadowBlurRadius(),
                     shadowStyle.shadowHorizontalOffset(), shadowStyle.shadowVerticalOffset(),
-                    true, style.hasTransparency() || shadowStyle.shadowStackCount() != 1),
+                    shadowRgbs.size() == 1,
+                    style.hasTransparency() || shadowStyle.shadowStackCount() != 1),
                     area.x(), area.y(), 1, shadowStyle.shadowStackCount());
+            shadowColor.dispose();
         }
+    }
+
+    /** The color that tints the shadow of casters of one color. The shadow of casters of several
+     *  blurs their own colors, and takes only the alpha. */
+    private static QColor shadowColor(Set<Integer> rgbs, int alpha) {
+        return QColor.fromRgba(rgbs.iterator().next() & 0xFFFFFF | alpha << 24);
     }
 
 
@@ -3848,13 +3980,15 @@ public final class HintMeshRenderer {
             int containerWidth, int containerHeight,
             double screenScale) {
         // 1. Collect unique shadow groups.
-        Set<ShadowGroupKey> groups = new LinkedHashSet<>();
+        Map<ShadowGroupKey, Set<Integer>> shadowRgbsByGroup = new LinkedHashMap<>();
         for (HintLabel label : labels) {
             for (HintKeyText keyText : label.keyTexts) {
-                groups.add(label.shadowGroupKey(keyText));
+                shadowRgbsByGroup.computeIfAbsent(label.shadowGroupKey(keyText),
+                                         group -> new HashSet<>())
+                                 .add(label.hintKeyTextQtFontStyle(keyText).shadowColor().rgb());
             }
         }
-        int padding = groups.stream()
+        int padding = shadowRgbsByGroup.keySet().stream()
                             .mapToInt(group -> shadowPadding(group.blurRadius(),
                                     group.horizontalOffset(), group.verticalOffset()))
                             .max()
@@ -3868,10 +4002,11 @@ public final class HintMeshRenderer {
         Rectangle area = new Rectangle(layer.originX, layer.originY, layer.width(),
                 layer.height());
         // 2. Render each group.
-        for (ShadowGroupKey group : groups) {
-            if (group.a() == 0)
+        for (Map.Entry<ShadowGroupKey, Set<Integer>> entry : shadowRgbsByGroup.entrySet()) {
+            ShadowGroupKey group = entry.getKey();
+            if (group.alpha() == 0)
                 continue;
-            QColor shadowColor = new QColor(group.r(), group.g(), group.b(), group.a());
+            QColor shadowColor = shadowColor(entry.getValue(), group.alpha());
             // Render source image with only keys matching this group.
             List<QImage> shadowImages = StackedShadowEffect.renderShadow(area,
                     dotsPerMeter(screenScale),
@@ -3879,7 +4014,7 @@ public final class HintMeshRenderer {
                             (label, labelPainter) -> label.paintOpaqueFiltered(labelPainter,
                                     keyText -> label.shadowGroupKey(keyText).equals(group))),
                     shadowColor, group.blurRadius(), group.horizontalOffset(),
-                    group.verticalOffset(), true, true);
+                    group.verticalOffset(), entry.getValue().size() == 1, true);
             shadowColor.dispose();
             layer.addShadowPixmaps(shadowImages, area.x(), area.y(), 1, group.stackCount());
         }
@@ -4097,11 +4232,11 @@ public final class HintMeshRenderer {
                 painter.setClipRect(clip);
                 clip.dispose();
             }
-            for (HintBox box : boxes)
-                boxPainter.accept(box, painter);
             for (ShadowPixmap shadowPixmap : shadowPixmaps)
                 for (int stack = 0; stack < shadowPixmap.stackCount(); stack++)
                     painter.drawPixmap(shadowPixmap.x(), shadowPixmap.y(), shadowPixmap.pixmap());
+            for (HintBox box : boxes)
+                boxPainter.accept(box, painter);
             for (HintLabel label : labels)
                 label.paint(painter);
             painter.end();

@@ -1317,11 +1317,10 @@ hint-mode.overlay.background-opacity=0
       ```properties
       hint-mode.overlay.box-color=per-subgrid in-turn #E06C75 #98C379 #61AFEF
       ```
-  - `box-border-color`: One color, or a gradient as for `box-color`. So are
-    `prefix-box-border-color`, `box-shadow-color`, `ui-element-box-color`,
-    `ui-element-box-border-color`, `ui-element-box-shadow-color` and `<level>-box-border-color`.
-    A shadow color is taken at each box as a box color is, and where two shadows meet, their
-    colors mix.
+  - `box-border-color`: One color, or a gradient as for `box-color`. So is every other color of
+    the overlay, such as `box-shadow-color`, `background-color` and `<level>-box-color`: a
+    `<level>-` cell and the background are drawn as a box is. A shadow color is taken at each box
+    as a box color is, and where two shadows meet, their colors mix.
     ```properties
     hint-mode.overlay.box-border-color=across-screen per-pixel center-to-edge #F97316 #3B82F6
     ```
@@ -1336,7 +1335,7 @@ hint-mode.overlay.background-opacity=0
   - `box-shadow-stack-count`: Number of times the shadow is composited on itself for stronger effect (1-100, default 1).
   - `box-shadow-horizontal-offset`: Horizontal shadow offset (-100 to 100, default 0).
   - `box-shadow-vertical-offset`: Vertical shadow offset (-100 to 100, default 0).
-  - `background-color`: Background color behind all hint boxes, mostly useful for UI hints (hex, default #000000).
+  - `background-color`: Background color behind all hint boxes, mostly useful for UI hints (default #000000).
   - `background-opacity`: Background opacity, mostly useful for UI hints (0-1, default 0 = no background).
   - `background-border-thickness` / `background-border-color` / `background-border-opacity`: A
     border inside the edge of the background, drawn without a background too (default 1 pixel of
@@ -1422,8 +1421,10 @@ Each state supports the following font properties:
 `font-spacing-percent` and `font-vertical-alignment` are the exceptions: there is one of each per
 category (`font-` and `prefix-font-`), shared across all 3 states.
 
-A font color can be a gradient, as for `box-color`. Each label takes the color of the gradient at
-its hint, the way a `per-hint` box does: the text does not ramp, even with `per-pixel`.
+A font, outline or shadow color can be a gradient, as for `box-color`. Each label takes the color of
+the gradient at its hint, and a `<level>-` label at its cell, the way a `per-hint` box does: the text
+does not ramp, even with `per-pixel`. Where the shadows of labels of different colors meet, their
+colors mix.
 
 The property naming pattern is:
 - Default: `overlay.font-*`
