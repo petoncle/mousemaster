@@ -1551,8 +1551,10 @@ public final class HintMeshRenderer {
                     labelFontStyle.defaultStyle().metrics()::horizontalAdvance);
             int lineHeight = labelFontStyle.defaultStyle().metrics().height();
             // A cell is in pixels, as the padding and the grid's own cell are, but metrics are
-            // in the points Qt draws text in.
-            double advancePixels = totalXAdvance * qtScaleFactor;
+            // in the points Qt draws text in. Outside a grid, the label is its text, or its
+            // columns.
+            double advancePixels = (labelFontStyle.fontSpacingPercent() < 0.5 ? totalXAdvance :
+                    hintKeyMaxXAdvance * labelKeys.size()) * qtScaleFactor;
             double lineHeightPixels = lineHeight * qtScaleFactor;
             // A grid cell is used as-is so boxes tile perfectly. Text that overflows is handled
             // by the label layer.
@@ -1619,23 +1621,23 @@ public final class HintMeshRenderer {
                             boxBorderRadius
                     );
             hintBoxes.add(hintBox);
+            int labelBoxWidth = (int) ((hintLabel.tightHintBoxWidth * qtScaleFactor +
+                                        2 * boxHorizontalPadding) / qtScaleFactor);
             int scaledBoxWidth = style.boxWidthPercent() == 1 ? fullBoxWidth : Math.max(
-                    (int) (fullBoxWidth * style.boxWidthPercent()),
-                    (int) ((hintLabel.tightHintBoxWidth * qtScaleFactor +
-                            2 * boxHorizontalPadding) / qtScaleFactor));
+                    (int) (fullBoxWidth * style.boxWidthPercent()), labelBoxWidth);
             int scaledBoxHeight = style.boxHeightPercent() == 1 ? fullBoxHeight : Math.max(
                     (int) (fullBoxHeight * style.boxHeightPercent()),
                     (int) ((lineHeightPixels + 2 * boxVerticalPadding) / qtScaleFactor));
-            boolean boxSizedByLabel =
-                    !isHintPartOfGrid && hintLabel.tightHintBoxWidth >= scaledBoxWidth;
-            int boxWidth = isHintPartOfTiledGrid ? scaledBoxWidth :
-                    Math.max(hintLabel.tightHintBoxWidth, scaledBoxWidth);
+            int boxWidth = !isHintPartOfGrid ? labelBoxWidth :
+                    isHintPartOfTiledGrid ? scaledBoxWidth :
+                            Math.max(hintLabel.tightHintBoxWidth, scaledBoxWidth);
             int boxHeight = isHintPartOfTiledGrid ? scaledBoxHeight :
                     Math.max(hintLabel.tightHintBoxHeight, scaledBoxHeight);
-            hintLabel.left = boxSizedByLabel ? hintLabel.tightHintBoxLeft :
-                    (fullBoxWidth - boxWidth) / 2;
+            hintLabel.left = isHintPartOfGrid ? (fullBoxWidth - boxWidth) / 2 :
+                    hintLabel.tightHintBoxLeft - (boxWidth - hintLabel.tightHintBoxWidth) / 2;
             hintLabel.top = (fullBoxHeight - boxHeight) / 2;
-            x += hintLabel.left;
+            x = isHintPartOfGrid ? x + hintLabel.left :
+                    hintRoundedX(hint.centerX(), boxWidth * qtScaleFactor, qtScaleFactor);
             y += hintLabel.top;
             // Not sure why required, but this help having the grid match the screen
             // right and bottom borders (pixel perfect).
@@ -3347,10 +3349,15 @@ public final class HintMeshRenderer {
             double smallestColAlignedFontBoxWidth = hintKeyMaxXAdvance * keySequence.size();
             double smallestColAlignedFontBoxWidthPercent =
                     Math.min(1, smallestColAlignedFontBoxWidth / boxWidth);
+            // No columns to align to: a spacing above 0.5, which spreads the columns over the
+            // cell, acts as 0.5.
+            double fontSpacingPercent = isHintPartOfTiledGrid ?
+                    labelFontStyle.fontSpacingPercent() :
+                    Math.min(0.5d, labelFontStyle.fontSpacingPercent());
             // We want font spacing percent 0.5 be the min spacing that keeps column alignment.
-            double adjustedFontBoxWidthPercent = labelFontStyle.fontSpacingPercent() < 0.5d ?
-                    (labelFontStyle.fontSpacingPercent() * 2) * smallestColAlignedFontBoxWidthPercent
-                    : smallestColAlignedFontBoxWidthPercent + (labelFontStyle.fontSpacingPercent() - 0.5d) * 2 * (1 - smallestColAlignedFontBoxWidthPercent) ;
+            double adjustedFontBoxWidthPercent = fontSpacingPercent < 0.5d ?
+                    (fontSpacingPercent * 2) * smallestColAlignedFontBoxWidthPercent
+                    : smallestColAlignedFontBoxWidthPercent + (fontSpacingPercent - 0.5d) * 2 * (1 - smallestColAlignedFontBoxWidthPercent) ;
             boolean doNotColAlign = keySequence.size() != 1 &&
                                     adjustedFontBoxWidthPercent < smallestColAlignedFontBoxWidthPercent;
             double extraNotAlignedWidth = smallestColAlignedFontBoxWidth -
@@ -3441,8 +3448,8 @@ public final class HintMeshRenderer {
                     smallestHintBoxLeft += shiftX;
                 }
             }
-            else if (!doNotColAlign && !keySequence.isEmpty()) {
-                // A grid's box holds the columns, not only the keys.
+            if (!doNotColAlign && !keySequence.isEmpty()) {
+                // The box holds the columns, not only the keys.
                 smallestHintBoxWidth =
                         Math.max(smallestHintBoxWidth, (int) Math.ceil(fontBoxWidth));
                 smallestHintBoxLeft = (boxWidth - smallestHintBoxWidth) / 2;
