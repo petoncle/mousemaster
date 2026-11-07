@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -67,8 +68,8 @@ class HintLabelAlignmentTest {
         List<String> offCenter = new ArrayList<>();
         for (double size : new double[] {8, 10, 13, 18}) {
             for (FontWeight weight : new FontWeight[] {FontWeight.NORMAL, FontWeight.BOLD}) {
-                QtFontStyle style =
-                        QtHintFont.qtFontStyle(fontStyle(size, weight), screenScale, white);
+                QtFontStyle style = QtHintFont.qtFontStyle(
+                        fontStyle(FontStyle.defaultName, size, weight), screenScale, white);
                 int lineHeight = style.metrics().height();
                 for (int boxHeight = lineHeight; boxHeight < lineHeight + 4; boxHeight++) {
                     double baseline = HintMeshRenderer.baselineY(
@@ -85,7 +86,7 @@ class HintLabelAlignmentTest {
         assertTrue(offCenter.isEmpty(), String.join("\n", offCenter));
     }
 
-    /** The space left of a label and right of it differ by at most the step a glyph is placed on. */
+    /** A label is where Qt draws its text centered in the box, on the step a glyph is placed on. */
     @Test
     void labelsAreCenteredInTheirBox() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
@@ -93,38 +94,54 @@ class HintLabelAlignmentTest {
                 QApplication.primaryScreen().logicalDotsPerInchX() / 96;
         double qtScaleFactor = Os.windows ? 1 : screenScale;
         List<String> offCenter = new ArrayList<>();
-        for (double size : new double[] {8, 10, 13, 18}) {
-            for (FontWeight weight : new FontWeight[] {FontWeight.NORMAL, FontWeight.BOLD}) {
-                FontStyle fontStyle = fontStyle(size, weight);
-                QtHintFontStyle style = QtHintFont.qtHintFontStyle(
-                        new HintFontStyle(fontStyle, 0, fontStyle, fontStyle, fontStyle), null, screenScale,
-                        white);
-                QFontMetrics metrics = style.defaultStyle().metrics();
-                double glyphStep =
-                        1d / QtHintFont.glyphPositionsPerPixel(metrics, qtScaleFactor);
-                for (String label : new String[] {"uu", "uw", "vd", "vv", "nk", "aj", "wl", "ft"}) {
-                    List<Key> keys = label.chars()
-                                          .mapToObj(c -> Key.ofName(Character.toString(c)))
-                                          .toList();
-                    Map<String, Integer> xAdvancesByString = new HashMap<>();
-                    for (Key key : keys)
-                        xAdvancesByString.computeIfAbsent(key.hintLabel(),
-                                metrics::horizontalAdvance);
-                    int totalXAdvance = metrics.horizontalAdvance(
-                            keys.stream().map(Key::hintLabel).collect(Collectors.joining()));
-                    int hintKeyMaxXAdvance = Collections.max(xAdvancesByString.values());
-                    for (int boxWidth = totalXAdvance + 4; boxWidth < totalXAdvance + 8;
-                         boxWidth++) {
-                        HintMeshRenderer.HintLabel hintLabel = HintMeshRenderer.HintLabel.of(keys,
-                                xAdvancesByString, boxWidth, metrics.height(), totalXAdvance, -1,
-                                style, hintKeyMaxXAdvance, -1, FontVerticalAlignment.CAP_HEIGHT,
-                                false, qtScaleFactor);
-                        double[] gaps = horizontalGaps(hintLabel, boxWidth, metrics.height(),
-                                qtScaleFactor);
-                        if (Math.abs(gaps[0] - gaps[1]) > glyphStep + 1e-9)
-                            offCenter.add(String.format(
-                                    "size %s %s, %s in a box %d wide: %.2f pixels left, %.2f right",
-                                    size, weight, label, boxWidth, gaps[0], gaps[1]));
+        for (String name : new String[] {FontStyle.defaultName,
+                Os.macos ? "Helvetica Neue" : "Segoe UI"}) {
+            for (double size : new double[] {8, 10, 13, 18}) {
+                for (FontWeight weight : new FontWeight[] {FontWeight.NORMAL, FontWeight.BOLD}) {
+                    FontStyle fontStyle = fontStyle(name, size, weight);
+                    QtHintFontStyle style = QtHintFont.qtHintFontStyle(
+                            new HintFontStyle(fontStyle, 0, fontStyle, fontStyle, fontStyle), null,
+                            screenScale, white);
+                    QFontMetrics metrics = style.defaultStyle().metrics();
+                    double glyphPositionsPerUnit = qtScaleFactor *
+                            QtHintFont.glyphPositionsPerPixel(metrics, qtScaleFactor);
+                    double baseline = HintMeshRenderer.baselineY(FontVerticalAlignment.CAP_HEIGHT,
+                            metrics.height(), metrics, 0, 0, qtScaleFactor);
+                    for (String label : new String[] {"uu", "uw", "vd", "vv", "nk", "aj", "wl",
+                            "ft", "lv", "av", "ta", "ly"}) {
+                        List<Key> keys = label.chars()
+                                              .mapToObj(c -> Key.ofName(Character.toString(c)))
+                                              .toList();
+                        Map<String, Integer> xAdvancesByString = new HashMap<>();
+                        for (Key key : keys)
+                            xAdvancesByString.computeIfAbsent(key.hintLabel(),
+                                    metrics::horizontalAdvance);
+                        String text =
+                                keys.stream().map(Key::hintLabel).collect(Collectors.joining());
+                        int totalXAdvance = metrics.horizontalAdvance(text);
+                        int hintKeyMaxXAdvance = Collections.max(xAdvancesByString.values());
+                        for (int boxWidth = totalXAdvance + 4; boxWidth < totalXAdvance + 8;
+                             boxWidth++) {
+                            HintMeshRenderer.HintLabel hintLabel = HintMeshRenderer.HintLabel.of(
+                                    keys, xAdvancesByString, boxWidth, metrics.height(),
+                                    totalXAdvance, -1, style, hintKeyMaxXAdvance, -1,
+                                    FontVerticalAlignment.CAP_HEIGHT, false, qtScaleFactor);
+                            double[] gaps = horizontalGaps(hintLabel::paint, boxWidth,
+                                    metrics.height(), qtScaleFactor);
+                            double textX = Math.round((boxWidth - totalXAdvance) / 2d *
+                                                      glyphPositionsPerUnit) / glyphPositionsPerUnit;
+                            double[] qtGaps = horizontalGaps(painter -> {
+                                painter.setFont(style.defaultStyle().font());
+                                painter.setPen(new QColor(255, 255, 255));
+                                painter.drawText(new QPointF(textX, baseline), text);
+                            }, boxWidth, metrics.height(), qtScaleFactor);
+                            if (Math.abs(gaps[0] - qtGaps[0]) > 1e-9 ||
+                                Math.abs(gaps[1] - qtGaps[1]) > 1e-9)
+                                offCenter.add(String.format(
+                                        "%s %s %s, %s in a box %d wide: %.2f pixels left, %.2f right, Qt %.2f, %.2f",
+                                        name, size, weight, label, boxWidth, gaps[0], gaps[1],
+                                        qtGaps[0], qtGaps[1]));
+                        }
                     }
                 }
             }
@@ -136,7 +153,7 @@ class HintLabelAlignmentTest {
     @Test
     void aLabelWithoutKeysHasNoHeight() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
-        FontStyle fontStyle = fontStyle(10, FontWeight.NORMAL);
+        FontStyle fontStyle = fontStyle(FontStyle.defaultName, 10, FontWeight.NORMAL);
         QtHintFontStyle style = QtHintFont.qtHintFontStyle(
                 new HintFontStyle(fontStyle, 0, fontStyle, fontStyle, fontStyle), null, 1, white);
         HintMeshRenderer.HintLabel hintLabel = HintMeshRenderer.HintLabel.of(List.of(),
@@ -146,7 +163,7 @@ class HintLabelAlignmentTest {
     }
 
     /** In pixels, from the box's left to the ink and from the ink to the box's right. */
-    private static double[] horizontalGaps(HintMeshRenderer.HintLabel hintLabel, int boxWidth,
+    private static double[] horizontalGaps(Consumer<QPainter> paint, int boxWidth,
                                            int boxHeight, double qtScaleFactor) {
         int width = (int) Math.round(boxWidth * qtScaleFactor);
         int height = (int) Math.round(boxHeight * qtScaleFactor);
@@ -154,7 +171,7 @@ class HintLabelAlignmentTest {
         image.setDevicePixelRatio(qtScaleFactor);
         image.fill(0);
         QPainter painter = new QPainter(image);
-        hintLabel.paint(painter);
+        paint.accept(painter);
         painter.end();
         double left = -1, right = -1;
         for (int x = 0; x < width; x++) {
@@ -203,9 +220,9 @@ class HintLabelAlignmentTest {
         return new double[] {top, height - bottom};
     }
 
-    private static FontStyle fontStyle(double size, FontWeight weight) {
+    private static FontStyle fontStyle(String name, double size, FontWeight weight) {
         FontStyleBuilder builder = new FontStyleBuilder()
-                .name(FontStyle.defaultName)
+                .name(name)
                 .weight(weight)
                 .size(size)
                 .color(Color.parse("#FFFFFF"))

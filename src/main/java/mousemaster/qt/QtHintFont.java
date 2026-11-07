@@ -133,20 +133,6 @@ public final class QtHintFont {
         });
     }
 
-    private static final Map<QFontMetrics, Map<String, Ink>> rasterizedInkByTextByMetrics =
-            new IdentityHashMap<>();
-
-    /**
-     * The {@link #ink} of the text drawn at a whole pixel, once rasterized: GDI hints the glyphs
-     * off their outline, and CoreText smooths them half a pixel past it on the left.
-     */
-    public static Ink rasterizedInk(QFontMetrics metrics, String text, double devicePixelRatio) {
-        return rasterizedInkByTextByMetrics.computeIfAbsent(metrics, m -> new HashMap<>())
-                                           .computeIfAbsent(text,
-                                                   t -> rasterizedInk(metrics, t,
-                                                           devicePixelRatio, 0));
-    }
-
     private static final Map<QFontMetrics, Integer> glyphPositionsPerPixelByMetrics =
             new IdentityHashMap<>();
 
@@ -212,7 +198,6 @@ public final class QtHintFont {
         textPathsByMetrics.clear();
         tightBoundsByTextByMetrics.clear();
         inkByTextByMetrics.clear();
-        rasterizedInkByTextByMetrics.clear();
     }
 
     /** Adds the text's glyph outline to {@code path}, baseline origin at (x, y). Outlines are kept

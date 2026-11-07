@@ -1546,13 +1546,9 @@ public final class HintMeshRenderer {
             if (!selectable && !hintSaved)
                 continue;
             List<Key> labelKeys = labelOverridden ? labelOverride : hint.keySequence();
-            int totalXAdvance = labelFontStyle.defaultStyle()
-                                              .metrics()
-                                              .horizontalAdvance(labelKeys
-                                                                     .stream()
-                                                                     .map(Key::hintLabel)
-                                                                     .collect(
-                                                                             Collectors.joining()));
+            int totalXAdvance = xAdvancesByString.computeIfAbsent(
+                    labelKeys.stream().map(Key::hintLabel).collect(Collectors.joining()),
+                    labelFontStyle.defaultStyle().metrics()::horizontalAdvance);
             int lineHeight = labelFontStyle.defaultStyle().metrics().height();
             // A cell is in pixels, as the padding and the grid's own cell are, but metrics are
             // in the points Qt draws text in.
@@ -1749,10 +1745,9 @@ public final class HintMeshRenderer {
                 HintGroup hintGroup = entry.getValue();
                 if (!hintGroup.atLeastOneHintVisible)
                     continue;
-                int totalXAdvance = prefixQtHintFontStyle.defaultStyle().metrics().horizontalAdvance(
-                        prefix.stream()
-                              .map(Key::hintLabel)
-                              .collect(Collectors.joining()));
+                int totalXAdvance = prefixXAdvancesByString.computeIfAbsent(
+                        prefix.stream().map(Key::hintLabel).collect(Collectors.joining()),
+                        prefixQtHintFontStyle.defaultStyle().metrics()::horizontalAdvance);
                 int fullBoxWidth = hintGroup.right - hintGroup.left;
                 int fullBoxHeight = hintGroup.bottom - hintGroup.top;
                 HintLabel prefixHintLabel =
@@ -3374,11 +3369,9 @@ public final class HintMeshRenderer {
                 inkTop = Math.min(inkTop, ink.top());
                 inkBottom = Math.max(inkBottom, ink.bottom());
             }
-            int xAdvance = 0;
             int smallestHintBoxLeft = 0;
             int smallestHintBoxWidth = 0;
-            double tightLeft = Double.MAX_VALUE;
-            double tightRight = -Double.MAX_VALUE;
+            String labelText = "";
             for (int keyIndex = 0; keyIndex < keySequence.size(); keyIndex++) {
                 Key key = keySequence.get(keyIndex);
                 String keyText = key.hintLabel();
@@ -3386,8 +3379,13 @@ public final class HintMeshRenderer {
                 int x;
                 int keyWidth;
                 if (doNotColAlign) {
-                    // Extra is added between each letter (not to the left of the leftmost letter,
-                    // nor to the right of the rightmost letter).
+                    labelText += keyText;
+                    // The advance of the label's text up to this key has the kerning. Extra is
+                    // added between each letter (not to the left of the leftmost letter, nor to
+                    // the right of the rightmost letter).
+                    int xAdvance = xAdvancesByString.computeIfAbsent(labelText,
+                            labelMetrics::horizontalAdvance) - textWidth + keyIndex *
+                            (int) (extraNotAlignedWidth / (keySequence.size() - 1));
                     x = (int) (boxWidth / 2d - (totalXAdvance + extraNotAlignedWidth) / 2
                                                    + xAdvance
                     );
@@ -3397,10 +3395,6 @@ public final class HintMeshRenderer {
                     if (keyIndex == keySequence.size() - 1) {
                         smallestHintBoxWidth = x - smallestHintBoxLeft + textWidth;
                     }
-                    xAdvance += textWidth;
-                    if (keyIndex != keySequence.size() - 1)
-                        xAdvance +=
-                                (int) (extraNotAlignedWidth / (keySequence.size() - 1));
                     keyWidth = textWidth;
                 }
                 else {
@@ -3430,21 +3424,16 @@ public final class HintMeshRenderer {
                 }
                 double textY = baselineY(verticalAlignment, boxHeight, keyMetrics, inkTop,
                         inkBottom - inkTop, qtScaleFactor);
-                if (!isHintPartOfTiledGrid) {
-                    QtHintFont.Ink keyInk =
-                            QtHintFont.rasterizedInk(keyMetrics, keyText, qtScaleFactor);
-                    tightLeft = Math.min(tightLeft, textX + keyInk.left());
-                    tightRight = Math.max(tightRight, textX + keyInk.right());
-                }
                 keyTexts.add(new HintKeyText(keyText, textX, textY, keyWidth,
                         isSelected, isFocused, isPrefix));
             }
-            // No columns to align to: center the label's tight bounds instead of per-key slots.
-            if (!isHintPartOfTiledGrid && tightRight > tightLeft) {
+            // No columns to align to: center the keys' advances instead of per-key slots.
+            if (!isHintPartOfTiledGrid) {
                 double glyphPositionsPerUnit = qtScaleFactor *
                         QtHintFont.glyphPositionsPerPixel(labelMetrics, qtScaleFactor);
-                double shiftX = Math.round(((boxWidth - (tightRight - tightLeft)) / 2 - tightLeft)
-                                           * glyphPositionsPerUnit) / glyphPositionsPerUnit;
+                double shiftX = Math.round(
+                        ((boxWidth - smallestHintBoxWidth) / 2d - smallestHintBoxLeft)
+                        * glyphPositionsPerUnit) / glyphPositionsPerUnit;
                 if (shiftX != 0) {
                     keyTexts.replaceAll(k -> new HintKeyText(k.text(), k.x() + shiftX, k.y(),
                             k.width(), k.isSelected(), k.isFocused(), k.isPrefix()));
