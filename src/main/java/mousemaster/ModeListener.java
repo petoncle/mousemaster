@@ -4,7 +4,7 @@ public interface ModeListener {
 
     void modeChanged(Mode newMode);
 
-    default void entryCombosRan() {
+    default void combosRan() {
     }
 
     void modeTimedOut();

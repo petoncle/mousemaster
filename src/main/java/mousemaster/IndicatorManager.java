@@ -18,7 +18,7 @@ public class IndicatorManager implements ModeListener {
     private final HintManager hintManager;
     private final Supplier<App> activeApp;
     private Mode currentMode;
-    private boolean entryCombosPending;
+    private boolean drawPending;
     private IndicatorConfiguration resolvedIndicator;
     private IndicatorConfiguration drawnIndicator;
     private Map<ModePropertyPath, RunningTimeline> runningTimelineByPropertyPath = Map.of();
@@ -52,6 +52,7 @@ public class IndicatorManager implements ModeListener {
     }
 
     private void draw(IndicatorConfiguration indicator) {
+        drawPending = false;
         drawnIndicator = indicator;
         frameWait = Mousemaster.FRAME_INTERVAL;
         if (!drawnIndicator.enabled() && copyByKey.isEmpty()) {
@@ -73,24 +74,19 @@ public class IndicatorManager implements ModeListener {
 
     /** The mode being left is resolved too: a state that lasts less than a frame is what
      *  current is taken from when a branch takes over from it. A hidden indicator keeps the
-     *  last state it was shown in. The indicator is drawn before the overlay is painted, so
-     *  that the two change in the same frame. After a switch, it is drawn once the entry combos
-     *  have run, so that what they start is in its first frame. */
+     *  last state it was shown in. */
     @Override
     public void modeChanged(Mode newMode) {
-        if (currentMode != null && !newMode.name().equals(currentMode.name()))
-            entryCombosPending = true;
         if (currentMode != null)
             resolve(0);
         currentMode = newMode;
-        if (!entryCombosPending && !hintManager.waitingForUiElements())
-            draw(resolve(0));
+        drawPending = true;
     }
 
+    /** Not in modeChanged: a mode that the combos replace at once is not drawn. */
     @Override
-    public void entryCombosRan() {
-        entryCombosPending = false;
-        if (!hintManager.waitingForUiElements())
+    public void combosRan() {
+        if (drawPending && !hintManager.waitingForUiElements())
             draw(resolve(0));
     }
 

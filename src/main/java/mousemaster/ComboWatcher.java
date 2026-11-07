@@ -322,6 +322,7 @@ public class ComboWatcher {
             mutatedModeNotificationPending = false;
             notifyMutatedMode();
         }
+        notifyCombosRan();
     }
 
     /** Presses the screen filter keys the active screen matches and releases the others. */
@@ -361,7 +362,6 @@ public class ComboWatcher {
     }
 
     public ComboWatcherUpdateResult update(double delta) {
-        boolean runningEntryCombos = entryCombosPending;
         entryCombosPending = false;
         List<ComboAndCommands> completedComboAndCommands = new ArrayList<>();
         updateScreenFilterKeys();
@@ -570,9 +570,7 @@ public class ComboWatcher {
             completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
         }
         refreshPreconditionOnlyMutations(activeApp);
-        if (runningEntryCombos && !entryCombosPending)
-            for (ModeListener listener : modeListeners)
-                listener.entryCombosRan();
+        notifyCombosRan();
         return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore, hasComboPreparationBreaker, comboPreparationAlreadyBroken, comboPreparationBreakerKey, expiredCombos);
     }
 
@@ -628,9 +626,11 @@ public class ComboWatcher {
         }
         else
             modifiedTypedKey = modifiedTypedKeyByModifiedKey.remove(event.key());
-        return processKeyEvent(event.isPress() ?
+        PressKeyEventProcessingSet processingSet = processKeyEvent(event.isPress() ?
                 new KeyEvent.PressKeyEvent(event.time(), event.key(), modifiedTypedKey) :
                 new KeyEvent.ReleaseKeyEvent(event.time(), event.key(), modifiedTypedKey));
+        notifyCombosRan();
+        return processingSet;
     }
 
     private PressKeyEventProcessingSet processKeyEvent(KeyEvent event) {
@@ -1734,6 +1734,7 @@ public class ComboWatcher {
         currentlyPressedComboKeys.remove(comboPreparationBreakerKey);
         modifiedTypedKeyByModifiedKey.remove(comboPreparationBreakerKey);
         refreshPreconditionOnlyMutations();
+        notifyCombosRan();
     }
 
     public boolean isCurrentModePressedPreconditionKey(Key key) {
@@ -2076,6 +2077,13 @@ public class ComboWatcher {
         }
         for (ModeListener listener : modeListeners)
             listener.modeChanged(mutatedMode);
+    }
+
+    private void notifyCombosRan() {
+        if (entryCombosPending)
+            return;
+        for (ModeListener listener : modeListeners)
+            listener.combosRan();
     }
 
      private static final class ComboWaitingForLastMoveToComplete {

@@ -65,6 +65,14 @@ class AnimationTest {
             public boolean runningAtomicCommand() {
                 return false;
             }
+
+            @Override
+            public void run(Command command, Key eventKey) {
+                if (command instanceof Command.SwitchMode switchMode)
+                    comboWatcher.modeChanged(modeMap.get(switchMode.modeName()));
+                else
+                    super.run(command, eventKey);
+            }
         };
         comboWatcher = new ComboWatcher(commandRunner, hintManager, () -> new App("test.exe"), null,
                 () -> now, Set.of(), pressedPreconditionKeys, new KeyRedactor(KeyRedaction.NONE), modeMap,
@@ -455,6 +463,20 @@ class AnimationTest {
         assertEquals(10, drawnSize(), 1e-9);
         tick(0.05);
         assertEquals(23, drawnSize(), 1e-9);
+    }
+
+    @Test
+    void aComboThatSwitchesModesIsDrawnInTheModeItSwitchesToOnly() {
+        load("ripple-animation.duration-millis=100",
+                "idle-mode.start.ripple-animation=+a",
+                "idle-mode.to.normal-mode=+a",
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 36",
+                "normal-mode.indicator.size=26 | _{rippleanimation} -> 0% 12; 100% 36");
+        tick(0);
+        drawn.clear();
+        tap("a");
+        tick(0);
+        assertEquals(List.of(12d), drawn.stream().map(IndicatorLayerConfiguration::size).toList());
     }
 
     @Test
