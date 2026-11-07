@@ -838,9 +838,6 @@ public final class HintMeshRenderer {
                         // Non-grid hints draw their own borders and only need the window shown.
                         morphBorders(window, hintMeshWindow, container, boxes, enclosingInk,
                                 animateTransition, style.transition());
-                        // The mesh is on screen a frame sooner than waiting for the next pump.
-                        if (!isHintGrid && messagePump != null)
-                            messagePump.run();
                     };
             // Run immediately when hints are already visible (to avoid a
             // blank frame), or when the build is expected to be fast.

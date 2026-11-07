@@ -344,6 +344,8 @@ public class WindowsOverlay implements Overlay {
         compositorWaitPending = !changedWindows.isEmpty();
         if (orderChanged)
             waitForCompositorIfPending();
+        // Qt shows a widget with a paint request that it sends later.
+        QApplication.sendPostedEvents(null, QEvent.Type.UpdateLater);
         for (TransparentWindow window : hintMeshRenderer.windows())
             QApplication.sendPostedEvents(window, QEvent.Type.UpdateRequest);
         compositorWaitPending = false;
