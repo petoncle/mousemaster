@@ -387,12 +387,14 @@ public class WindowsPlatform implements Platform {
             mouseManager.releaseAll();
         }
         mouse.showCursor(); // Just in case we are shutting down while cursor is hidden.
-        boolean keyboardHookUnhooked =
-                User32.INSTANCE.UnhookWindowsHookEx(keyboardHook);
-        boolean mouseHookUnhooked = User32.INSTANCE.UnhookWindowsHookEx(mouseHook);
-        logger.info(
-                "Uninstalled Keyboard and mouse hooks " +
-                (keyboardHookUnhooked && mouseHookUnhooked ? "successfully" : "unsuccessfully"));
+        if (keyboardHookCallback != null) {
+            boolean keyboardHookUnhooked =
+                    User32.INSTANCE.UnhookWindowsHookEx(keyboardHook);
+            boolean mouseHookUnhooked = User32.INSTANCE.UnhookWindowsHookEx(mouseHook);
+            logger.info(
+                    "Uninstalled Keyboard and mouse hooks " +
+                    (keyboardHookUnhooked && mouseHookUnhooked ? "successfully" : "unsuccessfully"));
+        }
         releaseSingleInstanceMutex();
         logger.trace("Released single instance mutex");
         if (logLastKeyEventsOnExit && keyboardManager != null)
