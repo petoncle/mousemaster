@@ -41,6 +41,7 @@ final class WindowsIndicatorWindow {
     private QImage image;
     private Rectangle rectangle = new Rectangle(0, 0, 1, 1);
     private List<WindowImage> windowImages = List.of();
+    private Rectangle unsentArea;
     private boolean showing;
 
     /** A window that grows keeps its rectangle while its images move and grow a little. */
@@ -61,8 +62,11 @@ final class WindowsIndicatorWindow {
         return hwnd;
     }
 
-    /** The images, in z order. */
-    void show(List<WindowImage> windowImages) {
+    /**
+     * Draws the images, in z order, and tells whether {@link #send} has something to put on
+     * the screen.
+     */
+    boolean draw(List<WindowImage> windowImages) {
         Rectangle imagesRectangle = windowImages.isEmpty() ? null :
                 Rectangle.union(windowImages.stream().map(WindowImage::rectangle).toList());
         Rectangle rectangle = imagesRectangle == null ?
@@ -71,11 +75,12 @@ final class WindowsIndicatorWindow {
         if (showing && rectangle.width() == this.rectangle.width() &&
             rectangle.height() == this.rectangle.height() &&
             sameInRectangle(windowImages, rectangle)) {
-            if (!rectangle.equals(this.rectangle))
-                updateLayeredWindow(rectangle, null);
+            boolean moved = !rectangle.equals(this.rectangle);
+            if (moved)
+                unsentArea = rectangle;
             this.rectangle = rectangle;
             this.windowImages = windowImages;
-            return;
+            return moved;
         }
         Rectangle dirty = showing && rectangle.equals(this.rectangle) ?
                 IndicatorRenderer.changedRectangle(windowImages, this.windowImages)
@@ -83,10 +88,17 @@ final class WindowsIndicatorWindow {
         this.rectangle = rectangle;
         this.windowImages = windowImages;
         if (dirty.isEmpty())
-            return;
+            return false;
         reserve(rectangle.width(), rectangle.height());
-        draw(dirty);
-        updateLayeredWindow(rectangle, dirty.equals(rectangle) ? null : dirty);
+        drawArea(dirty);
+        unsentArea = dirty;
+        return true;
+    }
+
+    /** Puts on the screen what {@link #draw} changed. */
+    void send() {
+        updateLayeredWindow(rectangle, unsentArea.equals(rectangle) ? null : unsentArea);
+        unsentArea = null;
         if (!showing) {
             showing = true;
             User32.INSTANCE.ShowWindow(hwnd, WinUser.SW_SHOWNOACTIVATE);
@@ -151,7 +163,7 @@ final class WindowsIndicatorWindow {
     }
 
     /** Draws the images where the area is, and copies that to the DIB. */
-    private void draw(Rectangle area) {
+    private void drawArea(Rectangle area) {
         int left = area.x() - rectangle.x();
         int top = area.y() - rectangle.y();
         QPainter painter = new QPainter(image);

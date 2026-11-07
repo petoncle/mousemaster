@@ -2,6 +2,7 @@ package mousemaster.platform.windows;
 
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
+import io.qt.core.QEvent;
 import io.qt.core.Qt;
 import io.qt.gui.QImage;
 import io.qt.gui.QPixmap;
@@ -39,6 +40,7 @@ public class WindowsOverlay implements Overlay {
     private List<WindowsIndicatorWindow> indicatorWindowsAboveOverlay = List.of();
     private List<WindowsIndicatorWindow> indicatorWindowsBelowOverlay = List.of();
     private Map<WindowsIndicatorWindow, Set<String>> layerNamesByIndicatorWindow = Map.of();
+    private boolean compositorWaitPending;
     private boolean indicatorIsCursor;
     private boolean indicatorExcludedFromCapture;
     private boolean hintMeshExcludedFromCapture;
@@ -307,16 +309,18 @@ public class WindowsOverlay implements Overlay {
             (windowLayerGroup.belowOverlay() ? windowsBelowOverlay : windowsAboveOverlay)
                     .addFirst(window);
         }
-        // A layer that goes to another window is drawn there before it leaves this one.
+        // A layer that goes to another window reaches it before it leaves this one.
+        List<WindowsIndicatorWindow> changedWindows = new ArrayList<>();
         for (boolean receivesLayer : List.of(true, false))
             for (int index = 0; index < windows.size(); index++)
                 if (receivesLayer != layerNamesByIndicatorWindow
                         .getOrDefault(windows.get(index), Set.of())
-                        .containsAll(layerNamesByWindow.get(windows.get(index))))
-                    windows.get(index).show(windowImages.get(index));
+                        .containsAll(layerNamesByWindow.get(windows.get(index))) &&
+                    windows.get(index).draw(windowImages.get(index)))
+                    changedWindows.add(windows.get(index));
         for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
-            if (!windows.contains(indicatorWindow))
-                indicatorWindow.show(List.of());
+            if (!windows.contains(indicatorWindow) && indicatorWindow.draw(List.of()))
+                changedWindows.add(indicatorWindow);
         boolean orderChanged = !windowsAboveOverlay.equals(indicatorWindowsAboveOverlay) ||
                                !windowsBelowOverlay.equals(indicatorWindowsBelowOverlay);
         indicatorWindowsAboveOverlay = windowsAboveOverlay;
@@ -324,8 +328,33 @@ public class WindowsOverlay implements Overlay {
         layerNamesByIndicatorWindow = layerNamesByWindow;
         currentWindowLayerGroups = windowLayerGroups;
         this.indicatorByCopyKey = indicatorByCopyKey;
+        sendIndicatorWindows(changedWindows, orderChanged);
+    }
+
+    /**
+     * DWM composes as soon as a window changes, so windows sent one after the other reach the
+     * screen in different frames, but it composes once per refresh at most: the indicator
+     * windows and the hint windows that change with them are sent right after it has composed.
+     * A z-order reaches the screen later than pixels, so it changes before the wait.
+     */
+    private void sendIndicatorWindows(List<WindowsIndicatorWindow> changedWindows,
+                                      boolean orderChanged) {
         if (orderChanged)
             setTopmost();
+        compositorWaitPending = !changedWindows.isEmpty();
+        if (orderChanged)
+            waitForCompositorIfPending();
+        for (TransparentWindow window : hintMeshRenderer.windows())
+            QApplication.sendPostedEvents(window, QEvent.Type.UpdateRequest);
+        compositorWaitPending = false;
+        changedWindows.forEach(WindowsIndicatorWindow::send);
+    }
+
+    private void waitForCompositorIfPending() {
+        if (!compositorWaitPending)
+            return;
+        compositorWaitPending = false;
+        Dwmapi.INSTANCE.DwmFlush();
     }
 
     private WindowsIndicatorWindow indicatorWindow(List<WindowsIndicatorWindow> windows,
@@ -372,7 +401,8 @@ public class WindowsOverlay implements Overlay {
         applyOverlayExStyles(indicatorWindow.hwnd());
         applyCaptureExclusion(indicatorWindow.hwnd(),
                 currentZoom != null || indicatorExcludedFromCapture);
-        indicatorWindow.show(List.of());
+        indicatorWindow.draw(List.of());
+        indicatorWindow.send();
         return indicatorWindow;
     }
 
@@ -409,6 +439,7 @@ public class WindowsOverlay implements Overlay {
     /** The window factory the renderer uses: a styled, transparent, click-through window. */
     private TransparentWindow createStyledHintMeshWindow() {
         TransparentWindow window = new TransparentWindow();
+        window.setBeforePaint(this::waitForCompositorIfPending);
         applyOverlayExStyles(hwnd(window));
         applyCaptureExclusion(hwnd(window), currentZoom != null || hintMeshExcludedFromCapture);
         return window;
@@ -651,8 +682,11 @@ public class WindowsOverlay implements Overlay {
             indicatorIsCursor = false;
             currentCursorIndicator = null;
         }
+        List<WindowsIndicatorWindow> changedWindows = new ArrayList<>();
         for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
-            indicatorWindow.show(List.of());
+            if (indicatorWindow.draw(List.of()))
+                changedWindows.add(indicatorWindow);
+        sendIndicatorWindows(changedWindows, false);
         indicatorByCopyKey = Map.of();
         currentWindowLayerGroups = List.of();
         layerNamesByIndicatorWindow = Map.of();

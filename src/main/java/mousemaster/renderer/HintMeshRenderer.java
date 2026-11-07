@@ -438,9 +438,14 @@ public final class HintMeshRenderer {
                 stopBorderMorph(lineMorph);
             hintMeshWindow.window().setBackground(null, null, 0, null, 0);
             hintMeshWindow.window().hideChildren();
-            hintMeshWindow.window().repaint();
-            // Reset opacity after hiding so the window is ready for reuse.
-            hintMeshWindow.window().setWindowOpacity(1.0);
+            // An opaque window is cleared with what changes with it, such as the indicator. A
+            // faded one is cleared before it is made opaque again for reuse.
+            if (hintMeshWindow.window().windowOpacity() == 1)
+                hintMeshWindow.window().update();
+            else {
+                hintMeshWindow.window().repaint();
+                hintMeshWindow.window().setWindowOpacity(1.0);
+            }
         }
     }
 

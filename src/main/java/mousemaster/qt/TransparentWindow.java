@@ -23,11 +23,17 @@ public class TransparentWindow extends QWidget {
     private QColor backgroundBorderColor;
     private int backgroundBorderThickness;
     private double pointsPerPixel = 1;
+    private Runnable beforePaint = () -> {};
 
     public TransparentWindow() {
         // WindowDoesNotAcceptFocus is not implemented for Windows.
         setWindowFlags(Qt.WindowType.FramelessWindowHint);
         setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground);
+    }
+
+    /** Runs before each paint of the window, which Qt then puts on the screen. */
+    public void setBeforePaint(Runnable beforePaint) {
+        this.beforePaint = beforePaint;
     }
 
     public void setBackground(QColor color, QRect rect, int radius, QColor borderColor,
@@ -118,6 +124,7 @@ public class TransparentWindow extends QWidget {
 
     @Override
     protected void paintEvent(QPaintEvent event) {
+        beforePaint.run();
         if (backgroundRect != null) {
             QPainter painter = new QPainter(this);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, backgroundRadius > 0);
