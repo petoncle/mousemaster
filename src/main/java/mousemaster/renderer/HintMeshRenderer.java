@@ -1621,7 +1621,8 @@ public final class HintMeshRenderer {
             hintBoxes.add(hintBox);
             int scaledBoxWidth = style.boxWidthPercent() == 1 ? fullBoxWidth : Math.max(
                     (int) (fullBoxWidth * style.boxWidthPercent()),
-                    (int) ((advancePixels + 2 * boxHorizontalPadding) / qtScaleFactor));
+                    (int) ((hintLabel.tightHintBoxWidth * qtScaleFactor +
+                            2 * boxHorizontalPadding) / qtScaleFactor));
             int scaledBoxHeight = style.boxHeightPercent() == 1 ? fullBoxHeight : Math.max(
                     (int) (fullBoxHeight * style.boxHeightPercent()),
                     (int) ((lineHeightPixels + 2 * boxVerticalPadding) / qtScaleFactor));
@@ -3355,6 +3356,7 @@ public final class HintMeshRenderer {
             double extraNotAlignedWidth = smallestColAlignedFontBoxWidth -
                                           totalXAdvance;
             extraNotAlignedWidth = adjustedFontBoxWidthPercent * extraNotAlignedWidth;
+            double fontBoxWidth = boxWidth * adjustedFontBoxWidthPercent;
 
             keyTexts = new ArrayList<>(keySequence.size());
             // The ink of every key at once, so the label gets one baseline: measuring each key on
@@ -3400,7 +3402,6 @@ public final class HintMeshRenderer {
                 else {
                     // 0.8d adjustedFontBoxWidthPercent means characters spread over 80% of the cell width.
                     // If we are here, hint.keySequence().size() is 2 or more (else, doNotColAlign would be true).
-                    double fontBoxWidth = boxWidth * adjustedFontBoxWidthPercent;
                     double unusedBoxWidth = boxWidth - fontBoxWidth;
                     double keyBoxWidth = fontBoxWidth / keySequence.size();
                     x = (int) (unusedBoxWidth / 2 + keyBoxWidth * keyIndex + (keyBoxWidth - textWidth) / 2);
@@ -3439,6 +3440,12 @@ public final class HintMeshRenderer {
                             k.width(), k.isSelected(), k.isFocused(), k.isPrefix()));
                     smallestHintBoxLeft += shiftX;
                 }
+            }
+            else if (!doNotColAlign && !keySequence.isEmpty()) {
+                // A grid's box holds the columns, not only the keys.
+                smallestHintBoxWidth =
+                        Math.max(smallestHintBoxWidth, (int) Math.ceil(fontBoxWidth));
+                smallestHintBoxLeft = (boxWidth - smallestHintBoxWidth) / 2;
             }
             this.tightHintBoxLeft = smallestHintBoxLeft;
             this.tightHintBoxWidth = smallestHintBoxWidth;

@@ -1,33 +1,51 @@
 package mousemaster.renderer;
 
 import io.qt.core.QPointF;
+import io.qt.core.Qt;
 import io.qt.gui.QColor;
 import io.qt.gui.QFontMetrics;
 import io.qt.gui.QImage;
 import io.qt.gui.QPainter;
+import io.qt.gui.QPixmap;
 import io.qt.widgets.QApplication;
 import mousemaster.Color;
+import mousemaster.Configuration;
+import mousemaster.ConfigurationParser;
 import mousemaster.FontStyle;
 import mousemaster.FontStyle.FontStyleBuilder;
 import mousemaster.FontVerticalAlignment;
 import mousemaster.FontWeight;
 import mousemaster.GradientColor;
+import mousemaster.Hint;
 import mousemaster.HintFontStyle;
+import mousemaster.HintMesh;
 import mousemaster.Key;
+import mousemaster.KeyboardLayout;
+import mousemaster.Mousemaster;
 import mousemaster.MousemasterApplication;
 import mousemaster.Os;
+import mousemaster.PropertiesReader;
 import mousemaster.QtManager;
+import mousemaster.Rectangle;
+import mousemaster.Screen;
+import mousemaster.Zoom;
 import mousemaster.qt.QtFontStyle;
 import mousemaster.qt.QtHintFont;
 import mousemaster.qt.QtHintFontStyle;
+import mousemaster.qt.TransparentWindow;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -147,6 +165,107 @@ class HintLabelAlignmentTest {
             }
         }
         assertTrue(offCenter.isEmpty(), String.join("\n", offCenter));
+    }
+
+    /** A grid's box narrower than its cell holds its keys, in columns as wide as the widest key. */
+    @Test
+    void aGridBoxHoldsTheColumnsOfItsKeys() throws IOException {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        double screenScale = Os.macos ? 2 :
+                QApplication.primaryScreen().logicalDotsPerInchX() / 96;
+        List<String> lines = PropertiesReader.readPropertiesFile(new BufferedReader(
+                new StringReader("""
+                        idle-mode.to.hint-mode=+u
+                        hint-mode.to.idle-mode=+esc
+                        hint-mode.overlay.selection-keys=c i m w
+                        hint-mode.overlay.font-name=%s
+                        hint-mode.overlay.font-size=10
+                        hint-mode.overlay.font-shadow-opacity=0
+                        hint-mode.overlay.font-spacing-percent=0.5
+                        hint-mode.overlay.box-width-percent=0
+                        hint-mode.overlay.box-horizontal-padding=3
+                        hint-mode.overlay.box-opacity=0
+                        hint-mode.overlay.box-border-opacity=0
+                        hint-mode.overlay.box-shadow-opacity=0
+                        hint-mode.overlay.fade-enabled=false
+                        hint-mode.overlay.transition-enabled=false
+                        """.formatted(Os.macos ? "Helvetica Neue" : "Segoe UI"))));
+        Configuration configuration = ConfigurationParser.parse(lines,
+                KeyboardLayout.keyboardLayoutByShortName.get("us-qwerty"));
+        int cellWidth = (int) (200 * screenScale);
+        int cellHeight = (int) (40 * screenScale);
+        List<Hint> hints = new ArrayList<>();
+        String[] labels = {"ic", "ci", "ii", "mw"};
+        for (int labelIndex = 0; labelIndex < labels.length; labelIndex++)
+            hints.add(new Hint(cellWidth * (labelIndex % 2 + 0.5),
+                    cellHeight * (labelIndex / 2 + 0.5), cellWidth, cellHeight,
+                    labels[labelIndex].chars()
+                                      .mapToObj(c -> Key.ofName(Character.toString(c)))
+                                      .toList(), null));
+        HintMesh hintMesh = new HintMesh.HintMeshBuilder()
+                .visible(true)
+                .hints(hints)
+                .styleByFilter(configuration.modeMap().get("hint-mode").hintMesh()
+                                            .styleByFilter())
+                .build();
+        Screen screen = new Screen(new Rectangle(0, 0, 2 * cellWidth, 2 * cellHeight), 96,
+                screenScale);
+        HintMeshRenderer hintMeshRenderer = new HintMeshRenderer(() -> {
+            TransparentWindow window = new TransparentWindow();
+            window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen);
+            return window;
+        }, () -> {
+        });
+        hintMeshRenderer.setHintMesh(hintMesh,
+                new Zoom(1, screen.rectangle().center(), screen.rectangle()), false,
+                Set.of(screen));
+        for (int frame = 0; frame < 10 || hintMeshRenderer.buildPending(); frame++) {
+            QApplication.processEvents();
+            hintMeshRenderer.update(Mousemaster.FRAME_INTERVAL);
+            hintMeshRenderer.runPendingWork();
+        }
+        QImage image = new QImage(2 * cellWidth, 2 * cellHeight,
+                QImage.Format.Format_ARGB32_Premultiplied);
+        image.fill(0);
+        QPainter painter = new QPainter(image);
+        for (TransparentWindow window : hintMeshRenderer.windows()) {
+            if (!window.isVisible())
+                continue;
+            QPixmap pixmap = window.grab();
+            painter.drawPixmap(window.xInPixels(), window.yInPixels(), pixmap);
+            pixmap.dispose();
+        }
+        painter.end();
+        Set<Integer> boxWidths = new HashSet<>();
+        List<String> outsideBoxes = new ArrayList<>();
+        for (int labelIndex = 0; labelIndex < labels.length; labelIndex++) {
+            Hint hint = hints.get(labelIndex);
+            Rectangle box = hintMeshRenderer.hintBoxRectangle(hint);
+            boxWidths.add(box.width());
+            int inkLeft = Integer.MAX_VALUE;
+            int inkRight = Integer.MIN_VALUE;
+            for (int x = (int) (hint.centerX() - cellWidth / 2d);
+                 x < hint.centerX() + cellWidth / 2d; x++) {
+                for (int y = (int) (hint.centerY() - cellHeight / 2d);
+                     y < hint.centerY() + cellHeight / 2d; y++) {
+                    if ((image.pixel(x, y) >>> 24) == 0)
+                        continue;
+                    inkLeft = Math.min(inkLeft, x);
+                    inkRight = Math.max(inkRight, x + 1);
+                }
+            }
+            if (inkLeft > inkRight || inkLeft < box.x() || inkRight > box.x() + box.width())
+                outsideBoxes.add(String.format("%s: ink %d to %d, box %d to %d",
+                        labels[labelIndex], inkLeft, inkRight, box.x(),
+                        box.x() + box.width()));
+        }
+        painter.dispose();
+        image.dispose();
+        hintMeshRenderer.hideHintMesh();
+        for (TransparentWindow window : hintMeshRenderer.windows())
+            window.disposeLater();
+        assertTrue(outsideBoxes.isEmpty(), String.join("\n", outsideBoxes));
+        assertEquals(1, boxWidths.size(), "box widths " + boxWidths);
     }
 
     /** The box of a grid without selection keys is its cell, however small. */
