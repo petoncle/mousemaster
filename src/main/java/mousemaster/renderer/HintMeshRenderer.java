@@ -901,7 +901,6 @@ public final class HintMeshRenderer {
                 backgroundRect.width(), backgroundRect.height());
         window.setBackground(backgroundColor, rect, backgroundRadius, backgroundBorderColor,
                 backgroundBorderThickness);
-        window.update(rect);
     }
 
     private void transitionHintContainers(boolean animateTransition, QWidget oldContainer,
@@ -1085,7 +1084,12 @@ public final class HintMeshRenderer {
             windowInk.add(new Rectangle(rectangle.x() + originX, rectangle.y() + originY,
                     rectangle.width(), rectangle.height()));
         HintPaintLayer layer = new HintPaintLayer(window, borderBoxes, List.of(), HintBox::paintBorder);
-        layer.setGeometry(0, 0, window.width(), window.height());
+        List<Rectangle> borderInk = new ArrayList<>();
+        borderBoxes.forEach(box -> borderInk.add(box.ink()));
+        outgoing.forEach(borders -> borders.boxes().forEach(box -> borderInk.add(box.ink())));
+        // A box that morphs can go anywhere in the window.
+        if (boxesMove || !layer.fitToInk(borderInk, 0, window.width(), window.height()))
+            layer.setGeometry(0, 0, window.width(), window.height());
         layer.setEnclosingInk(windowInk);
         layer.raise();
         layer.show();
@@ -4193,8 +4197,10 @@ public final class HintMeshRenderer {
         private QRect replaceCrop(QRect current, QRect r) {
             QRect newCrop = new QRect(r);
             QRect dirty = current != null ? newCrop.united(current) : rect();
-            if (current != null)
+            if (current != null) {
+                dirty.translate(-originX, -originY);
                 current.dispose();
+            }
             update(dirty);
             dirty.dispose();
             return newCrop;
@@ -4259,9 +4265,12 @@ public final class HintMeshRenderer {
         void paint(QPainter painter, Rectangle dirty) {
             if (originX != 0 || originY != 0)
                 painter.translate(-originX, -originY);
+            Rectangle painted = new Rectangle(dirty.x() + originX, dirty.y() + originY,
+                    dirty.width(), dirty.height());
             if (!outgoing.isEmpty() && outgoingCrop != null) {
                 painter.save();
-                QRect dirtyRect = new QRect(dirty.x(), dirty.y(), dirty.width(), dirty.height());
+                QRect dirtyRect = new QRect(painted.x(), painted.y(), painted.width(),
+                        painted.height());
                 QRect outgoingDirty = outgoingCrop.intersected(dirtyRect);
                 dirtyRect.dispose();
                 QRegion dirtyRegion = new QRegion(outgoingDirty);
@@ -4287,7 +4296,8 @@ public final class HintMeshRenderer {
                 outgoingDirty.dispose();
             }
             if (enclosingInk != null) {
-                QRect dirtyRect = new QRect(dirty.x(), dirty.y(), dirty.width(), dirty.height());
+                QRect dirtyRect = new QRect(painted.x(), painted.y(), painted.width(),
+                        painted.height());
                 QRect clip = crop != null ? crop.intersected(dirtyRect) : new QRect(dirtyRect);
                 dirtyRect.dispose();
                 QRegion clipRegion = new QRegion(clip);
@@ -4298,7 +4308,8 @@ public final class HintMeshRenderer {
                 clip.dispose();
             }
             else if (crop != null) {
-                QRect dirtyRect = new QRect(dirty.x(), dirty.y(), dirty.width(), dirty.height());
+                QRect dirtyRect = new QRect(painted.x(), painted.y(), painted.width(),
+                        painted.height());
                 QRect clip = crop.intersected(dirtyRect);
                 painter.setClipRect(clip);
                 clip.dispose();
@@ -4307,8 +4318,6 @@ public final class HintMeshRenderer {
             for (ShadowPixmap shadowPixmap : shadowPixmaps)
                 for (int stack = 0; stack < shadowPixmap.stackCount(); stack++)
                     painter.drawPixmap(shadowPixmap.x(), shadowPixmap.y(), shadowPixmap.pixmap());
-            Rectangle painted = new Rectangle(dirty.x() + originX, dirty.y() + originY,
-                    dirty.width(), dirty.height());
             for (HintBox box : boxes)
                 if (!box.ink().intersection(painted).isEmpty())
                     boxPainter.accept(box, painter);

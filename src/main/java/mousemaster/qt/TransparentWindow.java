@@ -15,6 +15,8 @@ import mousemaster.Os;
 import mousemaster.Rectangle;
 import mousemaster.Screen;
 
+import java.util.Objects;
+
 public class TransparentWindow extends QWidget {
 
     private QBrush backgroundColor;
@@ -39,10 +41,19 @@ public class TransparentWindow extends QWidget {
     /** A null color paints nothing. */
     public void setBackground(QBrush color, QRect rect, int radius, QBrush borderColor,
                               int borderThickness) {
+        if (Objects.equals(color, backgroundColor) && Objects.equals(rect, backgroundRect) &&
+            radius == backgroundRadius && Objects.equals(borderColor, backgroundBorderColor) &&
+            borderThickness == backgroundBorderThickness) {
+            if (rect != null)
+                rect.dispose();
+            return;
+        }
         if (this.backgroundRect != null) {
             update(this.backgroundRect);
             this.backgroundRect.dispose();
         }
+        if (rect != null)
+            update(rect);
         this.backgroundColor = color;
         this.backgroundRect = rect;
         this.backgroundRadius = radius;
