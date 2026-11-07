@@ -45,6 +45,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -288,17 +289,41 @@ class HintLabelAlignmentTest {
                                               Rectangle screenRectangle, double screenScale,
                                               int areaWidth, int areaHeight)
             throws IOException {
+        return drawn(properties, new HintMesh.HintMeshBuilder().hints(hints),
+                new Screen(screenRectangle, 96, screenScale), (image, hintMeshRenderer) -> {
+                    List<DrawnHint> drawnHints = new ArrayList<>();
+                    for (Hint hint : hints) {
+                        int inkLeft = Integer.MAX_VALUE;
+                        int inkRight = Integer.MIN_VALUE;
+                        for (int x = (int) (hint.centerX() - areaWidth / 2d);
+                             x < hint.centerX() + areaWidth / 2d; x++) {
+                            for (int y = (int) (hint.centerY() - areaHeight / 2d);
+                                 y < hint.centerY() + areaHeight / 2d; y++) {
+                                if ((image.pixel(x, y) >>> 24) == 0)
+                                    continue;
+                                inkLeft = Math.min(inkLeft, x);
+                                inkRight = Math.max(inkRight, x + 1);
+                            }
+                        }
+                        drawnHints.add(new DrawnHint(hint,
+                                hintMeshRenderer.hintBoxRectangle(hint), inkLeft, inkRight));
+                    }
+                    return drawnHints;
+                });
+    }
+
+    static <T> T drawn(String properties, HintMesh.HintMeshBuilder hintMeshBuilder,
+                       Screen screen, BiFunction<QImage, HintMeshRenderer, T> read)
+            throws IOException {
         List<String> lines = PropertiesReader.readPropertiesFile(
                 new BufferedReader(new StringReader(properties)));
         Configuration configuration = ConfigurationParser.parse(lines,
                 KeyboardLayout.keyboardLayoutByShortName.get("us-qwerty"));
-        HintMesh hintMesh = new HintMesh.HintMeshBuilder()
+        HintMesh hintMesh = hintMeshBuilder
                 .visible(true)
-                .hints(hints)
                 .styleByFilter(configuration.modeMap().get("hint-mode").hintMesh()
                                             .styleByFilter())
                 .build();
-        Screen screen = new Screen(screenRectangle, 96, screenScale);
         HintMeshRenderer hintMeshRenderer = new HintMeshRenderer(() -> {
             TransparentWindow window = new TransparentWindow();
             window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen);
@@ -313,7 +338,7 @@ class HintLabelAlignmentTest {
             hintMeshRenderer.update(Mousemaster.FRAME_INTERVAL);
             hintMeshRenderer.runPendingWork();
         }
-        QImage image = new QImage(screenRectangle.width(), screenRectangle.height(),
+        QImage image = new QImage(screen.rectangle().width(), screen.rectangle().height(),
                 QImage.Format.Format_ARGB32_Premultiplied);
         image.fill(0);
         QPainter painter = new QPainter(image);
@@ -325,29 +350,13 @@ class HintLabelAlignmentTest {
             pixmap.dispose();
         }
         painter.end();
-        List<DrawnHint> drawnHints = new ArrayList<>();
-        for (Hint hint : hints) {
-            int inkLeft = Integer.MAX_VALUE;
-            int inkRight = Integer.MIN_VALUE;
-            for (int x = (int) (hint.centerX() - areaWidth / 2d);
-                 x < hint.centerX() + areaWidth / 2d; x++) {
-                for (int y = (int) (hint.centerY() - areaHeight / 2d);
-                     y < hint.centerY() + areaHeight / 2d; y++) {
-                    if ((image.pixel(x, y) >>> 24) == 0)
-                        continue;
-                    inkLeft = Math.min(inkLeft, x);
-                    inkRight = Math.max(inkRight, x + 1);
-                }
-            }
-            drawnHints.add(new DrawnHint(hint, hintMeshRenderer.hintBoxRectangle(hint),
-                    inkLeft, inkRight));
-        }
+        T found = read.apply(image, hintMeshRenderer);
         painter.dispose();
         image.dispose();
         hintMeshRenderer.hideHintMesh();
         for (TransparentWindow window : hintMeshRenderer.windows())
             window.disposeLater();
-        return drawnHints;
+        return found;
     }
 
     /** The box of a grid without selection keys is its cell, however small. */

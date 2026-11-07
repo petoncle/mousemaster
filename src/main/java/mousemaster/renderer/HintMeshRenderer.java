@@ -1867,7 +1867,8 @@ public final class HintMeshRenderer {
                 Rectangle box = hintBox.pixelRectangle((int) Math.round(sweepOrigin.x()),
                         (int) Math.round(sweepOrigin.y()));
                 hintLabel.labelFontStyle = sampledLabelFontStyle(
-                        hintLabel.labelFontStyle, hintStyle,
+                        hintLabel.labelFontStyle, hintStyle.fontStyle(),
+                        hintStyle.prefixFontStyle(),
                         color -> color.area() == GradientArea.ELEMENT ? box :
                                 textGradientAreaByArea.computeIfAbsent(color.area(),
                                         area -> gradientArea(area, hintMeshWindow, hintMesh)),
@@ -1925,6 +1926,13 @@ public final class HintMeshRenderer {
             HintLabel prefixHintLabel = hintGroup.prefixHintLabel;
             if (prefixHintLabel == null)
                 continue;
+            if (sampledText(style.prefixFontStyle()))
+                prefixHintLabel.labelFontStyle = sampledLabelFontStyle(
+                        prefixHintLabel.labelFontStyle, style.prefixFontStyle(), null,
+                        color -> color.area() == GradientArea.ELEMENT ? hintGroup.centerArea() :
+                                textGradientAreaByArea.computeIfAbsent(color.area(),
+                                        area -> gradientArea(area, hintMeshWindow, hintMesh)),
+                        hintGroup, hintGroup.centerArea().center(), hintGroup.turn);
             prefixLabels.add(prefixHintLabel);
         }
         long beforeLayers = System.nanoTime();
@@ -2171,13 +2179,12 @@ public final class HintMeshRenderer {
     /** A key's text, outline and shadow are each drawn in one color, so a gradient is sampled
      *  at the hint, the way a box samples a gradient. */
     private QtHintFontStyle sampledLabelFontStyle(
-            QtHintFontStyle labelFontStyle, HintMeshStyle style,
-            Function<GradientColor, Rectangle> gradientArea, HintGroup hintGroup, Point center,
-            int turn) {
-        BiFunction<QtFontStyle, FontStyle, QtFontStyle> sampled = (qtFontStyle, fontStyle) ->
-                sampledFontStyle(qtFontStyle, fontStyle, gradientArea, hintGroup, center, turn);
-        HintFontStyle fontStyle = style.fontStyle();
-        HintFontStyle prefixFontStyle = style.prefixFontStyle();
+            QtHintFontStyle labelFontStyle, HintFontStyle fontStyle,
+            HintFontStyle prefixFontStyle, Function<GradientColor, Rectangle> gradientArea,
+            HintGroup hintGroup, Point center, int turn) {
+        BiFunction<QtFontStyle, FontStyle, QtFontStyle> sampled =
+                (qtFontStyle, stateFontStyle) -> sampledFontStyle(qtFontStyle, stateFontStyle,
+                        gradientArea, hintGroup, center, turn);
         boolean prefix = labelFontStyle.prefixDefaultStyle() != null;
         return new QtHintFontStyle(
                 sampled.apply(labelFontStyle.defaultStyle(), fontStyle.defaultFontStyle()),
