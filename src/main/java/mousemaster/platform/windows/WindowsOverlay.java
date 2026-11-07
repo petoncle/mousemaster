@@ -386,7 +386,7 @@ public class WindowsOverlay implements Overlay {
                 mouseRectangle(mousePosition),
                 mouse.cursorVisualCenter(),
                 WindowsScreen.findActiveScreen(mousePosition), currentZoom,
-                hintMeshRenderer.lastSelectedHintBoxHexColor());
+                hintMeshRenderer.lastSelectedHintColors());
     }
 
     private List<WindowsIndicatorWindow> indicatorWindows() {
@@ -585,7 +585,7 @@ public class WindowsOverlay implements Overlay {
             return;
         IndicatorRenderer.IndicatorImage image =
                 followingIndicatorRenderer.renderCursorImage(indicator, scale,
-                        hintMeshRenderer.lastSelectedHintBoxHexColor(),
+                        hintMeshRenderer.lastSelectedHintColors(),
                         mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                         WindowsScreen.findActiveScreen(mousePosition));
         mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
@@ -747,11 +747,12 @@ public class WindowsOverlay implements Overlay {
             double scale = WindowsScreen.findActiveScreen(mousePosition).scale();
             boolean scaleChanged = scale != currentCursorScale;
             if (currentCursorIndicator != null && (scaleChanged ||
-                    !IndicatorRenderer.looksTheSameAnywhere(currentCursorIndicator))) {
+                    !IndicatorRenderer.looksTheSameAnywhere(currentCursorIndicator,
+                            hintMeshRenderer.lastSelectedHintColors()))) {
                 IndicatorRenderer.IndicatorImage image =
                         followingIndicatorRenderer.renderCursorImage(
                                 currentCursorIndicator, scale,
-                                hintMeshRenderer.lastSelectedHintBoxHexColor(),
+                                hintMeshRenderer.lastSelectedHintColors(),
                                 mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                                 WindowsScreen.findActiveScreen(mousePosition));
                 mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),

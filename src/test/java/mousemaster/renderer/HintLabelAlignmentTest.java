@@ -11,6 +11,7 @@ import mousemaster.FontStyle;
 import mousemaster.FontStyle.FontStyleBuilder;
 import mousemaster.FontVerticalAlignment;
 import mousemaster.FontWeight;
+import mousemaster.GradientColor;
 import mousemaster.HintFontStyle;
 import mousemaster.Key;
 import mousemaster.MousemasterApplication;
@@ -34,6 +35,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class HintLabelAlignmentTest {
+
+    private static final Color.LastSelectedHintColors white = new Color.LastSelectedHintColors(
+            GradientColor.parse("#FFFFFF"), GradientColor.parse("#FFFFFF"));
 
     private static boolean qtAvailable;
 
@@ -64,7 +68,7 @@ class HintLabelAlignmentTest {
         for (double size : new double[] {8, 10, 13, 18}) {
             for (FontWeight weight : new FontWeight[] {FontWeight.NORMAL, FontWeight.BOLD}) {
                 QtFontStyle style =
-                        QtHintFont.qtFontStyle(fontStyle(size, weight), screenScale, "#FFFFFF");
+                        QtHintFont.qtFontStyle(fontStyle(size, weight), screenScale, white);
                 int lineHeight = style.metrics().height();
                 for (int boxHeight = lineHeight; boxHeight < lineHeight + 4; boxHeight++) {
                     double baseline = HintMeshRenderer.baselineY(
@@ -94,7 +98,7 @@ class HintLabelAlignmentTest {
                 FontStyle fontStyle = fontStyle(size, weight);
                 QtHintFontStyle style = QtHintFont.qtHintFontStyle(
                         new HintFontStyle(fontStyle, 0, fontStyle, fontStyle, fontStyle), null, screenScale,
-                        "#FFFFFF");
+                        white);
                 QFontMetrics metrics = style.defaultStyle().metrics();
                 double glyphStep =
                         1d / QtHintFont.glyphPositionsPerPixel(metrics, qtScaleFactor);
@@ -134,7 +138,7 @@ class HintLabelAlignmentTest {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         FontStyle fontStyle = fontStyle(10, FontWeight.NORMAL);
         QtHintFontStyle style = QtHintFont.qtHintFontStyle(
-                new HintFontStyle(fontStyle, 0, fontStyle, fontStyle, fontStyle), null, 1, "#FFFFFF");
+                new HintFontStyle(fontStyle, 0, fontStyle, fontStyle, fontStyle), null, 1, white);
         HintMeshRenderer.HintLabel hintLabel = HintMeshRenderer.HintLabel.of(List.of(),
                 new HashMap<>(), 7, 7, 0, -1, style, 0, -1, FontVerticalAlignment.CAP_HEIGHT,
                 false, 1);

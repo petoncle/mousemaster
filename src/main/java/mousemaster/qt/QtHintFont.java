@@ -1,5 +1,6 @@
 package mousemaster.qt;
 
+import mousemaster.Color.LastSelectedHintColors;
 import io.qt.core.QPointF;
 import io.qt.core.QRect;
 import io.qt.core.QRectF;
@@ -267,16 +268,16 @@ public final class QtHintFont {
     /** One Qt font style (font + DPI-corrected metrics + colors) for a single FontStyle,
      *  e.g. a decoration label. */
     public static QtFontStyle qtFontStyle(FontStyle fontStyle, double screenScale,
-                                          String lastSelectedHintBoxHexColor) {
+                                          LastSelectedHintColors lastSelectedHintColors) {
         QFont font = qFont(fontStyle.name(), fontStyle.size(), fontStyle.weight());
         QFontMetrics metrics = correctedFontMetricsForScreenDpi(font, fontStyle.size(), screenScale);
-        return qtFontStyle(fontStyle, font, metrics, screenScale, lastSelectedHintBoxHexColor);
+        return qtFontStyle(fontStyle, font, metrics, screenScale, lastSelectedHintColors);
     }
 
     public static QtHintFontStyle qtHintFontStyle(HintFontStyle hintFontStyle,
                                                   HintFontStyle prefixHintFontStyle,
                                                   double screenScale,
-                                                  String lastSelectedHintBoxHexColor) {
+                                                  LastSelectedHintColors lastSelectedHintColors) {
         FontStyle defaultFontStyle = hintFontStyle.defaultFontStyle();
         FontStyle selectedFontStyle = hintFontStyle.selectedFontStyle();
         FontStyle focusedFontStyle = hintFontStyle.focusedFontStyle();
@@ -300,20 +301,20 @@ public final class QtHintFont {
         }
         QFont defaultFont = qFont(defaultFontStyle.name(), defaultFontStyle.size(), defaultFontStyle.weight());
         QFontMetrics defaultMetrics = correctedFontMetricsForScreenDpi(defaultFont, defaultFontStyle.size(), screenScale);
-        QtFontStyle defaultQtFontStyle = qtFontStyle(defaultFontStyle, defaultFont, defaultMetrics, screenScale, lastSelectedHintBoxHexColor);
+        QtFontStyle defaultQtFontStyle = qtFontStyle(defaultFontStyle, defaultFont, defaultMetrics, screenScale, lastSelectedHintColors);
         QtFontStyle selectedQtFontStyle;
         QtFontStyle focusedQtFontStyle;
         if (perKeyFont) {
             QFont selectedFont = qFont(selectedFontStyle.name(), selectedFontStyle.size(), selectedFontStyle.weight());
             QFontMetrics selectedMetrics = correctedFontMetricsForScreenDpi(selectedFont, selectedFontStyle.size(), screenScale);
-            selectedQtFontStyle = qtFontStyle(selectedFontStyle, selectedFont, selectedMetrics, screenScale, lastSelectedHintBoxHexColor);
+            selectedQtFontStyle = qtFontStyle(selectedFontStyle, selectedFont, selectedMetrics, screenScale, lastSelectedHintColors);
             QFont focusedFont = qFont(focusedFontStyle.name(), focusedFontStyle.size(), focusedFontStyle.weight());
             QFontMetrics focusedMetrics = correctedFontMetricsForScreenDpi(focusedFont, focusedFontStyle.size(), screenScale);
-            focusedQtFontStyle = qtFontStyle(focusedFontStyle, focusedFont, focusedMetrics, screenScale, lastSelectedHintBoxHexColor);
+            focusedQtFontStyle = qtFontStyle(focusedFontStyle, focusedFont, focusedMetrics, screenScale, lastSelectedHintColors);
         }
         else {
-            selectedQtFontStyle = qtFontStyle(selectedFontStyle, defaultFont, defaultMetrics, screenScale, lastSelectedHintBoxHexColor);
-            focusedQtFontStyle = qtFontStyle(focusedFontStyle, defaultFont, defaultMetrics, screenScale, lastSelectedHintBoxHexColor);
+            selectedQtFontStyle = qtFontStyle(selectedFontStyle, defaultFont, defaultMetrics, screenScale, lastSelectedHintColors);
+            focusedQtFontStyle = qtFontStyle(focusedFontStyle, defaultFont, defaultMetrics, screenScale, lastSelectedHintColors);
         }
         QtFontStyle prefixDefaultQtFontStyle = null;
         QtFontStyle prefixSelectedQtFontStyle = null;
@@ -325,18 +326,18 @@ public final class QtHintFont {
             if (perKeyFont) {
                 QFont prefixDefaultFont = qFont(prefixDefaultFs.name(), prefixDefaultFs.size(), prefixDefaultFs.weight());
                 QFontMetrics prefixDefaultMetrics = correctedFontMetricsForScreenDpi(prefixDefaultFont, prefixDefaultFs.size(), screenScale);
-                prefixDefaultQtFontStyle = qtFontStyle(prefixDefaultFs, prefixDefaultFont, prefixDefaultMetrics, screenScale, lastSelectedHintBoxHexColor);
+                prefixDefaultQtFontStyle = qtFontStyle(prefixDefaultFs, prefixDefaultFont, prefixDefaultMetrics, screenScale, lastSelectedHintColors);
                 QFont prefixSelectedFont = qFont(prefixSelectedFs.name(), prefixSelectedFs.size(), prefixSelectedFs.weight());
                 QFontMetrics prefixSelectedMetrics = correctedFontMetricsForScreenDpi(prefixSelectedFont, prefixSelectedFs.size(), screenScale);
-                prefixSelectedQtFontStyle = qtFontStyle(prefixSelectedFs, prefixSelectedFont, prefixSelectedMetrics, screenScale, lastSelectedHintBoxHexColor);
+                prefixSelectedQtFontStyle = qtFontStyle(prefixSelectedFs, prefixSelectedFont, prefixSelectedMetrics, screenScale, lastSelectedHintColors);
                 QFont prefixFocusedFont = qFont(prefixFocusedFs.name(), prefixFocusedFs.size(), prefixFocusedFs.weight());
                 QFontMetrics prefixFocusedMetrics = correctedFontMetricsForScreenDpi(prefixFocusedFont, prefixFocusedFs.size(), screenScale);
-                prefixFocusedQtFontStyle = qtFontStyle(prefixFocusedFs, prefixFocusedFont, prefixFocusedMetrics, screenScale, lastSelectedHintBoxHexColor);
+                prefixFocusedQtFontStyle = qtFontStyle(prefixFocusedFs, prefixFocusedFont, prefixFocusedMetrics, screenScale, lastSelectedHintColors);
             }
             else {
-                prefixDefaultQtFontStyle = qtFontStyle(prefixDefaultFs, defaultFont, defaultMetrics, screenScale, lastSelectedHintBoxHexColor);
-                prefixSelectedQtFontStyle = qtFontStyle(prefixSelectedFs, defaultFont, defaultMetrics, screenScale, lastSelectedHintBoxHexColor);
-                prefixFocusedQtFontStyle = qtFontStyle(prefixFocusedFs, defaultFont, defaultMetrics, screenScale, lastSelectedHintBoxHexColor);
+                prefixDefaultQtFontStyle = qtFontStyle(prefixDefaultFs, defaultFont, defaultMetrics, screenScale, lastSelectedHintColors);
+                prefixSelectedQtFontStyle = qtFontStyle(prefixSelectedFs, defaultFont, defaultMetrics, screenScale, lastSelectedHintColors);
+                prefixFocusedQtFontStyle = qtFontStyle(prefixFocusedFs, defaultFont, defaultMetrics, screenScale, lastSelectedHintColors);
             }
         }
         return new QtHintFontStyle(defaultQtFontStyle, selectedQtFontStyle, focusedQtFontStyle,
@@ -355,14 +356,18 @@ public final class QtHintFont {
 
     private static QtFontStyle qtFontStyle(FontStyle fs, QFont font,
                                            QFontMetrics metrics,
-                                           double screenScale, String lastSelectedHintBoxHexColor) {
+                                           double screenScale,
+                                           LastSelectedHintColors lastSelectedHintColors) {
         double textPixelScale = textPixelScale(screenScale);
         return new QtFontStyle(
                 font, metrics,
-                QtColorUtil.qColor(fs.color().hexColor(lastSelectedHintBoxHexColor), fs.opacity()),
-                QtColorUtil.qColor(fs.outlineColor().hexColor(lastSelectedHintBoxHexColor), fs.outlineOpacity()),
+                QtColorUtil.qColor(fs.color().gradientColor(lastSelectedHintColors).hexColor(),
+                        fs.opacity()),
+                QtColorUtil.qColor(
+                        fs.outlineColor().gradientColor(lastSelectedHintColors).hexColor(),
+                        fs.outlineOpacity()),
                 (int) Math.round(fs.outlineThickness() * textPixelScale),
-                QtColorUtil.shadow(fs.shadow(), lastSelectedHintBoxHexColor),
+                QtColorUtil.shadow(fs.shadow(), lastSelectedHintColors),
                 fs.shadow().stackCount(),
                 fs.shadow().blurRadius() * textPixelScale,
                 fs.shadow().horizontalOffset() * textPixelScale,

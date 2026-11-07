@@ -284,7 +284,7 @@ public class MacosOverlay implements Overlay {
         return renderer.renderWindowImage(indicator, layerNamesToAnchor, pointsByPosition,
                 rectangleByArea, hintRectanglesByPoint,
                 cursorRectangle(mousePosition, activeScreen), cursorVisualCenter(activeScreen),
-                activeScreen, null, hintMeshRenderer.lastSelectedHintBoxHexColor());
+                activeScreen, null, hintMeshRenderer.lastSelectedHintColors());
     }
 
     @Override

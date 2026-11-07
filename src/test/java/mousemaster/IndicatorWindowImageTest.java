@@ -1,6 +1,7 @@
 package mousemaster;
 
 import io.qt.gui.QImage;
+import mousemaster.Color.LastSelectedHintColors;
 import mousemaster.IndicatorPosition.PointIndicatorPosition;
 import mousemaster.IndicatorPosition.PositionHistoryIndicatorPosition;
 import mousemaster.renderer.IndicatorRenderer;
@@ -46,12 +47,17 @@ class IndicatorWindowImageTest {
                 .get(Mode.IDLE_MODE_NAME).indicator();
     }
 
+    private static LastSelectedHintColors lastSelectedHintColors(String hexColor) {
+        return new LastSelectedHintColors(GradientColor.parse(hexColor),
+                GradientColor.parse(hexColor));
+    }
+
     private static WindowImage render(IndicatorRenderer renderer,
                                       IndicatorConfiguration indicator,
                                       Set<String> layerNamesToAnchor, int mouseX) {
         return renderer.renderWindowImage(indicator, layerNamesToAnchor, Map.of(), Map.of(),
                 Map.of(), new Rectangle(mouseX, 500, 32, 32), new Point(4, 4), SCREEN, null,
-                "#000000");
+                lastSelectedHintColors("#000000"));
     }
 
     private static WindowImage render(IndicatorConfiguration indicator,
@@ -64,7 +70,7 @@ class IndicatorWindowImageTest {
                                       Map<Point, HintRectangles> hintRectanglesByPoint) {
         return new IndicatorRenderer().renderWindowImage(indicator, Set.of("indicator"),
                 pointsByPosition, Map.of(), hintRectanglesByPoint, new Rectangle(100, 100, 32, 32),
-                new Point(4, 4), SCREEN, null, "#000000");
+                new Point(4, 4), SCREEN, null, lastSelectedHintColors("#000000"));
     }
 
     private static Map<IndicatorPosition, List<Point>> hintAndTarget(Point hint, Point target) {
@@ -118,7 +124,7 @@ class IndicatorWindowImageTest {
                     indicator, Set.of(), Map.of(), Map.of(), Map.of(),
                     new Rectangle(500, 500, 32, 32), new Point(4, 4),
                     new Screen(new Rectangle(0, 0, 3840, 2160), (int) (96 * scale), scale),
-                    null, "#000000"));
+                    null, lastSelectedHintColors("#000000")));
             boolean green = false, blue = false;
             for (int argb : image.argb()) {
                 green |= (argb >> 8 & 255) > 200 && (argb & 255) < 50;
@@ -143,7 +149,8 @@ class IndicatorWindowImageTest {
                 1910)) <= 1920);
         WindowImage zoomed = new IndicatorRenderer().renderWindowImage(indicator(label), Set.of(),
                 Map.of(), Map.of(), Map.of(), new Rectangle(1700, 500, 32, 32), new Point(4, 4),
-                SCREEN, new Zoom(3, new Point(1400, 540), SCREEN.rectangle()), "#000000");
+                SCREEN, new Zoom(3, new Point(1400, 540), SCREEN.rectangle()),
+                lastSelectedHintColors("#000000"));
         assertTrue(inkRight(zoomed) <= 1920);
         assertTrue(inkRight(render(new IndicatorRenderer(), indicator(
                 "idle-mode.indicator.size=100", "idle-mode.indicator.fill-opacity=1"), Set.of(),
@@ -436,7 +443,7 @@ class IndicatorWindowImageTest {
                 Map.of(indicator.layerByName().get("indicator").area(),
                         new Rectangle(500, 400, 101, 50)),
                 Map.of(), new Rectangle(100, 100, 32, 32), new Point(4, 4), SCREEN, null,
-                "#000000");
+                lastSelectedHintColors("#000000"));
         assertEquals(new Rectangle(499, 399, 103, 52), inkBox(box));
         assertEquals(255, alpha(box, 499, 420));
         assertEquals(0, alpha(box, 500, 420));
@@ -669,11 +676,42 @@ class IndicatorWindowImageTest {
         IndicatorRenderer renderer = new IndicatorRenderer();
         int red = centerArgb(renderer.renderWindowImage(indicator, Set.of("indicator"), Map.of(),
                 Map.of(), Map.of(), new Rectangle(500, 500, 32, 32), new Point(4, 4), SCREEN,
-                null, "#FF0000"));
+                null, lastSelectedHintColors("#FF0000")));
         int blue = centerArgb(renderer.renderWindowImage(indicator, Set.of(), Map.of(), Map.of(),
                 Map.of(), new Rectangle(500, 500, 32, 32), new Point(4, 4), SCREEN, null,
-                "#0000FF"));
+                lastSelectedHintColors("#0000FF")));
         assertTrue((red >> 16 & 0xFF) > 0xE0 && (red & 0xFF) < 0x20, Integer.toHexString(red));
         assertTrue((blue & 0xFF) > 0xE0 && (blue >> 16 & 0xFF) < 0x20, Integer.toHexString(blue));
+    }
+
+    @Test
+    void theLastSelectedHintBoxColorIsItsGradientAndItsCenterColorIsOneColor() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        LastSelectedHintColors lastSelectedHintColors = new LastSelectedHintColors(
+                GradientColor.parse("across-screen per-pixel left-to-right #FF0000 #0000FF"),
+                GradientColor.parse("#00FF00"));
+        IndicatorConfiguration gradient = indicator(
+                "idle-mode.indicator.fill-color=last-selected-hint-box-color",
+                "idle-mode.indicator.fill-opacity=1");
+        int left = centerArgb(new IndicatorRenderer().renderWindowImage(gradient,
+                Set.of("indicator"), Map.of(), Map.of(), Map.of(), new Rectangle(20, 500, 32, 32),
+                new Point(4, 4), SCREEN, null, lastSelectedHintColors));
+        int right = centerArgb(new IndicatorRenderer().renderWindowImage(gradient,
+                Set.of("indicator"), Map.of(), Map.of(), Map.of(),
+                new Rectangle(1870, 500, 32, 32), new Point(4, 4), SCREEN, null,
+                lastSelectedHintColors));
+        assertTrue((left >> 16 & 0xFF) > 0xE0 && (left & 0xFF) < 0x20, Integer.toHexString(left));
+        assertTrue((right & 0xFF) > 0xE0 && (right >> 16 & 0xFF) < 0x20,
+                Integer.toHexString(right));
+        IndicatorConfiguration center = indicator(
+                "idle-mode.indicator.fill-color=last-selected-hint-box-center-color",
+                "idle-mode.indicator.fill-opacity=1");
+        for (int mouseX : List.of(20, 1870)) {
+            int argb = centerArgb(new IndicatorRenderer().renderWindowImage(center,
+                    Set.of("indicator"), Map.of(), Map.of(), Map.of(),
+                    new Rectangle(mouseX, 500, 32, 32), new Point(4, 4), SCREEN, null,
+                    lastSelectedHintColors));
+            assertEquals(0xFF00FF00, argb, Integer.toHexString(argb));
+        }
     }
 }

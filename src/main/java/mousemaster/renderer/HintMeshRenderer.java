@@ -1,5 +1,6 @@
 package mousemaster.renderer;
 
+import mousemaster.Color.LastSelectedHintColors;
 import mousemaster.qt.*;
 
 import io.qt.core.*;
@@ -36,7 +37,7 @@ public final class HintMeshRenderer {
     /** What blurring an area apart costs besides its pixels, in pixels blurred in the same time. */
     private static final long AREA_COST_PIXELS = 100_000;
 
-    private final Map<HintMesh, PixmapAndPosition> hintMeshPixmaps = new HashMap<>();
+    private final Map<PixmapKey, PixmapAndPosition> hintMeshPixmaps = new HashMap<>();
     private final Map<HintMesh, Map<List<Key>, Rectangle>> hintBoxRectanglesByHintMeshKey =
             new HashMap<>();
     private boolean hintMeshEndAnimation;
@@ -67,7 +68,8 @@ public final class HintMeshRenderer {
     private double frameDelta;
     private final TransitionMetrics transitionMetrics = new TransitionMetrics();
     private boolean showingHintMesh;
-    private String lastSelectedHintBoxHexColor = "#000000";
+    private LastSelectedHintColors lastSelectedHintColors = new LastSelectedHintColors(
+            GradientColor.parse("#000000"), GradientColor.parse("#000000"));
     private int hideCount;
     /** Set when a crop that was zooming into a selected hint's box is abandoned because the incoming
      *  grid does not continue that drill; the incoming grid then fades in instead of popping. */
@@ -312,9 +314,9 @@ public final class HintMeshRenderer {
         if (!hintMesh.visible() || hintMesh.hints().isEmpty())
             return;
         if (hintsByScreen(hintMesh.hints(), screens).entrySet().stream().allMatch(entry ->
-                hintMeshPixmaps.containsKey(hintMeshKey(hintMesh, entry.getValue(),
+                hintMeshPixmaps.containsKey(pixmapKey(hintMeshKey(hintMesh, entry.getValue(),
                         hintMesh.styleByFilter().get(ScreenFilter.of(entry.getKey())),
-                        entry.getKey().scale()))))
+                        entry.getKey().scale())))))
             return;
         preWarming = true;
         try {
@@ -365,8 +367,8 @@ public final class HintMeshRenderer {
         }
     }
 
-    public String lastSelectedHintBoxHexColor() {
-        return lastSelectedHintBoxHexColor;
+    public LastSelectedHintColors lastSelectedHintColors() {
+        return lastSelectedHintColors;
     }
 
     /** The rectangle of the box drawn for the hint, in screen pixels, null when none is drawn. */
@@ -795,7 +797,7 @@ public final class HintMeshRenderer {
         hintMeshWindow.lastHintMeshKeyReference.set(hintMeshKey); // Will be used by animateHintMatch.
         PixmapAndPosition pixmapAndPosition =
                 matchBoxPixmap != null ? matchBoxPixmap :
-                        hintMeshPixmaps.get(hintMeshKey);
+                        hintMeshPixmaps.get(pixmapKey(hintMeshKey));
         boolean isHintGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
         QWidget newContainer;
         if (pixmapAndPosition != null) {
@@ -1444,7 +1446,7 @@ public final class HintMeshRenderer {
         // Background prefix is on a different layer.
         boolean hasForegroundPrefixKeys = !style.prefixInBackground() && hintMesh.prefixLength() != -1;
         HintFontStyle prefixFontStyle = hasForegroundPrefixKeys ? style.prefixFontStyle() : null;
-        QtHintFontStyle labelFontStyle = QtHintFont.qtHintFontStyle(style.fontStyle(), prefixFontStyle, screenScale, lastSelectedHintBoxHexColor);
+        QtHintFontStyle labelFontStyle = QtHintFont.qtHintFontStyle(style.fontStyle(), prefixFontStyle, screenScale, lastSelectedHintColors);
         GradientColor boxColor = style.boxColor();
         boolean boxSweptPerHint = style.boxOpacity() != 0 && boxColor.gradient() &&
                                   boxColor.area() != GradientArea.ELEMENT;
@@ -1456,7 +1458,7 @@ public final class HintMeshRenderer {
         QtHintFontStyle savedLabelFontStyle = savedHints.isEmpty() ? null :
                 QtHintFont.qtHintFontStyle(savedStyle.fontStyle(),
                         hasForegroundPrefixKeys ? savedStyle.prefixFontStyle() : null,
-                        screenScale, lastSelectedHintBoxHexColor);
+                        screenScale, lastSelectedHintColors);
         Map<GradientArea, Rectangle> textGradientAreaByArea = new HashMap<>();
         Rectangle savedBoxGradientArea =
                 gradientArea(savedStyle.boxColor().area(), hintMeshWindow, hintMesh);
@@ -1732,7 +1734,7 @@ public final class HintMeshRenderer {
         }
         QtHintFontStyle prefixQtHintFontStyle = null;
         if (style.prefixInBackground() && hintMesh.prefixLength() != -1) {
-            prefixQtHintFontStyle = QtHintFont.qtHintFontStyle(style.prefixFontStyle(), null, screenScale, lastSelectedHintBoxHexColor);
+            prefixQtHintFontStyle = QtHintFont.qtHintFontStyle(style.prefixFontStyle(), null, screenScale, lastSelectedHintColors);
             Map<String, Integer> prefixXAdvancesByString = new HashMap<>();
             int prefixHintKeyMaxXAdvance = 0;
             for (List<Key> prefix : hintGroupByPrefix.keySet()) {
@@ -2149,28 +2151,28 @@ public final class HintMeshRenderer {
         return color.sweepPosition(sampledArea, sampled.x(), sampled.y());
     }
 
-    private static boolean sampledText(HintMeshStyle style, boolean prefix) {
+    private boolean sampledText(HintMeshStyle style, boolean prefix) {
         return sampledText(style.fontStyle()) || prefix && sampledText(style.prefixFontStyle());
     }
 
-    private static boolean sampledText(HintFontStyle fontStyle) {
+    private boolean sampledText(HintFontStyle fontStyle) {
         return sampledText(fontStyle.defaultFontStyle()) ||
                sampledText(fontStyle.selectedFontStyle()) ||
                sampledText(fontStyle.focusedFontStyle());
     }
 
-    private static boolean sampledText(FontStyle fontStyle) {
+    private boolean sampledText(FontStyle fontStyle) {
         return gradient(fontStyle.color()) || gradient(fontStyle.outlineColor()) ||
                gradient(fontStyle.shadow().color());
     }
 
-    private static boolean gradient(Color color) {
-        return color instanceof GradientColor gradientColor && gradientColor.gradient();
+    private boolean gradient(Color color) {
+        return gradientColor(color).gradient();
     }
 
     /** A key's text, outline and shadow are each drawn in one color, so a gradient is sampled
      *  at the hint, the way a box samples a gradient. */
-    private static QtHintFontStyle sampledLabelFontStyle(
+    private QtHintFontStyle sampledLabelFontStyle(
             QtHintFontStyle labelFontStyle, HintMeshStyle style,
             Function<GradientColor, Rectangle> gradientArea, HintGroup hintGroup, Point center,
             int turn) {
@@ -2193,7 +2195,7 @@ public final class HintMeshRenderer {
                 labelFontStyle.fontSpacingPercent());
     }
 
-    private static QtFontStyle sampledFontStyle(QtFontStyle qtFontStyle, FontStyle fontStyle,
+    private QtFontStyle sampledFontStyle(QtFontStyle qtFontStyle, FontStyle fontStyle,
                                                 Function<GradientColor, Rectangle> gradientArea,
                                                 HintGroup hintGroup, Point center, int turn) {
         if (!sampledText(fontStyle))
@@ -2208,12 +2210,12 @@ public final class HintMeshRenderer {
     }
 
     /** unsampled when color is not a gradient. */
-    private static QColor sampledColor(QColor unsampled, Color color, double opacity,
-                                       Function<GradientColor, Rectangle> gradientArea,
-                                       HintGroup hintGroup, Point center, int turn) {
-        if (!gradient(color))
+    private QColor sampledColor(QColor unsampled, Color color, double opacity,
+                                Function<GradientColor, Rectangle> gradientArea,
+                                HintGroup hintGroup, Point center, int turn) {
+        GradientColor gradientColor = gradientColor(color);
+        if (!gradientColor.gradient())
             return unsampled;
-        GradientColor gradientColor = (GradientColor) color;
         if (gradientColor.direction() == GradientDirection.IN_TURN)
             return QColor.fromRgba(QtColorUtil.rgba(
                     gradientColor.turnRgb(sampledTurn(gradientColor, hintGroup, turn)), opacity));
@@ -2243,16 +2245,15 @@ public final class HintMeshRenderer {
     }
 
     private GradientColor gradientColor(Color color) {
-        return color instanceof GradientColor gradientColor ? gradientColor :
-                GradientColor.parse(color.hexColor(lastSelectedHintBoxHexColor));
+        return color.gradientColor(lastSelectedHintColors);
     }
 
     /** Gives the decoration boxes of box, which lands on boxPixelRectangle, their colors, as a
      *  hint box and its label take theirs. */
-    private static void setDecorationColors(HintBox box, Rectangle boxPixelRectangle,
-                                            List<DecorationStyle> decorationStyles,
-                                            int depth, HintGroup hintGroup,
-                                            int turn, Point sweepOrigin) {
+    private void setDecorationColors(HintBox box, Rectangle boxPixelRectangle,
+                                     List<DecorationStyle> decorationStyles,
+                                     int depth, HintGroup hintGroup,
+                                     int turn, Point sweepOrigin) {
         for (HintBox decorationBox : box.decorationBoxes) {
             DecorationStyle decorationStyle = decorationStyles.get(depth);
             Rectangle pixelRectangle =
@@ -2312,7 +2313,7 @@ public final class HintMeshRenderer {
                 scaledLength(decoration.boxVerticalPadding(), screenScale),
                 decoration.boxFramed(),
                 font.opacity() != 0,
-                QtHintFont.qtFontStyle(font, screenScale, lastSelectedHintBoxHexColor),
+                QtHintFont.qtFontStyle(font, screenScale, lastSelectedHintColors),
                 font,
                 decoration.labelOverride(),
                 font.verticalAlignment());
@@ -2396,7 +2397,7 @@ public final class HintMeshRenderer {
                 new PixmapAndPosition(pixmap, container.x(), container.y(), boxes, enclosingInk,
                         hintMesh, window.x(), window.y());
 //         pixmap.save("screenshot.png", "PNG");
-        hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition);
+        hintMeshPixmaps.put(pixmapKey(hintMeshKey), pixmapAndPosition);
         if (!preWarming)
             logger.debug("Cached hint mesh pixmap " + pixmapAndPosition + " in " +
                      (long) ((System.nanoTime() - before) / 1e6) + "ms, cache size is " +
@@ -2428,6 +2429,20 @@ public final class HintMeshRenderer {
     /** The key a drawn mesh is cached by: the mesh with its visible hints at the boxes they are
      *  drawn in, moved so that the smallest hint center x and y are 0 when it looks the same
      *  anywhere. A mesh that only moved has the same key. */
+    /** The colors of the hint selected last change with each selection, so a mesh drawn in them
+     *  is cached with them. */
+    private record PixmapKey(HintMesh hintMeshKey, LastSelectedHintColors lastSelectedHintColors) {
+    }
+
+    private PixmapKey pixmapKey(HintMesh hintMeshKey) {
+        boolean lastSelected = hintMeshKey.styleByFilter().map().values().stream().anyMatch(
+                style -> Stream.concat(colors(style),
+                                       Stream.of(style.backgroundColor(),
+                                               style.backgroundBorderColor()))
+                               .anyMatch(color -> !(color instanceof GradientColor)));
+        return new PixmapKey(hintMeshKey, lastSelected ? lastSelectedHintColors : null);
+    }
+
     private HintMesh hintMeshKey(HintMesh hintMesh, List<Hint> hints, HintMeshStyle style,
                                  double screenScale) {
         HintMesh visibleHintMesh = hintMesh.builder()
@@ -2506,20 +2521,21 @@ public final class HintMeshRenderer {
                 hint.keySequence(), hint.elementRectangle());
     }
 
-    private static boolean looksTheSameAnywhere(HintMesh hintMesh) {
+    private boolean looksTheSameAnywhere(HintMesh hintMesh) {
         return hintMesh.styleByFilter().map().values().stream().allMatch(style ->
                 style.backgroundOpacity() == 0 && style.backgroundBorderOpacity() == 0 &&
-                colors(style).noneMatch(HintMeshRenderer::acrossTheScreen));
+                colors(style).noneMatch(this::acrossTheScreen));
     }
 
     private static Stream<Color> colors(HintMeshStyle style) {
         return Stream.of(Stream.of(style.boxColor(), style.boxBorderColor(),
                                  style.boxShadow().color(), style.prefixBoxBorderColor(),
                                  style.uiElementBoxColor(), style.uiElementBoxBorderColor(),
-                                 style.uiElementBoxShadow().color(),
-                                 style.savedBoxColor(), style.savedBoxBorderColor(),
-                                 style.savedUiElementBoxColor(),
-                                 style.savedUiElementBoxBorderColor()),
+                                 style.uiElementBoxShadow().color()),
+                         Stream.of(style.savedBoxColor(), style.savedBoxBorderColor(),
+                                   style.savedUiElementBoxColor(),
+                                   style.savedUiElementBoxBorderColor())
+                               .filter(Objects::nonNull),
                          colors(style.fontStyle()), colors(style.prefixFontStyle()),
                          style.decorations().stream().flatMap(decoration -> Stream.concat(
                                  Stream.of(decoration.boxColor(), decoration.boxBorderColor()),
@@ -2534,10 +2550,10 @@ public final class HintMeshRenderer {
                              font.shadow().color()));
     }
 
-    private static boolean acrossTheScreen(Color color) {
-        return color instanceof GradientColor gradientColor && gradientColor.gradient() &&
-               (gradientColor.area() == GradientArea.SCREEN ||
-                gradientColor.area() == GradientArea.ALL_SCREENS);
+    private boolean acrossTheScreen(Color color) {
+        GradientColor gradientColor = gradientColor(color);
+        return gradientColor.gradient() && (gradientColor.area() == GradientArea.SCREEN ||
+                                            gradientColor.area() == GradientArea.ALL_SCREENS);
     }
 
     /** boxes is the live box layer's boxes for a morphing grid, redrawn on a cache hit; null otherwise.
@@ -3711,7 +3727,7 @@ public final class HintMeshRenderer {
                                        int containerHeight,
                                        double screenScale,
                                        double qtScaleFactor) {
-        QColor shadowColor = QtColorUtil.shadow(boxShadow, lastSelectedHintBoxHexColor);
+        QColor shadowColor = QtColorUtil.shadow(boxShadow, lastSelectedHintColors);
         if (shadowColor.alpha() == 0 || boxes.isEmpty()) {
             shadowColor.dispose();
             return;
@@ -4271,20 +4287,25 @@ public final class HintMeshRenderer {
         HintMeshStyle style =
                 lastHintMeshKey.styleByFilter().get(ScreenFilter.of(screen));
         GradientColor boxColor = style.boxColor();
+        int centerRgb;
         if (boxColor.direction() == GradientDirection.IN_TURN) {
             Function<Hint, List<Key>> labelKeySequence = boxColor.step() == GradientStep.GROUP ?
                     labelHint -> groupPrefix(currentHintMesh, labelHint) : Hint::keySequence;
-            lastSelectedHintBoxHexColor = Color.hexColor(boxColor.turnRgb(
-                    turnByKeySequence(currentHintMesh.hints(), labelKeySequence)
-                            .get(labelKeySequence.apply(hint))));
+            centerRgb = boxColor.turnRgb(turnByKeySequence(currentHintMesh.hints(),
+                    labelKeySequence).get(labelKeySequence.apply(hint)));
         }
         else {
             Rectangle boxColorArea =
                     gradientArea(boxColor.area(), hintMeshWindow, currentHintMesh);
-            lastSelectedHintBoxHexColor = Color.hexColor(boxColorArea == null ?
+            centerRgb = boxColorArea == null ?
                     boxColor.rgbAt(GradientColor.unitArea, 0.5, 0.5) :
-                    boxColor.rgbAt(boxColorArea, hint.centerX(), hint.centerY()));
+                    boxColor.rgbAt(boxColorArea, hint.centerX(), hint.centerY());
         }
+        GradientColor centerColor = GradientColor.parse(Color.hexColor(centerRgb));
+        // Colors taken in turn are no sweep: the box is its own color.
+        lastSelectedHintColors = new LastSelectedHintColors(
+                boxColor.direction() == GradientDirection.IN_TURN ? centerColor : boxColor,
+                centerColor);
         if (!currentHintMesh.styleByFilter().get(ScreenFilter.of(screen)).transition().enabled())
             return;
         boolean isHintGrid = lastHintMeshKey.hints().getFirst().cellWidth() != -1 &&

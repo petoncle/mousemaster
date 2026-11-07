@@ -26,18 +26,31 @@ public class LastSelectedHintBoxColorTest {
         return configuration.modeMap().get("hint-mode").indicator().layerByName().get("indicator").fillColor();
     }
 
+    private static final Color.LastSelectedHintColors lastSelectedHintColors =
+            new Color.LastSelectedHintColors(
+                    GradientColor.parse("across-screen per-pixel left-to-right #FF0000 #0000FF"),
+                    GradientColor.parse("#123456"));
+
     @Test
-    void theKeywordDrawsWhateverTheSelectedBoxWasFilledWith() throws IOException {
+    void theKeywordDrawsTheColorTheSelectedBoxWasFilledWith() throws IOException {
         Color color = indicatorColor(parse(Color.lastSelectedHintBoxColor));
         assertEquals(new Color.LastSelectedHintBoxColor(), color);
-        assertEquals("#123456", color.hexColor("#123456"));
+        assertEquals(lastSelectedHintColors.boxColor(),
+                color.gradientColor(lastSelectedHintColors));
+    }
+
+    @Test
+    void theCenterKeywordDrawsTheColorAtTheCenterOfTheSelectedBox() throws IOException {
+        Color color = indicatorColor(parse(Color.lastSelectedHintBoxCenterColor));
+        assertEquals(new Color.LastSelectedHintBoxCenterColor(), color);
+        assertEquals(GradientColor.parse("#123456"), color.gradientColor(lastSelectedHintColors));
     }
 
     @Test
     void aHexColorIgnoresTheSelectedBox() throws IOException {
         Color color = indicatorColor(parse("#FF8800"));
         assertEquals(GradientColor.parse("#FF8800"), color);
-        assertEquals("#FF8800", color.hexColor("#123456"));
+        assertEquals(GradientColor.parse("#FF8800"), color.gradientColor(lastSelectedHintColors));
     }
 
     @Test

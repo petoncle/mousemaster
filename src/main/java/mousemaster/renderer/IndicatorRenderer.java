@@ -1,5 +1,6 @@
 package mousemaster.renderer;
 
+import mousemaster.Color.LastSelectedHintColors;
 import mousemaster.qt.*;
 
 import io.qt.core.*;
@@ -21,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Predicate;
 
 /**
  * Cross-platform Qt rendering of the mouse indicator: owns a widget per layer and the shadow
@@ -211,12 +211,10 @@ public final class IndicatorRenderer {
         return windowLayerGroups;
     }
 
-    private String hex(Color color, String lastSelectedHintBoxHexColor, Point gradientPoint) {
-        return sweep(color) == null && color instanceof GradientColor gradientColor &&
-               gradientColor.gradient() ?
-                Color.hexColor(gradientColor.rgbAt(gradientArea, gradientPoint.x(),
-                        gradientPoint.y())) :
-                color.hexColor(lastSelectedHintBoxHexColor);
+    private String hex(GradientColor color, Point gradientPoint) {
+        return sweep(color) == null && color.gradient() ?
+                Color.hexColor(color.rgbAt(gradientArea, gradientPoint.x(), gradientPoint.y())) :
+                color.hexColor();
     }
 
     private Point gradientPoint(PositionedLayer positionedLayer, double scale) {
@@ -233,9 +231,8 @@ public final class IndicatorRenderer {
         return (int) Math.round(coordinate / sweepGrid) * sweepGrid;
     }
 
-    private static GradientColor sweep(Color color) {
-        return color instanceof GradientColor gradientColor && gradientColor.gradient() &&
-               gradientColor.step() == GradientStep.PIXEL ? gradientColor : null;
+    private static GradientColor sweep(GradientColor color) {
+        return color.gradient() && color.step() == GradientStep.PIXEL ? color : null;
     }
 
     /** The screen a sweep runs over, relative to the widget the brush spans, in its points. */
@@ -273,7 +270,8 @@ public final class IndicatorRenderer {
     /** The layers are placed in the image, so that the image holds while they move together,
      *  or on the screen when a color depends on where they are. */
     private record WindowImageKey(List<PositionedLayer> layers, double scale,
-                                  String lastSelectedHintBoxHexColor, Rectangle gradientArea) {
+                                  LastSelectedHintColors lastSelectedHintColors,
+                                  Rectangle gradientArea) {
     }
 
     private static TextKey textKey(IndicatorLayerConfiguration layer, double scale) {
@@ -786,7 +784,7 @@ public final class IndicatorRenderer {
                                          Map<Point, HintRectangles> hintRectanglesByPoint,
                                          Rectangle mouseRectangle, Point cursorVisualCenter,
                                          Screen activeScreen, Zoom zoom,
-                                         String lastSelectedHintBoxHexColor) {
+                                         LastSelectedHintColors lastSelectedHintColors) {
         gradientArea = activeScreen.rectangle();
         anchor(layerNamesToAnchor, pointsByPosition, rectangleByArea, hintRectanglesByPoint,
                 mouseRectangle, cursorVisualCenter, activeScreen);
@@ -805,9 +803,8 @@ public final class IndicatorRenderer {
                     new Point(positionedLayer.topLeft().x() - x,
                             positionedLayer.topLeft().y() - y)));
         WindowImageKey key = new WindowImageKey(
-                anyColor(indicator, IndicatorRenderer::sweptAcrossTheScreen) ||
-                anyColor(indicator, IndicatorRenderer::sampled) ? positionedLayers : imageLayers,
-                screenScale, lastSelectedHintBoxHexColor, gradientArea);
+                looksTheSameAnywhere(indicator, lastSelectedHintColors) ? imageLayers :
+                        positionedLayers, screenScale, lastSelectedHintColors, gradientArea);
         if (key.equals(windowImageKey))
             return new WindowImage(windowImage, x, y, windowImage.width(), windowImage.height());
         int width = layersRectangle.width() + 2 * shadowPadding;
@@ -817,7 +814,7 @@ public final class IndicatorRenderer {
         placeLayers(positionedLayers, new Point(layersRectangle.x(), layersRectangle.y()),
                 layersRectangle.width(), layersRectangle.height(), new Point(x, y),
                 screenScale, 1);
-        applyIndicator(screenScale, lastSelectedHintBoxHexColor);
+        applyIndicator(screenScale, lastSelectedHintColors);
         if (windowImage != null)
             windowImage.dispose();
         windowImage = render(width, height);
@@ -825,36 +822,26 @@ public final class IndicatorRenderer {
         return new WindowImage(windowImage, x, y, width, height);
     }
 
-    public static boolean looksTheSameAnywhere(IndicatorConfiguration indicator) {
-        return !anyColor(indicator, IndicatorRenderer::sweptAcrossTheScreen) &&
-               !anyColor(indicator, IndicatorRenderer::sampled);
-    }
-
-    private static boolean anyColor(IndicatorConfiguration indicator,
-                                    Predicate<Color> predicate) {
+    /** Not when a gradient is sampled where a layer is, or swept across the screen rather than
+     *  across the layer itself. */
+    public static boolean looksTheSameAnywhere(IndicatorConfiguration indicator,
+                                               LastSelectedHintColors lastSelectedHintColors) {
         for (IndicatorLayerConfiguration layer : enabledLayers(indicator))
-            if (predicate.test(layer.fillColor()) || predicate.test(layer.stroke().color()) ||
-                predicate.test(layer.shadow().color()))
-                return true;
-        return false;
-    }
-
-    /** A gradient is sampled where the layer is, or swept across the screen, unless it is
-     *  swept across the element itself. */
-    private static boolean sweptAcrossTheScreen(Color color) {
-        GradientColor sweep = sweep(color);
-        return sweep != null && sweep.area() != GradientArea.ELEMENT;
-    }
-
-    private static boolean sampled(Color color) {
-        return sweep(color) == null && color instanceof GradientColor gradientColor &&
-               gradientColor.gradient();
+            for (Color color : List.of(layer.fillColor(), layer.stroke().color(),
+                    layer.shadow().color())) {
+                GradientColor gradientColor = color.gradientColor(lastSelectedHintColors);
+                GradientColor sweep = sweep(gradientColor);
+                if (sweep == null ? gradientColor.gradient() :
+                        sweep.area() != GradientArea.ELEMENT)
+                    return false;
+            }
+        return true;
     }
 
     /** Renders the indicator's widget tree into a premultiplied-ARGB image for use as the
      *  system cursor, centered on the indicator's visual center. */
     public IndicatorImage renderCursorImage(IndicatorConfiguration indicator, double scale,
-                                         String lastSelectedHintBoxHexColor,
+                                         LastSelectedHintColors lastSelectedHintColors,
                                          Rectangle mouseRectangle, Point cursorVisualCenter,
                                          Screen activeScreen) {
         gradientArea = activeScreen.rectangle();
@@ -886,7 +873,7 @@ public final class IndicatorRenderer {
         placeLayers(positionedLayers, layersTopLeft, layersSize, layersSize,
                 new Point(layersTopLeft.x() - shadowPadding, layersTopLeft.y() - shadowPadding),
                 scale, 1);
-        applyIndicator(scale, lastSelectedHintBoxHexColor);
+        applyIndicator(scale, lastSelectedHintColors);
         QImage image = render(imageSize, imageSize);
         IndicatorImage indicatorImage = indicatorImage(image);
         image.dispose();
@@ -916,7 +903,7 @@ public final class IndicatorRenderer {
 
     /** Applies the indicator to the widgets (shape, fill, stroke, shadow effect) without
      *  positioning them. Shared by the window image and the cursor image renders. */
-    private void applyIndicator(double shadowScale, String lastSelectedHintBoxHexColor) {
+    private void applyIndicator(double shadowScale, LastSelectedHintColors lastSelectedHintColors) {
         outlineByText.entrySet().removeIf(entry -> {
             if (drawn(entry.getKey()))
                 return false;
@@ -929,13 +916,13 @@ public final class IndicatorRenderer {
             entry.getValue().dispose();
             return true;
         });
-        applyShadowEffect(shadowScale, lastSelectedHintBoxHexColor);
+        applyShadowEffect(shadowScale, lastSelectedHintColors);
         for (int i = 0; i < widgets.size(); i++) {
             if (i < currentLayers.size())
                 applyLayer(currentLayers.get(i).layer(), widgets.get(i),
                         currentLayers.get(i).topLeft(),
                         gradientPoint(currentLayers.get(i), shadowScale),
-                        lastSelectedHintBoxHexColor);
+                        lastSelectedHintColors);
             else
                 widgets.get(i).hide();
         }
@@ -943,15 +930,16 @@ public final class IndicatorRenderer {
 
     private void applyLayer(IndicatorLayerConfiguration layer, IndicatorLayerWidget widget,
                             Point topLeft, Point gradientPoint,
-                            String lastSelectedHintBoxHexColor) {
+                            LastSelectedHintColors lastSelectedHintColors) {
         widget.setSweepArea(sweepArea(topLeft));
         widget.setLayer(layer);
-        widget.setFill(QtColorUtil.qColor(hex(layer.fillColor(), lastSelectedHintBoxHexColor, gradientPoint), layer.fillOpacity()),
-                sweep(layer.fillColor()));
+        GradientColor fillColor = layer.fillColor().gradientColor(lastSelectedHintColors);
+        widget.setFill(QtColorUtil.qColor(hex(fillColor, gradientPoint), layer.fillOpacity()),
+                sweep(fillColor));
         IndicatorStroke stroke = layer.stroke();
-        widget.setStroke(
-                QtColorUtil.qColor(hex(stroke.color(), lastSelectedHintBoxHexColor, gradientPoint), stroke.opacity()),
-                sweep(stroke.color()));
+        GradientColor strokeColor = stroke.color().gradientColor(lastSelectedHintColors);
+        widget.setStroke(QtColorUtil.qColor(hex(strokeColor, gradientPoint), stroke.opacity()),
+                sweep(strokeColor));
         widget.show();
     }
 
@@ -969,7 +957,7 @@ public final class IndicatorRenderer {
                               QBrush brush) {
     }
 
-    private void applyShadowEffect(double scale, String lastSelectedHintBoxHexColor) {
+    private void applyShadowEffect(double scale, LastSelectedHintColors lastSelectedHintColors) {
         for (ShadowCast shadowCast : shadowCasts)
             shadowCast.color().dispose();
         shadowCasts.clear();
@@ -981,7 +969,7 @@ public final class IndicatorRenderer {
             if (shadow.opacity() > 0 && shadow.blurRadius() > 0)
                 widgetsByHexColorByShadow
                         .computeIfAbsent(shadow, shadow_ -> new LinkedHashMap<>())
-                        .computeIfAbsent(hex(shadow.color(), lastSelectedHintBoxHexColor,
+                        .computeIfAbsent(hex(shadow.color().gradientColor(lastSelectedHintColors),
                                         gradientPoint(currentLayers.get(i), scale)),
                                 hexColor -> new ArrayList<>())
                         .add(widgets.get(i));
@@ -991,7 +979,8 @@ public final class IndicatorRenderer {
             for (Map.Entry<Shadow, Map<String, List<IndicatorLayerWidget>>> entry :
                     widgetsByHexColorByShadow.entrySet()) {
                 Shadow shadow = entry.getKey();
-                GradientColor shadowSweep = sweep(shadow.color());
+                GradientColor shadowSweep =
+                        sweep(shadow.color().gradientColor(lastSelectedHintColors));
                 for (Map.Entry<String, List<IndicatorLayerWidget>> hexColorEntry :
                         entry.getValue().entrySet()) {
                     QColor baseColor = QtColorUtil.qColor(hexColorEntry.getKey(), 1.0);

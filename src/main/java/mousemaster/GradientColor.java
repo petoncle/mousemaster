@@ -13,8 +13,8 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
                             GradientArea area, GradientStep step) implements Color {
 
     @Override
-    public String hexColor(String lastSelectedHintBoxHexColor) {
-        return hexColor();
+    public GradientColor gradientColor(LastSelectedHintColors lastSelectedHintColors) {
+        return this;
     }
 
     @Override

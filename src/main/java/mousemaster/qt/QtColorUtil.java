@@ -1,5 +1,6 @@
 package mousemaster.qt;
 
+import mousemaster.Color.LastSelectedHintColors;
 import io.qt.core.Qt;
 import io.qt.gui.*;
 import mousemaster.Color;
@@ -221,8 +222,9 @@ public final class QtColorUtil {
                               });
     }
 
-    public static QColor shadow(Shadow shadow, String lastSelectedHintBoxHexColor) {
-        return qColor(shadow.color().hexColor(lastSelectedHintBoxHexColor), shadow.opacity());
+    public static QColor shadow(Shadow shadow, LastSelectedHintColors lastSelectedHintColors) {
+        return qColor(shadow.color().gradientColor(lastSelectedHintColors).hexColor(),
+                shadow.opacity());
     }
 
     public static int rgba(int rgb, double opacity) {
