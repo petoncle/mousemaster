@@ -56,6 +56,7 @@ public class WindowsUiAccess {
             logger.trace("Successfully created new mousemaster process with UI access, exiting.");
             Kernel32Util.closeHandle(processInformation.hProcess);
             Kernel32Util.closeHandle(processInformation.hThread);
+            MousemasterApplication.stopLogging();
             System.exit(0);
         }
         else {

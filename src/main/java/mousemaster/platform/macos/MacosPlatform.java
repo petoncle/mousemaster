@@ -16,6 +16,7 @@ import mousemaster.Mode;
 import mousemaster.ModeMap;
 import mousemaster.MouseManager;
 import mousemaster.MousePositionListener;
+import mousemaster.MousemasterApplication;
 import mousemaster.Platform;
 import mousemaster.QtManager;
 import mousemaster.HintManager;
@@ -430,6 +431,7 @@ public class MacosPlatform implements Platform {
     @Override
     public void killProcess(int exitCode) {
         shutdown();
+        MousemasterApplication.stopLogging();
         Libc.INSTANCE._exit(exitCode);
     }
 

@@ -351,6 +351,7 @@ public class WindowsPlatform implements Platform {
     @Override
     public void killProcess(int exitCode) {
         shutdown();
+        MousemasterApplication.stopLogging();
         Kernel32.INSTANCE.TerminateProcess(Kernel32.INSTANCE.GetCurrentProcess(), exitCode);
     }
 
