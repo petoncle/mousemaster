@@ -215,6 +215,7 @@ class AnimationTest {
                 "idle-mode.start.ripple-animation=+a",
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 42");
         tap("a");
+        tick(0);
         assertEquals(42, size());
 
         tick(0.1);
@@ -229,8 +230,10 @@ class AnimationTest {
                 "idle-mode.start.ripple-animation=+a",
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 42");
         tap("a");
+        tick(0);
         tick(0.06);
         tap("a");
+        tick(0);
         tick(0.06);
         assertEquals(42, size());
 
@@ -249,8 +252,10 @@ class AnimationTest {
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
         tick(0);
         tap("a");
+        tick(0);
         tick(0.05);
         tap("a");
+        tick(0);
         tick(0.02);
         assertEquals(24, copyLayer(0).size(), 1e-9);
         assertEquals(14, drawnSize(), 1e-9);
@@ -270,10 +275,13 @@ class AnimationTest {
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
         tick(0);
         tap("a");
+        tick(0);
         tick(0.05);
         tap("a");
+        tick(0);
         tick(0.03);
         tap("a");
+        tick(0);
         tick(0.02);
         assertEquals(Set.of(new IndicatorLayerCopyKey("indicator", 0),
                 new IndicatorLayerCopyKey("indicator", 1)), drawnIndicatorByCopyKey.keySet());
@@ -295,8 +303,10 @@ class AnimationTest {
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
         tick(0);
         tap("a");
+        tick(0);
         tick(0.05);
         tap("a");
+        tick(0);
         comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, Key.ofName("b")));
         tick(0.02);
         assertEquals(Color.parse("#FF0000"), copyLayer(0).fillColor());
@@ -313,8 +323,10 @@ class AnimationTest {
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
         tick(0);
         tap("a");
+        tick(0);
         tick(0.05);
         tap("a");
+        tick(0);
         tick(0.02);
         tap("b");
         tick(0);
@@ -433,6 +445,19 @@ class AnimationTest {
     }
 
     @Test
+    void theFrameThatStartsAnAnimationTakesNoneOfItsTime() {
+        load("ripple-animation.duration-millis=100",
+                "idle-mode.start.ripple-animation=+a",
+                "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 36");
+        tick(0);
+        tap("a");
+        tick(0.08);
+        assertEquals(10, drawnSize(), 1e-9);
+        tick(0.05);
+        assertEquals(23, drawnSize(), 1e-9);
+    }
+
+    @Test
     void currentIsWhatWasDrawnWhenTheAnimationStarted() {
         load("ripple-animation.duration-millis=100",
                 "idle-mode.start.ripple-animation=+a",
@@ -509,6 +534,7 @@ class AnimationTest {
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
         tick(0);
         tap("a");
+        tick(0);
         tick(0.15);
         assertEquals(20, drawnSize(), 1e-9);
         tick(0.06);
@@ -526,6 +552,7 @@ class AnimationTest {
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
         tick(0);
         tap("a");
+        tick(0);
         tick(10.05);
         assertEquals(20, drawnSize(), 1e-9);
         tap("b");
@@ -542,6 +569,7 @@ class AnimationTest {
                 "idle-mode.indicator.size=26 | _{rippleanimation} -> 0% 10; 100% 30");
         tick(0);
         tap("a");
+        tick(0);
         tick(0.075);
         assertEquals(25, drawnSize(), 1e-9);
         tick(0.05);
@@ -561,10 +589,12 @@ class AnimationTest {
                 "idle-mode.start.cut-animation=_{held} -burstanimation",
                 "idle-mode.indicator.size=26 | _{burstanimation} -> 42 | _{fadeanimation} -> 30 | _{cutanimation} -> 10");
         tap("a");
+        tick(0);
         tick(0.25);
         assertEquals(42, size());
         tick(0);
         assertEquals(10, size());
+        tick(0);
         tick(0.04);
         assertEquals(10, size());
         tick(0);
@@ -578,6 +608,7 @@ class AnimationTest {
                 "idle-mode.hide-cursor.enabled=false | _{clickburstanimation} -> 0% true; 50% false");
         tap("a");
         assertTrue(hideCursorEnabled());
+        tick(0);
         tick(0.06);
         assertFalse(hideCursorEnabled());
     }
@@ -647,6 +678,7 @@ class AnimationTest {
                 "other-mode.indicator.enabled=true",
                 "other-mode.indicator.size=10 | _{a} -> 12");
         tick(0);
+        tick(0);
         tick(0.1);
         tick(0);
         drawn.clear();
@@ -654,6 +686,7 @@ class AnimationTest {
         assertEquals(List.of(), drawn);
         comboWatcher.update(0);
         assertEquals(4, drawn.getFirst().size(), 1e-9);
+        tick(0);
         tick(0.1);
         tick(0);
         drawn.clear();
@@ -661,6 +694,7 @@ class AnimationTest {
         assertEquals(List.of(), drawn);
         comboWatcher.update(0);
         assertEquals(26, drawn.getFirst().size(), 1e-9);
+        tick(0);
         tick(0.1);
         tick(0);
         drawn.clear();

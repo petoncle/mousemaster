@@ -251,6 +251,7 @@ class IndicatorEffectsTest {
         load(ripple());
         tick(0);
         tap("a");
+        tick(0);
         tick(0.2);
         assertEquals(35, drawn("ring1-indicator").size(), 1e-9);
         tap("a");
@@ -275,6 +276,7 @@ class IndicatorEffectsTest {
                 "idle-mode.arc-indicator.rotation=0 | _{spinanimation} -> 0% 0; 100% 360");
         tick(0);
         press("b");
+        tick(0);
         tick(0.25);
         assertEquals(90, drawn("arc-indicator").rotation(), 1e-9);
         assertEquals(0.25, drawn("arc-indicator").stroke().lengthPercent(), 1e-9);
@@ -298,6 +300,7 @@ class IndicatorEffectsTest {
                 "idle-mode.dot-indicator.rotation=0 | _{orbitanimation} -> 0% 0; 100% -360");
         tick(0);
         tap("c");
+        tick(0);
         tick(0.25);
         assertEquals(30, drawn("dot-indicator").distance(), 1e-9);
         assertEquals(90, drawn("dot-indicator").angle(), 1e-9);
@@ -422,10 +425,12 @@ class IndicatorEffectsTest {
                 "idle-mode.t-indicator.fill-opacity=1 | _{holdanimation} -> 0% 1; 80% 1; 100% 0");
         tick(0);
         tap("a");
+        tick(0);
         tick(0.3);
         tick(0.01);
         assertEquals("Copy", drawn("t-indicator").text());
         assertTrue(animationPlayer.running("holdanimation"));
+        tick(0);
         tick(1.0);
         assertEquals("Copy", drawn("t-indicator").text());
         assertEquals(1, drawn("t-indicator").fillOpacity(), 1e-9);
@@ -444,6 +449,7 @@ class IndicatorEffectsTest {
                 "idle-mode.indicator.fill-color=#FF0000 | _{fadeanimation} -> 0% #FF0000; 100% #0000FF");
         tick(0);
         tap("a");
+        tick(0);
         tick(0.05);
         Color mid = drawn("indicator").fillColor();
         assertNotEquals(Color.parse("#FF0000"), mid);
@@ -460,6 +466,7 @@ class IndicatorEffectsTest {
                 "idle-mode.indicator.shape=circle | _{morphanimation} -> 0% circle; 50% star");
         tick(0);
         tap("a");
+        tick(0);
         tick(0.01);
         assertEquals(IndicatorShape.CIRCLE, drawn("indicator").shape());
         tick(0.02);
@@ -483,6 +490,7 @@ class IndicatorEffectsTest {
                 "idle-mode.dash-indicator.stroke-dash-offset=0 | _{marqueeanimation} -> 0% 0; 100% 10");
         tick(0);
         press("a");
+        tick(0);
         tick(0.25);
         assertEquals(5, drawn("dash-indicator").stroke().dashOffset(), 1e-9);
         assertEquals(6, drawn("dash-indicator").stroke().dashLength(), 1e-9);
@@ -503,6 +511,7 @@ class IndicatorEffectsTest {
                 "normal-mode.indicator.size=26 | _{pulseanimation} -> 0% 20; 50% 32; 100% 20");
         tick(0);
         comboWatcher.modeChanged(modeMap.get("normal-mode"));
+        tick(0);
         tick(0);
         tick(0.025);
         assertTrue(animationPlayer.running("pulseanimation"));
@@ -525,6 +534,7 @@ class IndicatorEffectsTest {
                 "idle-mode.indicator.fill-opacity=0.2 | _{popanimation} -> 0% 1; 100% 0.2");
         tick(0);
         tap("a");
+        tick(0);
         tick(0.06);
         assertEquals(40, drawn("indicator").size(), 1e-9);
         assertEquals(1 - 0.8 * 0.3, drawn("indicator").fillOpacity(), 1e-9);
@@ -565,6 +575,7 @@ class IndicatorEffectsTest {
         load(lines.toArray(new String[0]));
         tick(0);
         tap("a");
+        tick(0);
         tick(0.1);
         assertEquals(22.5, drawn("ring1-indicator").size(), 1e-9);
         comboWatcher.modeChanged(modeMap.get("normal-mode"));

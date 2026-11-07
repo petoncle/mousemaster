@@ -55,6 +55,7 @@ public class Mousemaster {
             long deltaNanos = iterationBeginTime - previousIterationBeginTime;
             previousIterationBeginTime = iterationBeginTime;
             double delta = deltaNanos / 1e9d;
+            animationPlayer.update(delta);
             long timeBeforeOp = iterationBeginTime;
             long pumpEventsNanos = 0;
             updateConfiguration();
@@ -92,7 +93,6 @@ public class Mousemaster {
             platform.pumpEvents();
             timeBeforeOp = System.nanoTime();
             pumpEventsNanos += timeBeforeOp - timeAfterOp;
-            animationPlayer.update(delta);
             keyboardManager.update(delta);
             timeAfterOp = System.nanoTime();
             long keyboardManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);

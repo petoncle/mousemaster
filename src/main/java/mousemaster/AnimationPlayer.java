@@ -12,6 +12,7 @@ public class AnimationPlayer {
     private final Map<String, AnimationConfiguration> animationConfigurationByName;
     private final Map<String, Double> elapsedByAnimationName = new HashMap<>();
     private final Set<String> runningAnimationNames = new HashSet<>();
+    private final Set<String> startedAnimationNames = new HashSet<>();
 
     public AnimationPlayer(Map<String, AnimationConfiguration> animationConfigurationByName) {
         this.animationConfigurationByName = animationConfigurationByName;
@@ -20,19 +21,23 @@ public class AnimationPlayer {
     public void start(String animationName) {
         elapsedByAnimationName.put(animationName, 0d);
         runningAnimationNames.add(animationName);
+        startedAnimationNames.add(animationName);
     }
 
     public void stop(String animationName) {
         runningAnimationNames.remove(animationName);
     }
 
+    /** An animation started since the last update starts its clock at this one, so the work
+     *  of the frame that started it takes none of its time. */
     public void update(double delta) {
         for (String animationName : List.copyOf(runningAnimationNames)) {
             if (ended(animationName, elapsed(animationName)))
                 runningAnimationNames.remove(animationName);
-            else
+            else if (!startedAnimationNames.contains(animationName))
                 elapsedByAnimationName.merge(animationName, delta, Double::sum);
         }
+        startedAnimationNames.clear();
     }
 
     public boolean ended(String animationName, double elapsed) {
