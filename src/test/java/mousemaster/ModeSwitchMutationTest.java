@@ -3,6 +3,7 @@ package mousemaster;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,18 +55,58 @@ class ModeSwitchMutationTest {
                 comboWatcher.getMutatedMode().hintMesh().type().type());
     }
 
-    private static ComboWatcher comboWatcher(Configuration configuration) {
-        ComboWatcher comboWatcher =
-                new ComboWatcher(null, new HintManager(Map.of(), null, null, null, null,
+    @Test
+    void theModeASwitchLeavesGetsTheKeysTheSwitchSets() {
+        Configuration configuration = ConfigurationParser.parse(List.of(
+                        "virtual-key.held=released",
+                        "idle-mode.to.one-mode=+f1",
+                        "one-mode.text-indicator.text= | _{held} -> held",
+                        "one-mode.macro.setheld=+f2-250 -> #held",
+                        "one-mode.to.two-mode=+f2-250",
+                        "two-mode.to.idle-mode=+f3"),
+                KeyboardLayout.keyboardLayout("00000409", null));
+        ComboWatcher comboWatcher = comboWatcher(configuration);
+        comboWatcher.modeChanged(configuration.modeMap().get("one-mode"));
+        notifiedModes.clear();
+        comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, Key.ofName("f2")));
+        now = now.plusMillis(300);
+        comboWatcher.update(0.3);
+        assertEquals(List.of("one-mode held", "two-mode"), notifiedModes);
+    }
+
+    private final List<String> notifiedModes = new ArrayList<>();
+    private Instant now = Instant.parse("2026-01-01T00:00:00Z");
+    private ComboWatcher comboWatcher;
+
+    private ComboWatcher comboWatcher(Configuration configuration) {
+        ModeMap modeMap = configuration.modeMap();
+        CommandRunner commandRunner = new CommandRunner(null, null, null) {
+            @Override
+            public boolean runningAtomicCommand() {
+                return false;
+            }
+
+            @Override
+            public void run(Command command, Key eventKey) {
+                if (command instanceof Command.SwitchMode switchMode)
+                    comboWatcher.modeChanged(modeMap.get(switchMode.modeName()));
+            }
+        };
+        comboWatcher =
+                new ComboWatcher(commandRunner, new HintManager(Map.of(), null, null, null, null,
                         () -> new App("test.exe"), new KeyRedactor(KeyRedaction.NONE), null),
-                        () -> new App("test.exe"), null, Instant::now, Set.of(), Set.of(),
-                        new KeyRedactor(KeyRedaction.NONE), configuration.modeMap(),
+                        () -> new App("test.exe"), null, () -> now, Set.of(), Set.of(),
+                        new KeyRedactor(KeyRedaction.NONE), modeMap,
                         configuration.initiallySetVariables(), configuration.virtualKeys(),
                         configuration.initiallyPressedVirtualKeys(),
                         configuration.activeKeyboardLayout());
         comboWatcher.setModeListeners(List.of(new ModeListener() {
             @Override
             public void modeChanged(Mode newMode) {
+                IndicatorLayerConfiguration textLayer =
+                        newMode.indicator().layerByName().get("text-indicator");
+                notifiedModes.add(textLayer == null ? newMode.name() :
+                        newMode.name() + " " + textLayer.text());
             }
 
             @Override
