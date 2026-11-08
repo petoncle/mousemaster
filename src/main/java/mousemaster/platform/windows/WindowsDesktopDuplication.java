@@ -64,6 +64,8 @@ final class WindowsDesktopDuplication {
     private static final int DISPLAYCONFIG_DEVICE_INFO_HEADER_SIZE = 20;
     private static final int DISPLAYCONFIG_SOURCE_DEVICE_NAME_SIZE = 84;
     private static final int DISPLAYCONFIG_SDR_WHITE_LEVEL_SIZE = 24;
+    private static final int DISPLAYCONFIG_GET_ADVANCED_COLOR_INFO_SIZE = 32;
+    private static final int ADVANCED_COLOR_ENABLED = 0x2;
     private static final int ACQUIRE_TIMEOUT_MILLIS = 60;
     private static final Duration RETRY_DELAY = Duration.ofSeconds(1);
 
@@ -74,6 +76,9 @@ final class WindowsDesktopDuplication {
                                   int flags, Pointer featureLevels, int numFeatureLevels,
                                   int sdkVersion, PointerByReference device,
                                   IntByReference featureLevel, PointerByReference context);
+
+        HRESULT CreateDirect3D11DeviceFromDXGIDevice(Pointer dxgiDevice,
+                                                     PointerByReference graphicsDevice);
     }
 
     private interface Dxgi extends Library {
@@ -176,7 +181,8 @@ final class WindowsDesktopDuplication {
     }
 
     /** The adapter and output whose desktop coordinates cover bounds. */
-    record Output(Pointer adapter, Pointer output, Rectangle bounds, String deviceName) {
+    record Output(Pointer adapter, Pointer output, Rectangle bounds, String deviceName,
+                  Pointer monitor) {
     }
 
     static Output findOutputCovering(Rectangle bounds) {
@@ -253,7 +259,23 @@ final class WindowsDesktopDuplication {
         }
     }
 
-    private static float sdrWhiteLevel(String deviceName) {
+    static float sdrWhiteLevel(String deviceName) {
+        return displayInfo(deviceName,
+                ExtendedUser32.DISPLAYCONFIG_DEVICE_INFO_GET_SDR_WHITE_LEVEL,
+                DISPLAYCONFIG_SDR_WHITE_LEVEL_SIZE)
+                       .getInt(DISPLAYCONFIG_DEVICE_INFO_HEADER_SIZE) / 1000f;
+    }
+
+    /** HDR or automatic color management: the desktop is then composed in FP16. */
+    static boolean advancedColorEnabled(String deviceName) {
+        return (displayInfo(deviceName,
+                ExtendedUser32.DISPLAYCONFIG_DEVICE_INFO_GET_ADVANCED_COLOR_INFO,
+                DISPLAYCONFIG_GET_ADVANCED_COLOR_INFO_SIZE)
+                        .getInt(DISPLAYCONFIG_DEVICE_INFO_HEADER_SIZE) &
+                ADVANCED_COLOR_ENABLED) != 0;
+    }
+
+    private static Memory displayInfo(String deviceName, int type, int size) {
         IntByReference pathCount = new IntByReference();
         IntByReference modeCount = new IntByReference();
         check(new HRESULT(ExtendedUser32.INSTANCE.GetDisplayConfigBufferSizes(
@@ -273,11 +295,7 @@ final class WindowsDesktopDuplication {
             if (!sourceName.getWideString(DISPLAYCONFIG_DEVICE_INFO_HEADER_SIZE)
                            .equals(deviceName))
                 continue;
-            Memory whiteLevel = deviceInfo(
-                    ExtendedUser32.DISPLAYCONFIG_DEVICE_INFO_GET_SDR_WHITE_LEVEL,
-                    DISPLAYCONFIG_SDR_WHITE_LEVEL_SIZE,
-                    path.getLong(20), path.getInt(28));
-            return whiteLevel.getInt(DISPLAYCONFIG_DEVICE_INFO_HEADER_SIZE) / 1000f;
+            return deviceInfo(type, size, path.getLong(20), path.getInt(28));
         }
         throw new IllegalStateException("no display path for " + deviceName);
     }
@@ -314,7 +332,7 @@ final class WindowsDesktopDuplication {
                  desc.rotation == DXGI_MODE_ROTATION_UNSPECIFIED) &&
                 rectangle.contains(bounds)) {
                 return new Output(adapter, output, rectangle,
-                        Native.toString(desc.deviceName));
+                        Native.toString(desc.deviceName), desc.monitor);
             }
             release(output);
         }

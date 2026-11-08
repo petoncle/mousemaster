@@ -8846,6 +8846,13 @@
     {
       "type": {
         "proxy": [
+          "mousemaster.platform.windows.WindowsGraphicsCapture$Combase"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
           "mousemaster.platform.windows.WindowsDesktopDuplication$Dxgi"
         ]
       }

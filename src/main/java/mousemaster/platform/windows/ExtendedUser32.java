@@ -176,6 +176,7 @@ public interface ExtendedUser32 extends User32 {
     int DisplayConfigGetDeviceInfo(Pointer requestPacket);
     int QDC_ONLY_ACTIVE_PATHS = 0x00000002;
     int DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME = 1;
+    int DISPLAYCONFIG_DEVICE_INFO_GET_ADVANCED_COLOR_INFO = 9;
     int DISPLAYCONFIG_DEVICE_INFO_GET_SDR_WHITE_LEVEL = 11;
 
 }

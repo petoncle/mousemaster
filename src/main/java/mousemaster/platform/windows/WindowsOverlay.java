@@ -603,10 +603,11 @@ public class WindowsOverlay implements Overlay {
     public boolean canZoom(Rectangle screenRectangle) {
         if (zoomHwnd == null)
             createZoomWindow();
-        // An output duplicates once per application, so the zoom takes it over from the
-        // vision capture, which falls back to the Qt grab until the zoom gives it back.
+        // An output duplicates once per application, so the zoom takes it over from a Desktop
+        // Duplication capture, which falls back to the Qt grab until the zoom gives it back.
         List<WindowsDesktopFrameCapture> covering = desktopCaptures.stream()
-                .filter(capture -> capture.covers(screenRectangle))
+                .filter(capture -> capture instanceof WindowsDesktopDuplicationCapture &&
+                                   capture.covers(screenRectangle))
                 .toList();
         covering.forEach(WindowsDesktopFrameCapture::close);
         desktopCaptures.removeAll(covering);
@@ -789,14 +790,14 @@ public class WindowsOverlay implements Overlay {
             setOverlaysExcludedFromCapture(true);
         try {
             WindowsDesktopFrameCapture capture = captureCovering(bounds);
-            WindowsDesktopFrameCapture.Frame frame = duplicatedFrame(capture);
+            WindowsDesktopFrameCapture.Frame frame = capturedFrame(capture);
             byte[] scaledBytes = frame != null
                     ? DesktopCapture.boxDownscaledRgb(frame.bgra(), frame.rowPitch(),
                             withinOutput(bounds, capture.outputBounds()),
                             scaledWidth, scaledHeight)
                     : qtGrabbedRgb(bounds, scaledWidth, scaledHeight);
             logger.debug("Captured desktop " + bounds.width() + "x" + bounds.height() +
-                         " via " + (frame != null ? "DXGI" : "Qt"));
+                         " via " + (frame != null ? capture.getClass().getSimpleName() : "Qt"));
             return new DesktopCapture(bounds, scaledBytes, scaledWidth, scaledHeight);
         }
         finally {
@@ -812,15 +813,14 @@ public class WindowsOverlay implements Overlay {
         for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
             applyCaptureExclusion(indicatorWindow.hwnd(),
                     excluded || indicatorExcludedFromCapture);
-        if (excluded)
-            Dwmapi.INSTANCE.DwmFlush();
     }
 
     private WindowsDesktopFrameCapture captureCovering(Rectangle bounds) {
         for (WindowsDesktopFrameCapture capture : desktopCaptures)
             if (capture.covers(bounds))
                 return capture;
-        WindowsDesktopFrameCapture capture = new WindowsDesktopFrameCapture(bounds);
+        WindowsDesktopFrameCapture capture = WindowsGraphicsCapture.supported() ?
+                new WindowsGraphicsCapture(bounds) : new WindowsDesktopDuplicationCapture(bounds);
         desktopCaptures.add(capture);
         return capture;
     }
@@ -831,15 +831,15 @@ public class WindowsOverlay implements Overlay {
                 bounds.width(), bounds.height());
     }
 
-    /** DXGI Desktop Duplication frame, or null to fall back to the Qt grab. */
-    private WindowsDesktopFrameCapture.Frame duplicatedFrame(
+    /** The captured frame, or null to fall back to the Qt grab. */
+    private WindowsDesktopFrameCapture.Frame capturedFrame(
             WindowsDesktopFrameCapture capture) {
         try {
             return capture.capture();
         }
         catch (Throwable e) {
             // Never let a capture failure break a hint: fall back to the Qt grab.
-            logger.debug("DXGI capture path failed, using Qt: " + e.getMessage());
+            logger.debug("Desktop capture failed, using Qt: " + e.getMessage());
             return null;
         }
     }
@@ -847,6 +847,7 @@ public class WindowsOverlay implements Overlay {
 
     /** Qt grab of the desktop under bounds, with our windows WDA-excluded. */
     private byte[] qtGrabbedRgb(Rectangle bounds, int scaledWidth, int scaledHeight) {
+        Dwmapi.INSTANCE.DwmFlush();
         QPixmap capture = QApplication.primaryScreen().grabWindow(
                 0, bounds.x(), bounds.y(), bounds.width(), bounds.height());
         QImage image = capture.toImage();

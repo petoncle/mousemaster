@@ -1,11 +1,9 @@
 package mousemaster.platform.windows;
 
-import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
-import com.sun.jna.platform.win32.Guid;
+import com.sun.jna.platform.win32.Ole32;
 import com.sun.jna.platform.win32.WinNT.HRESULT;
-import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
 import mousemaster.Rectangle;
 import org.slf4j.Logger;
@@ -14,49 +12,30 @@ import org.slf4j.LoggerFactory;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.call;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.callVoid;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.check;
-import static mousemaster.platform.windows.WindowsDesktopDuplication.duplicateOutput;
-import static mousemaster.platform.windows.WindowsDesktopDuplication.queryInterface;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.release;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.D3D11_SDK_VERSION;
-import static mousemaster.platform.windows.WindowsDesktopDuplication.DXGI_ERROR_WAIT_TIMEOUT;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.DXGI_FORMAT_B8G8R8A8_UNORM;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.DXGI_FORMAT_R16G16B16A16_FLOAT;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.ID3D11DEVICECONTEXT_COPYRESOURCE;
-import static mousemaster.platform.windows.WindowsDesktopDuplication.IDXGIADAPTER_ENUMOUTPUTS;
-import static mousemaster.platform.windows.WindowsDesktopDuplication.IDXGIOUTPUTDUPLICATION_ACQUIRENEXTFRAME;
-import static mousemaster.platform.windows.WindowsDesktopDuplication.IDXGIOUTPUTDUPLICATION_RELEASEFRAME;
-import static mousemaster.platform.windows.WindowsDesktopDuplication.IID_ID3D11Texture2D;
-import static mousemaster.platform.windows.WindowsDesktopDuplication.RELEASE;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.S_OK;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
- * Captures the desktop with DXGI Desktop Duplication as {@link WindowsDesktopDuplication}
- * does for the zoom, except read back to the CPU. Any failure closes the duplication and
- * returns null so the caller falls back to the Qt capture. Duplication is change-driven:
- * a frame that times out means the screen still holds the one before it.
+ * Captures the desktop of an output, read back to the CPU. Any failure closes the capture and
+ * returns null so the caller falls back to the Qt capture.
  */
-final class WindowsDesktopFrameCapture implements AutoCloseable {
+abstract class WindowsDesktopFrameCapture implements AutoCloseable {
 
     private static final Logger logger =
             LoggerFactory.getLogger(WindowsDesktopFrameCapture.class);
 
-    // COM interface IIDs.
-    private static final Guid.IID IID_IDXGIDevice =
-            new Guid.IID("54ec77fa-1377-44e6-8c32-88fd5f44c84c");
-
     // Vtable indices (stable COM ABI). IUnknown: 0 QueryInterface, 1 AddRef, 2 Release.
-    private static final int IDXGIOBJECT_GETPARENT = 6;
-    private static final int IDXGIDEVICE_GETADAPTER = 7;
-    private static final int IDXGIOUTPUTDUPLICATION_GETFRAMEDIRTYRECTS = 9;
-    private static final int IDXGIOUTPUTDUPLICATION_GETFRAMEMOVERECTS = 10;
-    private static final int RECT_SIZE = 16;
-    private static final int MOVE_RECT_SIZE = 24;
-    private static final int MOVE_RECT_DESTINATION = 8;
-    private static final int TOTAL_METADATA_BUFFER_SIZE = 40;
     private static final int ID3D11DEVICE_CREATETEXTURE2D = 5;
     private static final int ID3D11TEXTURE2D_GETDESC = 10;
     private static final int ID3D11DEVICECONTEXT_MAP = 14;
@@ -67,25 +46,32 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
     private static final int D3D11_CPU_ACCESS_READ = 0x20000;
     private static final int D3D11_MAP_READ = 1;
 
-    private static final int acquireTimeoutMillis = 100;
-    private static final int DXGI_OUTDUPL_FRAME_INFO_SIZE = 48;
-    private static final int LAST_PRESENT_TIME = 0;
+    private static final ExecutorService captureThread =
+            Executors.newSingleThreadExecutor(runnable -> {
+                Thread thread = new Thread(() -> {
+                    Ole32.INSTANCE.CoInitializeEx(Pointer.NULL, Ole32.COINIT_MULTITHREADED);
+                    runnable.run();
+                }, "desktop-capture");
+                thread.setDaemon(true);
+                return thread;
+            });
 
-    private static final int DXGI_ERROR_ACCESS_LOST = 0x887A0026;
+    static final int acquireTimeoutMillis = 100;
+    static final List<int[]> wholeFrame =
+            List.of(new int[] {0, 0, Integer.MAX_VALUE, Integer.MAX_VALUE});
 
     /** The captured frame: B8G8R8A8 pixels. */
     record Frame(byte[] bgra, int width, int height, int rowPitch) {
     }
 
-    private Pointer device;
-    private Pointer context;
-    private Pointer duplication;
+    Pointer device;
+    Pointer context;
+    Frame lastFrame;
+    int format;
     private Pointer staging;
     private int width;
     private int height;
-    private Frame lastFrame;
     private byte[] desktop;
-    private int format;
     /** The sRGB byte of each FP16 channel value. */
     private byte[] srgbByHalf;
     private final Rectangle bounds;
@@ -96,7 +82,7 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
         this.bounds = bounds;
     }
 
-    /** The desktop coordinates of the output being duplicated. */
+    /** The desktop coordinates of the output being captured. */
     Rectangle outputBounds() {
         return outputBounds;
     }
@@ -108,23 +94,35 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
     }
 
     /**
-     * Returns the current desktop frame, or null if duplication is unavailable (the
-     * caller should then fall back). Reinitializes transparently after the desktop
-     * switches (which invalidates the duplication).
+     * Returns the desktop with the window changes made before the call, or null if the capture
+     * is unavailable (the caller should then fall back). Reinitializes transparently after a
+     * failure, such as the desktop switching.
      */
     Frame capture() {
         if (unavailable)
             return null;
+        return onCaptureThread(() -> {
+            try {
+                if (device == null)
+                    initialize();
+                return acquire();
+            }
+            catch (Throwable e) {
+                logger.debug(getClass().getSimpleName() + " failed, falling back: " +
+                             e.getMessage());
+                close();
+                return null;
+            }
+        });
+    }
+
+    /** COM refuses the calls of Windows Graphics Capture from the keyboard hook. */
+    static <T> T onCaptureThread(Callable<T> task) {
         try {
-            if (duplication == null)
-                initialize();
-            return acquire();
+            return captureThread.submit(task).get();
         }
-        catch (Throwable e) {
-            logger.debug("Desktop Duplication capture failed, falling back: " +
-                         e.getMessage());
-            close();
-            return null;
+        catch (InterruptedException | ExecutionException e) {
+            throw new IllegalStateException(e);
         }
     }
 
@@ -134,28 +132,21 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
         outputBounds = found.bounds();
         try {
             createDevice(found.adapter());
-            WindowsDesktopDuplication.Duplication outputDuplication =
-                    duplicateOutput(found, device);
-            duplication = outputDuplication.pointer();
-            format = outputDuplication.format();
-            if (format == DXGI_FORMAT_R16G16B16A16_FLOAT)
-                srgbByHalf = srgbByHalf(outputDuplication.sdrWhiteLevel());
+            initialize(found);
         }
         finally {
             release(found.output());
             release(found.adapter());
         }
-        discardEmptyFirstFrame();
     }
 
-    private void discardEmptyFirstFrame() {
-        PointerByReference resourceOut = new PointerByReference();
-        HRESULT hr = call(duplication, IDXGIOUTPUTDUPLICATION_ACQUIRENEXTFRAME,
-                acquireTimeoutMillis, new Memory(DXGI_OUTDUPL_FRAME_INFO_SIZE), resourceOut);
-        if (hr.intValue() != S_OK)
-            return;
-        release(resourceOut.getValue());
-        call(duplication, IDXGIOUTPUTDUPLICATION_RELEASEFRAME);
+    abstract void initialize(WindowsDesktopDuplication.Output output);
+
+    abstract Frame acquire();
+
+    void setFormat(int format, float sdrWhiteLevel) {
+        this.format = format;
+        srgbByHalf = format == DXGI_FORMAT_R16G16B16A16_FLOAT ? srgbByHalf(sdrWhiteLevel) : null;
     }
 
     /** An explicit adapter requires the driver type to be UNKNOWN. */
@@ -173,49 +164,8 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
         context = ctxOut.getValue();
     }
 
-    private Frame acquire() {
-        while (true) {
-            PointerByReference resourceOut = new PointerByReference();
-            Memory frameInfo = new Memory(DXGI_OUTDUPL_FRAME_INFO_SIZE);
-            HRESULT hr = call(duplication, IDXGIOUTPUTDUPLICATION_ACQUIRENEXTFRAME,
-                    acquireTimeoutMillis, frameInfo, resourceOut);
-            int code = hr.intValue();
-            if (code == DXGI_ERROR_WAIT_TIMEOUT)
-                return lastFrame; // screen unchanged since the last capture
-            if (code == DXGI_ERROR_ACCESS_LOST)
-                throw new IllegalStateException("desktop switched (access lost)");
-            check(hr, "AcquireNextFrame");
-            Pointer resource = resourceOut.getValue();
-            try {
-                // Without a present the desktop image is not updated, and holds whatever
-                // it held before. The screen is then what the last capture already read.
-                if (frameInfo.getLong(LAST_PRESENT_TIME) == 0) {
-                    if (lastFrame != null)
-                        return lastFrame;
-                    continue;
-                }
-                Pointer texture = queryInterface(resource, IID_ID3D11Texture2D);
-                try {
-                    return readTexture(texture, frameInfo);
-                }
-                finally {
-                    release(texture);
-                }
-            }
-            finally {
-                release(resource);
-                call(duplication, IDXGIOUTPUTDUPLICATION_RELEASEFRAME);
-            }
-        }
-    }
-
-    /**
-     * Duplication hands back one of several surfaces it rotates through, and each holds
-     * the desktop as of the last time it was written: areas that have not changed since
-     * are stale in it. Only the areas it reports as changed are read, into a desktop kept
-     * across frames.
-     */
-    private Frame readTexture(Pointer texture, Memory frameInfo) {
+    /** Reads the areas that changed into a desktop kept across frames. */
+    Frame readTexture(Pointer texture, List<int[]> changedRectangles) {
         WindowsDesktopDuplication.Texture2DDesc desc = new WindowsDesktopDuplication.Texture2DDesc();
         callVoid(texture, ID3D11TEXTURE2D_GETDESC, desc.getPointer());
         desc.read();
@@ -231,15 +181,10 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
             int rowPitch = mapped.rowPitch;
             if (desktop == null || desktop.length != width * 4 * height) {
                 desktop = new byte[width * 4 * height];
-                readRectangle(mapped.pData, rowPitch, new int[] {0, 0, width, height});
+                readRectangle(mapped.pData, rowPitch, wholeFrame.getFirst());
             }
             else {
-                List<int[]> changed = changedRectangles(frameInfo);
-                logger.debug("Frame metadata " + frameInfo.getInt(TOTAL_METADATA_BUFFER_SIZE)
-                             + " bytes, " + changed.size() + " changed rectangles"
-                             + (changed.size() == 1 ? " " + java.util.Arrays.toString(
-                                     changed.getFirst()) : ""));
-                for (int[] rectangle : changed)
+                for (int[] rectangle : changedRectangles)
                     readRectangle(mapped.pData, rowPitch, rectangle);
             }
             lastFrame = new Frame(desktop, width, height, width * 4);
@@ -288,35 +233,6 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
         return srgbByHalf;
     }
 
-    /** The areas the frame changed: what moved, plus what was redrawn. */
-    private List<int[]> changedRectangles(Memory frameInfo) {
-        List<int[]> rectangles = new ArrayList<>();
-        int metadataSize = frameInfo.getInt(TOTAL_METADATA_BUFFER_SIZE);
-        if (metadataSize <= 0)
-            return List.of(new int[] {0, 0, width, height});
-        Memory metadata = new Memory(metadataSize);
-        IntByReference written = new IntByReference();
-        HRESULT hr = call(duplication, IDXGIOUTPUTDUPLICATION_GETFRAMEMOVERECTS,
-                metadataSize, metadata, written);
-        if (hr.intValue() != S_OK)
-            return List.of(new int[] {0, 0, width, height});
-        int moved = written.getValue();
-        for (int at = 0; at + MOVE_RECT_SIZE <= moved; at += MOVE_RECT_SIZE)
-            rectangles.add(readRect(metadata, at + MOVE_RECT_DESTINATION));
-        hr = call(duplication, IDXGIOUTPUTDUPLICATION_GETFRAMEDIRTYRECTS,
-                metadataSize - moved, metadata.share(moved), written);
-        if (hr.intValue() != S_OK)
-            return List.of(new int[] {0, 0, width, height});
-        for (int at = 0; at + RECT_SIZE <= written.getValue(); at += RECT_SIZE)
-            rectangles.add(readRect(metadata.share(moved), at));
-        return rectangles;
-    }
-
-    private static int[] readRect(Pointer metadata, int at) {
-        return new int[] {metadata.getInt(at), metadata.getInt(at + 4),
-                          metadata.getInt(at + 8), metadata.getInt(at + 12)};
-    }
-
     private void ensureStaging(WindowsDesktopDuplication.Texture2DDesc frameDesc) {
         if (staging != null && frameDesc.width == width && frameDesc.height == height)
             return;
@@ -348,11 +264,9 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
 
     @Override
     public void close() {
-        release(duplication);
-        duplication = null;
         release(staging);
         staging = null;
-        // The device goes with it: it can only duplicate an output of the adapter it was
+        // The device goes with it: it can only capture an output of the adapter it was
         // created on, and the next output may be on another one.
         release(context);
         context = null;
