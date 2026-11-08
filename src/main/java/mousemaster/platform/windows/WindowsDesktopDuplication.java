@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -44,6 +45,8 @@ final class WindowsDesktopDuplication {
     static final int IDXGIOUTPUTDUPLICATION_ACQUIRENEXTFRAME = 8;
     static final int IDXGIOUTPUTDUPLICATION_RELEASEFRAME = 14;
     static final int ID3D11DEVICECONTEXT_COPYRESOURCE = 47;
+    private static final int BLOB_GETBUFFERPOINTER = 3;
+    private static final int BLOB_GETBUFFERSIZE = 4;
 
     private static final int D3D_DRIVER_TYPE_UNKNOWN = 0;
     static final int D3D11_SDK_VERSION = 7;
@@ -79,6 +82,14 @@ final class WindowsDesktopDuplication {
 
         HRESULT CreateDirect3D11DeviceFromDXGIDevice(Pointer dxgiDevice,
                                                      PointerByReference graphicsDevice);
+    }
+
+    private interface D3DCompiler extends Library {
+        D3DCompiler INSTANCE = Native.load("d3dcompiler_47", D3DCompiler.class);
+
+        HRESULT D3DCompile(byte[] src, int srcSize, String sourceName, Pointer defines,
+                           Pointer include, String entrypoint, String target, int flags1,
+                           int flags2, PointerByReference code, PointerByReference errors);
     }
 
     private interface Dxgi extends Library {
@@ -404,6 +415,15 @@ final class WindowsDesktopDuplication {
         return new Com(iface).invoke(vtableIndex, returnType, args);
     }
 
+    /** Calls a method whose last parameter receives an interface. */
+    static Pointer out(Pointer iface, int vtableIndex, String what, Object... args) {
+        Object[] withOut = Arrays.copyOf(args, args.length + 1);
+        PointerByReference out = new PointerByReference();
+        withOut[args.length] = out;
+        check(call(iface, vtableIndex, withOut), what);
+        return out.getValue();
+    }
+
     static void callVoid(Pointer iface, int vtableIndex, Object... args) {
         new Com(iface).voidHr(vtableIndex, args);
     }
@@ -417,6 +437,38 @@ final class WindowsDesktopDuplication {
         if (hr.intValue() != S_OK)
             throw new IllegalStateException(
                     what + " failed: 0x" + Integer.toHexString(hr.intValue()));
+    }
+
+    /** The bytecode of the shader at entrypoint in source. */
+    static Pointer compile(String source, String sourceName, String entrypoint,
+                           String target) {
+        byte[] bytes = source.getBytes();
+        PointerByReference code = new PointerByReference();
+        PointerByReference errors = new PointerByReference();
+        HRESULT hr = D3DCompiler.INSTANCE.D3DCompile(bytes, bytes.length, sourceName,
+                Pointer.NULL, Pointer.NULL, entrypoint, target, 0, 0, code, errors);
+        if (hr.intValue() != S_OK) {
+            Pointer blob = errors.getValue();
+            throw new IllegalStateException("D3DCompile " + entrypoint + ": " +
+                                            (blob == null ? "" :
+                                                    blobData(blob).getString(0)));
+        }
+        return code.getValue();
+    }
+
+    static Pointer blobData(Pointer blob) {
+        return (Pointer) invoke(blob, BLOB_GETBUFFERPOINTER, Pointer.class);
+    }
+
+    static int blobSize(Pointer blob) {
+        return ((Number) invoke(blob, BLOB_GETBUFFERSIZE, Long.class)).intValue();
+    }
+
+    static Memory pointerTo(Pointer... values) {
+        Memory memory = new Memory((long) Native.POINTER_SIZE * values.length);
+        for (int index = 0; index < values.length; index++)
+            memory.setPointer((long) index * Native.POINTER_SIZE, values[index]);
+        return memory;
     }
 
     public static class OutputDesc extends Structure {
@@ -446,6 +498,16 @@ final class WindowsDesktopDuplication {
             return List.of("width", "height", "refreshRateNumerator",
                     "refreshRateDenominator", "format", "scanlineOrdering", "scaling",
                     "rotation", "desktopImageInSystemMemory");
+        }
+    }
+
+    public static class BufferDesc extends Structure {
+        public int byteWidth, usage, bindFlags, cpuAccessFlags, miscFlags, stride;
+
+        @Override
+        protected List<String> getFieldOrder() {
+            return List.of("byteWidth", "usage", "bindFlags", "cpuAccessFlags",
+                    "miscFlags", "stride");
         }
     }
 

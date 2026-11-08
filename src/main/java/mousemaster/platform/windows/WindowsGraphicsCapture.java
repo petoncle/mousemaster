@@ -12,15 +12,14 @@ import com.sun.jna.platform.win32.WinUser;
 import com.sun.jna.ptr.ByteByReference;
 import com.sun.jna.ptr.PointerByReference;
 import mousemaster.Rectangle;
-import mousemaster.platform.DesktopCapture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.concurrent.locks.LockSupport;
 
 import static mousemaster.platform.windows.WindowsDesktopDuplication.call;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.check;
+import static mousemaster.platform.windows.WindowsDesktopDuplication.out;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.queryInterface;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.release;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -95,6 +94,7 @@ final class WindowsGraphicsCapture extends WindowsDesktopFrameCapture {
     private Pointer graphicsDevice;
     private Pointer item;
     private Pointer framePoolStatics;
+    private WindowsBoxDownscale boxDownscale;
 
     WindowsGraphicsCapture(Rectangle bounds) {
         super(bounds);
@@ -173,6 +173,7 @@ final class WindowsGraphicsCapture extends WindowsDesktopFrameCapture {
         }
         framePoolStatics = factory(DIRECT3D11_CAPTURE_FRAME_POOL,
                 IID_IDirect3D11CaptureFramePoolStatics2);
+        boxDownscale = new WindowsBoxDownscale(device, context, srgbByHalf);
     }
 
     /** A frame pool takes one session only. */
@@ -237,11 +238,7 @@ final class WindowsGraphicsCapture extends WindowsDesktopFrameCapture {
                     "GetInterface", IID_ID3D11Texture2D);
             release(access);
             try {
-                return readMapped(texture, (pixels, rowPitch) ->
-                        DesktopCapture.boxDownscaledRgb((x, width, fromY, toY, band) ->
-                                        readPixels(pixels, rowPitch, x, x + width, fromY, toY,
-                                                band, 0, width * 4),
-                                bounds, scaledWidth, scaledHeight));
+                return boxDownscale.downscaledRgb(texture, bounds, scaledWidth, scaledHeight);
             }
             finally {
                 release(texture);
@@ -281,15 +278,6 @@ final class WindowsGraphicsCapture extends WindowsDesktopFrameCapture {
         return string.getValue();
     }
 
-    /** Calls a method whose last parameter receives an interface. */
-    private static Pointer out(Pointer iface, int vtableIndex, String what, Object... args) {
-        Object[] withOut = Arrays.copyOf(args, args.length + 1);
-        PointerByReference out = new PointerByReference();
-        withOut[args.length] = out;
-        check(call(iface, vtableIndex, withOut), what);
-        return out.getValue();
-    }
-
     private static void closeAndRelease(Pointer object) {
         Pointer closable = queryInterface(object, IID_IClosable);
         call(closable, ICLOSABLE_CLOSE);
@@ -299,6 +287,10 @@ final class WindowsGraphicsCapture extends WindowsDesktopFrameCapture {
 
     @Override
     public void close() {
+        if (boxDownscale != null) {
+            boxDownscale.close();
+            boxDownscale = null;
+        }
         release(framePoolStatics);
         framePoolStatics = null;
         release(item);

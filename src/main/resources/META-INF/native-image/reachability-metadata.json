@@ -7865,7 +7865,7 @@
       "allDeclaredFields": true
     },
     {
-      "type": "mousemaster.platform.windows.WindowsZoomRenderer$BufferDesc",
+      "type": "mousemaster.platform.windows.WindowsDesktopDuplication$BufferDesc",
       "allDeclaredFields": true
     },
     {

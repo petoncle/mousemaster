@@ -1,13 +1,10 @@
 package mousemaster.platform.windows;
 
-import com.sun.jna.Library;
 import com.sun.jna.Memory;
-import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.platform.win32.Guid;
 import com.sun.jna.platform.win32.WinDef;
-import com.sun.jna.platform.win32.WinNT.HRESULT;
 import com.sun.jna.ptr.PointerByReference;
 import mousemaster.Rectangle;
 import mousemaster.Zoom;
@@ -16,10 +13,14 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+import static mousemaster.platform.windows.WindowsDesktopDuplication.blobData;
+import static mousemaster.platform.windows.WindowsDesktopDuplication.blobSize;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.call;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.callVoid;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.check;
+import static mousemaster.platform.windows.WindowsDesktopDuplication.compile;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.DXGI_FORMAT_R16G16B16A16_FLOAT;
+import static mousemaster.platform.windows.WindowsDesktopDuplication.pointerTo;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.queryInterface;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.release;
 
@@ -66,9 +67,6 @@ final class WindowsZoomRenderer {
     private static final int CTX_RSSETVIEWPORTS = 44;
     private static final int CTX_UPDATESUBRESOURCE = 48;
 
-    private static final int BLOB_GETBUFFERPOINTER = 3;
-    private static final int BLOB_GETBUFFERSIZE = 4;
-
     private static final int D3D11_USAGE_DEFAULT = 0;
     private static final int D3D11_BIND_SHADER_RESOURCE = 0x8;
     private static final int D3D11_BIND_CONSTANT_BUFFER = 0x4;
@@ -81,8 +79,6 @@ final class WindowsZoomRenderer {
     private static final int D3D11_TEXTURE_ADDRESS_BORDER = 4;
     private static final int D3D11_COMPARISON_NEVER = 1;
     private static final int TRIANGLELIST = 4;
-
-    private static final int S_OK = 0;
 
     private static final String SHADER = """
             cbuffer C : register(b0) { float4 uvRect; float sdrWhiteLevel; };
@@ -98,14 +94,6 @@ final class WindowsZoomRenderer {
             SamplerState smp : register(s0);
             float4 ps(VSOut i) : SV_TARGET { return tex.Sample(smp, i.uv) / sdrWhiteLevel; }
             """;
-
-    private interface D3DCompiler extends Library {
-        D3DCompiler INSTANCE = Native.load("d3dcompiler_47", D3DCompiler.class);
-
-        HRESULT D3DCompile(byte[] src, int srcSize, String sourceName, Pointer defines,
-                           Pointer include, String entrypoint, String target, int flags1,
-                           int flags2, PointerByReference code, PointerByReference errors);
-    }
 
     private final WindowsDesktopDuplication duplication;
 
@@ -304,7 +292,8 @@ final class WindowsZoomRenderer {
                 samplerOut), "CreateSamplerState");
         sampler = samplerOut.getValue();
 
-        BufferDesc bufferDesc = new BufferDesc();
+        WindowsDesktopDuplication.BufferDesc bufferDesc =
+                new WindowsDesktopDuplication.BufferDesc();
         bufferDesc.byteWidth = 32;
         bufferDesc.usage = D3D11_USAGE_DEFAULT;
         bufferDesc.bindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -314,33 +303,18 @@ final class WindowsZoomRenderer {
                 Pointer.NULL, bufferOut), "CreateBuffer");
         constantBuffer = bufferOut.getValue();
 
-        Pointer vertexBlob = compile("vs", "vs_4_0");
+        Pointer vertexBlob = compile(SHADER, "zoom.hlsl", "vs", "vs_4_0");
         PointerByReference vertexOut = new PointerByReference();
         check(call(device, ID3D11DEVICE_CREATEVERTEXSHADER, blobData(vertexBlob),
                 blobSize(vertexBlob), Pointer.NULL, vertexOut), "CreateVertexShader");
         vertexShader = vertexOut.getValue();
         release(vertexBlob);
-        Pointer pixelBlob = compile("ps", "ps_4_0");
+        Pointer pixelBlob = compile(SHADER, "zoom.hlsl", "ps", "ps_4_0");
         PointerByReference pixelOut = new PointerByReference();
         check(call(device, ID3D11DEVICE_CREATEPIXELSHADER, blobData(pixelBlob),
                 blobSize(pixelBlob), Pointer.NULL, pixelOut), "CreatePixelShader");
         pixelShader = pixelOut.getValue();
         release(pixelBlob);
-    }
-
-    private static Pointer compile(String entrypoint, String target) {
-        byte[] source = SHADER.getBytes();
-        PointerByReference code = new PointerByReference();
-        PointerByReference errors = new PointerByReference();
-        HRESULT hr = D3DCompiler.INSTANCE.D3DCompile(source, source.length, "zoom.hlsl",
-                Pointer.NULL, Pointer.NULL, entrypoint, target, 0, 0, code, errors);
-        if (hr.intValue() != S_OK) {
-            Pointer blob = errors.getValue();
-            throw new IllegalStateException("D3DCompile " + entrypoint + ": " +
-                                            (blob == null ? "" :
-                                                    blobData(blob).getString(0)));
-        }
-        return code.getValue();
     }
 
     void releaseDevice() {
@@ -373,22 +347,6 @@ final class WindowsZoomRenderer {
         sampled = false;
     }
 
-    private static Memory pointerTo(Pointer value) {
-        Memory memory = new Memory(Native.POINTER_SIZE);
-        memory.setPointer(0, value);
-        return memory;
-    }
-
-    private static Pointer blobData(Pointer blob) {
-        return (Pointer) WindowsDesktopDuplication.invoke(blob, BLOB_GETBUFFERPOINTER,
-                Pointer.class);
-    }
-
-    private static int blobSize(Pointer blob) {
-        return ((Number) WindowsDesktopDuplication.invoke(blob, BLOB_GETBUFFERSIZE,
-                Long.class)).intValue();
-    }
-
     public static class SwapChainDesc1 extends Structure {
         public int width, height, format, stereo;
         public int sampleCount, sampleQuality;
@@ -413,16 +371,6 @@ final class WindowsZoomRenderer {
         protected List<String> getFieldOrder() {
             return List.of("filter", "addressU", "addressV", "addressW", "mipLodBias",
                     "maxAnisotropy", "comparisonFunc", "borderColor", "minLod", "maxLod");
-        }
-    }
-
-    public static class BufferDesc extends Structure {
-        public int byteWidth, usage, bindFlags, cpuAccessFlags, miscFlags, stride;
-
-        @Override
-        protected List<String> getFieldOrder() {
-            return List.of("byteWidth", "usage", "bindFlags", "cpuAccessFlags",
-                    "miscFlags", "stride");
         }
     }
 

@@ -11,7 +11,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static mousemaster.platform.windows.WindowsDesktopDuplication.call;
+import static mousemaster.platform.windows.WindowsDesktopDuplication.callVoid;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.check;
+import static mousemaster.platform.windows.WindowsDesktopDuplication.DXGI_FORMAT_B8G8R8A8_UNORM;
+import static mousemaster.platform.windows.WindowsDesktopDuplication.ID3D11DEVICECONTEXT_COPYRESOURCE;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.duplicateOutput;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.queryInterface;
 import static mousemaster.platform.windows.WindowsDesktopDuplication.release;
@@ -46,10 +49,21 @@ final class WindowsDesktopDuplicationCapture extends WindowsDesktopFrameCapture 
 
     private static final int DXGI_ERROR_ACCESS_LOST = 0x887A0026;
 
+    private static final int ID3D11DEVICE_CREATETEXTURE2D = 5;
+    private static final int ID3D11TEXTURE2D_GETDESC = 10;
+    private static final int ID3D11DEVICECONTEXT_MAP = 14;
+    private static final int ID3D11DEVICECONTEXT_UNMAP = 15;
+    private static final int D3D11_USAGE_STAGING = 3;
+    private static final int D3D11_CPU_ACCESS_READ = 0x20000;
+    private static final int D3D11_MAP_READ = 1;
+
     private static final List<int[]> wholeFrame =
             List.of(new int[] {0, 0, Integer.MAX_VALUE, Integer.MAX_VALUE});
 
     private Pointer duplication;
+    private Pointer staging;
+    private int width;
+    private int height;
     private byte[] desktop;
 
     WindowsDesktopDuplicationCapture(Rectangle bounds) {
@@ -116,17 +130,31 @@ final class WindowsDesktopDuplicationCapture extends WindowsDesktopFrameCapture 
 
     /** Reads the areas that changed into a desktop kept across frames. */
     private void readTexture(Pointer texture, List<int[]> changedRectangles) {
-        readMapped(texture, (pixels, rowPitch) -> {
+        WindowsDesktopDuplication.Texture2DDesc desc = new WindowsDesktopDuplication.Texture2DDesc();
+        callVoid(texture, ID3D11TEXTURE2D_GETDESC, desc.getPointer());
+        desc.read();
+        ensureStaging(desc);
+        callVoid(context, ID3D11DEVICECONTEXT_COPYRESOURCE, staging, texture);
+
+        MappedSubresource mapped = new MappedSubresource();
+        HRESULT hr = call(context, ID3D11DEVICECONTEXT_MAP, staging, 0, D3D11_MAP_READ, 0,
+                mapped.getPointer());
+        check(hr, "Map");
+        mapped.read();
+        try {
+            int rowPitch = mapped.rowPitch;
             if (desktop == null || desktop.length != width * 4 * height) {
                 desktop = new byte[width * 4 * height];
-                readRectangle(pixels, rowPitch, wholeFrame.getFirst());
+                readRectangle(mapped.pData, rowPitch, wholeFrame.getFirst());
             }
             else {
                 for (int[] rectangle : changedRectangles)
-                    readRectangle(pixels, rowPitch, rectangle);
+                    readRectangle(mapped.pData, rowPitch, rectangle);
             }
-            return null;
-        });
+        }
+        finally {
+            callVoid(context, ID3D11DEVICECONTEXT_UNMAP, staging, 0);
+        }
     }
 
     private void readRectangle(Pointer pixels, int rowPitch, int[] rectangle) {
@@ -134,10 +162,55 @@ final class WindowsDesktopDuplicationCapture extends WindowsDesktopFrameCapture 
         int top = Math.clamp(rectangle[1], 0, height);
         int right = Math.clamp(rectangle[2], left, width);
         int bottom = Math.clamp(rectangle[3], top, height);
-        if (right <= left)
+        int pixelCount = right - left;
+        if (pixelCount <= 0)
             return;
-        readPixels(pixels, rowPitch, left, right, top, bottom, desktop, (top * width + left) * 4,
-                width * 4);
+        if (format == DXGI_FORMAT_B8G8R8A8_UNORM) {
+            for (int y = top; y < bottom; y++)
+                pixels.read(y * rowPitch + left * 4L, desktop, (y * width + left) * 4,
+                        pixelCount * 4);
+            return;
+        }
+        short[] halves = new short[pixelCount * 4];
+        for (int y = top; y < bottom; y++) {
+            int at = (y * width + left) * 4;
+            pixels.read(y * rowPitch + left * 8L, halves, 0, halves.length);
+            for (int half = 0; half < halves.length; half += 4, at += 4) {
+                desktop[at] = srgbByHalf[halves[half + 2] & 0xffff];
+                desktop[at + 1] = srgbByHalf[halves[half + 1] & 0xffff];
+                desktop[at + 2] = srgbByHalf[halves[half] & 0xffff];
+                desktop[at + 3] = (byte) 255;
+            }
+        }
+    }
+
+    private void ensureStaging(WindowsDesktopDuplication.Texture2DDesc frameDesc) {
+        if (staging != null && frameDesc.width == width && frameDesc.height == height)
+            return;
+        if (staging != null) {
+            release(staging);
+            staging = null;
+        }
+        width = frameDesc.width;
+        height = frameDesc.height;
+        WindowsDesktopDuplication.Texture2DDesc desc = new WindowsDesktopDuplication.Texture2DDesc();
+        desc.width = width;
+        desc.height = height;
+        desc.mipLevels = 1;
+        desc.arraySize = 1;
+        desc.format = frameDesc.format;
+        desc.sampleCount = 1;
+        desc.sampleQuality = 0;
+        desc.usage = D3D11_USAGE_STAGING;
+        desc.bindFlags = 0;
+        desc.cpuAccessFlags = D3D11_CPU_ACCESS_READ;
+        desc.miscFlags = 0;
+        desc.write();
+        PointerByReference out = new PointerByReference();
+        HRESULT hr = call(device, ID3D11DEVICE_CREATETEXTURE2D, desc.getPointer(),
+                Pointer.NULL, out);
+        check(hr, "CreateTexture2D (staging)");
+        staging = out.getValue();
     }
 
     private byte[] desktopRgb(Rectangle bounds, int scaledWidth, int scaledHeight) {
@@ -188,6 +261,8 @@ final class WindowsDesktopDuplicationCapture extends WindowsDesktopFrameCapture 
     public void close() {
         release(duplication);
         duplication = null;
+        release(staging);
+        staging = null;
         super.close();
     }
 
