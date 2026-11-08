@@ -533,7 +533,9 @@ public class ComboWatcher {
                 completedComboAndCommands.stream()
                                          .map(cac -> new ComboAndMatch(cac.combo, cac.match))
                                          .collect(Collectors.toCollection(ArrayList::new));
-        if (!commandsToRun.isEmpty() && logger.isDebugEnabled()) {
+        if ((!completedCombosCommands.isEmpty() ||
+             !commandsToRun.isEmpty() && !commandRunner.runningAtomicCommand()) &&
+            logger.isDebugEnabled()) {
             StringBuilder message = new StringBuilder("Asynchronous combos");
             appendCombos(message, "completed", completedCombos.stream()
                                                               .map(ComboAndMatch::combo)
