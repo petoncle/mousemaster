@@ -9,6 +9,8 @@ import mousemaster.platform.DesktopCapture;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.util.List;
 import java.util.Random;
@@ -23,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /** The GPU downscale gives the bytes of the CPU one. */
+@EnabledOnOs(OS.WINDOWS)
 class WindowsBoxDownscaleTest {
 
     private static final int width = 97, height = 61;
