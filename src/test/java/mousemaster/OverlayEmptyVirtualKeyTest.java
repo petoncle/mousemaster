@@ -61,7 +61,7 @@ class OverlayEmptyVirtualKeyTest {
                 new KeyRedactor(KeyRedaction.NONE), null);
         CommandRunner commandRunner = new CommandRunner(null, hintManager, null) {
             @Override
-            public boolean runningAtomicCommand() {
+            public boolean mouseJumping() {
                 return false;
             }
 

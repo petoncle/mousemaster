@@ -94,7 +94,7 @@ public class ComboWatcher {
      * re-read the preparation without a key event.
      */
     private Set<Combo> combosBlockedFromRerunningCommand = new HashSet<>();
-    private List<Command> commandsWaitingForAtomicCommandToComplete = new ArrayList<>();
+    private List<Command> commandsWaitingForJump = new ArrayList<>();
 
     private Set<Key> currentlyPressedCompletedComboKeys = new HashSet<>();
     private Set<Key> currentlyPressedComboKeys = new HashSet<>();
@@ -526,7 +526,7 @@ public class ComboWatcher {
                     new ComboAndCommands(combo, entry.getValue(), ComboSequenceMatch.noMatch()));
             combosBlockedFromRerunningCommand.add(combo);
         }
-        List<Command> commandsToRun = new ArrayList<>(commandsWaitingForAtomicCommandToComplete);
+        List<Command> commandsToRun = new ArrayList<>(commandsWaitingForJump);
         List<Command> completedCombosCommands = longestComboCommandsLastAndDeduplicate(completedComboAndCommands);
         commandsToRun.addAll(completedCombosCommands);
         List<ComboAndMatch> completedCombos =
@@ -534,7 +534,7 @@ public class ComboWatcher {
                                          .map(cac -> new ComboAndMatch(cac.combo, cac.match))
                                          .collect(Collectors.toCollection(ArrayList::new));
         if ((!completedCombosCommands.isEmpty() ||
-             !commandsToRun.isEmpty() && !commandRunner.runningAtomicCommand()) &&
+             !commandsToRun.isEmpty() && !commandRunner.mouseJumping()) &&
             logger.isDebugEnabled()) {
             StringBuilder message = new StringBuilder("Asynchronous combos");
             appendCombos(message, "completed", completedCombos.stream()
@@ -1179,7 +1179,7 @@ public class ComboWatcher {
             ignoredWaitMoves = newIgnoredWaitMoves;
         }
         long afterLoopNanos = System.nanoTime();
-        List<Command> commandsToRun = new ArrayList<>(commandsWaitingForAtomicCommandToComplete);
+        List<Command> commandsToRun = new ArrayList<>(commandsWaitingForJump);
         List<Command> completeCombosCommandsToRun =
                 longestComboCommandsLastAndDeduplicate(comboAndCommandsToRun);
         commandsToRun.addAll(completeCombosCommandsToRun);
@@ -1258,8 +1258,8 @@ public class ComboWatcher {
 
 
     private void runCommands(List<Command> newCommands, boolean ofKeyEvent) {
-        List<Command> commands = new ArrayList<>(commandsWaitingForAtomicCommandToComplete);
-        commandsWaitingForAtomicCommandToComplete.clear();
+        List<Command> commands = new ArrayList<>(commandsWaitingForJump);
+        commandsWaitingForJump.clear();
         int waitingCommandCount = commands.size();
         commands.addAll(newCommands);
         if (commands.isEmpty())
@@ -1354,7 +1354,7 @@ public class ComboWatcher {
         }
         if (anyStateChange)
             refreshPreconditionOnlyMutations();
-        while (!commands.isEmpty() && (!commandRunner.runningAtomicCommand() ||
+        while (!commands.isEmpty() && (!commandRunner.mouseJumping() ||
                                        !mustWaitForJump(commands.getFirst()))) {
             Command command = commands.removeFirst();
             long commandBefore = System.nanoTime();
@@ -1377,7 +1377,7 @@ public class ComboWatcher {
                 commandIndex--;
             }
         }
-        commandsWaitingForAtomicCommandToComplete.addAll(commands);
+        commandsWaitingForJump.addAll(commands);
     }
 
     /**

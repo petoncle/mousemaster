@@ -62,7 +62,7 @@ class HintCommandFromAWaitTest {
         ComboWatcher[] comboWatcher = new ComboWatcher[1];
         CommandRunner commandRunner = new CommandRunner(null, null, null) {
             @Override
-            public boolean runningAtomicCommand() {
+            public boolean mouseJumping() {
                 return false;
             }
 

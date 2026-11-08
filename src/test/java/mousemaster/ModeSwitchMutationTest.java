@@ -82,7 +82,7 @@ class ModeSwitchMutationTest {
         ModeMap modeMap = configuration.modeMap();
         CommandRunner commandRunner = new CommandRunner(null, null, null) {
             @Override
-            public boolean runningAtomicCommand() {
+            public boolean mouseJumping() {
                 return false;
             }
 

@@ -30,7 +30,7 @@ public class CommandRunner {
         this.animationPlayer = animationPlayer;
     }
 
-    public boolean runningAtomicCommand() {
+    public boolean mouseJumping() {
         return mouseManager.jumping();
     }
 
