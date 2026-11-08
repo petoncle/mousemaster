@@ -758,7 +758,10 @@ public final class HintMeshRenderer {
         }
         HintMesh hintMeshKey = matchBoxPixmap != null ? null :
                 hintMeshKey(hintMesh, hintMeshWindow.hints(), style, screenScale);
-        hintMeshWindow.lastHintMeshKeyReference.set(hintMeshKey); // Will be used by animateHintMatch.
+        // The new key will be used by animateHintMatch.
+        HintMesh lastHintMeshKey =
+                hintMeshWindow.lastHintMeshKeyReference.getAndSet(hintMeshKey);
+        forgetHintBoxRectangles(lastHintMeshKey);
         PixmapsAndPosition pixmapsAndPosition =
                 matchBoxPixmap != null ? matchBoxPixmap :
                         hintMeshPixmaps.get(pixmapKey(hintMeshKey));
@@ -2422,6 +2425,18 @@ public final class HintMeshRenderer {
         if (!preWarming)
             logger.debug("Cached hint mesh pixmaps " + pixmapsAndPosition +
                          ", cache size is " + hintMeshPixmaps.size());
+    }
+
+    /** The box rectangles of a mesh are needed while a window shows it, and while its image is
+     *  cached to show it again. */
+    private void forgetHintBoxRectangles(HintMesh hintMeshKey) {
+        if (hintMeshKey == null ||
+            hintMeshWindows.values().stream().anyMatch(hintMeshWindow ->
+                    hintMeshKey.equals(hintMeshWindow.lastHintMeshKeyReference().get())) ||
+            hintMeshPixmaps.keySet().stream().anyMatch(pixmapKey ->
+                    hintMeshKey.equals(pixmapKey.hintMeshKey())))
+            return;
+        hintBoxRectanglesByHintMeshKey.remove(hintMeshKey);
     }
 
     /** The key a drawn mesh is cached by: the mesh with its visible hints at the boxes they are
