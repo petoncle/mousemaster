@@ -28,6 +28,12 @@ public record Macro(String name, MacroSequence output,
         return moves;
     }
 
+    public boolean sendsToOs() {
+        return output.parallels().stream()
+                     .flatMap(parallel -> parallel.moves().stream())
+                     .anyMatch(move -> move.destination() == MacroMoveDestination.OS);
+    }
+
     /**
      * - +key = press key, send to OS
      * - -key = release key, send to OS

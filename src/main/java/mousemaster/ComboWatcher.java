@@ -1349,7 +1349,8 @@ public class ComboWatcher {
         }
         if (anyStateChange)
             refreshPreconditionOnlyMutations();
-        while (!commands.isEmpty() && !commandRunner.runningAtomicCommand()) {
+        while (!commands.isEmpty() && (!commandRunner.runningAtomicCommand() ||
+                                       !mustWaitForJump(commands.getFirst()))) {
             Command command = commands.removeFirst();
             long commandBefore = System.nanoTime();
             commandRunner.run(command, lastEventKey);
@@ -1372,6 +1373,20 @@ public class ComboWatcher {
             }
         }
         commandsWaitingForAtomicCommandToComplete.addAll(commands);
+    }
+
+    /**
+     * A command that changes only the state of mousemaster does not wait: a position history reads
+     * the target, which is already the end of the jump.
+     */
+    private static boolean mustWaitForJump(Command command) {
+        if (command instanceof Command.MacroCommand macroCommand)
+            return macroCommand.macro().sendsToOs();
+        return !(command instanceof Command.Noop ||
+                 command instanceof Command.SavePosition ||
+                 command instanceof Command.UnsavePosition ||
+                 command instanceof Command.ToggleSavePosition ||
+                 command instanceof Command.ClearPositionHistory);
     }
 
     private Set<Key> findSatisfiedPressedPreconditionKeys(Combo combo,
