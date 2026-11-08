@@ -527,7 +527,6 @@ public class ComboWatcher {
             combosBlockedFromRerunningCommand.add(combo);
         }
         List<Command> commandsToRun = new ArrayList<>(commandsWaitingForAtomicCommandToComplete);
-        commandsWaitingForAtomicCommandToComplete.clear();
         List<Command> completedCombosCommands = longestComboCommandsLastAndDeduplicate(completedComboAndCommands);
         commandsToRun.addAll(completedCombosCommands);
         List<ComboAndMatch> completedCombos =
@@ -551,7 +550,7 @@ public class ComboWatcher {
                              .anyMatch(command -> command instanceof Command.SwitchMode switchMode &&
                                                   switchMode.modeName().equals(baseMode.name()));
         Mode beforeMode = baseMode;
-        runCommands(commandsToRun, false);
+        runCommands(completedCombosCommands, false);
         combosWaitingForLastMoveToComplete.removeAll(completedCombosWaitingForLastMoveToComplete);
         boolean comboPreparationAlreadyBroken = false;
         if (hasAsyncSelfSwitch) {
@@ -1179,7 +1178,6 @@ public class ComboWatcher {
         }
         long afterLoopNanos = System.nanoTime();
         List<Command> commandsToRun = new ArrayList<>(commandsWaitingForAtomicCommandToComplete);
-        commandsWaitingForAtomicCommandToComplete.clear();
         List<Command> completeCombosCommandsToRun =
                 longestComboCommandsLastAndDeduplicate(comboAndCommandsToRun);
         commandsToRun.addAll(completeCombosCommandsToRun);
@@ -1249,7 +1247,7 @@ public class ComboWatcher {
             }
         }
         long beforeRunCommandsNanos = System.nanoTime();
-        runCommands(commandsToRun, event != null);
+        runCommands(completeCombosCommandsToRun, event != null);
         long runCommandsMs = (long) ((System.nanoTime() - beforeRunCommandsNanos) / 1e6);
         if (runCommandsMs >= SLOW_COMMANDS_MS && logger.isDebugEnabled())
             logger.debug("Ran commands in " + runCommandsMs + "ms");
@@ -1257,14 +1255,17 @@ public class ComboWatcher {
     }
 
 
-    private void runCommands(List<Command> commandsToRun, boolean ofKeyEvent) {
-        if (commandsToRun.isEmpty())
+    private void runCommands(List<Command> newCommands, boolean ofKeyEvent) {
+        List<Command> commands = new ArrayList<>(commandsWaitingForAtomicCommandToComplete);
+        commandsWaitingForAtomicCommandToComplete.clear();
+        int waitingCommandCount = commands.size();
+        commands.addAll(newCommands);
+        if (commands.isEmpty())
             return;
         Key lastEventKey = lastKeyEvent == null ? null : lastKeyEvent.key();
-        List<Command> commands = new ArrayList<>(commandsToRun);
         // Run hint selection/deselection commands first, before variable and
         // mutation commands. If a hint command supersedes the other commands of
-        // its key event, skip the rest.
+        // its key event, skip them: the commands still waiting from earlier events run.
         for (int i = 0; i < commands.size(); i++) {
             Command command = commands.get(i);
             if (command instanceof Command.SelectHintKey ||
@@ -1274,10 +1275,12 @@ public class ComboWatcher {
                 commands.remove(i);
                 i--;
                 if (hintManager.pollLastHintCommandSupercedesOtherCommands() && ofKeyEvent) {
-                    if (!commands.isEmpty() && logger.isDebugEnabled())
+                    List<Command> supersededCommands =
+                            commands.subList(waitingCommandCount, commands.size());
+                    if (!supersededCommands.isEmpty() && logger.isDebugEnabled())
                         logger.debug("Ignoring commands (superseded by hint command): " +
-                                     summarizeCommands(commands));
-                    return;
+                                     summarizeCommands(supersededCommands));
+                    supersededCommands.clear();
                 }
             }
         }

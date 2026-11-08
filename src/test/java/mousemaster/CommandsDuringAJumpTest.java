@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.Proxy;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -39,6 +40,7 @@ class CommandsDuringAJumpTest {
 
     private Instant now = Instant.parse("2026-01-01T00:00:00Z");
     private Point mouseMove;
+    private final List<String> buttonMoves = new ArrayList<>();
     private MouseManager mouseManager;
     private HintManager hintManager;
     private KeyboardManager keyboardManager;
@@ -58,6 +60,8 @@ class CommandsDuringAJumpTest {
                 (proxy, method, args) -> {
                     if (method.getName().equals("synchronousMoveTo"))
                         mouseMove = new Point((int) args[0], (int) args[1]);
+                    else if (method.getName().matches("(press|release)(Left|Middle|Right)"))
+                        buttonMoves.add(method.getName());
                     return method.getReturnType() == boolean.class ? false : null;
                 }));
         KeyRedactor keyRedactor = new KeyRedactor(KeyRedaction.NONE);
@@ -184,6 +188,29 @@ class CommandsDuringAJumpTest {
         tickUntilTheJumpEnds();
         tickUntilTheJumpEnds();
         assertEquals(List.of(new Point(1919, 100)), savedPositions());
+    }
+
+    @Test
+    void aNarrowingHintKeyDropsItsOwnCommandsAndNotTheWaitingOnes() throws IOException {
+        start("""
+                idle-mode.to.hint-mode=+h
+                hint-mode.mouse.smooth-jump-velocity=1000
+                hint-mode.overlay.selection-keys=a b
+                hint-mode.overlay.grid-cell-sizing=fit
+                hint-mode.overlay.grid-max-row-count=2
+                hint-mode.overlay.grid-max-column-count=2
+                hint-mode.overlay.target-follows-overlay-center=true
+                hint-mode.press.left=+x
+                hint-mode.release.left=-x
+                hint-mode.press.middle=+a
+                """);
+        tap("h");
+        tap("x");
+        assertTrue(mouseManager.jumping());
+        assertEquals(List.of(), buttonMoves);
+        tap("a");
+        tickUntilTheJumpEnds();
+        assertEquals(List.of("pressLeft", "releaseLeft"), buttonMoves);
     }
 
 }
