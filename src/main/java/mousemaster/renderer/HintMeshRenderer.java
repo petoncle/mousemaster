@@ -45,6 +45,7 @@ public final class HintMeshRenderer {
             ThreadLocal.withInitial(QRectF::new);
 
     private final Map<PixmapKey, PixmapsAndPosition> hintMeshPixmaps = new HashMap<>();
+    private final Set<PixmapKey> preWarmedPixmapKeys = new HashSet<>();
     private final Map<ShadowKey, List<QPixmap>> boxShadowPixmaps = new HashMap<>();
     private final Map<HintMesh, Map<List<Key>, Rectangle>> hintBoxRectanglesByHintMeshKey =
             new HashMap<>();
@@ -294,6 +295,7 @@ public final class HintMeshRenderer {
         for (PixmapsAndPosition pixmapsAndPosition : hintMeshPixmaps.values())
             pixmapsAndPosition.pixelRowChunks().forEach(QPixmap::dispose);
         hintMeshPixmaps.clear();
+        preWarmedPixmapKeys.clear();
         clearBoxShadowPixmaps();
         hintBoxRectanglesByHintMeshKey.clear();
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
@@ -307,10 +309,13 @@ public final class HintMeshRenderer {
     public void preWarmHintMesh(HintMesh hintMesh, Zoom zoom, Set<Screen> screens) {
         if (!hintMesh.visible() || hintMesh.hints().isEmpty())
             return;
-        if (hintsByScreen(hintMesh.hints(), screens).entrySet().stream().allMatch(entry ->
-                hintMeshPixmaps.containsKey(pixmapKey(hintMeshKey(hintMesh, entry.getValue(),
+        List<PixmapKey> pixmapKeys = hintsByScreen(hintMesh.hints(), screens).entrySet()
+                .stream()
+                .map(entry -> pixmapKey(hintMeshKey(hintMesh, entry.getValue(),
                         hintMesh.styleByFilter().get(ScreenFilter.of(entry.getKey())),
-                        entry.getKey().scale())))))
+                        entry.getKey().scale())))
+                .toList();
+        if (preWarmedPixmapKeys.containsAll(pixmapKeys))
             return;
         preWarming = true;
         try {
@@ -321,6 +326,7 @@ public final class HintMeshRenderer {
             preWarming = false;
             clearBoxShadowPixmaps();
         }
+        preWarmedPixmapKeys.addAll(pixmapKeys);
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
             hintMeshWindow.hints().clear();
     }
@@ -824,9 +830,9 @@ public final class HintMeshRenderer {
                         if (!preWarming)
                             logger.debug("Built hint mesh window in " +
                                     (long) ((System.nanoTime() - before) / 1e6) + "ms");
-                        // A mesh without keys has no labels to cache.
-                        if (preWarming ||
-                            isHintGrid && !hintMesh.hints().getFirst().keySequence().isEmpty())
+                        // A mesh without keys has no labels to cache. The elements of a mesh
+                        // that is not a grid are never at the same place twice.
+                        if (isHintGrid && !hintMesh.hints().getFirst().keySequence().isEmpty())
                             cachePixmaps(window, container, hintMeshKey, hintMesh, boxes,
                                     enclosingInk);
                         if (preWarming) {
