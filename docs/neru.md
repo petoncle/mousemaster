@@ -31,7 +31,7 @@ From idle — or to switch between modes — hold **Ctrl+Shift** and press:
 
 Clicks use Shift so they don't clash with the keys used to pick hints.
 
-The indicator is a translucent disc centered on the cursor, ringed in the same color: red idle and moving, yellow scrolling, and while a button is held, green for left, magenta for middle, cyan for right — the last three also cast a glow in their color. The hint modes hide it while you pick, so only the hints are on screen, and show it again while a button is held.
+The indicator is a translucent disc centered on the cursor, ringed in the same color: red idle and moving, yellow scrolling, and while a button is held, green for left, magenta for middle, cyan for right — all but red also cast a glow in their color, and the yellow one fades out when the scroll ends. The hint modes hide it while you pick, so only the hints are on screen, and show it again while a button is held.
 
 ## Recursive hints — Ctrl+Shift+C
 
