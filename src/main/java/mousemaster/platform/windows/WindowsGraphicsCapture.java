@@ -12,6 +12,7 @@ import com.sun.jna.platform.win32.WinUser;
 import com.sun.jna.ptr.ByteByReference;
 import com.sun.jna.ptr.PointerByReference;
 import mousemaster.Rectangle;
+import mousemaster.platform.DesktopCapture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -176,20 +177,21 @@ final class WindowsGraphicsCapture extends WindowsDesktopFrameCapture {
 
     /** A frame pool takes one session only. */
     @Override
-    Frame acquire() {
-        Rectangle bounds = outputBounds();
-        if (!bounds.equals(monitorBounds()))
+    byte[] acquire(Rectangle bounds, int scaledWidth, int scaledHeight) {
+        Rectangle outputBounds = outputBounds();
+        if (!outputBounds.equals(monitorBounds()))
             throw new IllegalStateException("display changed");
         // SizeInt32 is passed by value, in one register.
         Pointer framePool = out(framePoolStatics,
                 IDIRECT3D11CAPTUREFRAMEPOOLSTATICS2_CREATEFREETHREADED, "CreateFreeThreaded",
-                graphicsDevice, format, 1, (long) bounds.height() << 32 | bounds.width());
+                graphicsDevice, format, 1,
+                (long) outputBounds.height() << 32 | outputBounds.width());
         try {
             Pointer session = out(framePool, IDIRECT3D11CAPTUREFRAMEPOOL_CREATECAPTURESESSION,
                     "CreateCaptureSession", item);
             try {
                 start(session);
-                return readFrame(awaitFrame(framePool));
+                return readFrame(awaitFrame(framePool), bounds, scaledWidth, scaledHeight);
             }
             finally {
                 closeAndRelease(session);
@@ -225,7 +227,8 @@ final class WindowsGraphicsCapture extends WindowsDesktopFrameCapture {
         return frame;
     }
 
-    private Frame readFrame(Pointer frame) {
+    private byte[] readFrame(Pointer frame, Rectangle bounds, int scaledWidth,
+                             int scaledHeight) {
         try {
             Pointer surface = out(frame, IDIRECT3D11CAPTUREFRAME_GET_SURFACE, "get_Surface");
             Pointer access = queryInterface(surface, IID_IDirect3DDxgiInterfaceAccess);
@@ -234,7 +237,11 @@ final class WindowsGraphicsCapture extends WindowsDesktopFrameCapture {
                     "GetInterface", IID_ID3D11Texture2D);
             release(access);
             try {
-                return readTexture(texture, wholeFrame);
+                return readMapped(texture, (pixels, rowPitch) ->
+                        DesktopCapture.boxDownscaledRgb((x, width, fromY, toY, band) ->
+                                        readPixels(pixels, rowPitch, x, x + width, fromY, toY,
+                                                band, 0, width * 4),
+                                bounds, scaledWidth, scaledHeight));
             }
             finally {
                 release(texture);

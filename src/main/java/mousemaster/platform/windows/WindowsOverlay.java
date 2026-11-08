@@ -790,14 +790,11 @@ public class WindowsOverlay implements Overlay {
             setOverlaysExcludedFromCapture(true);
         try {
             WindowsDesktopFrameCapture capture = captureCovering(bounds);
-            WindowsDesktopFrameCapture.Frame frame = capturedFrame(capture);
-            byte[] scaledBytes = frame != null
-                    ? DesktopCapture.boxDownscaledRgb(frame.bgra(), frame.rowPitch(),
-                            withinOutput(bounds, capture.outputBounds()),
-                            scaledWidth, scaledHeight)
+            byte[] capturedRgb = capturedRgb(capture, bounds, scaledWidth, scaledHeight);
+            byte[] scaledBytes = capturedRgb != null ? capturedRgb
                     : qtGrabbedRgb(bounds, scaledWidth, scaledHeight);
-            logger.debug("Captured desktop " + bounds.width() + "x" + bounds.height() +
-                         " via " + (frame != null ? capture.getClass().getSimpleName() : "Qt"));
+            logger.debug("Captured desktop " + bounds.width() + "x" + bounds.height() + " via " +
+                         (capturedRgb != null ? capture.getClass().getSimpleName() : "Qt"));
             return new DesktopCapture(bounds, scaledBytes, scaledWidth, scaledHeight);
         }
         finally {
@@ -825,17 +822,11 @@ public class WindowsOverlay implements Overlay {
         return capture;
     }
 
-    /** Bounds in the coordinates of the output's own frame. */
-    private static Rectangle withinOutput(Rectangle bounds, Rectangle outputBounds) {
-        return new Rectangle(bounds.x() - outputBounds.x(), bounds.y() - outputBounds.y(),
-                bounds.width(), bounds.height());
-    }
-
-    /** The captured frame, or null to fall back to the Qt grab. */
-    private WindowsDesktopFrameCapture.Frame capturedFrame(
-            WindowsDesktopFrameCapture capture) {
+    /** The capture scaled, or null to fall back to the Qt grab. */
+    private byte[] capturedRgb(WindowsDesktopFrameCapture capture, Rectangle bounds,
+                               int scaledWidth, int scaledHeight) {
         try {
-            return capture.capture();
+            return capture.capture(bounds, scaledWidth, scaledHeight);
         }
         catch (Throwable e) {
             // Never let a capture failure break a hint: fall back to the Qt grab.

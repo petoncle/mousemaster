@@ -20,8 +20,4 @@ public interface CoreVideo extends Library {
 
     long CVPixelBufferGetBytesPerRow(Pointer pixelBuffer);
 
-    long CVPixelBufferGetWidth(Pointer pixelBuffer);
-
-    long CVPixelBufferGetHeight(Pointer pixelBuffer);
-
 }

@@ -6,6 +6,7 @@ import com.sun.jna.platform.win32.WinNT.HRESULT;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
 import mousemaster.Rectangle;
+import mousemaster.platform.DesktopCapture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +46,11 @@ final class WindowsDesktopDuplicationCapture extends WindowsDesktopFrameCapture 
 
     private static final int DXGI_ERROR_ACCESS_LOST = 0x887A0026;
 
+    private static final List<int[]> wholeFrame =
+            List.of(new int[] {0, 0, Integer.MAX_VALUE, Integer.MAX_VALUE});
+
     private Pointer duplication;
+    private byte[] desktop;
 
     WindowsDesktopDuplicationCapture(Rectangle bounds) {
         super(bounds);
@@ -71,7 +76,7 @@ final class WindowsDesktopDuplicationCapture extends WindowsDesktopFrameCapture 
     }
 
     @Override
-    Frame acquire() {
+    byte[] acquire(Rectangle bounds, int scaledWidth, int scaledHeight) {
         Dwmapi.INSTANCE.DwmFlush();
         while (true) {
             PointerByReference resourceOut = new PointerByReference();
@@ -79,8 +84,8 @@ final class WindowsDesktopDuplicationCapture extends WindowsDesktopFrameCapture 
             HRESULT hr = call(duplication, IDXGIOUTPUTDUPLICATION_ACQUIRENEXTFRAME,
                     acquireTimeoutMillis, frameInfo, resourceOut);
             int code = hr.intValue();
-            if (code == DXGI_ERROR_WAIT_TIMEOUT)
-                return lastFrame; // screen unchanged since the last capture
+            if (code == DXGI_ERROR_WAIT_TIMEOUT) // screen unchanged since the last capture
+                return desktop == null ? null : desktopRgb(bounds, scaledWidth, scaledHeight);
             if (code == DXGI_ERROR_ACCESS_LOST)
                 throw new IllegalStateException("desktop switched (access lost)");
             check(hr, "AcquireNextFrame");
@@ -89,13 +94,13 @@ final class WindowsDesktopDuplicationCapture extends WindowsDesktopFrameCapture 
                 // Without a present the desktop image is not updated, and holds whatever
                 // it held before. The screen is then what the last capture already read.
                 if (frameInfo.getLong(LAST_PRESENT_TIME) == 0) {
-                    if (lastFrame != null)
-                        return lastFrame;
+                    if (desktop != null)
+                        return desktopRgb(bounds, scaledWidth, scaledHeight);
                     continue;
                 }
                 Pointer texture = queryInterface(resource, IID_ID3D11Texture2D);
                 try {
-                    return readTexture(texture, changedRectangles(frameInfo));
+                    readTexture(texture, changedRectangles(frameInfo));
                 }
                 finally {
                     release(texture);
@@ -105,7 +110,42 @@ final class WindowsDesktopDuplicationCapture extends WindowsDesktopFrameCapture 
                 release(resource);
                 call(duplication, IDXGIOUTPUTDUPLICATION_RELEASEFRAME);
             }
+            return desktopRgb(bounds, scaledWidth, scaledHeight);
         }
+    }
+
+    /** Reads the areas that changed into a desktop kept across frames. */
+    private void readTexture(Pointer texture, List<int[]> changedRectangles) {
+        readMapped(texture, (pixels, rowPitch) -> {
+            if (desktop == null || desktop.length != width * 4 * height) {
+                desktop = new byte[width * 4 * height];
+                readRectangle(pixels, rowPitch, wholeFrame.getFirst());
+            }
+            else {
+                for (int[] rectangle : changedRectangles)
+                    readRectangle(pixels, rowPitch, rectangle);
+            }
+            return null;
+        });
+    }
+
+    private void readRectangle(Pointer pixels, int rowPitch, int[] rectangle) {
+        int left = Math.clamp(rectangle[0], 0, width);
+        int top = Math.clamp(rectangle[1], 0, height);
+        int right = Math.clamp(rectangle[2], left, width);
+        int bottom = Math.clamp(rectangle[3], top, height);
+        if (right <= left)
+            return;
+        readPixels(pixels, rowPitch, left, right, top, bottom, desktop, (top * width + left) * 4,
+                width * 4);
+    }
+
+    private byte[] desktopRgb(Rectangle bounds, int scaledWidth, int scaledHeight) {
+        return DesktopCapture.boxDownscaledRgb((x, bandWidth, fromY, toY, band) -> {
+            for (int y = fromY; y < toY; y++)
+                System.arraycopy(desktop, (y * width + x) * 4, band, (y - fromY) * bandWidth * 4,
+                        bandWidth * 4);
+        }, bounds, scaledWidth, scaledHeight);
     }
 
     /**

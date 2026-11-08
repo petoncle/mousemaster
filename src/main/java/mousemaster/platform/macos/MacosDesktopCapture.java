@@ -252,10 +252,12 @@ final class MacosDesktopCapture {
         coreVideo.CVPixelBufferLockBaseAddress(pixelBuffer, CoreVideo.lockReadOnly);
         try {
             int rowPitch = (int) coreVideo.CVPixelBufferGetBytesPerRow(pixelBuffer);
-            int height = (int) coreVideo.CVPixelBufferGetHeight(pixelBuffer);
-            byte[] bgra = coreVideo.CVPixelBufferGetBaseAddress(pixelBuffer)
-                                   .getByteArray(0, rowPitch * height);
-            return DesktopCapture.boxDownscaledRgb(bgra, rowPitch,
+            Pointer pixels = coreVideo.CVPixelBufferGetBaseAddress(pixelBuffer);
+            return DesktopCapture.boxDownscaledRgb((x, width, fromY, toY, band) -> {
+                        for (int y = fromY; y < toY; y++)
+                            pixels.read((long) y * rowPitch + x * 4L, band,
+                                    (y - fromY) * width * 4, width * 4);
+                    },
                     new Rectangle(bounds.x() - displayBounds.x(),
                             bounds.y() - displayBounds.y(), bounds.width(),
                             bounds.height()), scaledWidth, scaledHeight);

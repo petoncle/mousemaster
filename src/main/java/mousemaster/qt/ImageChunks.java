@@ -43,11 +43,11 @@ public final class ImageChunks {
         return (int) Math.min(threadCount, pixels / CHUNK_PIXELS);
     }
 
-    interface Range {
+    public interface Range {
         void run(int from, int to);
     }
 
-    static void overRange(int count, int pixelsPerUnit, Range range) {
+    public static void overRange(int count, int pixelsPerUnit, Range range) {
         int chunks = chunks((long) count * pixelsPerUnit);
         if (chunks <= 1) {
             range.run(0, count);

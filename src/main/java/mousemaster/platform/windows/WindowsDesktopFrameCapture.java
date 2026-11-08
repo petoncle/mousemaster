@@ -25,6 +25,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BiFunction;
 
 /**
  * Captures the desktop of an output, read back to the CPU. Any failure closes the capture and
@@ -57,21 +58,15 @@ abstract class WindowsDesktopFrameCapture implements AutoCloseable {
             });
 
     static final int acquireTimeoutMillis = 100;
-    static final List<int[]> wholeFrame =
-            List.of(new int[] {0, 0, Integer.MAX_VALUE, Integer.MAX_VALUE});
-
-    /** The captured frame: B8G8R8A8 pixels. */
-    record Frame(byte[] bgra, int width, int height, int rowPitch) {
-    }
+    /** The FP16 pixels of a row, for each thread that reads rows. */
+    private static final ThreadLocal<short[]> halfRow = ThreadLocal.withInitial(() -> new short[0]);
 
     Pointer device;
     Pointer context;
-    Frame lastFrame;
     int format;
+    int width;
+    int height;
     private Pointer staging;
-    private int width;
-    private int height;
-    private byte[] desktop;
     /** The sRGB byte of each FP16 channel value. */
     private byte[] srgbByHalf;
     private final Rectangle bounds;
@@ -94,18 +89,21 @@ abstract class WindowsDesktopFrameCapture implements AutoCloseable {
     }
 
     /**
-     * Returns the desktop with the window changes made before the call, or null if the capture
-     * is unavailable (the caller should then fall back). Reinitializes transparently after a
-     * failure, such as the desktop switching.
+     * Returns the desktop inside bounds with the window changes made before the call, scaled as
+     * DesktopCapture.boxDownscaledRgb does, or null if the capture is unavailable (the
+     * caller should then fall back). Reinitializes transparently after a failure, such as the
+     * desktop switching.
      */
-    Frame capture() {
+    byte[] capture(Rectangle bounds, int scaledWidth, int scaledHeight) {
         if (unavailable)
             return null;
         return onCaptureThread(() -> {
             try {
                 if (device == null)
                     initialize();
-                return acquire();
+                return acquire(new Rectangle(bounds.x() - outputBounds.x(),
+                        bounds.y() - outputBounds.y(), bounds.width(), bounds.height()),
+                        scaledWidth, scaledHeight);
             }
             catch (Throwable e) {
                 logger.debug(getClass().getSimpleName() + " failed, falling back: " +
@@ -142,7 +140,8 @@ abstract class WindowsDesktopFrameCapture implements AutoCloseable {
 
     abstract void initialize(WindowsDesktopDuplication.Output output);
 
-    abstract Frame acquire();
+    /** Bounds are in the coordinates of the output's own frame. */
+    abstract byte[] acquire(Rectangle bounds, int scaledWidth, int scaledHeight);
 
     void setFormat(int format, float sdrWhiteLevel) {
         this.format = format;
@@ -164,8 +163,9 @@ abstract class WindowsDesktopFrameCapture implements AutoCloseable {
         context = ctxOut.getValue();
     }
 
-    /** Reads the areas that changed into a desktop kept across frames. */
-    Frame readTexture(Pointer texture, List<int[]> changedRectangles) {
+    /** Copies the texture into the staging texture, and gives the reader its pixels and row
+     *  pitch while it is mapped. */
+    <T> T readMapped(Pointer texture, BiFunction<Pointer, Integer, T> reader) {
         WindowsDesktopDuplication.Texture2DDesc desc = new WindowsDesktopDuplication.Texture2DDesc();
         callVoid(texture, ID3D11TEXTURE2D_GETDESC, desc.getPointer());
         desc.read();
@@ -178,46 +178,37 @@ abstract class WindowsDesktopFrameCapture implements AutoCloseable {
         check(hr, "Map");
         mapped.read();
         try {
-            int rowPitch = mapped.rowPitch;
-            if (desktop == null || desktop.length != width * 4 * height) {
-                desktop = new byte[width * 4 * height];
-                readRectangle(mapped.pData, rowPitch, wholeFrame.getFirst());
-            }
-            else {
-                for (int[] rectangle : changedRectangles)
-                    readRectangle(mapped.pData, rowPitch, rectangle);
-            }
-            lastFrame = new Frame(desktop, width, height, width * 4);
-            return lastFrame;
+            return reader.apply(mapped.pData, mapped.rowPitch);
         }
         finally {
             callVoid(context, ID3D11DEVICECONTEXT_UNMAP, staging, 0);
         }
     }
 
-    private void readRectangle(Pointer pixels, int rowPitch, int[] rectangle) {
-        int left = Math.clamp(rectangle[0], 0, width);
-        int top = Math.clamp(rectangle[1], 0, height);
-        int right = Math.clamp(rectangle[2], left, width);
-        int bottom = Math.clamp(rectangle[3], top, height);
+    /** Copies the mapped pixels of the rows from top until bottom, in the columns from left
+     *  until right, as B8G8R8A8 into bgra from offset, one row every pitch bytes. */
+    void readPixels(Pointer pixels, int rowPitch, int left, int right, int top, int bottom,
+                    byte[] bgra, int offset, int pitch) {
         int pixelCount = right - left;
-        if (pixelCount <= 0)
-            return;
         if (format == DXGI_FORMAT_B8G8R8A8_UNORM) {
             for (int y = top; y < bottom; y++)
-                pixels.read(y * rowPitch + left * 4L, desktop, (y * width + left) * 4,
+                pixels.read(y * rowPitch + left * 4L, bgra, offset + (y - top) * pitch,
                         pixelCount * 4);
             return;
         }
-        short[] halves = new short[pixelCount * 4];
+        short[] halves = halfRow.get();
+        if (halves.length < pixelCount * 4) {
+            halves = new short[pixelCount * 4];
+            halfRow.set(halves);
+        }
         for (int y = top; y < bottom; y++) {
-            int at = (y * width + left) * 4;
-            pixels.read(y * rowPitch + left * 8L, halves, 0, halves.length);
-            for (int half = 0; half < halves.length; half += 4, at += 4) {
-                desktop[at] = srgbByHalf[halves[half + 2] & 0xffff];
-                desktop[at + 1] = srgbByHalf[halves[half + 1] & 0xffff];
-                desktop[at + 2] = srgbByHalf[halves[half] & 0xffff];
-                desktop[at + 3] = (byte) 255;
+            int at = offset + (y - top) * pitch;
+            pixels.read(y * rowPitch + left * 8L, halves, 0, pixelCount * 4);
+            for (int half = 0; half < pixelCount * 4; half += 4, at += 4) {
+                bgra[at] = srgbByHalf[halves[half + 2] & 0xffff];
+                bgra[at + 1] = srgbByHalf[halves[half + 1] & 0xffff];
+                bgra[at + 2] = srgbByHalf[halves[half] & 0xffff];
+                bgra[at + 3] = (byte) 255;
             }
         }
     }
