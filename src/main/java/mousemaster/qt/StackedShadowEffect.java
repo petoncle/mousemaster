@@ -99,16 +99,16 @@ public class StackedShadowEffect extends QtDropShadowEffect {
     }
 
     /**
-     * Renders the shadow of what chunkPainter paints in the area, as the effect draws it under the
+     * Renders the shadow of what paintChunk paints in the area, as the effect draws it under the
      * source, in chunks of rows from the top, with the source cut out when cutOut. The source is
      * painted by ImageChunks.paintChunks.
      */
     public static List<QImage> renderShadow(Rectangle area, int dotsPerMeter,
-                                            BiConsumer<QPainter, Rectangle> chunkPainter,
+                                            BiConsumer<QPainter, Rectangle> paintChunk,
                                             QColor shadowColor, double blurRadius,
                                             double horizontalOffset, double verticalOffset,
                                             boolean alphaOnly, boolean cutOut) {
-        return shadows(ImageChunks.paintChunks(area, 1, dotsPerMeter, chunkPainter),
+        return shadows(ImageChunks.paintChunks(area, 1, dotsPerMeter, paintChunk),
                 ImageChunks.chunkHeight(area.width(), area.height()), horizontalOffset,
                 verticalOffset, blurRadius, shadowColor, null, alphaOnly, cutOut);
     }

@@ -80,11 +80,11 @@ public final class ImageChunks {
 
     /**
      * Paints the area in chunks of rows from the top, one per thread, at devicePixelRatio and
-     * dotsPerMeter: chunkPainter paints each chunk, given the part of the area it covers.
+     * dotsPerMeter: paintChunk paints each chunk, given the part of the area it covers.
      */
     public static List<QImage> paintChunks(Rectangle area, double devicePixelRatio,
                                            int dotsPerMeter,
-                                           BiConsumer<QPainter, Rectangle> chunkPainter) {
+                                           BiConsumer<QPainter, Rectangle> paintChunk) {
         int width = (int) Math.round(area.width() * devicePixelRatio);
         int height = (int) Math.round(area.height() * devicePixelRatio);
         int chunkHeight = chunkHeight(width, height);
@@ -103,7 +103,7 @@ public final class ImageChunks {
                         area.width(), (int) Math.round(image.height() / devicePixelRatio));
                 QPainter painter = new QPainter(image);
                 painter.translate(-chunkArea.x(), -chunkArea.y());
-                chunkPainter.accept(painter, chunkArea);
+                paintChunk.accept(painter, chunkArea);
                 painter.end();
                 painter.dispose();
                 images[chunk] = image;

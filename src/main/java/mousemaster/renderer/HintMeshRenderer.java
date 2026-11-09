@@ -4304,12 +4304,12 @@ public final class HintMeshRenderer {
      *  byShadowArea puts them in the area. */
     private static <T> void paintCasters(QPainter painter, Rectangle chunk,
                                          Map<T, Rectangle> inkByCaster, int padding,
-                                         BiConsumer<T, QPainter> casterPainter) {
+                                         BiConsumer<T, QPainter> paintCaster) {
         for (Map.Entry<T, Rectangle> entry : inkByCaster.entrySet()) {
             Rectangle casterInk = entry.getValue();
             if (casterInk.y() - padding < chunk.y() + chunk.height() &&
                 chunk.y() < casterInk.y() + casterInk.height() + padding)
-                casterPainter.accept(entry.getKey(), painter);
+                paintCaster.accept(entry.getKey(), painter);
         }
     }
 
@@ -4503,7 +4503,7 @@ public final class HintMeshRenderer {
 
         private final List<HintBox> boxes;
         private final List<HintLabel> labels;
-        private final BiConsumer<HintBox, QPainter> boxPainter;
+        private final BiConsumer<HintBox, QPainter> paintBox;
         /** Where the layer sits when it covers only its ink; everything it paints shifts by it. */
         private int originX, originY;
         private final List<ShadowPixmap> shadowPixmaps = new ArrayList<>();
@@ -4522,11 +4522,11 @@ public final class HintMeshRenderer {
         }
 
         HintPaintLayer(QWidget parent, List<HintBox> boxes, List<HintLabel> labels,
-                       BiConsumer<HintBox, QPainter> boxPainter) {
+                       BiConsumer<HintBox, QPainter> paintBox) {
             super(parent);
             this.boxes = boxes;
             this.labels = labels;
-            this.boxPainter = boxPainter;
+            this.paintBox = paintBox;
         }
 
         /**
@@ -4731,7 +4731,7 @@ public final class HintMeshRenderer {
                     painter.drawPixmap(shadowPixmap.x(), shadowPixmap.y(), shadowPixmap.pixmap());
             for (HintBox box : boxes)
                 if (!box.ink().intersection(painted).isEmpty())
-                    boxPainter.accept(box, painter);
+                    paintBox.accept(box, painter);
             for (HintLabel label : labels)
                 if (!label.ink().intersection(painted).isEmpty())
                     label.paint(painter);
