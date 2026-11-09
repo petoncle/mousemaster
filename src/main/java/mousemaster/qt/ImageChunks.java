@@ -4,20 +4,29 @@ import io.qt.gui.QImage;
 import io.qt.gui.QPainter;
 import mousemaster.Rectangle;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
-/** An image worked on across cores, in chunks of rows or in ranges of any of its units, one per
- *  thread. */
+/** An image worked on across cores, in chunks of rows, square chunks or ranges of any of its
+ *  units. */
 public final class ImageChunks {
 
     /** Fewer pixels than this per thread cost more to hand over than to process. */
     private static final int CHUNK_PIXELS = 1 << 16;
+    /** A line crosses about as many square chunks in any direction. */
+    private static final int CHUNK_SIDE = (int) Math.sqrt(CHUNK_PIXELS);
+    /** QtJambi serializes creating and disposing its objects, so each thread reuses its own. */
+    private static final ThreadLocal<QImage> chunkImage = ThreadLocal.withInitial(
+            () -> new QImage(CHUNK_SIDE, CHUNK_SIDE, QImage.Format.Format_ARGB32_Premultiplied));
+    private static final ThreadLocal<QPainter> chunkImagePainter =
+            ThreadLocal.withInitial(QPainter::new);
 
     private static final int threadCount = Runtime.getRuntime().availableProcessors();
 
@@ -101,5 +110,38 @@ public final class ImageChunks {
             }
         });
         return List.of(images);
+    }
+
+    /**
+     * Paints the area of pixels, the premultiplied ARGB of an image width pixels wide, in square
+     * chunks that each thread takes one after the other until none is left, so that a thread
+     * with little to paint takes more: paintChunk paints each chunk, given the part of the area
+     * it covers.
+     */
+    public static void paintChunks(ByteBuffer pixels, int width, Rectangle area,
+                                   BiConsumer<QPainter, Rectangle> paintChunk) {
+        List<Rectangle> chunkAreas = new ArrayList<>();
+        for (int y = area.y(); y < area.y() + area.height(); y += CHUNK_SIDE)
+            for (int x = area.x(); x < area.x() + area.width(); x += CHUNK_SIDE)
+                chunkAreas.add(new Rectangle(x, y,
+                        Math.min(CHUNK_SIDE, area.x() + area.width() - x),
+                        Math.min(CHUNK_SIDE, area.y() + area.height() - y)));
+        AtomicInteger nextChunk = new AtomicInteger();
+        overRange(chunkAreas.size(), CHUNK_PIXELS, (from, to) -> {
+            QImage image = chunkImage.get();
+            QPainter painter = chunkImagePainter.get();
+            for (int chunk; (chunk = nextChunk.getAndIncrement()) < chunkAreas.size(); ) {
+                Rectangle chunkArea = chunkAreas.get(chunk);
+                image.fill(0);
+                painter.begin(image);
+                painter.translate(-chunkArea.x(), -chunkArea.y());
+                paintChunk.accept(painter, chunkArea);
+                painter.end();
+                ByteBuffer bits = image.bits();
+                for (int row = 0; row < chunkArea.height(); row++)
+                    pixels.put(4 * ((chunkArea.y() + row) * width + chunkArea.x()), bits,
+                            4 * row * CHUNK_SIDE, 4 * chunkArea.width());
+            }
+        });
     }
 }

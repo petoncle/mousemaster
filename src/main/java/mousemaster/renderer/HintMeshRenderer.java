@@ -43,6 +43,7 @@ public final class HintMeshRenderer {
     private static final ThreadLocal<QPointF> paintedPoint = ThreadLocal.withInitial(QPointF::new);
     private static final ThreadLocal<QRectF> paintedRectangle =
             ThreadLocal.withInitial(QRectF::new);
+    private static final ThreadLocal<QPointF> paintedLineEnd = ThreadLocal.withInitial(QPointF::new);
 
     private final Map<PixmapKey, PixmapsAndPosition> hintMeshPixmaps = new HashMap<>();
     private final Set<PixmapKey> preWarmedPixmapKeys = new HashSet<>();
@@ -85,8 +86,15 @@ public final class HintMeshRenderer {
             new HashMap<>();
     private HintMesh currentHintMesh;
     private FadeAnimator hintMeshFadeAnimator;
-    /** Creates a styled native window — the single platform primitive the renderer needs. */
+    /** Creates a styled native window. */
     private final Supplier<TransparentWindow> windowFactory;
+    /** Null where the hint mesh windows draw their points themselves. */
+    private final Supplier<LayeredWindow> hintPointWindowFactory;
+    private final Map<TransparentWindow, LayeredWindow> hintPointWindowByWindow =
+            new HashMap<>();
+    /** The container whose points, and what is under them, each hint point window draws. */
+    private final Map<TransparentWindow, ClearBackgroundQLabel> hintPointContainerByWindow =
+            new HashMap<>();
 
     /** A per-screen hint mesh window (no HWND — the overlay derives the native handle from
      *  {@link #window()}). Both sides share these instances, so the renderer's mutations to
@@ -175,8 +183,10 @@ public final class HintMeshRenderer {
     }
 
     public HintMeshRenderer(Supplier<TransparentWindow> windowFactory,
+                            Supplier<LayeredWindow> hintPointWindowFactory,
                             Runnable hintMeshEndAnimationEndedCallback) {
         this.windowFactory = windowFactory;
+        this.hintPointWindowFactory = hintPointWindowFactory;
         this.hintMeshEndAnimationEndedCallback = hintMeshEndAnimationEndedCallback;
     }
 
@@ -339,8 +349,16 @@ public final class HintMeshRenderer {
         }
         if (hintMeshFadeAnimator != null && hintMeshFadeAnimator.isFadingOut())
             hintMeshFadeAnimator.fadeIn(style(hintMesh).fade());
-        if (showingHintMesh && currentHintMesh != null &&
-            hintMesh.withTransitionsOf(currentHintMesh).equals(currentHintMesh)) {
+        boolean onlyPointsChanged = showingHintMesh && currentHintMesh != null &&
+                                    hintMesh.withTransitionsOf(currentHintMesh)
+                                            .builder()
+                                            .pointByKeySequence(
+                                                    currentHintMesh.pointByKeySequence())
+                                            .build()
+                                            .equals(currentHintMesh);
+        if (onlyPointsChanged &&
+            (hintMesh.pointByKeySequence().equals(currentHintMesh.pointByKeySequence()) ||
+             moveHintPoints(hintMesh))) {
             currentHintMesh = hintMesh;
             return;
         }
@@ -355,16 +373,122 @@ public final class HintMeshRenderer {
         }
         setHintMeshEndAnimation(false);
         currentHintMesh = hintMesh;
-        createOrUpdateHintMeshWindows(currentHintMesh, zoom, animate, screens);
+        createOrUpdateHintMeshWindows(currentHintMesh, zoom, animate && !onlyPointsChanged,
+                screens);
         showingHintMesh = true;
         if (animate && (!wasShowing || fadeIn) && !hintMeshWindows.isEmpty()) {
             hintMeshFadeAnimator = new FadeAnimator(
                     opacity -> {
                         for (HintMeshWindow w : hintMeshWindows.values())
                             w.window().setWindowOpacity(opacity);
+                        for (LayeredWindow hintPointWindow : hintPointWindowByWindow.values())
+                            hintPointWindow.setOpacity(opacity);
                     },
                     this::doHideHintMesh);
             hintMeshFadeAnimator.fadeIn(style(currentHintMesh).fade());
+        }
+    }
+
+    /** Moves the points in the hint point windows, unless a window has points that its hint
+     *  point window does not draw, or a hint gains or loses its point. */
+    private boolean moveHintPoints(HintMesh hintMesh) {
+        if (!hintMesh.pointByKeySequence().keySet()
+                     .equals(currentHintMesh.pointByKeySequence().keySet()))
+            return false;
+        for (Map.Entry<Screen, HintMeshWindow> entry : hintMeshWindows.entrySet()) {
+            TransparentWindow window = entry.getValue().window();
+            HintMeshStyle style = hintMesh.styleByFilter().get(ScreenFilter.of(entry.getKey()));
+            if (!entry.getValue().hints().isEmpty() &&
+                (pointBoxVisible(style) || pointBoxVisible(style.saved())) &&
+                (!hintPointContainerByWindow.containsKey(window) ||
+                 setUncachedHintMeshWindowRunnables.containsKey(window)))
+                return false;
+        }
+        hintPointContainerByWindow.forEach((window, container) -> {
+            Rectangle dirty = movePoints(container, hintMesh.pointByKeySequence());
+            if (dirty != null)
+                drawHintPoints(window, container, dirty);
+        });
+        return true;
+    }
+
+    // Not in the container: the native image hangs while QtJambi resolves some widget members.
+    /** Where the points and their lines were and are, null when there are none. */
+    private static Rectangle movePoints(ClearBackgroundQLabel container,
+                                        Map<List<Key>, Point> pointByKeySequence) {
+        List<Rectangle> inks = pointInks(container);
+        placePointBoxes(container, pointByKeySequence);
+        inks.addAll(pointInks(container));
+        return inks.isEmpty() ? null : Rectangle.union(inks);
+    }
+
+    private static List<Rectangle> pointInks(ClearBackgroundQLabel container) {
+        List<Rectangle> inks = new ArrayList<>();
+        for (HintBox pointBox : container.pointBoxes) {
+            inks.add(pointBox.ink());
+            if (pointBox.lineInk() != null)
+                inks.add(pointBox.lineInk());
+        }
+        return inks;
+    }
+
+    private static void placePointBoxes(ClearBackgroundQLabel container,
+                                        Map<List<Key>, Point> pointByKeySequence) {
+        int originX = container.window().x() + container.x();
+        int originY = container.window().y() + container.y();
+        for (HintBox pointBox : container.pointBoxes) {
+            Point point = pointByKeySequence.get(pointBox.hint.keySequence());
+            double qtScaleFactor = pointBox.qtScaleFactor;
+            int left = (int) Math.round((point.x() - container.pointBoxWidth / 2d) / qtScaleFactor);
+            int top = (int) Math.round((point.y() - container.pointBoxHeight / 2d) / qtScaleFactor);
+            int right =
+                    (int) Math.round((point.x() + container.pointBoxWidth / 2d) / qtScaleFactor);
+            int bottom =
+                    (int) Math.round((point.y() + container.pointBoxHeight / 2d) / qtScaleFactor);
+            pointBox.setGeometry(left - originX, top - originY, right - left, bottom - top);
+        }
+    }
+
+    /** The hint point window shows nothing when the container draws its points itself. */
+    private void showHintPoints(TransparentWindow window, ClearBackgroundQLabel container) {
+        LayeredWindow hintPointWindow = hintPointWindowByWindow.get(window);
+        if (hintPointWindow == null)
+            return;
+        if (container == null || !container.inHintPointWindow) {
+            hintPointContainerByWindow.remove(window);
+            hintPointWindow.clear();
+            return;
+        }
+        hintPointContainerByWindow.put(window, container);
+        drawHintPoints(window, container,
+                new Rectangle(-container.x(), -container.y(), window.width(), window.height()));
+    }
+
+    /** dirty is in the coordinates of the container. */
+    private void drawHintPoints(TransparentWindow window, ClearBackgroundQLabel container,
+                                Rectangle dirty) {
+        int x = container.x(), y = container.y();
+        Rectangle rectangle = new Rectangle(window.xInPixels(), window.yInPixels(),
+                window.widthInPixels(), window.heightInPixels());
+        hintPointWindowByWindow.get(window).draw(rectangle,
+                new Rectangle(rectangle.x() + x + dirty.x(), rectangle.y() + y + dirty.y(),
+                        dirty.width(), dirty.height()), (painter, area) -> {
+                    paintImages(painter, area, container.belowPointImages);
+                    painter.translate(x, y);
+                    Rectangle containerArea = new Rectangle(area.x() - x, area.y() - y,
+                            area.width(), area.height());
+                    container.paintPointBoxes(painter, containerArea);
+                    paintImages(painter, containerArea, container.abovePointImages);
+                });
+    }
+
+    private static void paintImages(QPainter painter, Rectangle area, List<QImage> images) {
+        int y = 0;
+        for (QImage image : images) {
+            int height = (int) Math.round(image.height() / image.devicePixelRatio());
+            if (y < area.y() + area.height() && area.y() < y + height)
+                painter.drawImage(0, y, image);
+            y += height;
         }
     }
 
@@ -439,6 +563,7 @@ public final class HintMeshRenderer {
                 stopBorderMorph(lineMorph);
             hintMeshWindow.window().setBackground(null, null, 0, null, 0);
             hintMeshWindow.window().hideChildren();
+            showHintPoints(hintMeshWindow.window(), null);
             // An opaque window is cleared with what changes with it, such as the indicator. A
             // faded one is cleared before it is made opaque again for reuse.
             if (hintMeshWindow.window().windowOpacity() == 1)
@@ -448,6 +573,8 @@ public final class HintMeshRenderer {
                 hintMeshWindow.window().setWindowOpacity(1.0);
             }
         }
+        for (LayeredWindow hintPointWindow : hintPointWindowByWindow.values())
+            hintPointWindow.setOpacity(1);
     }
 
     private void createOrUpdateHintMeshWindows(HintMesh hintMesh, Zoom zoom, boolean animate,
@@ -531,6 +658,8 @@ public final class HintMeshRenderer {
     private HintMeshWindow createHintMeshWindow(Screen screen, List<Hint> hints, Zoom zoom) {
         TransparentWindow window = windowFactory.get();
         window.coverInPixels(screen);
+        if (hintPointWindowFactory != null)
+            hintPointWindowByWindow.put(window, hintPointWindowFactory.get());
         return new HintMeshWindow(window, hints, zoom, new AtomicReference<>(),
                 new AtomicBoolean());
     }
@@ -563,12 +692,35 @@ public final class HintMeshRenderer {
          *  window). Null paints the whole label. */
         private QRect crop;
 
+        /** Layer 0, under the points. */
+        private List<HintPaintLayer> belowPointLayers = List.of();
+        private List<HintBox> pointBoxes = List.of();
+        /** Set when the points, and what is under them, are drawn in the hint point window. */
+        private boolean inHintPointWindow;
+        private int pointBoxWidth, pointBoxHeight;
+        private List<QImage> belowPointImages = List.of();
+        private List<QImage> abovePointImages = List.of();
+
         void setPixelRowChunks(List<QPixmap> pixelRowChunks) {
             this.pixelRowChunks = pixelRowChunks;
         }
 
+        /** All lines first: a painter that turns antialiasing on and off for each line paints
+         *  them twice as slowly. */
+        void paintPointBoxes(QPainter painter, Rectangle area) {
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+            for (HintBox pointBox : pointBoxes)
+                pointBox.paintLine(painter, area);
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
+            for (HintBox pointBox : pointBoxes)
+                if (!pointBox.ink().intersection(area).isEmpty())
+                    pointBox.paint(painter);
+        }
+
         void disposeBuffers() {
             pixelRowChunks.forEach(QPixmap::dispose);
+            belowPointImages.forEach(QImage::dispose);
+            abovePointImages.forEach(QImage::dispose);
         }
 
         /** Crops to {@code r}, scheduling a paint of the band between the old and new crop (the whole
@@ -750,6 +902,7 @@ public final class HintMeshRenderer {
         if (hintMeshWindow.hints().isEmpty()) {
             showBackground(window, backgroundColor, backgroundRectangle, backgroundRadius,
                     backgroundBorderColor, backgroundBorderThickness);
+            showHintPoints(window, null);
             QWidget container = new QWidget(window);
             container.setGeometry(0, 0, 0, 0);
             container.show();
@@ -798,6 +951,7 @@ public final class HintMeshRenderer {
                     backgroundBorderColor, backgroundBorderThickness);
             transitionHintContainers(animateTransition, oldContainer, newContainer,
                     window, hintMeshWindow, style.transition());
+            showHintPoints(window, null);
             if (pixmapsAndPosition.boxes() != null)
                 morphBorders(window, hintMeshWindow, pixmapLabel, pixmapsAndPosition.boxes(),
                         pixmapsAndPosition.enclosingInk(), animateTransition,
@@ -827,15 +981,15 @@ public final class HintMeshRenderer {
                             disposeWidget(container);
                             return;
                         }
-                        paintPixmaps(container, backgroundColor, backgroundRectangle,
+                        paintPixmaps(container, isHintGrid, backgroundColor, backgroundRectangle,
                                 backgroundRadius, backgroundBorderColor, backgroundBorderThickness,
                                 screenScale);
                         if (!preWarming)
                             logger.debug("Built hint mesh window in " +
                                     (long) ((System.nanoTime() - before) / 1e6) + "ms");
-                        // A mesh without keys has no labels to cache. The elements of a mesh
-                        // that is not a grid are never at the same place twice.
-                        if (isHintGrid && !hintMesh.hints().getFirst().keySequence().isEmpty())
+                        // Only a grid with labels and unmoved points is drawn the same again.
+                        if (isHintGrid && !hintMesh.hints().getFirst().keySequence().isEmpty() &&
+                            hintMeshKey.pointByKeySequence().isEmpty())
                             cachePixmaps(window, container, hintMeshKey, hintMesh, boxes,
                                     enclosingInk);
                         if (preWarming) {
@@ -844,11 +998,15 @@ public final class HintMeshRenderer {
                             return;
                         }
                         boolean animateTransition = style.transition().enabled() && isHintGrid && !oldContainerHidden && animate;
-                        showBackground(window, backgroundColor, backgroundRectangle,
+                        showBackground(window, backgroundColor,
+                                container.inHintPointWindow ? null : backgroundRectangle,
                                 backgroundRadius, backgroundBorderColor, backgroundBorderThickness);
                         transitionHintContainers(animateTransition,
                                 oldContainer, newContainer,
                                 window, hintMeshWindow, style.transition());
+                        if (!container.abovePointImages.isEmpty())
+                            container.hide();
+                        showHintPoints(window, container);
                         // Non-grid hints draw their own borders and only need the window shown.
                         morphBorders(window, hintMeshWindow, container, boxes, enclosingInk,
                                 animateTransition, style.transition());
@@ -1373,7 +1531,7 @@ public final class HintMeshRenderer {
                                                               HintMesh hintMesh,
                                                               double screenScale, HintMeshStyle style,
                                                               double qtScaleFactor,
-                                                              QWidget container,
+                                                              ClearBackgroundQLabel container,
                                                               List<Rectangle> enclosingInk) {
         long beforeMetrics = System.nanoTime();
         boolean isHintPartOfGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
@@ -1479,6 +1637,26 @@ public final class HintMeshRenderer {
         int elementBoxVerticalPadding =
                 scaledLength(style.uiElementBoxVerticalPadding(), screenScale);
         List<HintBox> elementBoxes = new ArrayList<>();
+        boolean pointBoxVisible = pointBoxVisible(style);
+        boolean savedPointBoxVisible = pointBoxVisible(savedStyle);
+        Rectangle savedPointBoxGradientArea =
+                gradientArea(savedStyle.pointBoxColor().area(), hintMeshWindow, hintMesh);
+        GradientColor savedPointBoxBorderColor = gradientColor(savedStyle.pointBoxBorderColor());
+        Rectangle savedPointBoxBorderGradientArea =
+                gradientArea(savedPointBoxBorderColor.area(), hintMeshWindow, hintMesh);
+        Rectangle pointBoxGradientArea =
+                gradientArea(style.pointBoxColor().area(), hintMeshWindow, hintMesh);
+        GradientColor pointBoxBorderColor = gradientColor(style.pointBoxBorderColor());
+        Rectangle pointBoxBorderGradientArea =
+                gradientArea(pointBoxBorderColor.area(), hintMeshWindow, hintMesh);
+        GradientColor pointLineColor = gradientColor(style.pointLineColor());
+        Rectangle pointLineGradientArea =
+                gradientArea(pointLineColor.area(), hintMeshWindow, hintMesh);
+        int pointBoxWidth = scaledLength(style.pointBoxWidth(), screenScale);
+        int pointBoxHeight = scaledLength(style.pointBoxHeight(), screenScale);
+        int pointBoxBorderThickness = scaledLength(style.pointBoxBorderThickness(), screenScale);
+        int pointBoxBorderRadius = scaledLength(style.pointBoxBorderRadius(), screenScale);
+        int pointLineThickness = scaledLength(style.pointLineThickness(), screenScale);
         // One entry per tiled depth: subdecoration at index 0, subsubdecoration at index 1.
         List<DecorationStyle> subDecorationStyles = new ArrayList<>();
         if (hintMesh.subDecoration() != null) {
@@ -1788,6 +1966,17 @@ public final class HintMeshRenderer {
             maxHintBottom = Math.max(maxHintBottom, (int) Math.round(
                     (area.y() + area.height() + verticalPadding) / qtScaleFactor));
         }
+        // One window until the points move: two windows can change in different frames.
+        boolean inHintPointWindow = !hintMeshKey.pointByKeySequence().isEmpty() &&
+                                    hintPointWindowByWindow.containsKey(hintMeshWindow.window);
+        if (!hintMeshKey.pointByKeySequence().isEmpty() && !inHintPointWindow) {
+            minHintLeft = Math.min(minHintLeft, hintMeshWindow.window.x());
+            minHintTop = Math.min(minHintTop, hintMeshWindow.window.y());
+            maxHintRight = Math.max(maxHintRight,
+                    hintMeshWindow.window.x() + hintMeshWindow.window.width());
+            maxHintBottom = Math.max(maxHintBottom,
+                    hintMeshWindow.window.y() + hintMeshWindow.window.height());
+        }
         int offsetX = minHintLeft - hintMeshWindow.window.x();
         int offsetY = minHintTop - hintMeshWindow.window.y();
         // The boxes are moved into the container at (offsetX, offsetY), so the sweep is too.
@@ -1873,6 +2062,50 @@ public final class HintMeshRenderer {
                         pixelRectangle, sweepOrigin));
             }
         }
+        List<HintBox> pointBoxes = new ArrayList<>();
+        Rectangle pointBoxArea = new Rectangle(0, 0, pointBoxWidth, pointBoxHeight);
+        for (Hint hint : hints) {
+            boolean hintSaved = savedHints.contains(hint);
+            if (!hintMesh.pointByKeySequence().containsKey(hint.keySequence()) ||
+                !pointBoxVisible && !(savedPointBoxVisible && hintSaved) ||
+                !hint.startsWith(hintMesh.selectedKeySequence()) && !hintSaved)
+                continue;
+            HintBox pointBox = new HintBox(hint, Integer.MAX_VALUE, pointBoxBorderThickness, null,
+                    null, false, true, true, true, true, true, qtScaleFactor,
+                    pointBoxBorderRadius);
+            HintGroup hintGroup = hintGroupOf(hintMesh, hintGroupByPrefix, turnByPrefix, hint);
+            Point hintCenter = new Point(hint.centerX(), hint.centerY());
+            int turn = turnByKeySequence.get(hint.keySequence());
+            if (style.pointBoxOpacity() != 0)
+                pointBox.setColor(pointBrush(style.pointBoxColor(), style.pointBoxOpacity(),
+                        pointBoxGradientArea, hintGroup, hintCenter, turn, sweepOrigin));
+            pointBox.setBorderColor(pointBrush(pointBoxBorderColor, style.pointBoxBorderOpacity(),
+                    pointBoxBorderGradientArea, hintGroup, hintCenter, turn, sweepOrigin));
+            if (hintSaved) {
+                pointBox.setColor(pointBrush(savedStyle.pointBoxColor(),
+                        savedStyle.pointBoxOpacity(), savedPointBoxGradientArea, hintGroup,
+                        hintCenter, turn, sweepOrigin));
+                pointBox.setBorderColor(pointBrush(savedPointBoxBorderColor,
+                        savedStyle.pointBoxBorderOpacity(), savedPointBoxBorderGradientArea,
+                        hintGroup, hintCenter, turn, sweepOrigin));
+            }
+            // A line takes the color of the sweep of its box where it ends, at the center.
+            if (style.pointLineOpacity() != 0)
+                pointBox.setLine(hintBoxRectangles.get(hint.keySequence()),
+                        pointLineColor.area() == GradientArea.ELEMENT ?
+                                sampledBrush(pointLineColor, style.pointLineOpacity(),
+                                        pointBoxArea, hintGroup,
+                                        new Point(pointBoxWidth / 2d, pointBoxHeight / 2d), turn) :
+                                brush(pointLineColor, style.pointLineOpacity(),
+                                        pointLineGradientArea, hintGroup, hintCenter, turn, null,
+                                        sweepOrigin),
+                        pointLineThickness);
+            pointBoxes.add(pointBox);
+        }
+        container.pointBoxes = pointBoxes;
+        container.inHintPointWindow = inHintPointWindow;
+        container.pointBoxWidth = pointBoxWidth;
+        container.pointBoxHeight = pointBoxHeight;
         List<HintBox> prefixBoxes = new ArrayList<>();
         List<HintLabel> prefixLabels = new ArrayList<>();
         for (HintGroup hintGroup : hintGroupByPrefix.values()) {
@@ -1906,13 +2139,16 @@ public final class HintMeshRenderer {
         int containerWidth = maxHintRight - minHintLeft;
         int containerHeight = maxHintBottom - minHintTop;
         container.setGeometry(offsetX, offsetY, containerWidth, containerHeight);
-        // Layer 0: Element box shadow and element boxes.
+        placePointBoxes(container, hintMesh.pointByKeySequence());
+        // Layer 0: Element box shadow and element boxes, under the points.
         HintPaintLayer elementBoxShadowLayer = new HintPaintLayer(container, List.of(), List.of());
         elementBoxShadowLayer.setGeometry(0, 0, containerWidth, containerHeight);
         HintPaintLayer elementBoxLayer = new HintPaintLayer(container, elementBoxes, List.of());
         elementBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
         applyBoxShadow(elementBoxShadowLayer, elementBoxes, elementBoxShadow,
                 containerWidth, containerHeight, screenScale, qtScaleFactor);
+        if (!elementBoxes.isEmpty())
+            container.belowPointLayers = List.of(elementBoxShadowLayer, elementBoxLayer);
         // Layer 1: Box shadow (painted underneath boxes; empty unless shadow is active).
         HintPaintLayer boxShadowLayer = new HintPaintLayer(container, List.of(), List.of());
         boxShadowLayer.setGeometry(0, 0, containerWidth, containerHeight);
@@ -2216,6 +2452,14 @@ public final class HintMeshRenderer {
                 sweepOrigin);
     }
 
+    /** A point box moves with its brushes: an across-hint sweep fills each shape it paints. */
+    private static QBrush pointBrush(GradientColor color, double opacity, Rectangle gradientArea,
+                                     HintGroup hintGroup, Point center, int turn,
+                                     Point sweepOrigin) {
+        return color.area() == GradientArea.ELEMENT ? QtColorUtil.qBrush(color, opacity) :
+                brush(color, opacity, gradientArea, hintGroup, center, turn, null, sweepOrigin);
+    }
+
     private GradientColor gradientColor(Color color) {
         return color.gradientColor(lastSelectedHintColors);
     }
@@ -2358,59 +2602,94 @@ public final class HintMeshRenderer {
 
     /** Paints the container's background and layers into its pixmaps, as Qt paints the widgets,
      *  then drops the layers. */
-    private void paintPixmaps(ClearBackgroundQLabel container, QBrush backgroundColor,
+    private void paintPixmaps(ClearBackgroundQLabel container, boolean isHintGrid,
+                              QBrush backgroundColor,
                               Rectangle backgroundRectangle, int backgroundRadius,
                               QBrush backgroundBorderColor, int backgroundBorderThickness,
                               double screenScale) {
         List<HintPaintLayer> layers = new ArrayList<>();
+        Map<HintPaintLayer, Rectangle> rectangleByLayer = new HashMap<>();
         for (QObject child : container.children())
-            if (child instanceof HintPaintLayer layer)
+            if (child instanceof HintPaintLayer layer) {
                 layers.add(layer);
-        List<Rectangle> layerRectangles = layers.stream()
-                .map(layer -> new Rectangle(layer.x(), layer.y(), layer.width(), layer.height()))
-                .toList();
+                rectangleByLayer.put(layer,
+                        new Rectangle(layer.x(), layer.y(), layer.width(), layer.height()));
+            }
+        List<HintPaintLayer> belowPointLayers = container.belowPointLayers;
+        List<HintPaintLayer> abovePointLayers =
+                layers.stream().filter(layer -> !belowPointLayers.contains(layer)).toList();
         int containerX = container.x(), containerY = container.y();
         QRect background = backgroundRectangle == null ? null :
                 new QRect(backgroundRectangle.x(), backgroundRectangle.y(),
                         backgroundRectangle.width(), backgroundRectangle.height());
-        List<QImage> images = ImageChunks.paintChunks(
-                new Rectangle(0, 0, container.width(), container.height()),
-                container.devicePixelRatio(), dotsPerMeter(screenScale), (painter, chunk) -> {
-                    // The background is in the coordinates of the window.
-                    if (background != null) {
-                        painter.save();
-                        painter.translate(-containerX, -containerY);
-                        TransparentWindow.paintBackground(painter, backgroundColor, background,
-                                backgroundRadius, backgroundBorderColor,
-                                backgroundBorderThickness);
-                        painter.restore();
-                    }
-                    for (int layerIndex = 0; layerIndex < layers.size(); layerIndex++) {
-                        Rectangle layerRectangle = layerRectangles.get(layerIndex);
-                        Rectangle dirty = layerRectangle.intersection(chunk);
-                        if (dirty.isEmpty())
-                            continue;
-                        Rectangle layerDirty = new Rectangle(dirty.x() - layerRectangle.x(),
-                                dirty.y() - layerRectangle.y(), dirty.width(), dirty.height());
-                        painter.save();
-                        painter.translate(layerRectangle.x(), layerRectangle.y());
-                        painter.setClipRect(layerDirty.x(), layerDirty.y(), layerDirty.width(),
-                                layerDirty.height());
-                        layers.get(layerIndex).paint(painter, layerDirty);
-                        painter.restore();
-                    }
-                });
-        if (background != null)
-            background.dispose();
+        BiConsumer<QPainter, Rectangle> paintBelowPoints = (painter, chunk) -> {
+            // The background is in the coordinates of the window.
+            if (background != null) {
+                painter.save();
+                painter.translate(-containerX, -containerY);
+                TransparentWindow.paintBackground(painter, backgroundColor, background,
+                        backgroundRadius, backgroundBorderColor, backgroundBorderThickness);
+                painter.restore();
+            }
+            paintLayers(painter, chunk, belowPointLayers, rectangleByLayer);
+        };
+        Rectangle area = new Rectangle(0, 0, container.width(), container.height());
+        double devicePixelRatio = container.devicePixelRatio();
+        int dotsPerMeter = dotsPerMeter(screenScale);
+        List<QImage> images;
+        if (container.inHintPointWindow) {
+            if (background != null || !belowPointLayers.isEmpty())
+                container.belowPointImages = ImageChunks.paintChunks(
+                        new Rectangle(-containerX, -containerY, container.window().width(),
+                                container.window().height()), devicePixelRatio, dotsPerMeter,
+                        paintBelowPoints);
+            images = ImageChunks.paintChunks(area, devicePixelRatio, dotsPerMeter,
+                    (painter, chunk) -> paintLayers(painter, chunk, abovePointLayers,
+                            rectangleByLayer));
+            // The crop and border animations of a grid run in the hint mesh window.
+            if (!isHintGrid) {
+                container.abovePointImages = images;
+                images = List.of();
+            }
+        }
+        else
+            images = ImageChunks.paintChunks(area, devicePixelRatio, dotsPerMeter,
+                    (painter, chunk) -> {
+                        paintBelowPoints.accept(painter, chunk);
+                        container.paintPointBoxes(painter, chunk);
+                        paintLayers(painter, chunk, abovePointLayers, rectangleByLayer);
+                    });
         List<QPixmap> pixelRowChunks = new ArrayList<>(images.size());
         for (QImage image : images) {
             pixelRowChunks.add(QPixmap.fromImage(image));
             image.dispose();
         }
         container.setPixelRowChunks(pixelRowChunks);
+        if (background != null)
+            background.dispose();
+        container.belowPointLayers = List.of();
         for (HintPaintLayer layer : layers) {
             layer.setParent(null);
             disposeWidget(layer);
+        }
+    }
+
+    private static void paintLayers(QPainter painter, Rectangle chunk,
+                                    List<HintPaintLayer> layers,
+                                    Map<HintPaintLayer, Rectangle> rectangleByLayer) {
+        for (HintPaintLayer layer : layers) {
+            Rectangle layerRectangle = rectangleByLayer.get(layer);
+            Rectangle dirty = layerRectangle.intersection(chunk);
+            if (dirty.isEmpty())
+                continue;
+            Rectangle layerDirty = new Rectangle(dirty.x() - layerRectangle.x(),
+                    dirty.y() - layerRectangle.y(), dirty.width(), dirty.height());
+            painter.save();
+            painter.translate(layerRectangle.x(), layerRectangle.y());
+            painter.setClipRect(layerDirty.x(), layerDirty.y(), layerDirty.width(),
+                    layerDirty.height());
+            layer.paint(painter, layerDirty);
+            painter.restore();
         }
     }
 
@@ -2460,6 +2739,8 @@ public final class HintMeshRenderer {
                                  double screenScale) {
         HintMesh visibleHintMesh = hintMesh.builder()
                 .hints(hints.stream().filter(hint -> visible(hint, hintMesh)).toList())
+                .pointByKeySequence(pointBoxVisible(style) || pointBoxVisible(style.saved()) ?
+                        hintMesh.pointByKeySequence() : Map.of())
                 .build();
         if (!looksTheSameAnywhere(hintMesh))
             return visibleHintMesh;
@@ -2474,6 +2755,11 @@ public final class HintMeshRenderer {
         }
         return trimmedHintMesh(visibleHintMesh.builder().backgroundArea(null).build(), style,
                 screenScale, minHintCenterX, minHintCenterY);
+    }
+
+    private static boolean pointBoxVisible(HintMeshStyle style) {
+        return style.pointBoxOpacity() != 0 || style.pointBoxBorderOpacity() != 0 ||
+               style.pointLineOpacity() != 0;
     }
 
     private HintMesh trimmedHintMesh(HintMesh hintMesh, HintMeshStyle style, double screenScale,
@@ -2645,6 +2931,9 @@ public final class HintMeshRenderer {
         private QBrush shadowColor;
         private final int borderRadius;
         private int x, y, width, height;
+        private Rectangle lineFrom;
+        private QPen linePen;
+        private int lineThickness;
         /** Set while drawBorders records where it would paint instead of painting. */
         private List<Rectangle> ink;
         final List<HintBox> decorationBoxes = new ArrayList<>();
@@ -2697,6 +2986,24 @@ public final class HintMeshRenderer {
             this.shadowColor = shadowColor;
         }
 
+        void setLine(Rectangle lineFrom, QBrush lineColor, int lineThickness) {
+            this.lineFrom = lineFrom;
+            linePen = createPen(lineColor, lineThickness);
+            this.lineThickness = lineThickness;
+        }
+
+        /** On the edge of the rectangle the line comes from, null when the box is in it. */
+        private Point lineStart() {
+            if (linePen == null)
+                return null;
+            Point fromCenter = lineFrom.center();
+            Point center = rectangle().center();
+            double exit = lineFrom.exit(fromCenter, center);
+            return exit >= 1 ? null : new Point(
+                    Math.round(fromCenter.x() + exit * (center.x() - fromCenter.x())) - x,
+                    Math.round(fromCenter.y() + exit * (center.y() - fromCenter.y())) - y);
+        }
+
         public void setGeometry(int x, int y, int width, int height) {
             this.x = x;
             this.y = y;
@@ -2741,6 +3048,19 @@ public final class HintMeshRenderer {
             collectDecorationLabelBounds(0, offsetX, offsetY, ink);
             for (HintBox decorationBox : decorationBoxes)
                 decorationBox.collectInk(offsetX + x, offsetY + y, ink);
+        }
+
+        /** Where painting the line can put ink, null without a line. */
+        Rectangle lineInk() {
+            Point lineStart = lineStart();
+            if (lineStart == null)
+                return null;
+            int lineStartX = (int) lineStart.x(), lineStartY = (int) lineStart.y();
+            int linePadding = (int) Math.ceil(lineThickness / qtScaleFactor);
+            return new Rectangle(x + Math.min(lineStartX, width / 2) - linePadding,
+                    y + Math.min(lineStartY, height / 2) - linePadding,
+                    Math.abs(lineStartX - width / 2) + 2 * linePadding,
+                    Math.abs(lineStartY - height / 2) + 2 * linePadding);
         }
 
         /** Where this depth's decoration labels put ink, in the coordinates they are painted in.
@@ -2801,6 +3121,32 @@ public final class HintMeshRenderer {
             painter.save();
             scaleToPixels(painter);
             paintInPixels(painter, 0, 0);
+            painter.restore();
+        }
+
+        /** Paints the part of the line in area, which a long line crosses a small part of. The
+         *  line is antialiased, which the painter is set to once for every line. */
+        void paintLine(QPainter painter, Rectangle area) {
+            Point lineStart = lineStart();
+            if (lineStart == null)
+                return;
+            Point start = new Point(pixels(x) + pixels((int) lineStart.x()),
+                    pixels(y) + pixels((int) lineStart.y()));
+            Point end = new Point(pixels(x) + pixels(width) / 2, pixels(y) + pixels(height) / 2);
+            int margin = lineThickness + 1;
+            Rectangle clip = new Rectangle(pixels(area.x()) - margin, pixels(area.y()) - margin,
+                    pixels(area.width()) + 2 * margin, pixels(area.height()) + 2 * margin);
+            double enter = Math.max(0, 1 - clip.exit(end, start));
+            double exit = Math.min(1, clip.exit(start, end));
+            if (enter > exit)
+                return;
+            painter.save();
+            scaleToPixels(painter);
+            painter.setPen(linePen);
+            painter.drawLine(paintedPoint(start.x() + enter * (end.x() - start.x()),
+                            start.y() + enter * (end.y() - start.y())),
+                    paintedLineEnd(start.x() + exit * (end.x() - start.x()),
+                            start.y() + exit * (end.y() - start.y())));
             painter.restore();
         }
 
@@ -3302,6 +3648,13 @@ public final class HintMeshRenderer {
         QRectF rectangle = paintedRectangle.get();
         rectangle.setRect(x, y, width, height);
         return rectangle;
+    }
+
+    private static QPointF paintedLineEnd(double x, double y) {
+        QPointF point = paintedLineEnd.get();
+        point.setX(x);
+        point.setY(y);
+        return point;
     }
 
     static double baselineY(FontVerticalAlignment verticalAlignment, int boxHeight,

@@ -595,9 +595,9 @@ class GridCommandTest {
     @Test
     void theTargetHasTheSpeedKeysOfTheMouse() throws IOException {
         start("grid-mode.target.max-velocity=500\n");
-        assertEquals(500, modeMap.get("grid-mode").target().maxVelocity());
+        assertEquals(500, modeMap.get("grid-mode").target().velocity().maxVelocity());
         assertEquals(modeMap.get("idle-mode").mouse().velocity(),
-                modeMap.get("idle-mode").target());
+                modeMap.get("idle-mode").target().velocity());
         assertThrows(IllegalArgumentException.class,
                 () -> start("grid-mode.target.smooth-jump-enabled=true\n"));
     }

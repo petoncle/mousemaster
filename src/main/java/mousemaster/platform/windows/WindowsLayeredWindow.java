@@ -9,24 +9,25 @@ import com.sun.jna.platform.win32.WinGDI;
 import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.platform.win32.WinUser;
 import com.sun.jna.ptr.PointerByReference;
-import io.qt.gui.QColor;
-import io.qt.gui.QImage;
 import io.qt.gui.QPainter;
 import mousemaster.Rectangle;
 import mousemaster.Screen;
+import mousemaster.qt.ImageChunks;
+import mousemaster.renderer.LayeredWindow;
 import mousemaster.renderer.IndicatorRenderer;
 import mousemaster.renderer.IndicatorRenderer.WindowImage;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 /**
- * The indicator window on Windows: UpdateLayeredWindow moves it and replaces its pixels in
- * one call, which a Qt window cannot do. It draws images over each other, and redraws and
- * sends only where they changed. It is shown once and never hidden: a window that shows
- * reaches the screen a frame after the others are updated.
+ * An indicator window or a hint point window: UpdateLayeredWindow moves it and replaces its
+ * pixels in one call, which a Qt window cannot do. It is painted across cores, and redraws and
+ * sends only where it changed. It is shown once and never hidden: a window that shows reaches
+ * the screen a frame after the others are updated.
  */
-final class WindowsIndicatorWindow {
+final class WindowsLayeredWindow implements LayeredWindow {
 
     private final boolean grows;
     private final WinDef.HWND hwnd;
@@ -38,23 +39,25 @@ final class WindowsIndicatorWindow {
     private ByteBuffer dibBuffer;
     private int dibWidth;
     private int dibHeight;
-    private QImage image;
     private Rectangle rectangle = new Rectangle(0, 0, 1, 1);
     private List<WindowImage> windowImages = List.of();
     private Rectangle unsentArea;
+    private double opacity = 1;
+    private boolean cleared;
+    private int sentAlpha;
     private boolean showing;
 
     /** A window that grows keeps its rectangle while its images move and grow a little. */
-    WindowsIndicatorWindow(boolean grows) {
+    WindowsLayeredWindow(boolean grows) {
         this.grows = grows;
         WinUser.WNDCLASSEX windowClass = new WinUser.WNDCLASSEX();
         windowProc = (hwnd, uMsg, wParam, lParam) ->
                 User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
-        windowClass.lpszClassName = "MousemasterIndicatorWindow";
+        windowClass.lpszClassName = "MousemasterLayeredWindow";
         windowClass.lpfnWndProc = windowProc;
         User32.INSTANCE.RegisterClassEx(windowClass);
         hwnd = User32.INSTANCE.CreateWindowEx(0, windowClass.lpszClassName,
-                "MousemasterIndicator", WinUser.WS_POPUP, 0, 0, 1, 1, null, null,
+                "MousemasterLayered", WinUser.WS_POPUP, 0, 0, 1, 1, null, null,
                 Kernel32.INSTANCE.GetModuleHandle(null), null);
     }
 
@@ -83,22 +86,61 @@ final class WindowsIndicatorWindow {
             return moved;
         }
         Rectangle dirty = showing && rectangle.equals(this.rectangle) ?
-                IndicatorRenderer.changedRectangle(windowImages, this.windowImages)
-                                 .intersection(rectangle) : rectangle;
-        this.rectangle = rectangle;
+                IndicatorRenderer.changedRectangle(windowImages, this.windowImages) : rectangle;
         this.windowImages = windowImages;
-        if (dirty.isEmpty())
-            return false;
+        draw(rectangle, dirty, (painter, area) -> {
+            Rectangle screenArea = new Rectangle(rectangle.x() + area.x(),
+                    rectangle.y() + area.y(), area.width(), area.height());
+            for (WindowImage windowImage : windowImages)
+                if (!windowImage.rectangle().intersection(screenArea).isEmpty())
+                    painter.drawImage(windowImage.x() - rectangle.x(),
+                            windowImage.y() - rectangle.y(), windowImage.image());
+        });
+        return changed();
+    }
+
+    @Override
+    public void draw(Rectangle rectangle, Rectangle dirty,
+                     BiConsumer<QPainter, Rectangle> paintArea) {
+        cleared = false;
+        Rectangle area = rectangle.equals(this.rectangle) ? dirty.intersection(rectangle) :
+                rectangle;
+        this.rectangle = rectangle;
+        if (area.isEmpty())
+            return;
         reserve(rectangle.width(), rectangle.height());
-        drawArea(dirty);
-        unsentArea = dirty;
-        return true;
+        ImageChunks.paintChunks(dibBuffer, dibWidth, new Rectangle(area.x() - rectangle.x(),
+                area.y() - rectangle.y(), area.width(), area.height()), paintArea);
+        unsentArea = unsentArea == null ? area :
+                Rectangle.union(List.of(unsentArea, area)).intersection(rectangle);
+    }
+
+    /** Through the alpha: growing back to the size of a screen takes longer than a frame. */
+    @Override
+    public void clear() {
+        cleared = true;
+    }
+
+    @Override
+    public void setOpacity(double opacity) {
+        this.opacity = opacity;
+    }
+
+    /** Whether {@link #send} has something to put on the screen. */
+    boolean changed() {
+        return unsentArea != null || alpha() != sentAlpha;
+    }
+
+    /** Sends what {@link #draw} changed while the window shows nothing. */
+    void sendHidden() {
+        if (sentAlpha == 0 && unsentArea != null)
+            updateLayeredWindow(0);
     }
 
     /** Puts on the screen what {@link #draw} changed. */
     void send() {
-        updateLayeredWindow(rectangle, unsentArea.equals(rectangle) ? null : unsentArea);
-        unsentArea = null;
+        sentAlpha = alpha();
+        updateLayeredWindow(sentAlpha);
         if (!showing) {
             showing = true;
             User32.INSTANCE.ShowWindow(hwnd, WinUser.SW_SHOWNOACTIVATE);
@@ -162,38 +204,24 @@ final class WindowsIndicatorWindow {
         return new Rectangle(left, top, Math.max(1, right - left), Math.max(1, bottom - top));
     }
 
-    /** Draws the images where the area is, and copies that to the DIB. */
-    private void drawArea(Rectangle area) {
-        int left = area.x() - rectangle.x();
-        int top = area.y() - rectangle.y();
-        QPainter painter = new QPainter(image);
-        painter.setClipRect(left, top, area.width(), area.height());
-        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
-        QColor transparent = new QColor(0, 0, 0, 0);
-        painter.fillRect(left, top, area.width(), area.height(), transparent);
-        transparent.dispose();
-        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-        for (WindowImage windowImage : windowImages)
-            if (!windowImage.rectangle().intersection(area).isEmpty())
-                painter.drawImage(windowImage.x() - rectangle.x(),
-                        windowImage.y() - rectangle.y(), windowImage.image());
-        painter.end();
-        painter.dispose();
-        ByteBuffer bits = image.bits();
-        for (int row = top; row < top + area.height(); row++) {
-            int offset = 4 * (row * dibWidth + left);
-            dibBuffer.put(offset, bits, offset, 4 * area.width());
-        }
+    private int alpha() {
+        return cleared ? 0 : (int) Math.round(255 * opacity);
     }
 
-    /** The whole window when dirty is null. */
-    private void updateLayeredWindow(Rectangle rectangle, Rectangle dirty) {
-        WinDef.POINT position = new WinDef.POINT(rectangle.x(), rectangle.y());
+    private void updateLayeredWindow(int alpha) {
         WinUser.BLENDFUNCTION blend = new WinUser.BLENDFUNCTION();
         blend.BlendOp = WinUser.AC_SRC_OVER;
-        blend.SourceConstantAlpha = (byte) 255;
+        blend.SourceConstantAlpha = (byte) alpha;
         blend.AlphaFormat = WinUser.AC_SRC_ALPHA;
+        Rectangle dirty = unsentArea;
+        unsentArea = null;
         if (dirty == null) {
+            User32.INSTANCE.UpdateLayeredWindow(hwnd, null, null, null, null, null, 0, blend,
+                    WinUser.ULW_ALPHA);
+            return;
+        }
+        WinDef.POINT position = new WinDef.POINT(rectangle.x(), rectangle.y());
+        if (dirty.equals(rectangle)) {
             User32.INSTANCE.UpdateLayeredWindow(hwnd, null, position,
                     new WinUser.SIZE(rectangle.width(), rectangle.height()), memoryDc,
                     new WinDef.POINT(0, 0), 0, blend, WinUser.ULW_ALPHA);
@@ -224,7 +252,7 @@ final class WindowsIndicatorWindow {
         ExtendedUser32.INSTANCE.UpdateLayeredWindowIndirect(hwnd, info);
     }
 
-    /** The DIB, and the image drawn into before it is copied there, only grow. */
+    /** The DIB only grows. */
     private void reserve(int width, int height) {
         if (dib != null && width <= dibWidth && height <= dibHeight)
             return;
@@ -234,7 +262,6 @@ final class WindowsIndicatorWindow {
             GDI32.INSTANCE.SelectObject(memoryDc, previousBitmap);
             GDI32.INSTANCE.DeleteObject(dib);
             GDI32.INSTANCE.DeleteDC(memoryDc);
-            image.dispose();
         }
         WinGDI.BITMAPINFO bitmapInfo = new WinGDI.BITMAPINFO();
         bitmapInfo.bmiHeader.biSize = bitmapInfo.bmiHeader.size();
@@ -252,7 +279,6 @@ final class WindowsIndicatorWindow {
         dibBuffer = dibBits.getByteBuffer(0, 4L * width * height);
         dibWidth = width;
         dibHeight = height;
-        image = new QImage(width, height, QImage.Format.Format_ARGB32_Premultiplied);
     }
 
 }

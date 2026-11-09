@@ -30,16 +30,23 @@ public class WindowsOverlay implements Overlay {
     private boolean waitForZoom;
     private IndicatorRenderer followingIndicatorRenderer;
     private final List<IndicatorRenderer> followingIndicatorRenderers = new ArrayList<>();
-    private final List<WindowsIndicatorWindow> followingIndicatorWindows = new ArrayList<>();
+    private final List<WindowsLayeredWindow> followingIndicatorWindows = new ArrayList<>();
     private final List<IndicatorRenderer> anchoredIndicatorRenderers = new ArrayList<>();
-    private final List<WindowsIndicatorWindow> anchoredIndicatorWindows = new ArrayList<>();
+    private final List<WindowsLayeredWindow> anchoredIndicatorWindows = new ArrayList<>();
+    private final List<WindowsLayeredWindow> hintPointWindows = new ArrayList<>();
+    private final Set<TransparentWindow> hintMeshWindowsShowingNothing = new HashSet<>();
+    private final Map<TransparentWindow, Double> opacityByInvisibleHintMeshWindow =
+            new HashMap<>();
+    private List<WindowsLayeredWindow> unsentLayeredWindows = List.of();
+    /** After a mode change, the hint point windows go out with the indicator, drawn last. */
+    private boolean indicatorDrawPending;
     private final Map<IndicatorLayerCopyKey, IndicatorRenderer>
             anchoredIndicatorRendererByCopyKey = new LinkedHashMap<>();
     private Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey = Map.of();
     private List<IndicatorRenderer.WindowLayerGroup> currentWindowLayerGroups = List.of();
-    private List<WindowsIndicatorWindow> indicatorWindowsAboveOverlay = List.of();
-    private List<WindowsIndicatorWindow> indicatorWindowsBelowOverlay = List.of();
-    private Map<WindowsIndicatorWindow, Set<String>> layerNamesByIndicatorWindow = Map.of();
+    private List<WindowsLayeredWindow> indicatorWindowsAboveOverlay = List.of();
+    private List<WindowsLayeredWindow> indicatorWindowsBelowOverlay = List.of();
+    private Map<WindowsLayeredWindow, Set<String>> layerNamesByIndicatorWindow = Map.of();
     private boolean compositorWaitPending;
     private boolean indicatorIsCursor;
     private boolean indicatorExcludedFromCapture;
@@ -66,7 +73,7 @@ public class WindowsOverlay implements Overlay {
     public WindowsOverlay(WindowsMouseController mouse) {
         this.mouse = mouse;
         hintMeshRenderer = new HintMeshRenderer(this::createStyledHintMeshWindow,
-                this::hintMeshEndAnimationEndedCallback);
+                this::createHintPointWindow, this::hintMeshEndAnimationEndedCallback);
     }
 
     @Override
@@ -97,12 +104,14 @@ public class WindowsOverlay implements Overlay {
     @Override
     public void runPendingHintMeshWork() {
         hintMeshRenderer.runPendingWork();
+        sendHintPointWindows();
     }
 
     @Override
     public void update(double delta) {
         hintMeshRenderer.update(delta);
-        hintMeshRenderer.runPendingWork();
+        indicatorDrawPending = false;
+        runPendingHintMeshWork();
         updateZoomWindow(delta);
         releaseZoomWhenIdle(delta);
     }
@@ -187,11 +196,11 @@ public class WindowsOverlay implements Overlay {
         List<WinDef.HWND> hwnds = new ArrayList<>();
         List<WinDef.HWND> notTopmostHwnds = new ArrayList<>();
         // First in the hwnds list means drawn on top.
-        for (WindowsIndicatorWindow indicatorWindow : indicatorWindowsAboveOverlay)
+        for (WindowsLayeredWindow indicatorWindow : indicatorWindowsAboveOverlay)
             hwnds.add(indicatorWindow.hwnd());
-        for (TransparentWindow window : hintMeshRenderer.windows())
-            (hintMeshRenderer.showing() ? hwnds : notTopmostHwnds).add(hwnd(window));
-        for (WindowsIndicatorWindow indicatorWindow : indicatorWindowsBelowOverlay)
+        for (WinDef.HWND hwnd : hintMeshHwnds())
+            (hintMeshRenderer.showing() ? hwnds : notTopmostHwnds).add(hwnd);
+        for (WindowsLayeredWindow indicatorWindow : indicatorWindowsBelowOverlay)
             hwnds.add(indicatorWindow.hwnd());
         if (zoomHwnd != null)
             (currentZoom != null ? hwnds : notTopmostHwnds).add(zoomHwnd);
@@ -274,16 +283,16 @@ public class WindowsOverlay implements Overlay {
             Map<IndicatorPosition, List<Point>> pointsByPosition,
             Map<Area, Rectangle> rectangleByArea,
             Map<Point, HintRectangles> hintRectanglesByPoint, WinDef.POINT mousePosition) {
-        List<WindowsIndicatorWindow> windows = new ArrayList<>();
+        List<WindowsLayeredWindow> windows = new ArrayList<>();
         List<List<IndicatorRenderer.WindowImage>> windowImages = new ArrayList<>();
-        Map<WindowsIndicatorWindow, Set<String>> layerNamesByWindow = new HashMap<>();
-        List<WindowsIndicatorWindow> windowsAboveOverlay = new ArrayList<>();
-        List<WindowsIndicatorWindow> windowsBelowOverlay = new ArrayList<>();
+        Map<WindowsLayeredWindow, Set<String>> layerNamesByWindow = new HashMap<>();
+        List<WindowsLayeredWindow> windowsAboveOverlay = new ArrayList<>();
+        List<WindowsLayeredWindow> windowsBelowOverlay = new ArrayList<>();
         int followingIndex = 0;
         int anchoredIndex = 0;
         int runIndex = 0;
         for (IndicatorRenderer.WindowLayerGroup windowLayerGroup : windowLayerGroups) {
-            WindowsIndicatorWindow window = windowLayerGroup.followMouse() ?
+            WindowsLayeredWindow window = windowLayerGroup.followMouse() ?
                     indicatorWindow(followingIndicatorWindows, followingIndex, false) :
                     indicatorWindow(anchoredIndicatorWindows, anchoredIndex++, true);
             List<IndicatorRenderer.WindowImage> images = new ArrayList<>();
@@ -310,7 +319,7 @@ public class WindowsOverlay implements Overlay {
                     .addFirst(window);
         }
         // A layer that goes to another window reaches it before it leaves this one.
-        List<WindowsIndicatorWindow> changedWindows = new ArrayList<>();
+        List<WindowsLayeredWindow> changedWindows = new ArrayList<>();
         for (boolean receivesLayer : List.of(true, false))
             for (int index = 0; index < windows.size(); index++)
                 if (receivesLayer != layerNamesByIndicatorWindow
@@ -318,7 +327,7 @@ public class WindowsOverlay implements Overlay {
                         .containsAll(layerNamesByWindow.get(windows.get(index))) &&
                     windows.get(index).draw(windowImages.get(index)))
                     changedWindows.add(windows.get(index));
-        for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
+        for (WindowsLayeredWindow indicatorWindow : indicatorWindows())
             if (!windows.contains(indicatorWindow) && indicatorWindow.draw(List.of()))
                 changedWindows.add(indicatorWindow);
         boolean orderChanged = !windowsAboveOverlay.equals(indicatorWindowsAboveOverlay) ||
@@ -328,28 +337,68 @@ public class WindowsOverlay implements Overlay {
         layerNamesByIndicatorWindow = layerNamesByWindow;
         currentWindowLayerGroups = windowLayerGroups;
         this.indicatorByCopyKey = indicatorByCopyKey;
-        sendIndicatorWindows(changedWindows, orderChanged);
+        sendLayeredWindows(changedWindows, orderChanged);
     }
 
-    /**
-     * DWM composes as soon as a window changes, so windows sent one after the other reach the
-     * screen in different frames, but it composes once per refresh at most: the indicator
-     * windows and the hint windows that change with them are sent right after it has composed.
-     * A z-order reaches the screen later than pixels, so it changes before the wait.
-     */
-    private void sendIndicatorWindows(List<WindowsIndicatorWindow> changedWindows,
-                                      boolean orderChanged) {
+    /** What goes out right after DwmFlush shows in one frame, so slow work goes before it. */
+    private void sendLayeredWindows(List<WindowsLayeredWindow> changedWindows,
+                                    boolean orderChanged) {
+        indicatorDrawPending = false;
+        List<WindowsLayeredWindow> windows = new ArrayList<>(changedWindows);
+        hintPointWindows.stream().filter(WindowsLayeredWindow::changed).forEach(windows::add);
         if (orderChanged)
             setTopmost();
-        compositorWaitPending = !changedWindows.isEmpty();
-        if (orderChanged)
-            waitForCompositorIfPending();
+        windows.forEach(WindowsLayeredWindow::sendHidden);
+        unsentLayeredWindows = windows;
+        compositorWaitPending = !windows.isEmpty();
         // Qt shows a widget with a paint request that it sends later.
         QApplication.sendPostedEvents(null, QEvent.Type.UpdateLater);
         for (TransparentWindow window : hintMeshRenderer.windows())
             QApplication.sendPostedEvents(window, QEvent.Type.UpdateRequest);
+        if (orderChanged || !opacityByInvisibleHintMeshWindow.isEmpty())
+            waitForCompositorIfPending();
         compositorWaitPending = false;
-        changedWindows.forEach(WindowsIndicatorWindow::send);
+        sendUnsentLayeredWindows();
+    }
+
+    private void sendUnsentLayeredWindows() {
+        opacityByInvisibleHintMeshWindow.forEach(TransparentWindow::setWindowOpacity);
+        opacityByInvisibleHintMeshWindow.clear();
+        unsentLayeredWindows.forEach(WindowsLayeredWindow::send);
+        unsentLayeredWindows = List.of();
+    }
+
+    private void beforeHintMeshWindowPaint(TransparentWindow window) {
+        boolean showedNothing = hintMeshWindowsShowingNothing.contains(window);
+        boolean showsNothing = window.showsNothing();
+        if (showsNothing)
+            hintMeshWindowsShowingNothing.add(window);
+        else
+            hintMeshWindowsShowingNothing.remove(window);
+        if (compositorWaitPending && showedNothing && !showsNothing) {
+            makeInvisible(window);
+            return;
+        }
+        waitForCompositorIfPending();
+        if (!unsentLayeredWindows.isEmpty() && !showedNothing && showsNothing) {
+            sendUnsentLayeredWindows();
+            makeInvisible(window);
+        }
+    }
+
+    private void makeInvisible(TransparentWindow window) {
+        opacityByInvisibleHintMeshWindow.putIfAbsent(window, window.windowOpacity());
+        window.setWindowOpacity(0);
+    }
+
+    private void sendHintPointWindows() {
+        if (!indicatorDrawPending &&
+            hintPointWindows.stream().anyMatch(WindowsLayeredWindow::changed))
+            sendLayeredWindows(List.of(), false);
+    }
+
+    void modeChanged() {
+        indicatorDrawPending = true;
     }
 
     private void waitForCompositorIfPending() {
@@ -359,10 +408,10 @@ public class WindowsOverlay implements Overlay {
         Dwmapi.INSTANCE.DwmFlush();
     }
 
-    private WindowsIndicatorWindow indicatorWindow(List<WindowsIndicatorWindow> windows,
+    private WindowsLayeredWindow indicatorWindow(List<WindowsLayeredWindow> windows,
                                                    int index, boolean grows) {
         while (windows.size() <= index)
-            windows.add(createIndicatorWindow(grows));
+            windows.add(createLayeredWindow(grows, indicatorExcludedFromCapture));
         return windows.get(index);
     }
 
@@ -391,21 +440,40 @@ public class WindowsOverlay implements Overlay {
                 hintMeshRenderer.lastSelectedHintColors());
     }
 
-    private List<WindowsIndicatorWindow> indicatorWindows() {
-        List<WindowsIndicatorWindow> indicatorWindows =
+    private List<WindowsLayeredWindow> indicatorWindows() {
+        List<WindowsLayeredWindow> indicatorWindows =
                 new ArrayList<>(followingIndicatorWindows);
         indicatorWindows.addAll(anchoredIndicatorWindows);
         return indicatorWindows;
     }
 
-    private WindowsIndicatorWindow createIndicatorWindow(boolean grows) {
-        WindowsIndicatorWindow indicatorWindow = new WindowsIndicatorWindow(grows);
-        applyOverlayExStyles(indicatorWindow.hwnd());
-        applyCaptureExclusion(indicatorWindow.hwnd(),
-                currentZoom != null || indicatorExcludedFromCapture);
-        indicatorWindow.draw(List.of());
-        indicatorWindow.send();
-        return indicatorWindow;
+    private WindowsLayeredWindow createLayeredWindow(boolean grows,
+                                                    boolean excludedFromCapture) {
+        WindowsLayeredWindow window = new WindowsLayeredWindow(grows);
+        applyOverlayExStyles(window.hwnd());
+        applyCaptureExclusion(window.hwnd(), currentZoom != null || excludedFromCapture);
+        window.draw(List.of());
+        window.send();
+        return window;
+    }
+
+    private LayeredWindow createHintPointWindow() {
+        WindowsLayeredWindow hintPointWindow =
+                createLayeredWindow(false, hintMeshExcludedFromCapture);
+        hintPointWindow.clear();
+        hintPointWindow.send();
+        hintPointWindows.add(hintPointWindow);
+        return hintPointWindow;
+    }
+
+    /** The hint mesh windows, above the hint point windows. */
+    private List<WinDef.HWND> hintMeshHwnds() {
+        List<WinDef.HWND> hwnds = new ArrayList<>();
+        for (TransparentWindow window : hintMeshRenderer.windows())
+            hwnds.add(hwnd(window));
+        for (WindowsLayeredWindow hintPointWindow : hintPointWindows)
+            hwnds.add(hintPointWindow.hwnd());
+        return hwnds;
     }
 
     /** The cursor's bounding rectangle (position + size) at the given mouse position. */
@@ -418,8 +486,8 @@ public class WindowsOverlay implements Overlay {
     private void createIndicatorWindows() {
         followingIndicatorRenderer = new IndicatorRenderer();
         followingIndicatorRenderers.add(followingIndicatorRenderer);
-        followingIndicatorWindows.add(createIndicatorWindow(false));
-        anchoredIndicatorWindows.add(createIndicatorWindow(true));
+        followingIndicatorWindows.add(createLayeredWindow(false, indicatorExcludedFromCapture));
+        anchoredIndicatorWindows.add(createLayeredWindow(true, indicatorExcludedFromCapture));
         setTopmost();
     }
 
@@ -441,7 +509,8 @@ public class WindowsOverlay implements Overlay {
     /** The window factory the renderer uses: a styled, transparent, click-through window. */
     private TransparentWindow createStyledHintMeshWindow() {
         TransparentWindow window = new TransparentWindow();
-        window.setBeforePaint(this::waitForCompositorIfPending);
+        window.setBeforePaint(() -> beforeHintMeshWindowPaint(window));
+        hintMeshWindowsShowingNothing.add(window);
         applyOverlayExStyles(hwnd(window));
         applyCaptureExclusion(hwnd(window), currentZoom != null || hintMeshExcludedFromCapture);
         return window;
@@ -519,11 +588,12 @@ public class WindowsOverlay implements Overlay {
                              int overlayZ, boolean animating,
                              boolean includeOriginalCursor) {
         Objects.requireNonNull(indicator);
+        indicatorDrawPending = false;
         if (followingIndicatorRenderer == null)
             createIndicatorWindows();
         if (indicator.excludeFromCapture() != indicatorExcludedFromCapture) {
             indicatorExcludedFromCapture = indicator.excludeFromCapture();
-            for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
+            for (WindowsLayeredWindow indicatorWindow : indicatorWindows())
                 applyCaptureExclusion(indicatorWindow.hwnd(),
                         currentZoom != null || indicatorExcludedFromCapture);
         }
@@ -540,12 +610,15 @@ public class WindowsOverlay implements Overlay {
                         layerNamesToAnchor, overlayZ);
         if (!renderAsCursor && !indicatorIsCursor &&
             windowLayerGroups.equals(currentWindowLayerGroups) && indicatorByCopyKey.isEmpty() &&
-            this.indicatorByCopyKey.isEmpty() && layerNamesToAnchor.isEmpty())
+            this.indicatorByCopyKey.isEmpty() && layerNamesToAnchor.isEmpty()) {
+            sendHintPointWindows();
             return;
+        }
         if (mouse.tryFindMousePosition() == null) {
             if (!mousePositionMissing)
                 logger.warn("Unable to find mouse position for indicator");
             mousePositionMissing = true;
+            sendHintPointWindows();
             return;
         }
         mousePositionMissing = false;
@@ -664,11 +737,11 @@ public class WindowsOverlay implements Overlay {
     }
 
     private void updateCaptureExclusions() {
-        for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
+        for (WindowsLayeredWindow indicatorWindow : indicatorWindows())
             applyCaptureExclusion(indicatorWindow.hwnd(),
                     currentZoom != null || indicatorExcludedFromCapture);
-        for (TransparentWindow window : hintMeshRenderer.windows())
-            applyCaptureExclusion(hwnd(window), currentZoom != null || hintMeshExcludedFromCapture);
+        for (WinDef.HWND hwnd : hintMeshHwnds())
+            applyCaptureExclusion(hwnd, currentZoom != null || hintMeshExcludedFromCapture);
     }
 
     private WinDef.LRESULT zoomWindowCallback(WinDef.HWND hwnd, int uMsg,
@@ -684,11 +757,11 @@ public class WindowsOverlay implements Overlay {
             indicatorIsCursor = false;
             currentCursorIndicator = null;
         }
-        List<WindowsIndicatorWindow> changedWindows = new ArrayList<>();
-        for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
+        List<WindowsLayeredWindow> changedWindows = new ArrayList<>();
+        for (WindowsLayeredWindow indicatorWindow : indicatorWindows())
             if (indicatorWindow.draw(List.of()))
                 changedWindows.add(indicatorWindow);
-        sendIndicatorWindows(changedWindows, false);
+        sendLayeredWindows(changedWindows, false);
         indicatorByCopyKey = Map.of();
         currentWindowLayerGroups = List.of();
         layerNamesByIndicatorWindow = Map.of();
@@ -701,11 +774,13 @@ public class WindowsOverlay implements Overlay {
     @Override
     public void animateHintMatch(Hint hint) {
         hintMeshRenderer.animateHintMatch(hint, WindowsScreen.findScreens());
+        sendHintPointWindows();
     }
 
     @Override
     public void stopHintMatchAnimation() {
         hintMeshRenderer.stopHintMatchAnimation();
+        sendHintPointWindows();
     }
 
     @Override
@@ -717,19 +792,20 @@ public class WindowsOverlay implements Overlay {
     public void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean animate) {
         if (hintMesh.excludeFromCapture() != hintMeshExcludedFromCapture) {
             hintMeshExcludedFromCapture = hintMesh.excludeFromCapture();
-            for (TransparentWindow window : hintMeshRenderer.windows())
-                applyCaptureExclusion(hwnd(window),
-                        currentZoom != null || hintMeshExcludedFromCapture);
+            for (WinDef.HWND hwnd : hintMeshHwnds())
+                applyCaptureExclusion(hwnd, currentZoom != null || hintMeshExcludedFromCapture);
         }
         boolean wasShowing = hintMeshRenderer.showing();
         hintMeshRenderer.setHintMesh(hintMesh, zoom, animate, WindowsScreen.findScreens());
         if (!wasShowing)
             setTopmost();
+        sendHintPointWindows();
     }
 
     @Override
     public void hideHintMesh() {
         hintMeshRenderer.hideHintMesh();
+        sendHintPointWindows();
     }
 
     @Override
@@ -804,9 +880,9 @@ public class WindowsOverlay implements Overlay {
 
     private void setOverlaysExcludedFromCapture(boolean excluded) {
         if (hintMeshRenderer.showing())
-            for (TransparentWindow window : hintMeshRenderer.windows())
-                applyCaptureExclusion(hwnd(window), excluded || hintMeshExcludedFromCapture);
-        for (WindowsIndicatorWindow indicatorWindow : indicatorWindows())
+            for (WinDef.HWND hwnd : hintMeshHwnds())
+                applyCaptureExclusion(hwnd, excluded || hintMeshExcludedFromCapture);
+        for (WindowsLayeredWindow indicatorWindow : indicatorWindows())
             applyCaptureExclusion(indicatorWindow.hwnd(),
                     excluded || indicatorExcludedFromCapture);
     }

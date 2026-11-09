@@ -32,6 +32,17 @@ public record Rectangle(int x, int y, int width, int height) {
         return rectangleContains(x, y, width, height, pointX, pointY);
     }
 
+    /** The fraction of from-to after which the segment leaves the rectangle. */
+    public double exit(Point from, Point to) {
+        double deltaX = to.x() - from.x();
+        double deltaY = to.y() - from.y();
+        double exitX = deltaX > 0 ? (x + width - from.x()) / deltaX :
+                deltaX < 0 ? (x - from.x()) / deltaX : Double.POSITIVE_INFINITY;
+        double exitY = deltaY > 0 ? (y + height - from.y()) / deltaY :
+                deltaY < 0 ? (y - from.y()) / deltaY : Double.POSITIVE_INFINITY;
+        return Math.min(exitX, exitY);
+    }
+
     public boolean contains(Rectangle other) {
         return contains(other.x, other.y) &&
                contains(other.x + other.width, other.y + other.height);

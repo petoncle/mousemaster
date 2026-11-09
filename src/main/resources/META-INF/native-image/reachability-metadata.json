@@ -6577,6 +6577,21 @@
             "double",
             "double",
             "mousemaster.Shadow",
+            "double",
+            "double",
+            "mousemaster.GradientColor",
+            "double",
+            "double",
+            "mousemaster.Color",
+            "double",
+            "double",
+            "double",
+            "mousemaster.Color",
+            "double",
+            "mousemaster.GradientColor",
+            "java.lang.Double",
+            "mousemaster.Color",
+            "java.lang.Double",
             "mousemaster.GradientColor",
             "java.lang.Double",
             "mousemaster.Color",
@@ -6842,6 +6857,50 @@
           "parameterTypes": []
         },
         {
+          "name": "pointBoxWidth",
+          "parameterTypes": []
+        },
+        {
+          "name": "pointBoxHeight",
+          "parameterTypes": []
+        },
+        {
+          "name": "pointBoxColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "pointBoxOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "pointBoxBorderThickness",
+          "parameterTypes": []
+        },
+        {
+          "name": "pointBoxBorderColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "pointBoxBorderOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "pointBoxBorderRadius",
+          "parameterTypes": []
+        },
+        {
+          "name": "pointLineThickness",
+          "parameterTypes": []
+        },
+        {
+          "name": "pointLineColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "pointLineOpacity",
+          "parameterTypes": []
+        },
+        {
           "name": "savedBoxColor",
           "parameterTypes": []
         },
@@ -6871,6 +6930,22 @@
         },
         {
           "name": "savedUiElementBoxBorderOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "savedPointBoxColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "savedPointBoxOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "savedPointBoxBorderColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "savedPointBoxBorderOpacity",
           "parameterTypes": []
         },
         {
@@ -6929,6 +7004,31 @@
         },
         {
           "name": "positionHistoryName",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.HintPointConfiguration",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "double",
+            "double",
+            "mousemaster.MovementConfiguration"
+          ]
+        },
+        {
+          "name": "cellXPercent",
+          "parameterTypes": []
+        },
+        {
+          "name": "cellYPercent",
+          "parameterTypes": []
+        },
+        {
+          "name": "movement",
           "parameterTypes": []
         }
       ]
@@ -7232,7 +7332,8 @@
             "java.lang.String",
             "mousemaster.ComboMap",
             "mousemaster.MovementConfiguration",
-            "mousemaster.VelocityConfiguration",
+            "mousemaster.MovementConfiguration",
+            "mousemaster.HintPointConfiguration",
             "mousemaster.Wheel",
             "mousemaster.HintMeshConfiguration",
             "mousemaster.ModeTimeout",
@@ -7274,6 +7375,10 @@
         },
         {
           "name": "hintMesh",
+          "parameterTypes": []
+        },
+        {
+          "name": "hintPoints",
           "parameterTypes": []
         },
         {
@@ -7360,8 +7465,13 @@
           "parameterTypes": [
             "mousemaster.VelocityConfiguration",
             "boolean",
+            "double",
             "double"
           ]
+        },
+        {
+          "name": "nudgeDistance",
+          "parameterTypes": []
         },
         {
           "name": "smoothJumpEnabled",
@@ -8890,7 +9000,7 @@
     {
       "type": {
         "lambda": {
-          "declaringClass": "mousemaster.platform.windows.WindowsIndicatorWindow",
+          "declaringClass": "mousemaster.platform.windows.WindowsLayeredWindow",
           "interfaces": [
             "com.sun.jna.platform.win32.WinUser$WindowProc"
           ]

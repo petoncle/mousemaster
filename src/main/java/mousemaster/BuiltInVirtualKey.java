@@ -25,6 +25,10 @@ public final class BuiltInVirtualKey {
             new Key("isunhandledkeypressing", null, null);
     public static final Key IS_OVERLAY_EMPTY =
             new Key("isoverlayempty", null, null);
+    public static final Key IS_HINT_POINTS_CENTERED =
+            new Key("ishintpointscentered", null, null);
+    public static final Key IS_HINT_POINTS_MOVING =
+            new Key("ishintpointsmoving", null, null);
 
     public static final Key IS_WINDOWS = new Key("iswindows", null, null);
     public static final Key IS_MACOS = new Key("ismacos", null, null);
@@ -33,7 +37,8 @@ public final class BuiltInVirtualKey {
             Set.of(IS_IDLING, IS_MOVING, IS_WHEELING, IS_MOUSE_PRESSING,
                     IS_LEFT_MOUSE_PRESSING, IS_MIDDLE_MOUSE_PRESSING,
                     IS_RIGHT_MOUSE_PRESSING, IS_UNHANDLED_KEY_PRESSING,
-                    IS_OVERLAY_EMPTY, IS_WINDOWS, IS_MACOS);
+                    IS_OVERLAY_EMPTY, IS_HINT_POINTS_CENTERED, IS_HINT_POINTS_MOVING,
+                    IS_WINDOWS, IS_MACOS);
 
     public static final Set<String> STATIC_KEY_NAMES =
             STATIC_KEYS.stream().map(Key::name).collect(Collectors.toUnmodifiableSet());

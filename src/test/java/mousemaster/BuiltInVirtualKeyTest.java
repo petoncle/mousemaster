@@ -16,7 +16,9 @@ class BuiltInVirtualKeyTest {
                     BuiltInVirtualKey.IS_MIDDLE_MOUSE_PRESSING,
                     BuiltInVirtualKey.IS_RIGHT_MOUSE_PRESSING,
                     BuiltInVirtualKey.IS_UNHANDLED_KEY_PRESSING,
-                    BuiltInVirtualKey.IS_OVERLAY_EMPTY);
+                    BuiltInVirtualKey.IS_OVERLAY_EMPTY,
+                    BuiltInVirtualKey.IS_HINT_POINTS_CENTERED,
+                    BuiltInVirtualKey.IS_HINT_POINTS_MOVING);
 
     private static Configuration parse(String... lines) {
         return ConfigurationParser.parse(List.of(lines),

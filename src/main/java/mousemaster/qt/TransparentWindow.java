@@ -160,6 +160,15 @@ public class TransparentWindow extends QWidget {
                 rect.height(), radius);
     }
 
+    public boolean showsNothing() {
+        if (backgroundRect != null)
+            return false;
+        for (QObject child : children())
+            if (child instanceof QWidget widget && !widget.isHidden())
+                return false;
+        return true;
+    }
+
     public void hideChildren() {
         for (QObject child : children()) {
             if (child instanceof QWidget widget) {

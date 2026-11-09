@@ -510,21 +510,11 @@ public final class IndicatorRenderer {
                 anchor, scale);
     }
 
-    /** The fraction of from-to after which the segment leaves the rectangle of from, 0 when it
-     *  has none. */
     private static double rectangleExit(PositionPoint from, PositionPoint to) {
         Rectangle rectangle = from.rectangle();
         if (rectangle == null)
             return 0;
-        double deltaX = to.point().x() - from.point().x();
-        double deltaY = to.point().y() - from.point().y();
-        double exitX = deltaX > 0 ? (rectangle.x() + rectangle.width() - from.point().x()) / deltaX :
-                deltaX < 0 ? (rectangle.x() - from.point().x()) / deltaX :
-                        Double.POSITIVE_INFINITY;
-        double exitY = deltaY > 0 ? (rectangle.y() + rectangle.height() - from.point().y()) / deltaY :
-                deltaY < 0 ? (rectangle.y() - from.point().y()) / deltaY :
-                        Double.POSITIVE_INFINITY;
-        return Math.min(exitX, exitY);
+        return rectangle.exit(from.point(), to.point());
     }
 
     private void addLayerOverRectangle(List<PositionedLayer> positionedLayers,

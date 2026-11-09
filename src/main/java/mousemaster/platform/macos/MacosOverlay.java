@@ -57,7 +57,7 @@ public class MacosOverlay implements Overlay {
 
     public MacosOverlay(MacosMouseController mouse) {
         this.mouse = mouse;
-        hintMeshRenderer = new HintMeshRenderer(this::createStyledHintMeshWindow,
+        hintMeshRenderer = new HintMeshRenderer(this::createStyledHintMeshWindow, null,
                 this::hideHintMesh);
     }
 

@@ -31,6 +31,17 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             double uiElementBoxHorizontalPadding,
                             double uiElementBoxVerticalPadding,
                             Shadow uiElementBoxShadow,
+                            double pointBoxWidth,
+                            double pointBoxHeight,
+                            GradientColor pointBoxColor,
+                            double pointBoxOpacity,
+                            double pointBoxBorderThickness,
+                            Color pointBoxBorderColor,
+                            double pointBoxBorderOpacity,
+                            double pointBoxBorderRadius,
+                            double pointLineThickness,
+                            Color pointLineColor,
+                            double pointLineOpacity,
                             GradientColor savedBoxColor,
                             Double savedBoxOpacity,
                             Color savedBoxBorderColor,
@@ -39,6 +50,10 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             Double savedUiElementBoxOpacity,
                             Color savedUiElementBoxBorderColor,
                             Double savedUiElementBoxBorderOpacity,
+                            GradientColor savedPointBoxColor,
+                            Double savedPointBoxOpacity,
+                            Color savedPointBoxBorderColor,
+                            Double savedPointBoxBorderOpacity,
                             double boxWidthPercent,
                             double boxHeightPercent,
                             double boxHorizontalPadding,
@@ -79,6 +94,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             saved.uiElementBoxBorderColor(savedUiElementBoxBorderColor);
         if (savedUiElementBoxBorderOpacity != null)
             saved.uiElementBoxBorderOpacity(savedUiElementBoxBorderOpacity);
+        if (savedPointBoxColor != null)
+            saved.pointBoxColor(savedPointBoxColor);
+        if (savedPointBoxOpacity != null)
+            saved.pointBoxOpacity(savedPointBoxOpacity);
+        if (savedPointBoxBorderColor != null)
+            saved.pointBoxBorderColor(savedPointBoxBorderColor);
+        if (savedPointBoxBorderOpacity != null)
+            saved.pointBoxBorderOpacity(savedPointBoxBorderOpacity);
         return saved.build(null);
     }
 
@@ -120,6 +143,17 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Double uiElementBoxHorizontalPadding;
         private Double uiElementBoxVerticalPadding;
         private Shadow.ShadowBuilder uiElementBoxShadow = new Shadow.ShadowBuilder();
+        private Double pointBoxWidth;
+        private Double pointBoxHeight;
+        private GradientColor pointBoxColor;
+        private Double pointBoxOpacity;
+        private Double pointBoxBorderThickness;
+        private Color pointBoxBorderColor;
+        private Double pointBoxBorderOpacity;
+        private Double pointBoxBorderRadius;
+        private Double pointLineThickness;
+        private Color pointLineColor;
+        private Double pointLineOpacity;
         private GradientColor savedBoxColor;
         private Double savedBoxOpacity;
         private Color savedBoxBorderColor;
@@ -128,6 +162,10 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Double savedUiElementBoxOpacity;
         private Color savedUiElementBoxBorderColor;
         private Double savedUiElementBoxBorderOpacity;
+        private GradientColor savedPointBoxColor;
+        private Double savedPointBoxOpacity;
+        private Color savedPointBoxBorderColor;
+        private Double savedPointBoxBorderOpacity;
         private Double boxWidthPercent;
         private Double boxHeightPercent;
         private Double boxHorizontalPadding;
@@ -180,6 +218,17 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.uiElementBoxHorizontalPadding = style.uiElementBoxHorizontalPadding;
             this.uiElementBoxVerticalPadding = style.uiElementBoxVerticalPadding;
             this.uiElementBoxShadow = new Shadow.ShadowBuilder(style.uiElementBoxShadow);
+            this.pointBoxWidth = style.pointBoxWidth;
+            this.pointBoxHeight = style.pointBoxHeight;
+            this.pointBoxColor = style.pointBoxColor;
+            this.pointBoxOpacity = style.pointBoxOpacity;
+            this.pointBoxBorderThickness = style.pointBoxBorderThickness;
+            this.pointBoxBorderColor = style.pointBoxBorderColor;
+            this.pointBoxBorderOpacity = style.pointBoxBorderOpacity;
+            this.pointBoxBorderRadius = style.pointBoxBorderRadius;
+            this.pointLineThickness = style.pointLineThickness;
+            this.pointLineColor = style.pointLineColor;
+            this.pointLineOpacity = style.pointLineOpacity;
             this.savedBoxColor = style.savedBoxColor;
             this.savedBoxOpacity = style.savedBoxOpacity;
             this.savedBoxBorderColor = style.savedBoxBorderColor;
@@ -188,6 +237,10 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.savedUiElementBoxOpacity = style.savedUiElementBoxOpacity;
             this.savedUiElementBoxBorderColor = style.savedUiElementBoxBorderColor;
             this.savedUiElementBoxBorderOpacity = style.savedUiElementBoxBorderOpacity;
+            this.savedPointBoxColor = style.savedPointBoxColor;
+            this.savedPointBoxOpacity = style.savedPointBoxOpacity;
+            this.savedPointBoxBorderColor = style.savedPointBoxBorderColor;
+            this.savedPointBoxBorderOpacity = style.savedPointBoxBorderOpacity;
             this.boxWidthPercent = style.boxWidthPercent;
             this.boxHeightPercent = style.boxHeightPercent;
             this.boxHorizontalPadding = style.boxHorizontalPadding;
@@ -344,6 +397,81 @@ public record HintMeshStyle(HintFontStyle fontStyle,
 
         public HintMeshStyleBuilder savedBoxBorderOpacity(Double savedBoxBorderOpacity) {
             this.savedBoxBorderOpacity = savedBoxBorderOpacity;
+            return this;
+        }
+
+        public HintMeshStyleBuilder pointBoxWidth(Double pointBoxWidth) {
+            this.pointBoxWidth = pointBoxWidth;
+            return this;
+        }
+
+        public HintMeshStyleBuilder pointBoxHeight(Double pointBoxHeight) {
+            this.pointBoxHeight = pointBoxHeight;
+            return this;
+        }
+
+        public HintMeshStyleBuilder pointBoxColor(GradientColor pointBoxColor) {
+            this.pointBoxColor = pointBoxColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder pointBoxOpacity(Double pointBoxOpacity) {
+            this.pointBoxOpacity = pointBoxOpacity;
+            return this;
+        }
+
+        public HintMeshStyleBuilder pointBoxBorderThickness(Double pointBoxBorderThickness) {
+            this.pointBoxBorderThickness = pointBoxBorderThickness;
+            return this;
+        }
+
+        public HintMeshStyleBuilder pointBoxBorderColor(Color pointBoxBorderColor) {
+            this.pointBoxBorderColor = pointBoxBorderColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder pointBoxBorderOpacity(Double pointBoxBorderOpacity) {
+            this.pointBoxBorderOpacity = pointBoxBorderOpacity;
+            return this;
+        }
+
+        public HintMeshStyleBuilder pointBoxBorderRadius(Double pointBoxBorderRadius) {
+            this.pointBoxBorderRadius = pointBoxBorderRadius;
+            return this;
+        }
+
+        public HintMeshStyleBuilder pointLineThickness(Double pointLineThickness) {
+            this.pointLineThickness = pointLineThickness;
+            return this;
+        }
+
+        public HintMeshStyleBuilder pointLineColor(Color pointLineColor) {
+            this.pointLineColor = pointLineColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder pointLineOpacity(Double pointLineOpacity) {
+            this.pointLineOpacity = pointLineOpacity;
+            return this;
+        }
+
+        public HintMeshStyleBuilder savedPointBoxColor(GradientColor savedPointBoxColor) {
+            this.savedPointBoxColor = savedPointBoxColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder savedPointBoxOpacity(Double savedPointBoxOpacity) {
+            this.savedPointBoxOpacity = savedPointBoxOpacity;
+            return this;
+        }
+
+        public HintMeshStyleBuilder savedPointBoxBorderColor(Color savedPointBoxBorderColor) {
+            this.savedPointBoxBorderColor = savedPointBoxBorderColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder savedPointBoxBorderOpacity(Double savedPointBoxBorderOpacity) {
+            this.savedPointBoxBorderOpacity = savedPointBoxBorderOpacity;
             return this;
         }
 
@@ -552,6 +680,50 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return uiElementBoxShadow;
         }
 
+        public Double pointBoxWidth() {
+            return pointBoxWidth;
+        }
+
+        public Double pointBoxHeight() {
+            return pointBoxHeight;
+        }
+
+        public GradientColor pointBoxColor() {
+            return pointBoxColor;
+        }
+
+        public Double pointBoxOpacity() {
+            return pointBoxOpacity;
+        }
+
+        public Double pointBoxBorderThickness() {
+            return pointBoxBorderThickness;
+        }
+
+        public Color pointBoxBorderColor() {
+            return pointBoxBorderColor;
+        }
+
+        public Double pointBoxBorderOpacity() {
+            return pointBoxBorderOpacity;
+        }
+
+        public Double pointBoxBorderRadius() {
+            return pointBoxBorderRadius;
+        }
+
+        public Double pointLineThickness() {
+            return pointLineThickness;
+        }
+
+        public Color pointLineColor() {
+            return pointLineColor;
+        }
+
+        public Double pointLineOpacity() {
+            return pointLineOpacity;
+        }
+
         public GradientColor savedBoxColor() {
             return savedBoxColor;
         }
@@ -582,6 +754,22 @@ public record HintMeshStyle(HintFontStyle fontStyle,
 
         public Double savedUiElementBoxBorderOpacity() {
             return savedUiElementBoxBorderOpacity;
+        }
+
+        public GradientColor savedPointBoxColor() {
+            return savedPointBoxColor;
+        }
+
+        public Double savedPointBoxOpacity() {
+            return savedPointBoxOpacity;
+        }
+
+        public Color savedPointBoxBorderColor() {
+            return savedPointBoxBorderColor;
+        }
+
+        public Double savedPointBoxBorderOpacity() {
+            return savedPointBoxBorderOpacity;
         }
 
         public Double boxWidthPercent() {
@@ -676,6 +864,17 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     uiElementBoxHorizontalPadding == null ? defaultStyle.uiElementBoxHorizontalPadding : uiElementBoxHorizontalPadding,
                     uiElementBoxVerticalPadding == null ? defaultStyle.uiElementBoxVerticalPadding : uiElementBoxVerticalPadding,
                     uiElementBoxShadow.build(),
+                    pointBoxWidth == null ? defaultStyle.pointBoxWidth : pointBoxWidth,
+                    pointBoxHeight == null ? defaultStyle.pointBoxHeight : pointBoxHeight,
+                    pointBoxColor == null ? defaultStyle.pointBoxColor : pointBoxColor,
+                    pointBoxOpacity == null ? defaultStyle.pointBoxOpacity : pointBoxOpacity,
+                    pointBoxBorderThickness == null ? defaultStyle.pointBoxBorderThickness : pointBoxBorderThickness,
+                    pointBoxBorderColor == null ? defaultStyle.pointBoxBorderColor : pointBoxBorderColor,
+                    pointBoxBorderOpacity == null ? defaultStyle.pointBoxBorderOpacity : pointBoxBorderOpacity,
+                    pointBoxBorderRadius == null ? defaultStyle.pointBoxBorderRadius : pointBoxBorderRadius,
+                    pointLineThickness == null ? defaultStyle.pointLineThickness : pointLineThickness,
+                    pointLineColor == null ? defaultStyle.pointLineColor : pointLineColor,
+                    pointLineOpacity == null ? defaultStyle.pointLineOpacity : pointLineOpacity,
                     savedBoxColor == null && defaultStyle != null ? defaultStyle.savedBoxColor : savedBoxColor,
                     savedBoxOpacity == null && defaultStyle != null ? defaultStyle.savedBoxOpacity : savedBoxOpacity,
                     savedBoxBorderColor == null && defaultStyle != null ? defaultStyle.savedBoxBorderColor : savedBoxBorderColor,
@@ -684,6 +883,10 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     savedUiElementBoxOpacity == null && defaultStyle != null ? defaultStyle.savedUiElementBoxOpacity : savedUiElementBoxOpacity,
                     savedUiElementBoxBorderColor == null && defaultStyle != null ? defaultStyle.savedUiElementBoxBorderColor : savedUiElementBoxBorderColor,
                     savedUiElementBoxBorderOpacity == null && defaultStyle != null ? defaultStyle.savedUiElementBoxBorderOpacity : savedUiElementBoxBorderOpacity,
+                    savedPointBoxColor == null && defaultStyle != null ? defaultStyle.savedPointBoxColor : savedPointBoxColor,
+                    savedPointBoxOpacity == null && defaultStyle != null ? defaultStyle.savedPointBoxOpacity : savedPointBoxOpacity,
+                    savedPointBoxBorderColor == null && defaultStyle != null ? defaultStyle.savedPointBoxBorderColor : savedPointBoxBorderColor,
+                    savedPointBoxBorderOpacity == null && defaultStyle != null ? defaultStyle.savedPointBoxBorderOpacity : savedPointBoxBorderOpacity,
                     boxWidthPercent == null ? defaultStyle.boxWidthPercent : boxWidthPercent,
                     boxHeightPercent == null ? defaultStyle.boxHeightPercent : boxHeightPercent,
                     boxHorizontalPadding == null ? defaultStyle.boxHorizontalPadding : boxHorizontalPadding,

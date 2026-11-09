@@ -169,7 +169,7 @@ public class WindowsPlatform implements Platform {
         long sleepMillis =
                 overlay.hintTransitionAnimating() || zoomManager.animating() ||
                 indicatorManager.animating() || hintManager.waitingForUiElements() ||
-                overlay.hintMeshBuildPending() ? 1 : 10;
+                hintManager.movingHintPoints() || overlay.hintMeshBuildPending() ? 1 : 10;
         long beforeTime = System.nanoTime();
         while (true) {
             long currentTime = System.nanoTime();
@@ -933,6 +933,7 @@ public class WindowsPlatform implements Platform {
         // after the zoom window is initialized.
         overlay.setWaitForZoomBeforeRepainting(
                 currentMode != null && !currentMode.zoom().equals(newMode.zoom()));
+        overlay.modeChanged();
         currentMode = newMode;
     }
 

@@ -328,7 +328,7 @@ class HintLabelAlignmentTest {
             TransparentWindow window = new TransparentWindow();
             window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen);
             return window;
-        }, () -> {
+        }, null, () -> {
         });
         hintMeshRenderer.setHintMesh(hintMesh,
                 new Zoom(1, screen.rectangle().center(), screen.rectangle()), false,

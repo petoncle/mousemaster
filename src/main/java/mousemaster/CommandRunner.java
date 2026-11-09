@@ -59,6 +59,16 @@ public class CommandRunner {
             case StopMoveTargetLeft stopMoveTargetLeft -> hintManager.stopMoveTargetLeft();
             case StopMoveTargetRight stopMoveTargetRight -> hintManager.stopMoveTargetRight();
 
+            case StartMoveHintPointsUp startMoveHintPointsUp -> hintManager.startMoveHintPointsUp();
+            case StartMoveHintPointsDown startMoveHintPointsDown -> hintManager.startMoveHintPointsDown();
+            case StartMoveHintPointsLeft startMoveHintPointsLeft -> hintManager.startMoveHintPointsLeft();
+            case StartMoveHintPointsRight startMoveHintPointsRight -> hintManager.startMoveHintPointsRight();
+
+            case StopMoveHintPointsUp stopMoveHintPointsUp -> hintManager.stopMoveHintPointsUp();
+            case StopMoveHintPointsDown stopMoveHintPointsDown -> hintManager.stopMoveHintPointsDown();
+            case StopMoveHintPointsLeft stopMoveHintPointsLeft -> hintManager.stopMoveHintPointsLeft();
+            case StopMoveHintPointsRight stopMoveHintPointsRight -> hintManager.stopMoveHintPointsRight();
+
             case PressLeft pressLeft -> mouseManager.pressLeft();
             case PressMiddle pressMiddle -> mouseManager.pressMiddle();
             case PressRight pressRight -> mouseManager.pressRight();
@@ -108,6 +118,21 @@ public class CommandRunner {
             case MoveTargetToCellBottom moveTargetToCellBottom -> hintManager.moveTargetToCellBottom();
             case MoveTargetToCellLeft moveTargetToCellLeft -> hintManager.moveTargetToCellLeft();
             case MoveTargetToCellRight moveTargetToCellRight -> hintManager.moveTargetToCellRight();
+
+            case NudgeUp nudgeUp -> hintManager.nudgeUp();
+            case NudgeDown nudgeDown -> hintManager.nudgeDown();
+            case NudgeLeft nudgeLeft -> hintManager.nudgeLeft();
+            case NudgeRight nudgeRight -> hintManager.nudgeRight();
+
+            case NudgeTargetUp nudgeTargetUp -> hintManager.nudgeTargetUp();
+            case NudgeTargetDown nudgeTargetDown -> hintManager.nudgeTargetDown();
+            case NudgeTargetLeft nudgeTargetLeft -> hintManager.nudgeTargetLeft();
+            case NudgeTargetRight nudgeTargetRight -> hintManager.nudgeTargetRight();
+
+            case NudgeHintPointsUp nudgeHintPointsUp -> hintManager.nudgeHintPointsUp();
+            case NudgeHintPointsDown nudgeHintPointsDown -> hintManager.nudgeHintPointsDown();
+            case NudgeHintPointsLeft nudgeHintPointsLeft -> hintManager.nudgeHintPointsLeft();
+            case NudgeHintPointsRight nudgeHintPointsRight -> hintManager.nudgeHintPointsRight();
 
             case SavePosition(String positionHistoryName) -> hintManager.saveCurrentPosition(positionHistoryName);
             case UnsavePosition(String positionHistoryName) -> hintManager.unsaveCurrentPosition(positionHistoryName);

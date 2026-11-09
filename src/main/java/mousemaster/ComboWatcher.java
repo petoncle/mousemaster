@@ -296,6 +296,10 @@ public class ComboWatcher {
                 keyboardState.pressingUnhandledKeyInCurrentMode());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_OVERLAY_EMPTY,
                 hintManager.hintMeshEmpty());
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_HINT_POINTS_CENTERED,
+                hintManager.hintPointsCentered());
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_HINT_POINTS_MOVING,
+                hintManager.movingHintPoints());
         for (String positionHistoryName : hintManager.positionHistoryNames())
             setVirtualKeyPressed(BuiltInVirtualKey.positionHistoryKey(positionHistoryName),
                     hintManager.positionHistory(positionHistoryName, () -> lastActiveApp)
@@ -1391,7 +1395,19 @@ public class ComboWatcher {
                  command instanceof Command.SavePosition ||
                  command instanceof Command.UnsavePosition ||
                  command instanceof Command.ToggleSavePosition ||
-                 command instanceof Command.ClearPositionHistory);
+                 command instanceof Command.ClearPositionHistory ||
+                 command instanceof Command.NudgeHintPointsUp ||
+                 command instanceof Command.NudgeHintPointsDown ||
+                 command instanceof Command.NudgeHintPointsLeft ||
+                 command instanceof Command.NudgeHintPointsRight ||
+                 command instanceof Command.StartMoveHintPointsUp ||
+                 command instanceof Command.StartMoveHintPointsDown ||
+                 command instanceof Command.StartMoveHintPointsLeft ||
+                 command instanceof Command.StartMoveHintPointsRight ||
+                 command instanceof Command.StopMoveHintPointsUp ||
+                 command instanceof Command.StopMoveHintPointsDown ||
+                 command instanceof Command.StopMoveHintPointsLeft ||
+                 command instanceof Command.StopMoveHintPointsRight);
     }
 
     private Set<Key> findSatisfiedPressedPreconditionKeys(Combo combo,

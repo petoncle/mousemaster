@@ -92,7 +92,7 @@ class HintBoxRectangleTest {
             TransparentWindow window = new TransparentWindow();
             window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen);
             return window;
-        }, () -> {
+        }, null, () -> {
         });
         HintMesh grid = hintMesh(true);
         show(hintMeshRenderer, grid);

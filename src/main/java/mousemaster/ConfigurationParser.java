@@ -7,6 +7,7 @@ import mousemaster.HintGridLayout.HintGridLayoutBuilder;
 import mousemaster.HintMeshConfiguration.HintMeshConfigurationBuilder;
 import mousemaster.HintMeshKeys.HintMeshKeysBuilder;
 import mousemaster.HintMeshStyle.HintMeshStyleBuilder;
+import mousemaster.HintPointConfiguration.HintPointConfigurationBuilder;
 import mousemaster.IndicatorConfiguration.IndicatorConfigurationBuilder;
 import mousemaster.IndicatorLayerConfiguration.IndicatorLayerConfigurationBuilder;
 import mousemaster.ModeTimeout.ModeTimeoutBuilder;
@@ -55,7 +56,16 @@ public class ConfigurationParser {
                  .accelerationEasing(new Easing.Smootherstep())
                  .deceleration(20);
         mouse.smoothJumpEnabled(true)
-             .smoothJumpVelocity(30000);
+             .smoothJumpVelocity(30000)
+             .nudgeDistance(1);
+        MovementConfigurationBuilder target = new MovementConfigurationBuilder();
+        target.smoothJumpEnabled(false)
+              .smoothJumpVelocity(0);
+        extendMovement(target, mouse);
+        HintPointConfigurationBuilder hintPoints = new HintPointConfigurationBuilder();
+        hintPoints.cellXPercent(0.5)
+                  .cellYPercent(0.5);
+        extendMovement(hintPoints.movement(), target);
         WheelBuilder wheel = new WheelBuilder();
         wheel.velocity().initialVelocity(1000)
                  .maxVelocity(1000)
@@ -147,8 +157,9 @@ public class ConfigurationParser {
                 new Property<>("push-mode-to-history-stack", pushModeToHistoryStack),
                 new Property<>("mode-after-unhandled-key-press", modeAfterPressingUnhandledKeysOnly),
                 new Property<>("mouse", mouse),
-                new Property<>("target", mouse.velocity()),
-                new Property<>("wheel", wheel), 
+                new Property<>("target", target),
+                new Property<>("hint-points", hintPoints),
+                new Property<>("wheel", wheel),
                 new Property<>("grid", gridHintMesh),
                 new Property<>("overlay", hintMesh),
                 new Property<>("timeout", timeout), 
@@ -160,6 +171,11 @@ public class ConfigurationParser {
                 new Property<>("stop-move", Map.of()),
                 new Property<>("start-move-target", Map.of()),
                 new Property<>("stop-move-target", Map.of()),
+                new Property<>("start-move-hint-points", Map.of()),
+                new Property<>("stop-move-hint-points", Map.of()),
+                new Property<>("nudge", Map.of()),
+                new Property<>("nudge-target", Map.of()),
+                new Property<>("nudge-hint-points", Map.of()),
                 new Property<>("press", Map.of()),
                 new Property<>("release", Map.of()),
                 new Property<>("toggle", Map.of()),
@@ -268,6 +284,17 @@ public class ConfigurationParser {
                 .uiElementBoxBorderRadius(0d)
                 .uiElementBoxHorizontalPadding(0d)
                 .uiElementBoxVerticalPadding(0d)
+                .pointBoxWidth(8d)
+                .pointBoxHeight(8d)
+                .pointBoxColor(GradientColor.parse("#000000"))
+                .pointBoxOpacity(0d)
+                .pointBoxBorderThickness(1d)
+                .pointBoxBorderColor(Color.parse("#FFFFFF"))
+                .pointBoxBorderOpacity(0d)
+                .pointBoxBorderRadius(0d)
+                .pointLineThickness(1d)
+                .pointLineColor(Color.parse("#FFFFFF"))
+                .pointLineOpacity(0d)
                 .boxWidthPercent(1d)
                 .boxHeightPercent(1d)
                 .boxHorizontalPadding(0d)
@@ -655,7 +682,7 @@ public class ConfigurationParser {
                     mode.stopCommandsFromPreviousMode,
                     mode.pushModeToHistoryStack,
                     mode.modeAfterUnhandledKeyPress,
-                    mode.mouse, mode.target, mode.wheel,
+                    mode.mouse, mode.target, mode.hintPoints, mode.wheel,
                     mode.hintMesh, mode.timeout, mode.indicator,
                     mode.hideCursor, mode.zoom)) {
                 for (Map.Entry<Combo, List<Command>> entry :
@@ -1526,7 +1553,7 @@ public class ConfigurationParser {
                     throw new IllegalArgumentException(
                             "Invalid target property key");
                 else {
-                    ModePropertyHandler handler = velocityHandler(
+                    ModePropertyHandler handler = movementHandler(
                             new ModePropertyPath(List.of("target")),
                             mode.target.builder, keyMatcher.group(group4));
                     if (handler == null)
@@ -1537,6 +1564,31 @@ public class ConfigurationParser {
                             handler.modeBuilderSetter(),
                             mode.target.mutateModeCommands,
                             mode.target.setPropertyPaths,
+                            defaultComboMoveDuration, keyAliases, appAliases,
+                            keyResolver, allVariableNames, null))
+                        handler.modeBuilderSetter().accept(propertyValue);
+                }
+            }
+            case "hint-points" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.hintPoints.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid hint-points property key");
+                else {
+                    ModePropertyHandler handler = hintPointHandler(
+                            new ModePropertyPath(List.of("hintPoints")),
+                            mode.hintPoints.builder, keyMatcher.group(group4));
+                    if (handler == null)
+                        throw new IllegalArgumentException(
+                                "Invalid hint-points property key");
+                    if (!tryParseComboProperty(propertyValue, modeName,
+                            handler.propertyPath(), handler.valueParser(),
+                            handler.modeBuilderSetter(),
+                            mode.hintPoints.mutateModeCommands,
+                            mode.hintPoints.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
                             keyResolver, allVariableNames, null))
                         handler.modeBuilderSetter().accept(propertyValue);
@@ -1847,6 +1899,105 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.stopMoveTarget.builder,  propertyValue, new StopMoveTargetDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.stopMoveTarget.builder,  propertyValue, new StopMoveTargetLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.stopMoveTarget.builder,  propertyValue, new StopMoveTargetRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "start-move-hint-points" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.comboMap.startMoveHintPoints.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid start-move-hint-points property key");
+                else {
+                    switch (keyMatcher.group(group4)) {
+                        // @formatter:off
+                        case "up" -> setCommand(mode.comboMap.startMoveHintPoints.builder,  propertyValue, new StartMoveHintPointsUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.startMoveHintPoints.builder,  propertyValue, new StartMoveHintPointsDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.startMoveHintPoints.builder,  propertyValue, new StartMoveHintPointsLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.startMoveHintPoints.builder,  propertyValue, new StartMoveHintPointsRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "stop-move-hint-points" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.comboMap.stopMoveHintPoints.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid stop-move-hint-points property key");
+                else {
+                    switch (keyMatcher.group(group4)) {
+                        // @formatter:off
+                        case "up" -> setCommand(mode.comboMap.stopMoveHintPoints.builder,  propertyValue, new StopMoveHintPointsUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.stopMoveHintPoints.builder,  propertyValue, new StopMoveHintPointsDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.stopMoveHintPoints.builder,  propertyValue, new StopMoveHintPointsLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.stopMoveHintPoints.builder,  propertyValue, new StopMoveHintPointsRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "nudge" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.comboMap.nudge.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid nudge property key");
+                else {
+                    switch (keyMatcher.group(group4)) {
+                        // @formatter:off
+                        case "up" -> setCommand(mode.comboMap.nudge.builder,  propertyValue, new NudgeUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.nudge.builder,  propertyValue, new NudgeDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.nudge.builder,  propertyValue, new NudgeLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.nudge.builder,  propertyValue, new NudgeRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "nudge-target" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.comboMap.nudgeTarget.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid nudge-target property key");
+                else {
+                    switch (keyMatcher.group(group4)) {
+                        // @formatter:off
+                        case "up" -> setCommand(mode.comboMap.nudgeTarget.builder,  propertyValue, new NudgeTargetUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.nudgeTarget.builder,  propertyValue, new NudgeTargetDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.nudgeTarget.builder,  propertyValue, new NudgeTargetLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.nudgeTarget.builder,  propertyValue, new NudgeTargetRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "nudge-hint-points" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.comboMap.nudgeHintPoints.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid nudge-hint-points property key");
+                else {
+                    switch (keyMatcher.group(group4)) {
+                        // @formatter:off
+                        case "up" -> setCommand(mode.comboMap.nudgeHintPoints.builder,  propertyValue, new NudgeHintPointsUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.nudgeHintPoints.builder,  propertyValue, new NudgeHintPointsDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.nudgeHintPoints.builder,  propertyValue, new NudgeHintPointsLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.nudgeHintPoints.builder,  propertyValue, new NudgeHintPointsRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
@@ -3047,7 +3198,24 @@ public class ConfigurationParser {
         return switch (key) {
             case "smooth-jump-enabled" -> ModePropertyHandler.of(prefix.append("smoothJumpEnabled"), v -> Boolean.parseBoolean(v), v -> mouse.smoothJumpEnabled(v));
             case "smooth-jump-velocity" -> ModePropertyHandler.of(prefix.append("smoothJumpVelocity"), v -> Double.parseDouble(v), v -> mouse.smoothJumpVelocity(v));
-            default -> velocityHandler(prefix.append("velocity"), mouse.velocity(), key);
+            default -> movementHandler(prefix, mouse, key);
+        };
+    }
+
+    private static ModePropertyHandler movementHandler(
+            ModePropertyPath prefix, MovementConfigurationBuilder movement, String key) {
+        return switch (key) {
+            case "nudge-distance" -> ModePropertyHandler.of(prefix.append("nudgeDistance"), v -> Double.parseDouble(v), v -> movement.nudgeDistance(v));
+            default -> velocityHandler(prefix.append("velocity"), movement.velocity(), key);
+        };
+    }
+
+    private static ModePropertyHandler hintPointHandler(
+            ModePropertyPath prefix, HintPointConfigurationBuilder hintPoints, String key) {
+        return switch (key) {
+            case "cell-x-percent" -> ModePropertyHandler.of(prefix.append("cellXPercent"), v -> parseDouble(v, true, 0, 1), v -> hintPoints.cellXPercent(v));
+            case "cell-y-percent" -> ModePropertyHandler.of(prefix.append("cellYPercent"), v -> parseDouble(v, true, 0, 1), v -> hintPoints.cellYPercent(v));
+            default -> movementHandler(prefix.append("movement"), hintPoints.movement(), key);
         };
     }
 
@@ -3465,6 +3633,22 @@ public class ConfigurationParser {
             case "ui-element-box-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxShadow", "stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> hintMeshBuilder.style(screenFilter).uiElementBoxShadow().stackCount(v));
             case "ui-element-box-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxShadow", "horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).uiElementBoxShadow().horizontalOffset(v));
             case "ui-element-box-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxShadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).uiElementBoxShadow().verticalOffset(v));
+            // Style: point box and point line
+            case "point-box-width" -> ModePropertyHandler.of(prefix.append("styleByFilter", "pointBoxWidth"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).pointBoxWidth(v));
+            case "point-box-height" -> ModePropertyHandler.of(prefix.append("styleByFilter", "pointBoxHeight"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).pointBoxHeight(v));
+            case "point-box-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "pointBoxColor"), v -> GradientColor.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).pointBoxColor(v));
+            case "point-box-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "pointBoxOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).pointBoxOpacity(v));
+            case "point-box-border-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "pointBoxBorderThickness"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(screenFilter).pointBoxBorderThickness(v));
+            case "point-box-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "pointBoxBorderColor"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).pointBoxBorderColor(v));
+            case "point-box-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "pointBoxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).pointBoxBorderOpacity(v));
+            case "point-box-border-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "pointBoxBorderRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).pointBoxBorderRadius(v));
+            case "point-line-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "pointLineThickness"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(screenFilter).pointLineThickness(v));
+            case "point-line-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "pointLineColor"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).pointLineColor(v));
+            case "point-line-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "pointLineOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).pointLineOpacity(v));
+            case "saved-point-box-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "savedPointBoxColor"), v -> GradientColor.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).savedPointBoxColor(v));
+            case "saved-point-box-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "savedPointBoxOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).savedPointBoxOpacity(v));
+            case "saved-point-box-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "savedPointBoxBorderColor"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).savedPointBoxBorderColor(v));
+            case "saved-point-box-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "savedPointBoxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).savedPointBoxBorderOpacity(v));
             // Style: box dimensions
             case "box-width-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxWidthPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).boxWidthPercent(v));
             case "box-height-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxHeightPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).boxHeightPercent(v));
@@ -4009,6 +4193,17 @@ public class ConfigurationParser {
         };
     }
 
+    private static void extendMovement(MovementConfigurationBuilder builder,
+                                       MovementConfigurationBuilder parent) {
+        extendVelocity(builder.velocity(), parent.velocity());
+        if (builder.smoothJumpEnabled() == null)
+            builder.smoothJumpEnabled(parent.smoothJumpEnabled());
+        if (builder.smoothJumpVelocity() == null)
+            builder.smoothJumpVelocity(parent.smoothJumpVelocity());
+        if (builder.nudgeDistance() == null)
+            builder.nudgeDistance(parent.nudgeDistance());
+    }
+
     private static void extendVelocity(
             VelocityConfiguration.VelocityConfigurationBuilder builder,
             VelocityConfiguration.VelocityConfigurationBuilder parent) {
@@ -4099,7 +4294,8 @@ public class ConfigurationParser {
         Property<AtomicReference<String>> modeAfterUnhandledKeyPress;
         ComboMapConfigurationBuilder comboMap;
         Property<MovementConfigurationBuilder> mouse;
-        Property<VelocityConfigurationBuilder> target;
+        Property<MovementConfigurationBuilder> target;
+        Property<HintPointConfigurationBuilder> hintPoints;
         Property<WheelBuilder> wheel;
         Property<HintMeshConfigurationBuilder> hintMesh;
         Property<HintMeshConfigurationBuilder> grid;
@@ -4142,18 +4338,25 @@ public class ConfigurationParser {
             mouse = new Property<>("mouse", modeName, propertyByKey, new MovementConfigurationBuilder()) {
                 @Override
                 void extend(Object parent_) {
-                    MovementConfigurationBuilder parent = (MovementConfigurationBuilder) parent_;
-                    extendVelocity(builder.velocity(), parent.velocity());
-                    if (builder.smoothJumpEnabled() == null)
-                        builder.smoothJumpEnabled(parent.smoothJumpEnabled());
-                    if (builder.smoothJumpVelocity() == null)
-                        builder.smoothJumpVelocity(parent.smoothJumpVelocity());
+                    extendMovement(builder, (MovementConfigurationBuilder) parent_);
                 }
             };
-            target = new Property<>("target", modeName, propertyByKey, new VelocityConfigurationBuilder()) {
+            target = new Property<>("target", modeName, propertyByKey, new MovementConfigurationBuilder()) {
                 @Override
                 void extend(Object parent_) {
-                    extendVelocity(builder, (VelocityConfigurationBuilder) parent_);
+                    extendMovement(builder, (MovementConfigurationBuilder) parent_);
+                }
+            };
+            hintPoints = new Property<>("hint-points", modeName, propertyByKey,
+                    new HintPointConfigurationBuilder()) {
+                @Override
+                void extend(Object parent_) {
+                    HintPointConfigurationBuilder parent = (HintPointConfigurationBuilder) parent_;
+                    if (builder.cellXPercent() == null)
+                        builder.cellXPercent(parent.cellXPercent());
+                    if (builder.cellYPercent() == null)
+                        builder.cellYPercent(parent.cellYPercent());
+                    extendMovement(builder.movement(), parent.movement());
                 }
             };
             wheel = new Property<>("wheel", modeName, propertyByKey, new WheelBuilder()) {
@@ -4225,7 +4428,8 @@ public class ConfigurationParser {
                     pushModeToHistoryStack.builder.get(),
                     modeAfterUnhandledKeyPress.builder.get(),
                     comboMap.build(),
-                    mouse.builder.build(), target.builder.build(), wheel.builder.build(),
+                    mouse.builder.build(), target.builder.build(),
+                    hintPoints.builder.build(), wheel.builder.build(),
                     hintMesh.builder.build(), timeout.builder.build(),
                     indicator.builder.build(), hideCursor.builder.build(),
                     zoom.builder.build(), Map.of());
@@ -4479,6 +4683,66 @@ public class ConfigurationParser {
                             childStyleByFilter, filter))
                         childStyle.uiElementBoxVerticalPadding(parentStyle.uiElementBoxVerticalPadding());
                     childStyle.uiElementBoxShadow().extend(parentStyle.uiElementBoxShadow());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::pointBoxWidth,
+                            childStyleByFilter, filter))
+                        childStyle.pointBoxWidth(parentStyle.pointBoxWidth());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::pointBoxHeight,
+                            childStyleByFilter, filter))
+                        childStyle.pointBoxHeight(parentStyle.pointBoxHeight());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::pointBoxColor,
+                            childStyleByFilter, filter))
+                        childStyle.pointBoxColor(parentStyle.pointBoxColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::pointBoxOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.pointBoxOpacity(parentStyle.pointBoxOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::pointBoxBorderThickness,
+                            childStyleByFilter, filter))
+                        childStyle.pointBoxBorderThickness(parentStyle.pointBoxBorderThickness());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::pointBoxBorderColor,
+                            childStyleByFilter, filter))
+                        childStyle.pointBoxBorderColor(parentStyle.pointBoxBorderColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::pointBoxBorderOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.pointBoxBorderOpacity(parentStyle.pointBoxBorderOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::pointBoxBorderRadius,
+                            childStyleByFilter, filter))
+                        childStyle.pointBoxBorderRadius(parentStyle.pointBoxBorderRadius());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::pointLineThickness,
+                            childStyleByFilter, filter))
+                        childStyle.pointLineThickness(parentStyle.pointLineThickness());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::pointLineColor,
+                            childStyleByFilter, filter))
+                        childStyle.pointLineColor(parentStyle.pointLineColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::pointLineOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.pointLineOpacity(parentStyle.pointLineOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::savedPointBoxColor,
+                            childStyleByFilter, filter))
+                        childStyle.savedPointBoxColor(parentStyle.savedPointBoxColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::savedPointBoxOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.savedPointBoxOpacity(parentStyle.savedPointBoxOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::savedPointBoxBorderColor,
+                            childStyleByFilter, filter))
+                        childStyle.savedPointBoxBorderColor(parentStyle.savedPointBoxBorderColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::savedPointBoxBorderOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.savedPointBoxBorderOpacity(parentStyle.savedPointBoxBorderOpacity());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::boxWidthPercent, childStyleByFilter,
                             filter))
@@ -4793,6 +5057,11 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> stopMove;
         Property<Map<Combo, List<Command>>> startMoveTarget;
         Property<Map<Combo, List<Command>>> stopMoveTarget;
+        Property<Map<Combo, List<Command>>> startMoveHintPoints;
+        Property<Map<Combo, List<Command>>> stopMoveHintPoints;
+        Property<Map<Combo, List<Command>>> nudge;
+        Property<Map<Combo, List<Command>>> nudgeTarget;
+        Property<Map<Combo, List<Command>>> nudgeHintPoints;
         Property<Map<Combo, List<Command>>> press;
         Property<Map<Combo, List<Command>>> release;
         Property<Map<Combo, List<Command>>> toggle;
@@ -4831,6 +5100,11 @@ public class ConfigurationParser {
             stopMove = new ComboMapProperty("stop-move", modeName, propertyByKey);
             startMoveTarget = new ComboMapProperty("start-move-target", modeName, propertyByKey);
             stopMoveTarget = new ComboMapProperty("stop-move-target", modeName, propertyByKey);
+            startMoveHintPoints = new ComboMapProperty("start-move-hint-points", modeName, propertyByKey);
+            stopMoveHintPoints = new ComboMapProperty("stop-move-hint-points", modeName, propertyByKey);
+            nudge = new ComboMapProperty("nudge", modeName, propertyByKey);
+            nudgeTarget = new ComboMapProperty("nudge-target", modeName, propertyByKey);
+            nudgeHintPoints = new ComboMapProperty("nudge-hint-points", modeName, propertyByKey);
             press = new ComboMapProperty("press", modeName, propertyByKey);
             release = new ComboMapProperty("release", modeName, propertyByKey);
             toggle = new ComboMapProperty("toggle", modeName, propertyByKey);
@@ -4920,6 +5194,11 @@ public class ConfigurationParser {
             add(commandsByCombo, stopMove.builder);
             add(commandsByCombo, startMoveTarget.builder);
             add(commandsByCombo, stopMoveTarget.builder);
+            add(commandsByCombo, startMoveHintPoints.builder);
+            add(commandsByCombo, stopMoveHintPoints.builder);
+            add(commandsByCombo, nudge.builder);
+            add(commandsByCombo, nudgeTarget.builder);
+            add(commandsByCombo, nudgeHintPoints.builder);
             add(commandsByCombo, shrinkOverlay.builder);
             add(commandsByCombo, moveOverlayTo.builder);
             add(commandsByCombo, moveTargetTo.builder);

@@ -83,7 +83,7 @@ class PreWarmedHintMeshTest {
 
     private static boolean buildPendingAfterPreWarmedShow(boolean grid) throws IOException {
         HintMesh hintMesh = hintMesh(grid);
-        HintMeshRenderer hintMeshRenderer = new HintMeshRenderer(TransparentWindow::new, () -> {
+        HintMeshRenderer hintMeshRenderer = new HintMeshRenderer(TransparentWindow::new, null, () -> {
         });
         hintMeshRenderer.preWarmHintMesh(hintMesh, zoom, Set.of(screen));
         hintMeshRenderer.setHintMesh(hintMesh, zoom, false, Set.of(screen));

@@ -82,7 +82,7 @@ class SavedHintTest {
                                             .styleByFilter())
                 .build();
         Screen screen = new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1);
-        HintMeshRenderer hintMeshRenderer = new HintMeshRenderer(TransparentWindow::new, () -> {
+        HintMeshRenderer hintMeshRenderer = new HintMeshRenderer(TransparentWindow::new, null, () -> {
         });
         hintMeshRenderer.preWarmHintMesh(hintMesh,
                 new Zoom(1, screen.rectangle().center(), screen.rectangle()), Set.of(screen));

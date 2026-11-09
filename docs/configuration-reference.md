@@ -11,6 +11,7 @@
 - [Mouse properties](#mouse-properties)
 - [Wheel properties](#wheel-scrolling-properties)
 - [Target properties](#target-properties)
+- [Hint point properties](#hint-point-properties)
 - [Indicator properties](#indicator-properties)
 - [Cursor properties](#cursor-properties)
 - [Zoom properties](#zoom-properties)
@@ -230,7 +231,7 @@ Mode property mutation allows a mode property to change its value dynamically ba
 mode.property=default | combo1 -> value1 | combo2 -> value2
 ```
 
-The `|` separates the default value from combo-triggered mutations. Each `combo -> value` pair applies its value when the combo is satisfied. A part without `->` is the default value.
+The `|` separates the default value from combo-triggered mutations. Each `combo -> value` pair applies its value when the combo is satisfied. When more than one is satisfied at the same time, the rightmost one wins. A part without `->` is the default value.
 
 For example, change the hint box border color while shift is held, to signal that a different action will follow:
 
@@ -282,6 +283,7 @@ normal-mode.mouse.acceleration-easing=1
 normal-mode.mouse.deceleration=0
 normal-mode.mouse.smooth-jump-enabled=true
 normal-mode.mouse.smooth-jump-velocity=30000
+normal-mode.mouse.nudge-distance=4
 ```
 - `acceleration-easing` controls the shape of the acceleration curve. A number sets the polynomial exponent: 1 = linear, 2 = quadratic (slow start, fast ramp), 0.5 = square root (fast start, slow ramp). Named curves: `smoothstep` (S-curve), `smootherstep` (S-curve with longer precision zone, the default), `logarithmic` (fast start, aggressive flatten), `exponential` (very slow start, explosive ramp).
 - When movement keys are released, the cursor coasts to a stop. Higher deceleration = shorter coast. Set to 0 for instant stop (no coast).
@@ -290,6 +292,7 @@ normal-mode.mouse.smooth-jump-velocity=30000
 - Whenever mousemaster sets the position of the mouse, the mouse will be teleported to the
   target position. Smooth jumping is for avoiding the instantaneous teleportation and move
   the mouse with a continuous movement instead. The jump speed is controlled with `smooth-jump-velocity`.
+- `nudge-distance` is the distance of `nudge`, in pixels at a 100% scale (default `1`).
 
 ### Wheel (scrolling) properties
 
@@ -312,10 +315,30 @@ grid-mode.target.max-velocity=2200
 grid-mode.target.acceleration=1500
 grid-mode.target.acceleration-easing=1
 grid-mode.target.deceleration=0
+grid-mode.target.nudge-distance=4
 ```
 
-The speed of `start-move-target` when the mouse does not follow the target. The properties mean
-what the mouse ones do, with the same defaults. The target has no smooth jump.
+The speed of `start-move-target` and the distance of `nudge-target` when the mouse does not
+follow the target. The properties mean what the mouse ones do, with the same defaults. The target
+has no smooth jump.
+
+### Hint point properties
+
+```properties
+hint-mode.hint-points.cell-x-percent=0.25
+hint-mode.hint-points.cell-y-percent=1
+hint-mode.hint-points.initial-velocity=30
+hint-mode.hint-points.max-velocity=130
+hint-mode.hint-points.acceleration=170
+hint-mode.hint-points.nudge-distance=4
+```
+
+- **`cell-x-percent`** / **`cell-y-percent`**: Where the point of each hint is, across and down
+  its cell, from `0` to `1` (default `0.5`, the center). `1` is the last pixel of the cell.
+- The other properties are the speed of `start-move-hint-points` and the distance of
+  `nudge-hint-points`. They mean what the mouse ones do, with the same defaults.
+
+See [Hint points](#hint-points).
 
 ### Indicator properties
 
@@ -739,6 +762,11 @@ normal-mode.stop-move.up=-up
 normal-mode.stop-move.down=-down
 normal-mode.stop-move.left=-left
 normal-mode.stop-move.right=-right
+# Move the mouse by mouse.nudge-distance
+normal-mode.nudge.up=_{leftalt} +up
+normal-mode.nudge.down=_{leftalt} +down
+normal-mode.nudge.left=_{leftalt} +left
+normal-mode.nudge.right=_{leftalt} +right
 ```
 
 ### Mouse button click commands
@@ -1159,7 +1187,7 @@ hint-mode.overlay.label-override=plus
 - **`deselect-all`**: Combo that deselects every selection key typed so far. A selected hint that
   leads to a mode with other hints keeps the keys before its last one when its hints show again,
   so a neighbor is one key away: `deselect-all` in the mode that brings the hints back starts
-  them from nothing instead (e.g., `pick-mode.deselect-all=wait-0` after a refine)
+  them from nothing instead (e.g., `pick-mode.deselect-all=wait-0`)
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
 - **`mouse-follows-target`**: Whether the mouse follows the target (default `true`). The
   target is a position that follows the mouse. Selecting a hint and `move-target-to` move it to
@@ -1175,7 +1203,7 @@ hint-mode.overlay.label-override=plus
   mode, not overlay properties. `move-to` moves the mouse to the point, and `move-target-to` the
   target:
   - `target` (`move-to` only) and `mouse` (`move-target-to` only).
-  - `last-selected-hint`: the center of the last selected hint.
+  - `last-selected-hint`: the point of the last selected hint (see [Hint points](#hint-points)).
   - `overlay-center`: the center of the hints that the selection keys keep, the point that
     `target-follows-overlay-center` uses.
   - `cell-center`: the center of the cell that the point is in, or of the nearest cell. When the
@@ -1191,6 +1219,40 @@ hint-mode.overlay.label-override=plus
   `normal-mode.move-to.last-selected-hint=+m`
 - **`eat-unused-selection-keys`**: If `false`, selection keys not used in the current hint display can be used in combos
 - **`label-override`**: Draws a fixed marker in every hint cell instead of each hint's own keys — visual only, you still press the real keys to select. The value is a key sequence rendered as the label: `plus` shows `+`, `plus plus` shows `++`. Useful for positional grids (e.g. a 3×3 recursive grid) where the per-cell letters are just clutter. Default: unset (each hint shows its own key sequence).
+
+### Hint points
+
+The point of a hint is where a selection of the hint puts the target. The
+[hint point properties](#hint-point-properties) `cell-x-percent` and `cell-y-percent` put the
+points of all the hints at the same place of their cells, the center by default. The box of a hint
+stays at the center. Before you select a hint, a key [mutation](#mode-property-mutation) moves the
+points: here, the first left arrow takes them to the left edges, and 3 a quarter across.
+
+```properties
+hint-mode.hint-points.cell-x-percent=0.5 | _{ishintpointscentered} +leftarrow -> 0 \
+    | +1 -> 0 | +2 -> 0.125 | +3 -> 0.25
+hint-mode.nudge-hint-points.left=^{ishintpointscentered} +leftarrow
+hint-mode.hint-points.nudge-distance=4 | _{leftctrl} -> 2
+```
+
+- **`nudge-hint-points.<direction>`**: Moves the points by the `hint-points.nudge-distance` of the
+  mode, in pixels at a 100% scale.
+- **`start-move-hint-points.<direction>`** / **`stop-move-hint-points.<direction>`**: Start and
+  stop a continuous move of the points, with the `hint-points` speed of the mode.
+- A point can leave its cell with a nudge or a move, but not the screen of its hint. Once every
+  point is at the edge of its screen, a nudge or a move that way does nothing.
+- A new `cell-x-percent` undoes the nudges and moves across, and a new `cell-y-percent` the ones
+  down.
+- A mode without hints undoes the nudges and moves, and stops a move. A mode that gives the
+  `hint-points` properties the same values on the same combos keeps the points, such as
+  `pick-mode.hint-points=hint-mode.hint-points`.
+- A hint without a cell, such as a saved position, keeps its point at its center.
+- `ishintpointscentered` is pressed while the points are at the centers, and `ishintpointsmoving`
+  while they move (see [Built-in virtual keys](combo-reference.md#built-in-virtual-keys)).
+- A hint saved in the overlay's `saved-hints` history has the position it was saved at as its
+  point: it does not move with the other points.
+- The overlay draws the point of each hint that is not at the center of its cell, behind the
+  boxes, with `point-box-*` and `point-line-*` (see [Hint appearance](#hint-appearance)).
 
 ### Hint appearance
 
@@ -1330,8 +1392,17 @@ hint-mode.overlay.background-opacity=0
     hint-mode.overlay.box-border-color=across-screen per-pixel center-to-edge #F97316 #3B82F6
     ```
   - `saved-box-color`, `saved-box-opacity`, `saved-box-border-color`, `saved-box-border-opacity` and
-    the same four `saved-ui-element-box-` properties: the box of a hint at a saved position (see
-    [Saved hints](#saved-hints)).
+    the same four `saved-ui-element-box-` and `saved-point-box-` properties: the box of a hint at a
+    saved position (see [Saved hints](#saved-hints)).
+  - `point-box-width` and `point-box-height` (pixels, default `8`), `point-box-color` (default
+    `#000000`), `point-box-opacity` (default `0`), `point-box-border-thickness` (default `1`),
+    `point-box-border-color` (default `#FFFFFF`), `point-box-border-opacity` (default `0`) and
+    `point-box-border-radius` (default `0`): the box drawn at the point of a hint that is not at
+    the center of its cell (see [Hint points](#hint-points)). A radius of half the size makes it a
+    dot.
+  - `point-line-thickness` (default `1`), `point-line-color` (default `#FFFFFF`) and
+    `point-line-opacity` (default `0`): a line from the edge of the hint box to that point, when
+    the point is outside the hint box.
   - `box-border-length`: Higher values create continuous lines between hint boxes, lower values create dotted separators
   - `box-border-radius`: Radius for rounded corners (0-1000, default 0).
   - `box-shadow-blur-radius`: Shadow blur radius (0-1000, default 10).
@@ -1512,6 +1583,9 @@ grid-mode.move-target-to.overlay-center=+space
 # Move the target while the key is held
 grid-mode.start-move-target.up=_{leftalt} +uparrow
 grid-mode.stop-move-target.up=-uparrow
+
+# Move the target by target.nudge-distance
+grid-mode.nudge-target.up=_{leftalt leftshift} +uparrow
 ```
 
 - **`shrink-overlay.<direction>`**: Halves the overlay area, keeping the half on that side.
@@ -1525,12 +1599,20 @@ grid-mode.stop-move-target.up=-uparrow
   continuous move of the target, with the `target` properties. When the mouse follows the
   target, they move the mouse, with the `mouse` properties. A mode where the mouse follows the
   target stops a move of the target.
+- **`nudge-target.<direction>`**: Moves the target by `target.nudge-distance`, in pixels at a
+  100% scale. When the mouse follows the target, it moves the mouse by `mouse.nudge-distance`.
+- **`nudge-hint-points.<direction>`**: Moves the points of the hints (see
+  [Hint points](#hint-points)).
+- **`start-move-hint-points.<direction>`** / **`stop-move-hint-points.<direction>`**: Start and
+  stop a continuous move of the points of the hints (see [Hint points](#hint-points)).
 
-A command name says what it acts on: `move-target-to` and `start-move-target` move the target,
+A command name says what it acts on: `move-target-to`, `start-move-target` and `nudge-target`
+move the target, `start-move-hint-points` and `nudge-hint-points` move the points of the hints,
 and `move-overlay-to` and `shrink-overlay` change the overlay area. A name that says nothing,
-such as `start-move` or `move-to`, moves the mouse. `move-to`, `move-target-to` and
-`move-overlay-to` jump to a destination, and `start-move` and `start-move-target` move until
-`stop-move` and `stop-move-target`.
+such as `start-move`, `nudge` or `move-to`, moves the mouse. `move-to`, `move-target-to` and
+`move-overlay-to` jump to a destination, `nudge`, `nudge-target` and `nudge-hint-points` move by
+a distance, and `start-move`, `start-move-target` and `start-move-hint-points` move until
+`stop-move`, `stop-move-target` and `stop-move-hint-points`.
 
 The overlay area is the area of the overlay, or the cells that the typed selection keys keep. After
 `shrink-overlay` or `move-overlay-to`, the overlay shows what is in its new area: a grid lays its
@@ -1682,9 +1764,10 @@ ui-hint-mode.overlay.saved-font-color=#000000
   by its cell (grids), or by its center when it has neither. A position saved anywhere else marks
   no hint.
 - `saved-box-color`, `saved-box-opacity`, `saved-box-border-color`, `saved-box-border-opacity`,
-  `saved-ui-element-box-color`, `saved-ui-element-box-opacity`, `saved-ui-element-box-border-color`
-  and `saved-ui-element-box-border-opacity` replace the values of the box for a saved hint. A value
-  that is not set is the value of the box, mutations included.
+  `saved-ui-element-box-color`, `saved-ui-element-box-opacity`, `saved-ui-element-box-border-color`,
+  `saved-ui-element-box-border-opacity` and the same four `saved-point-box-` properties replace
+  the values of the box for a saved hint. A value that is not set is the value of the box,
+  mutations included.
 - The `saved-font-*` properties replace every font state in the keys of a saved hint: default,
   selected and focused.
 - A saved hint stays shown when the selected keys hide the other hints.

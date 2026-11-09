@@ -19,8 +19,12 @@ public class ScreenManager implements MousePositionListener {
     }
 
     public Screen nearestScreenContaining(double pointX, double pointY) {
+        return nearestScreenContaining(screens(), pointX, pointY);
+    }
+
+    public static Screen nearestScreenContaining(Set<Screen> screens, double pointX,
+                                                 double pointY) {
         // Mouse position can be 0 -4 even when there is only one screen.
-        Set<Screen> screens = screens();
         if (screens.isEmpty())
             throw new IllegalStateException("No screens found");
         for (Screen screen : screens) {
