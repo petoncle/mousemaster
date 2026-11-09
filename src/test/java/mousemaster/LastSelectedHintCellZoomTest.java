@@ -84,6 +84,42 @@ class LastSelectedHintCellZoomTest {
     }
 
     @Test
+    void doesNotZoomIntoACellLargerThanTheScreen() throws IOException {
+        start("""
+                zoom-hint-mode.zoom.area-width-percent=3
+                zoom-hint-mode.zoom.area-height-percent=3
+                """);
+        switchMode("screen-hint-mode");
+        selectBottomRightHint();
+        switchMode("zoom-hint-mode");
+        assertNull(zoom);
+    }
+
+    @Test
+    void doesNotZoomIntoACellAsLargeAsTheScreen() throws IOException {
+        start("""
+                zoom-hint-mode.zoom.area-width-percent=2
+                zoom-hint-mode.zoom.area-height-percent=2
+                """);
+        switchMode("screen-hint-mode");
+        selectBottomRightHint();
+        switchMode("zoom-hint-mode");
+        assertNull(zoom);
+    }
+
+    @Test
+    void zoomsIntoATinyCellAtMost100Times() throws IOException {
+        start("""
+                zoom-hint-mode.zoom.area-width-percent=0.001
+                zoom-hint-mode.zoom.area-height-percent=0.001
+                """);
+        switchMode("screen-hint-mode");
+        selectBottomRightHint();
+        switchMode("zoom-hint-mode");
+        assertEquals(100, zoom.percent());
+    }
+
+    @Test
     void aZoomNotCenteredOnTheSelectionIgnoresTheSelectedCell() throws IOException {
         start("screen-hint-mode.zoom.area-size-source=last-selected-hint-cell");
         switchMode("screen-hint-mode");

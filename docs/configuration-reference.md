@@ -689,8 +689,11 @@ hint2-2-mode.zoom.center=last-selected-hint
 - `zoom.center` is the point the zoom is centered on. It takes the values of
   [`area-center`](#overlay-area-and-layout) (default `active-screen-center`). With `mouse` or
   `target`, the zoom follows that point.
-- `zoom.area-size-source` is what the magnified area is sized from: `percent` (default), scaled by
-  `zoom.area-width-percent` / `zoom.area-height-percent` (default `1.0`), or `last-selected-hint-cell`.
+- `zoom.area-size-source` is what the magnified area is sized from: `percent` (default), or
+  `last-selected-hint-cell`: the cell, scaled by `zoom.area-width-percent` /
+  `zoom.area-height-percent` (default `1.0`), fills the screen. That zoom stays between 1.0 and
+  100: a scaled cell larger than the screen gets no zoom.
+- A zoom of 1.0 is no zoom, whatever its center.
 - On macOS, zooming needs the Screen Recording permission to capture what it magnifies.
 
 A [transition](#transitions) moves the zoom from what it shows to the new zoom:

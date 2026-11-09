@@ -8,8 +8,8 @@ public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, AreaCente
     public double percent(Rectangle cell, Rectangle screen) {
         if (areaSize.source() != ZoomAreaSizeSource.LAST_SELECTED_HINT_CELL || cell == null)
             return percent;
-        return Math.min(screen.width() / (cell.width() * areaSize.widthPercent()),
-                        screen.height() / (cell.height() * areaSize.heightPercent()));
+        return Math.clamp(Math.min(screen.width() / (cell.width() * areaSize.widthPercent()),
+                screen.height() / (cell.height() * areaSize.heightPercent())), 1, 100);
     }
 
     public static class ZoomConfigurationBuilder {

@@ -787,10 +787,10 @@ public class HintManager implements ModeListener, MousePositionListener {
         Point zoomCenterPoint = areaCenterPoint(mode.zoom().center());
         Rectangle screenRectangle = screenManager.nearestScreenContaining(zoomCenterPoint.x(),
                 zoomCenterPoint.y()).rectangle();
-        Zoom newZoom = new Zoom(mode.zoom().percent(lastSelectedHintCell, screenRectangle),
-                zoomCenterPoint, screenRectangle);
-        Zoom noZoom = new Zoom(1, screenRectangle.center(), screenRectangle);
-        return newZoom.equals(noZoom) || overlay.canZoom(screenRectangle) ? newZoom : noZoom;
+        double percent = mode.zoom().percent(lastSelectedHintCell, screenRectangle);
+        if (percent == 1 || !overlay.canZoom(screenRectangle))
+            return new Zoom(1, screenRectangle.center(), screenRectangle);
+        return new Zoom(percent, zoomCenterPoint, screenRectangle);
     }
 
     private void showHintMesh(Mode newMode, HintMesh newHintMesh, ScreenFilter newScreenFilter,

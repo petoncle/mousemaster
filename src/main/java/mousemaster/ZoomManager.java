@@ -49,7 +49,11 @@ public class ZoomManager implements ModeListener {
                 endCenterPoint.x(), endCenterPoint.y()).rectangle();
         double endPercent = newMode.zoom().percent(
                 hintManager.lastSelectedHintCell(), screenRectangle);
-        endIsNoZoom = endPercent == 1 && endCenter == AreaCenter.ACTIVE_SCREEN_CENTER;
+        endIsNoZoom = endPercent == 1;
+        if (endIsNoZoom) {
+            endCenter = AreaCenter.ACTIVE_SCREEN_CENTER;
+            endCenterPoint = hintManager.areaCenterPoint(endCenter);
+        }
         if (!zoomShown) {
             Point screenCenter = screenManager.activeScreen().rectangle().center();
             percent.jumpTo(1);
@@ -89,10 +93,9 @@ public class ZoomManager implements ModeListener {
 
     public void update(double delta) {
         if (!animating) {
-            AreaCenter center = currentMode.zoom().center();
-            if (!center.isMouseOrTarget())
+            if (!endCenter.isMouseOrTarget())
                 return;
-            Point centerPoint = hintManager.areaCenterPoint(center);
+            Point centerPoint = hintManager.areaCenterPoint(endCenter);
             if (centerX.value() == centerPoint.x() && centerY.value() == centerPoint.y())
                 return;
             Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
