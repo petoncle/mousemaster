@@ -4,10 +4,15 @@ import mousemaster.*;
 
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.WinBase;
+import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.win32.StdCallLibrary;
 
 public interface ExtendedKernel32 extends StdCallLibrary {
     ExtendedKernel32 INSTANCE = Native.load("kernel32", ExtendedKernel32.class);
+
+    int ABOVE_NORMAL_PRIORITY_CLASS = 0x8000;
+
+    boolean SetPriorityClass(WinNT.HANDLE hProcess, int dwPriorityClass);
 
     long GetTickCount64();
 
