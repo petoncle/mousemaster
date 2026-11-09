@@ -5,7 +5,6 @@ import mousemaster.qt.*;
 
 import io.qt.core.*;
 import io.qt.gui.*;
-import io.qt.widgets.*;
 import mousemaster.*;
 import mousemaster.GradientColor.GradientArea;
 import mousemaster.GradientColor.GradientStep;
@@ -24,22 +23,23 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Cross-platform Qt rendering of the mouse indicator: owns a widget per layer and the shadow
- * effect, and computes where and how big to draw each layer.
+ * Cross-platform Qt rendering of the mouse indicator: paints the layers and their shadows into
+ * images, and computes where and how big to draw each layer.
  * The platform overlay draws the images it renders in its own windows, and supplies the
  * cursor, screen and zoom.
  */
 public final class IndicatorRenderer {
 
-    private TransparentWindow window;
-    private QWidget layersWidget;
-    private final List<IndicatorLayerWidget> widgets = new ArrayList<>();
-    private IndicatorShadowEffect shadowEffect;
+    private Rectangle layersArea;
+    private final List<DrawnLayer> drawnLayers = new ArrayList<>();
     private final List<ShadowCast> shadowCasts = new ArrayList<>();
+    private double shadowSourceHorizontalOffset = 8;
+    private double shadowSourceVerticalOffset = 8;
+    private double shadowSourceRadius = 1;
+    private Rectangle shadowSourceArea;
     private double shadowScale;
     private List<PositionedLayer> currentLayers;
     private Rectangle gradientArea;
-    private double pointsPerPixel;
     private final Map<String, LayerAnchor> anchorByLayerName;
     private final Map<TextKey, QPainterPath> outlineByText = new HashMap<>();
     private final Map<TextKey, QTextDocument> documentByText = new HashMap<>();
@@ -54,27 +54,10 @@ public final class IndicatorRenderer {
         anchorByLayerName = renderer.anchorByLayerName;
     }
 
-    /** Lazily creates the window and its widgets, which are rendered into images. */
-    private TransparentWindow window() {
-        if (window == null) {
-            window = new TransparentWindow();
-            layersWidget = new QWidget(window);
-        }
-        return window;
-    }
-
-    private IndicatorLayerWidget widget(int index) {
-        if (index == widgets.size())
-            widgets.add(new IndicatorLayerWidget(layersWidget));
-        return widgets.get(index);
-    }
-
-    /** Installing a graphics effect for the first time initializes Qt machinery that costs
-     *  around 15ms, which the first mode to show an indicator would otherwise pay. */
-    public void preWarm() {
-        window();
-        layersWidget.setGraphicsEffect(new IndicatorShadowEffect(this));
-        layersWidget.setGraphicsEffect(null);
+    private DrawnLayer drawnLayer(int index) {
+        if (index == drawnLayers.size())
+            drawnLayers.add(new DrawnLayer());
+        return drawnLayers.get(index);
     }
 
     private record LayerAnchor(Rectangle mouseRectangle, Point cursorVisualCenter,
@@ -235,12 +218,11 @@ public final class IndicatorRenderer {
         return color.gradient() && color.step() == GradientStep.PIXEL ? color : null;
     }
 
-    /** The screen a sweep runs over, relative to the widget the brush spans, in its points. */
+    /** The screen a sweep runs over, relative to the layer the brush spans. */
     private Rectangle sweepArea(Point topLeft) {
-        return new Rectangle(points(snapped(gradientArea.x() - topLeft.x()), pointsPerPixel),
-                points(snapped(gradientArea.y() - topLeft.y()), pointsPerPixel),
-                points(gradientArea.width(), pointsPerPixel),
-                points(gradientArea.height(), pointsPerPixel));
+        return new Rectangle(snapped(gradientArea.x() - topLeft.x()),
+                snapped(gradientArea.y() - topLeft.y()), gradientArea.width(),
+                gradientArea.height());
     }
 
     private static QBrush brush(QColor color, GradientColor sweep, Rectangle sweepArea) {
@@ -347,9 +329,9 @@ public final class IndicatorRenderer {
             return layer.aspectRatio();
         return switch (layer.shape()) {
             case TRIANGLE, STAR, PATH -> {
-                List<Point> points = IndicatorLayerWidget.points(layer);
-                Point min = IndicatorLayerWidget.minPoint(points);
-                Point max = IndicatorLayerWidget.maxPoint(points);
+                List<Point> points = DrawnLayer.points(layer);
+                Point min = DrawnLayer.minPoint(points);
+                Point max = DrawnLayer.maxPoint(points);
                 yield layer.aspectRatio() * (max.x() - min.x()) / (max.y() - min.y());
             }
             default -> layer.aspectRatio();
@@ -637,33 +619,25 @@ public final class IndicatorRenderer {
     }
 
     private void placeLayers(List<PositionedLayer> positionedLayers, Point layersTopLeft,
-                             int layersWidth, int layersHeight, Point windowTopLeft,
-                             double screenScale, double pointsPerPixel) {
-        layersWidget.move(points(layersTopLeft.x() - windowTopLeft.x(), pointsPerPixel),
-                points(layersTopLeft.y() - windowTopLeft.y(), pointsPerPixel));
-        layersWidget.resize(points(layersWidth, pointsPerPixel),
-                points(layersHeight, pointsPerPixel));
+                             int layersWidth, int layersHeight, Point imageTopLeft,
+                             double screenScale) {
+        layersArea = new Rectangle((int) Math.round(layersTopLeft.x() - imageTopLeft.x()),
+                (int) Math.round(layersTopLeft.y() - imageTopLeft.y()), layersWidth,
+                layersHeight);
         currentLayers = positionedLayers;
-        this.pointsPerPixel = pointsPerPixel;
         for (int i = 0; i < positionedLayers.size(); i++) {
             IndicatorLayerConfiguration layer = positionedLayers.get(i).layer();
             Point topLeft = positionedLayers.get(i).topLeft();
             LayerSize layerSizeWithStroke = layerSizeWithStroke(layer, screenScale);
-            IndicatorLayerWidget widget = widget(i);
-            widget.setScale(screenScale / pointsPerPixel);
-            widget.setLayerSize(layerSize(layer, screenScale) / pointsPerPixel);
-            double widgetX = (topLeft.x() - layersTopLeft.x()) / pointsPerPixel;
-            double widgetY = (topLeft.y() - layersTopLeft.y()) / pointsPerPixel;
-            widget.move((int) Math.round(widgetX), (int) Math.round(widgetY));
-            widget.setSubPixelOffset(new Point(widgetX - Math.round(widgetX),
-                    widgetY - Math.round(widgetY)));
-            widget.resize(points(layerSizeWithStroke.width(), pointsPerPixel),
-                    points(layerSizeWithStroke.height(), pointsPerPixel));
+            DrawnLayer drawnLayer = drawnLayer(i);
+            drawnLayer.setScale(screenScale);
+            drawnLayer.setLayerSize(layerSize(layer, screenScale));
+            double x = topLeft.x() - layersTopLeft.x();
+            double y = topLeft.y() - layersTopLeft.y();
+            drawnLayer.setSubPixelOffset(new Point(x - Math.round(x), y - Math.round(y)));
+            drawnLayer.setRectangle(new Rectangle((int) Math.round(x), (int) Math.round(y),
+                    layerSizeWithStroke.width(), layerSizeWithStroke.height()));
         }
-    }
-
-    private static int points(double pixels, double pointsPerPixel) {
-        return (int) Math.round(pixels / pointsPerPixel);
     }
 
     private static final int layerEdgeThreshold = 100;
@@ -809,11 +783,9 @@ public final class IndicatorRenderer {
             return new WindowImage(windowImage, x, y, windowImage.width(), windowImage.height());
         int width = layersRectangle.width() + 2 * shadowPadding;
         int height = layersRectangle.height() + 2 * shadowPadding;
-        window();
-        window.resize(width, height);
         placeLayers(positionedLayers, new Point(layersRectangle.x(), layersRectangle.y()),
                 layersRectangle.width(), layersRectangle.height(), new Point(x, y),
-                screenScale, 1);
+                screenScale);
         applyIndicator(screenScale, lastSelectedHintColors);
         if (windowImage != null)
             windowImage.dispose();
@@ -838,8 +810,8 @@ public final class IndicatorRenderer {
         return true;
     }
 
-    /** Renders the indicator's widget tree into a premultiplied-ARGB image for use as the
-     *  system cursor, centered on the indicator's visual center. */
+    /** Renders the indicator into a premultiplied-ARGB image for use as the system cursor,
+     *  centered on the indicator's visual center. */
     public IndicatorImage renderCursorImage(IndicatorConfiguration indicator, double scale,
                                          LastSelectedHintColors lastSelectedHintColors,
                                          Rectangle mouseRectangle, Point cursorVisualCenter,
@@ -868,11 +840,9 @@ public final class IndicatorRenderer {
         int imageSize = layersSize + 2 * shadowPadding;
         Point layersTopLeft = new Point(center.x() - layersSize / 2.0,
                 center.y() - layersSize / 2.0);
-        window();
-        window.resize(imageSize, imageSize);
         placeLayers(positionedLayers, layersTopLeft, layersSize, layersSize,
                 new Point(layersTopLeft.x() - shadowPadding, layersTopLeft.y() - shadowPadding),
-                scale, 1);
+                scale);
         applyIndicator(scale, lastSelectedHintColors);
         QImage image = render(imageSize, imageSize);
         IndicatorImage indicatorImage = indicatorImage(image);
@@ -883,14 +853,68 @@ public final class IndicatorRenderer {
     private QImage render(int width, int height) {
         QImage image = new QImage(width, height, QImage.Format.Format_ARGB32_Premultiplied);
         image.fill(0);
-        // Not render(image): the QPoint and QRegion it passes Qt can be garbage collected while
-        // Qt still reads them.
-        QPoint targetOffset = new QPoint();
-        QRegion sourceRegion = new QRegion();
-        window.render(image, targetOffset, sourceRegion);
-        targetOffset.dispose();
-        sourceRegion.dispose();
+        QPainter painter = new QPainter(image);
+        List<DrawnLayer> layers = drawnLayers.subList(0, currentLayers.size());
+        boolean transparency = indicatorHasTransparency();
+        if (!shadowCasts.isEmpty() || transparency)
+            painter.setClipRect(shadowSourceArea.x(), shadowSourceArea.y(),
+                    shadowSourceArea.width(), shadowSourceArea.height());
+        if (!shadowCasts.isEmpty())
+            drawShadows(painter, layers);
+        else {
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+            painter.translate(layersArea.x(), layersArea.y());
+            for (DrawnLayer layer : layers) {
+                if (!transparency)
+                    painter.setClipRect(layer.x(), layer.y(), layer.width(), layer.height());
+                layer.draw(painter, !transparency);
+            }
+        }
+        painter.end();
+        painter.dispose();
         return image;
+    }
+
+    private void drawShadows(QPainter painter, List<DrawnLayer> layers) {
+        QImage source = shadowSource(layers);
+        for (ShadowCast shadowCast : shadowCasts) {
+            Shadow shadow = shadowCast.shadow();
+            StackedShadowEffect.drawShadow(painter,
+                    shadowCast.drawnLayers().size() == layers.size() ? new QImage(source) :
+                            shadowSource(shadowCast.drawnLayers()),
+                    shadowSourceArea.x(), shadowSourceArea.y(), shadow.blurRadius() * shadowScale,
+                    shadow.horizontalOffset() * shadowScale, shadow.verticalOffset() * shadowScale,
+                    shadowCast.color(), shadowCast.brush(), shadow.stackCount(), true);
+        }
+        painter.drawImage(shadowSourceArea.x(), shadowSourceArea.y(), source);
+        source.dispose();
+        if (!indicatorHasTransparency())
+            return;
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+        painter.translate(layersArea.x(), layersArea.y());
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationOut);
+        for (DrawnLayer layer : layers)
+            layer.draw(painter, true);
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+        for (DrawnLayer layer : layers)
+            layer.draw(painter, false);
+    }
+
+    private QImage shadowSource(List<DrawnLayer> layers) {
+        QImage source = new QImage(shadowSourceArea.width(), shadowSourceArea.height(),
+                QImage.Format.Format_ARGB32_Premultiplied);
+        source.fill(0);
+        QPainter painter = new QPainter(source);
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+        painter.translate(layersArea.x() - shadowSourceArea.x(),
+                layersArea.y() - shadowSourceArea.y());
+        for (DrawnLayer layer : layers) {
+            painter.setClipRect(layer.x(), layer.y(), layer.width(), layer.height());
+            layer.draw(painter, true);
+        }
+        painter.end();
+        painter.dispose();
+        return source;
     }
 
     public static IndicatorImage indicatorImage(QImage image) {
@@ -901,7 +925,7 @@ public final class IndicatorRenderer {
         return new IndicatorImage(argb, image.width(), image.height());
     }
 
-    /** Applies the indicator to the widgets (shape, fill, stroke, shadow effect) without
+    /** Applies the indicator to the drawn layers (shape, fill, stroke) and the shadows without
      *  positioning them. Shared by the window image and the cursor image renders. */
     private void applyIndicator(double shadowScale, LastSelectedHintColors lastSelectedHintColors) {
         outlineByText.entrySet().removeIf(entry -> {
@@ -916,31 +940,25 @@ public final class IndicatorRenderer {
             entry.getValue().dispose();
             return true;
         });
-        applyShadowEffect(shadowScale, lastSelectedHintColors);
-        for (int i = 0; i < widgets.size(); i++) {
-            if (i < currentLayers.size())
-                applyLayer(currentLayers.get(i).layer(), widgets.get(i),
-                        currentLayers.get(i).topLeft(),
-                        gradientPoint(currentLayers.get(i), shadowScale),
-                        lastSelectedHintColors);
-            else
-                widgets.get(i).hide();
-        }
+        applyShadows(shadowScale, lastSelectedHintColors);
+        for (int i = 0; i < currentLayers.size(); i++)
+            applyLayer(currentLayers.get(i).layer(), drawnLayers.get(i),
+                    currentLayers.get(i).topLeft(),
+                    gradientPoint(currentLayers.get(i), shadowScale), lastSelectedHintColors);
     }
 
-    private void applyLayer(IndicatorLayerConfiguration layer, IndicatorLayerWidget widget,
+    private void applyLayer(IndicatorLayerConfiguration layer, DrawnLayer drawnLayer,
                             Point topLeft, Point gradientPoint,
                             LastSelectedHintColors lastSelectedHintColors) {
-        widget.setSweepArea(sweepArea(topLeft));
-        widget.setLayer(layer);
+        drawnLayer.setSweepArea(sweepArea(topLeft));
+        drawnLayer.setLayer(layer);
         GradientColor fillColor = layer.fillColor().gradientColor(lastSelectedHintColors);
-        widget.setFill(QtColorUtil.qColor(hex(fillColor, gradientPoint), layer.fillOpacity()),
+        drawnLayer.setFill(QtColorUtil.qColor(hex(fillColor, gradientPoint), layer.fillOpacity()),
                 sweep(fillColor));
         IndicatorStroke stroke = layer.stroke();
         GradientColor strokeColor = stroke.color().gradientColor(lastSelectedHintColors);
-        widget.setStroke(QtColorUtil.qColor(hex(strokeColor, gradientPoint), stroke.opacity()),
+        drawnLayer.setStroke(QtColorUtil.qColor(hex(strokeColor, gradientPoint), stroke.opacity()),
                 sweep(strokeColor));
-        widget.show();
     }
 
     boolean indicatorHasTransparency() {
@@ -953,35 +971,35 @@ public final class IndicatorRenderer {
     }
 
     /** The layers that cast one shadow, blurred together as one shape. */
-    private record ShadowCast(Shadow shadow, List<IndicatorLayerWidget> widgets, QColor color,
+    private record ShadowCast(Shadow shadow, List<DrawnLayer> drawnLayers, QColor color,
                               QBrush brush) {
     }
 
-    private void applyShadowEffect(double scale, LastSelectedHintColors lastSelectedHintColors) {
+    private void applyShadows(double scale, LastSelectedHintColors lastSelectedHintColors) {
         for (ShadowCast shadowCast : shadowCasts)
             shadowCast.color().dispose();
         shadowCasts.clear();
         shadowScale = scale;
-        Map<Shadow, Map<String, List<IndicatorLayerWidget>>> widgetsByHexColorByShadow =
+        Map<Shadow, Map<String, List<DrawnLayer>>> drawnLayersByHexColorByShadow =
                 new LinkedHashMap<>();
         for (int i = 0; i < currentLayers.size(); i++) {
             Shadow shadow = currentLayers.get(i).layer().shadow();
             if (shadow.opacity() > 0 && shadow.blurRadius() > 0)
-                widgetsByHexColorByShadow
+                drawnLayersByHexColorByShadow
                         .computeIfAbsent(shadow, shadow_ -> new LinkedHashMap<>())
                         .computeIfAbsent(hex(shadow.color().gradientColor(lastSelectedHintColors),
                                         gradientPoint(currentLayers.get(i), scale)),
                                 hexColor -> new ArrayList<>())
-                        .add(widgets.get(i));
+                        .add(drawnLayers.get(i));
         }
-        if (!widgetsByHexColorByShadow.isEmpty()) {
+        if (!drawnLayersByHexColorByShadow.isEmpty()) {
             double left = 0, right = 0, top = 0, bottom = 0;
-            for (Map.Entry<Shadow, Map<String, List<IndicatorLayerWidget>>> entry :
-                    widgetsByHexColorByShadow.entrySet()) {
+            for (Map.Entry<Shadow, Map<String, List<DrawnLayer>>> entry :
+                    drawnLayersByHexColorByShadow.entrySet()) {
                 Shadow shadow = entry.getKey();
                 GradientColor shadowSweep =
                         sweep(shadow.color().gradientColor(lastSelectedHintColors));
-                for (Map.Entry<String, List<IndicatorLayerWidget>> hexColorEntry :
+                for (Map.Entry<String, List<DrawnLayer>> hexColorEntry :
                         entry.getValue().entrySet()) {
                     QColor baseColor = QtColorUtil.qColor(hexColorEntry.getKey(), 1.0);
                     QColor shadowColor = new QColor(baseColor.red(), baseColor.green(),
@@ -997,25 +1015,28 @@ public final class IndicatorRenderer {
                 top = Math.max(top, radius - shadow.verticalOffset() * scale);
                 bottom = Math.max(bottom, radius + shadow.verticalOffset() * scale);
             }
-            // Reused rather than replaced: installing a graphics effect sets up Qt machinery
-            // that costs milliseconds, which an animating indicator would pay every frame.
-            IndicatorShadowEffect effect = reusableShadowEffect();
-            effect.setTransparencyOnly(false);
-            // Its own shadow is never drawn: it pads the source for the farthest shadow on
-            // each side.
-            effect.setOffset((right - left) / 2, (bottom - top) / 2);
-            effect.setBlurRadius(Math.max(left + right, top + bottom) / 2);
-            install(effect);
+            shadowSourceHorizontalOffset = (right - left) / 2;
+            shadowSourceVerticalOffset = (bottom - top) / 2;
+            shadowSourceRadius = Math.max(left + right, top + bottom) / 2;
         }
-        else if (indicatorHasTransparency()) {
-            IndicatorShadowEffect effect = reusableShadowEffect();
-            effect.setTransparencyOnly(true);
-            install(effect);
+        else if (!indicatorHasTransparency()) {
+            shadowSourceHorizontalOffset = 8;
+            shadowSourceVerticalOffset = 8;
+            shadowSourceRadius = 1;
         }
-        else {
-            shadowEffect = null;
-            layersWidget.setGraphicsEffect(null);
-        }
+        QRectF layers = new QRectF(layersArea.x(), layersArea.y(), layersArea.width(),
+                layersArea.height());
+        QRectF shadows =
+                layers.translated(shadowSourceHorizontalOffset, shadowSourceVerticalOffset)
+                      .adjusted(-shadowSourceRadius, -shadowSourceRadius, shadowSourceRadius,
+                              shadowSourceRadius);
+        QRectF layersAndShadows = layers.united(shadows);
+        QRect source = layersAndShadows.toAlignedRect();
+        shadowSourceArea = new Rectangle(source.x(), source.y(), source.width(), source.height());
+        layers.dispose();
+        shadows.dispose();
+        layersAndShadows.dispose();
+        source.dispose();
     }
 
     private Point layersTopLeft() {
@@ -1028,19 +1049,9 @@ public final class IndicatorRenderer {
         return new Point(x, y);
     }
 
-    private IndicatorShadowEffect reusableShadowEffect() {
-        return shadowEffect != null ? shadowEffect : new IndicatorShadowEffect(this);
-    }
+    private class DrawnLayer {
 
-    private void install(IndicatorShadowEffect effect) {
-        if (shadowEffect == effect)
-            return;
-        shadowEffect = effect;
-        layersWidget.setGraphicsEffect(effect);
-    }
-
-    private class IndicatorLayerWidget extends QWidget {
-
+        private Rectangle rectangle;
         private double layerSize;
         private IndicatorLayerConfiguration layer;
         private QColor fillColor;
@@ -1053,12 +1064,28 @@ public final class IndicatorRenderer {
         private final Map<ImageKey, QImage> imageByKey = new HashMap<>();
 
         private record ImageKey(IndicatorLayerConfiguration layer, double layerSize, double scale,
-                                int width, int height, double devicePixelRatio, int fillRgba,
-                                int strokeRgba, Point subPixelOffset) {
+                                int width, int height, int fillRgba, int strokeRgba,
+                                Point subPixelOffset) {
         }
 
-        IndicatorLayerWidget(QWidget parent) {
-            super(parent);
+        void setRectangle(Rectangle rectangle) {
+            this.rectangle = rectangle;
+        }
+
+        int x() {
+            return rectangle.x();
+        }
+
+        int y() {
+            return rectangle.y();
+        }
+
+        int width() {
+            return rectangle.width();
+        }
+
+        int height() {
+            return rectangle.height();
         }
 
         void setLayerSize(double layerSize) {
@@ -1114,7 +1141,7 @@ public final class IndicatorRenderer {
             return List.copyOf(starPoints);
         }
 
-        /** The shape fills a box centered in the widget: size is the box's largest dimension
+        /** The shape fills a box centered in the layer: size is the box's largest dimension
          *  and aspectRatio its width over its height. */
         private QPainterPath shapePath() {
             double aspectRatio = aspectRatio(layer);
@@ -1414,9 +1441,8 @@ public final class IndicatorRenderer {
                 drawShape(painter, fillColor, strokeColor);
                 return;
             }
-            double devicePixelRatio = painter.device().devicePixelRatioF();
             ImageKey key = new ImageKey(layer, layerSize, scale, width(), height(),
-                    devicePixelRatio, fillColor.rgba(), strokeColor.rgba(), subPixelOffset);
+                    fillColor.rgba(), strokeColor.rgba(), subPixelOffset);
             QImage image = imageByKey.get(key);
             if (image == null) {
                 imageByKey.entrySet().removeIf(entry -> {
@@ -1427,10 +1453,8 @@ public final class IndicatorRenderer {
                     entry.getValue().dispose();
                     return true;
                 });
-                image = new QImage((int) Math.ceil((width() + 2 * miterReach()) * devicePixelRatio),
-                        (int) Math.ceil((height() + 2 * miterReach()) * devicePixelRatio),
+                image = new QImage(width() + 2 * miterReach(), height() + 2 * miterReach(),
                         QImage.Format.Format_ARGB32_Premultiplied);
-                image.setDevicePixelRatio(devicePixelRatio);
                 image.fill(0);
                 QPainter imagePainter = new QPainter(image);
                 imagePainter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
@@ -1447,7 +1471,7 @@ public final class IndicatorRenderer {
             return (int) Math.ceil(layer.stroke().thickness() * scale);
         }
 
-        void redrawSourceOverShadow(QPainter painter, boolean opaque) {
+        void draw(QPainter painter, boolean opaque) {
             painter.translate(x(), y());
             QColor drawnFillColor = opaque ? opaque(fillColor) : fillColor;
             QColor drawnStrokeColor = opaque ? opaque(strokeColor) : strokeColor;
@@ -1461,104 +1485,6 @@ public final class IndicatorRenderer {
 
         private static QColor opaque(QColor color) {
             return new QColor(color.red(), color.green(), color.blue());
-        }
-
-        @Override
-        protected void paintEvent(QPaintEvent event) {
-            QPainter painter = new QPainter(this);
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            QColor opaqueFillColor = opaque(fillColor);
-            QColor opaqueStrokeColor = opaque(strokeColor);
-            drawContent(painter, opaqueFillColor, opaqueStrokeColor);
-            opaqueFillColor.dispose();
-            opaqueStrokeColor.dispose();
-            painter.end();
-            painter.dispose();
-        }
-    }
-
-    public static class IndicatorShadowEffect extends StackedShadowEffect {
-
-        private final IndicatorRenderer renderer;
-
-        IndicatorShadowEffect(IndicatorRenderer renderer) {
-            this.renderer = renderer;
-        }
-
-        @Override
-        protected void drawShadow(QPainter painter) {
-            if (transparencyOnly()) {
-                super.drawShadow(painter);
-                return;
-            }
-            QPoint sourceOffset = new QPoint();
-            QPixmap sourcePixmap = sourcePixmap(Qt.CoordinateSystem.DeviceCoordinates,
-                    sourceOffset, PixmapPadMode.PadToEffectiveBoundingRect);
-            QTransform savedTransform = painter.worldTransform();
-            QTransform identity = new QTransform();
-            painter.setWorldTransform(identity);
-            for (ShadowCast shadowCast : renderer.shadowCasts) {
-                QPixmap castPixmap =
-                        shadowCast.widgets().size() == renderer.currentLayers.size() ?
-                                sourcePixmap :
-                                castPixmap(sourcePixmap,
-                                        (int) Math.round(savedTransform.dx()) - sourceOffset.x(),
-                                        (int) Math.round(savedTransform.dy()) - sourceOffset.y(),
-                                        shadowCast.widgets());
-                Shadow shadow = shadowCast.shadow();
-                drawShadow(painter, castPixmap, sourceOffset,
-                        shadow.blurRadius() * renderer.shadowScale,
-                        shadow.horizontalOffset() * renderer.shadowScale,
-                        shadow.verticalOffset() * renderer.shadowScale, shadowCast.color(),
-                        shadowCast.brush(), shadow.stackCount(), true);
-                if (castPixmap != sourcePixmap)
-                    castPixmap.dispose();
-            }
-            painter.drawPixmap(sourceOffset, sourcePixmap);
-            painter.setWorldTransform(savedTransform);
-            savedTransform.dispose();
-            identity.dispose();
-            sourcePixmap.dispose();
-            sourceOffset.dispose();
-            redrawSourceOverShadow(painter);
-        }
-
-        /** The source as only these layers draw it. */
-        private static QPixmap castPixmap(QPixmap sourcePixmap, int x, int y,
-                                          List<IndicatorLayerWidget> widgets) {
-            QPixmap castPixmap = new QPixmap(sourcePixmap.width(), sourcePixmap.height());
-            castPixmap.setDevicePixelRatio(sourcePixmap.devicePixelRatio());
-            QColor transparent = new QColor(0, 0, 0, 0);
-            castPixmap.fill(transparent);
-            transparent.dispose();
-            QPainter painter = new QPainter(castPixmap);
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            painter.translate(x, y);
-            for (IndicatorLayerWidget widget : widgets) {
-                painter.setClipRect(widget.x(), widget.y(), widget.width(), widget.height());
-                widget.redrawSourceOverShadow(painter, true);
-            }
-            painter.end();
-            painter.dispose();
-            return castPixmap;
-        }
-
-        @Override
-        protected void redrawSourceOverShadow(QPainter painter) {
-            if (!renderer.indicatorHasTransparency())
-                return;
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            List<IndicatorLayerWidget> widgets =
-                    renderer.widgets.subList(0, renderer.currentLayers.size());
-            if (!transparencyOnly()) {
-                painter.setCompositionMode(
-                        QPainter.CompositionMode.CompositionMode_DestinationOut);
-                for (IndicatorLayerWidget widget : widgets)
-                    widget.redrawSourceOverShadow(painter, true);
-                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-            }
-            for (IndicatorLayerWidget widget : widgets)
-                widget.redrawSourceOverShadow(painter, false);
         }
     }
 

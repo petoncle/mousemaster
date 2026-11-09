@@ -68,8 +68,9 @@ public class StackedShadowEffect extends QtDropShadowEffect {
         QTransform identity = new QTransform();
         painter.setWorldTransform(identity);
         QColor shadowColor = color();
-        drawShadow(painter, sourcePixmap, sourceOffset, blurRadius(), xOffset(), yOffset(),
-                shadowColor, shadowBrush(), stackCount, alphaOnly());
+        drawShadow(painter, sourcePixmap.toImage(), sourceOffset.x(), sourceOffset.y(),
+                blurRadius(), xOffset(), yOffset(), shadowColor, shadowBrush(), stackCount,
+                alphaOnly());
         shadowColor.dispose();
         painter.setWorldTransform(savedTransform);
         savedTransform.dispose();
@@ -80,16 +81,14 @@ public class StackedShadowEffect extends QtDropShadowEffect {
         redrawSourceOverShadow(painter);
     }
 
-    /** Draws the shadow of the source where the source goes, stackCount times, the painter's
-     *  transform reset. */
-    protected static void drawShadow(QPainter painter, QPixmap sourcePixmap, QPoint sourceOffset,
-                                     double blurRadius, double xOffset, double yOffset,
-                                     QColor color, QBrush brush, int stackCount, boolean alphaOnly) {
-        QImage sourceImage = sourcePixmap.toImage();
-        QImage shadow = shadows(List.of(sourceImage), sourceImage.height(), xOffset, yOffset,
-                blurRadius, color, brush, alphaOnly, false).getFirst();
+    /** Draws the shadow of the source at x, y, stackCount times. Consumes the source. */
+    public static void drawShadow(QPainter painter, QImage source, int x, int y,
+                                  double blurRadius, double xOffset, double yOffset,
+                                  QColor color, QBrush brush, int stackCount, boolean alphaOnly) {
+        QImage shadow = shadows(List.of(source), source.height(), xOffset, yOffset, blurRadius,
+                color, brush, alphaOnly, false).getFirst();
         for (int stack = 0; stack < stackCount; stack++)
-            painter.drawImage(sourceOffset, shadow);
+            painter.drawImage(x, y, shadow);
         shadow.dispose();
     }
 
