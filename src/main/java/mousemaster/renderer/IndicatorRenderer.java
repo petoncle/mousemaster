@@ -33,9 +33,6 @@ public final class IndicatorRenderer {
     private Rectangle layersArea;
     private final List<DrawnLayer> drawnLayers = new ArrayList<>();
     private final List<ShadowCast> shadowCasts = new ArrayList<>();
-    private double shadowSourceHorizontalOffset = 8;
-    private double shadowSourceVerticalOffset = 8;
-    private double shadowSourceRadius = 1;
     private Rectangle shadowSourceArea;
     private double shadowScale;
     private List<PositionedLayer> currentLayers;
@@ -855,20 +852,17 @@ public final class IndicatorRenderer {
         image.fill(0);
         QPainter painter = new QPainter(image);
         List<DrawnLayer> layers = drawnLayers.subList(0, currentLayers.size());
-        boolean transparency = indicatorHasTransparency();
-        if (!shadowCasts.isEmpty() || transparency)
-            painter.setClipRect(shadowSourceArea.x(), shadowSourceArea.y(),
-                    shadowSourceArea.width(), shadowSourceArea.height());
         if (!shadowCasts.isEmpty())
             drawShadows(painter, layers);
-        else {
+        if (shadowCasts.isEmpty() || indicatorHasTransparency()) {
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             painter.translate(layersArea.x(), layersArea.y());
-            for (DrawnLayer layer : layers) {
-                if (!transparency)
-                    painter.setClipRect(layer.x(), layer.y(), layer.width(), layer.height());
-                layer.draw(painter, !transparency);
+            if (!shadowCasts.isEmpty()) {
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationOut);
+                drawLayers(painter, layers, true);
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             }
+            drawLayers(painter, layers, false);
         }
         painter.end();
         painter.dispose();
@@ -888,16 +882,6 @@ public final class IndicatorRenderer {
         }
         painter.drawImage(shadowSourceArea.x(), shadowSourceArea.y(), source);
         source.dispose();
-        if (!indicatorHasTransparency())
-            return;
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-        painter.translate(layersArea.x(), layersArea.y());
-        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationOut);
-        for (DrawnLayer layer : layers)
-            layer.draw(painter, true);
-        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-        for (DrawnLayer layer : layers)
-            layer.draw(painter, false);
     }
 
     private QImage shadowSource(List<DrawnLayer> layers) {
@@ -908,13 +892,15 @@ public final class IndicatorRenderer {
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
         painter.translate(layersArea.x() - shadowSourceArea.x(),
                 layersArea.y() - shadowSourceArea.y());
-        for (DrawnLayer layer : layers) {
-            painter.setClipRect(layer.x(), layer.y(), layer.width(), layer.height());
-            layer.draw(painter, true);
-        }
+        drawLayers(painter, layers, true);
         painter.end();
         painter.dispose();
         return source;
+    }
+
+    private static void drawLayers(QPainter painter, List<DrawnLayer> layers, boolean opaque) {
+        for (DrawnLayer layer : layers)
+            layer.draw(painter, opaque);
     }
 
     public static IndicatorImage indicatorImage(QImage image) {
@@ -1015,28 +1001,20 @@ public final class IndicatorRenderer {
                 top = Math.max(top, radius - shadow.verticalOffset() * scale);
                 bottom = Math.max(bottom, radius + shadow.verticalOffset() * scale);
             }
-            shadowSourceHorizontalOffset = (right - left) / 2;
-            shadowSourceVerticalOffset = (bottom - top) / 2;
-            shadowSourceRadius = Math.max(left + right, top + bottom) / 2;
+            double radius = Math.max(left + right, top + bottom) / 2;
+            QRectF layers = new QRectF(layersArea.x(), layersArea.y(), layersArea.width(),
+                    layersArea.height());
+            QRectF shadows = layers.translated((right - left) / 2, (bottom - top) / 2)
+                                   .adjusted(-radius, -radius, radius, radius);
+            QRectF layersAndShadows = layers.united(shadows);
+            QRect source = layersAndShadows.toAlignedRect();
+            shadowSourceArea =
+                    new Rectangle(source.x(), source.y(), source.width(), source.height());
+            layers.dispose();
+            shadows.dispose();
+            layersAndShadows.dispose();
+            source.dispose();
         }
-        else if (!indicatorHasTransparency()) {
-            shadowSourceHorizontalOffset = 8;
-            shadowSourceVerticalOffset = 8;
-            shadowSourceRadius = 1;
-        }
-        QRectF layers = new QRectF(layersArea.x(), layersArea.y(), layersArea.width(),
-                layersArea.height());
-        QRectF shadows =
-                layers.translated(shadowSourceHorizontalOffset, shadowSourceVerticalOffset)
-                      .adjusted(-shadowSourceRadius, -shadowSourceRadius, shadowSourceRadius,
-                              shadowSourceRadius);
-        QRectF layersAndShadows = layers.united(shadows);
-        QRect source = layersAndShadows.toAlignedRect();
-        shadowSourceArea = new Rectangle(source.x(), source.y(), source.width(), source.height());
-        layers.dispose();
-        shadows.dispose();
-        layersAndShadows.dispose();
-        source.dispose();
     }
 
     private Point layersTopLeft() {
