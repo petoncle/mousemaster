@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class HintPointTest {
 
     private final List<Object> mousePositions = new ArrayList<>();
+    private final List<List<Object>> mouseMoveDirections = new ArrayList<>();
     private final List<HintMesh> shownHintMeshes = new ArrayList<>();
     private HintMesh shownHintMesh;
     private double screenScale = 1;
@@ -66,6 +67,8 @@ class HintPointTest {
                         (proxy, method, args) -> {
                             if (method.getName().equals("synchronousMoveTo"))
                                 mousePositions.addAll(List.of(args));
+                            if (method.getName().equals("moveBy"))
+                                mouseMoveDirections.add(List.of(args[0], args[2]));
                             return null;
                         }));
         hintManager = new HintManager(configuration.positionHistoryConfigurationByName(),
@@ -552,6 +555,48 @@ class HintPointTest {
         assertEquals(new Point(214, 125), shownPoint("a"));
         hintManager.update(0.1);
         assertEquals(new Point(221, 132), shownPoint("a"));
+    }
+
+    @Test
+    void anArrowPressedWhileTheTargetMovesJoinsTheMove() throws IOException {
+        start("""
+                hint-mode.overlay.mouse-follows-target=false
+                hint-mode.target.initial-velocity=100
+                hint-mode.target.max-velocity=100
+                hint-mode.target.deceleration=0
+                hint-mode.start-move-target.right=+rightarrow
+                hint-mode.start-move-target.down=_{istargetmoving} +downarrow
+                hint-mode.nudge-target.down=^{istargetmoving} +downarrow
+                """);
+        hintManager.mouseMoved(100, 100);
+        startComboWatcher();
+        press("h");
+        down("rightarrow");
+        hintManager.update(0.1);
+        assertEquals(new Point(110, 100), hintManager.targetPoint());
+        down("downarrow");
+        assertEquals(new Point(110, 100), hintManager.targetPoint());
+        hintManager.update(0.1);
+        assertEquals(new Point(117, 107), hintManager.targetPoint());
+    }
+
+    @Test
+    void anArrowPressedWhileTheMouseMovesTheTargetJoinsTheMove() throws IOException {
+        start("""
+                hint-mode.mouse.initial-velocity=100
+                hint-mode.mouse.max-velocity=100
+                hint-mode.start-move-target.right=+rightarrow
+                hint-mode.start-move-target.down=_{istargetmoving} +downarrow
+                hint-mode.nudge-target.down=^{istargetmoving} +downarrow
+                """);
+        startComboWatcher();
+        press("h");
+        down("rightarrow");
+        mouseManager.update(0.1);
+        down("downarrow");
+        mouseManager.update(0.1);
+        assertEquals(List.of(List.of(true, false), List.of(true, true)), mouseMoveDirections);
+        assertEquals(List.of(), mousePositions);
     }
 
     @Test

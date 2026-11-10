@@ -1598,7 +1598,8 @@ grid-mode.nudge-target.up=_{leftalt leftshift} +uparrow
 - **`start-move-target.<direction>`** / **`stop-move-target.<direction>`**: Start and stop a
   continuous move of the target, with the `target` properties. When the mouse follows the
   target, they move the mouse, with the `mouse` properties. A mode where the mouse follows the
-  target stops a move of the target.
+  target stops a move of the target. `istargetmoving` is pressed while the target moves (see
+  [Built-in virtual keys](combo-reference.md#built-in-virtual-keys)).
 - **`nudge-target.<direction>`**: Moves the target by `target.nudge-distance`, in pixels at a
   100% scale. When the mouse follows the target, it moves the mouse by `mouse.nudge-distance`.
 - **`nudge-hint-points.<direction>`**: Moves the points of the hints (see

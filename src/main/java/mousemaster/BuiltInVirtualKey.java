@@ -13,6 +13,7 @@ public final class BuiltInVirtualKey {
     public static final Key IS_IDLING = new Key("isidling", null, null);
 
     public static final Key IS_MOVING = new Key("ismoving", null, null);
+    public static final Key IS_TARGET_MOVING = new Key("istargetmoving", null, null);
     public static final Key IS_WHEELING = new Key("iswheeling", null, null);
     public static final Key IS_MOUSE_PRESSING = new Key("ismousepressing", null, null);
     public static final Key IS_LEFT_MOUSE_PRESSING =
@@ -34,7 +35,7 @@ public final class BuiltInVirtualKey {
     public static final Key IS_MACOS = new Key("ismacos", null, null);
 
     public static final Set<Key> STATIC_KEYS =
-            Set.of(IS_IDLING, IS_MOVING, IS_WHEELING, IS_MOUSE_PRESSING,
+            Set.of(IS_IDLING, IS_MOVING, IS_TARGET_MOVING, IS_WHEELING, IS_MOUSE_PRESSING,
                     IS_LEFT_MOUSE_PRESSING, IS_MIDDLE_MOUSE_PRESSING,
                     IS_RIGHT_MOUSE_PRESSING, IS_UNHANDLED_KEY_PRESSING,
                     IS_OVERLAY_EMPTY, IS_HINT_POINTS_CENTERED, IS_HINT_POINTS_MOVING,

@@ -487,6 +487,7 @@ Some virtual keys are maintained by mousemaster. They can be read like any other
 | Key                        | Pressed when                                                                                                        |
 |----------------------------|------------------------------------------------------------------------------------------------------------------|
 | `ismoving`                 | mousemaster is moving the mouse.                                                                                 |
+| `istargetmoving`           | mousemaster is moving the target (`start-move-target`). When the mouse follows the target, it is pressed while the mouse moves. |
 | `iswheeling`               | mousemaster is wheeling.                                                                                         |
 | `ismousepressing`          | mousemaster is holding any mouse button.                                                                         |
 | `isleftmousepressing`      | mousemaster is holding the left mouse button.                                                                    |

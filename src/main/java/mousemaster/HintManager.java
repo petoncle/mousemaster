@@ -603,6 +603,11 @@ public class HintManager implements ModeListener, MousePositionListener {
             mouseManager.stopMoveRight();
     }
 
+    public boolean movingTarget() {
+        return currentMode.hintMesh().mouseFollowsTarget() ? mouseManager.moving() :
+                targetMover.moving();
+    }
+
     public void update(double delta) {
         Point move = targetMover.move(delta);
         if (move != null) {
