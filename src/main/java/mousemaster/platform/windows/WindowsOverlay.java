@@ -688,9 +688,7 @@ public class WindowsOverlay implements Overlay {
 
     @Override
     public void setZoom(Zoom zoom) {
-        if (currentZoom != null && currentZoom.equals(zoom))
-            return;
-        if (zoomHwnd == null && zoom == null)
+        if (Objects.equals(currentZoom, zoom))
             return;
         // Magnifying where the hints and the indicator go, over a screen that Direct3D
         // cannot magnify, would send clicks to the wrong place.
