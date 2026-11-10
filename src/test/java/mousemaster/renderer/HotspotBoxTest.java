@@ -39,8 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-/** Hint a is on the element at (200, 200, 200, 40), and its point is at (380, 300). */
-class PointBoxTest {
+/** Hint a is on the element at (200, 200, 200, 40), and its hotspot is at (380, 300). */
+class HotspotBoxTest {
 
     private static final Screen screen = new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1);
     private static final Hint hint = new Hint(300, 220, -1, -1, List.of(Key.ofName("a")),
@@ -52,7 +52,7 @@ class PointBoxTest {
     @BeforeAll
     static void initializeQt() {
         MousemasterApplication.tempDirectory =
-                System.getProperty("java.io.tmpdir") + "/mousemaster-point-box-test";
+                System.getProperty("java.io.tmpdir") + "/mousemaster-hotspot-box-test";
         try {
             QtManager.initialize();
         } catch (Throwable alreadyInitializedByAnotherTest) {
@@ -65,7 +65,7 @@ class PointBoxTest {
         }
     }
 
-    /** Paints into its pixels as the hint point window on Windows does. */
+    /** Paints into its pixels as the hotspot window on Windows does. */
     private static class BufferLayeredWindow implements LayeredWindow {
 
         private final ByteBuffer pixels = ByteBuffer.allocateDirect(
@@ -90,8 +90,8 @@ class PointBoxTest {
         }
     }
 
-    /** The colors at the probes, after the mesh is shown with its point at each of the points in
-     *  turn: the same whether the points are drawn in a hint point window or not. */
+    /** The colors at the probes, after the mesh is shown with its hotspot at each of the points in
+     *  turn: the same whether the hotspots are drawn in a hotspot window or not. */
     private static List<Integer> colors(String properties, List<Hint> savedHints,
                                         List<Point> points, List<Point> probes)
             throws IOException {
@@ -113,16 +113,16 @@ class PointBoxTest {
 
     private static List<Integer> colors(Configuration configuration, List<Hint> savedHints,
                                         List<Point> points, List<Point> probes,
-                                        boolean withHintPointWindow) {
-        List<BufferLayeredWindow> hintPointWindows = new ArrayList<>();
+                                        boolean withHotspotWindow) {
+        List<BufferLayeredWindow> hotspotWindows = new ArrayList<>();
         HintMeshRenderer hintMeshRenderer = new HintMeshRenderer(() -> {
             TransparentWindow window = new TransparentWindow();
             window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen);
             return window;
-        }, withHintPointWindow ? () -> {
-            BufferLayeredWindow hintPointWindow = new BufferLayeredWindow();
-            hintPointWindows.add(hintPointWindow);
-            return hintPointWindow;
+        }, withHotspotWindow ? () -> {
+            BufferLayeredWindow hotspotWindow = new BufferLayeredWindow();
+            hotspotWindows.add(hotspotWindow);
+            return hotspotWindow;
         } : null, () -> {
         });
         for (Point point : points) {
@@ -131,7 +131,7 @@ class PointBoxTest {
                     .hints(List.of(hint))
                     .savedHints(savedHints)
                     .backgroundArea(screen.rectangle())
-                    .pointByKeySequence(point == null ? Map.of() : Map.of(hint.keySequence(), point))
+                    .hotspotByKeySequence(point == null ? Map.of() : Map.of(hint.keySequence(), point))
                     .styleByFilter(configuration.modeMap().get("hint-mode").hintMesh()
                                                 .styleByFilter())
                     .build();
@@ -148,12 +148,12 @@ class PointBoxTest {
                 QImage.Format.Format_ARGB32_Premultiplied);
         image.fill(0);
         QPainter painter = new QPainter(image);
-        for (BufferLayeredWindow hintPointWindow : hintPointWindows) {
-            QImage hintPointImage = new QImage(hintPointWindow.pixels,
+        for (BufferLayeredWindow hotspotWindow : hotspotWindows) {
+            QImage hotspotImage = new QImage(hotspotWindow.pixels,
                     screen.rectangle().width(), screen.rectangle().height(),
                     QImage.Format.Format_ARGB32_Premultiplied);
-            painter.drawImage(0, 0, hintPointImage);
-            hintPointImage.dispose();
+            painter.drawImage(0, 0, hotspotImage);
+            hotspotImage.dispose();
         }
         for (TransparentWindow window : hintMeshRenderer.windows()) {
             if (!window.isVisible())
@@ -175,46 +175,46 @@ class PointBoxTest {
     }
 
     @Test
-    void aMovedPointShowsItsBoxAndALineFromTheHintBoxBehindIt() throws IOException {
+    void aMovedHotspotShowsItsBoxAndALineFromTheHintBoxBehindIt() throws IOException {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         assertEquals(List.of(0xFFFF0000, 0xFF00FF00, 0xFF0000FF), colors("""
-                hint-mode.overlay.point-box-width=10
-                hint-mode.overlay.point-box-height=10
-                hint-mode.overlay.point-box-color=#FF0000
-                hint-mode.overlay.point-box-opacity=1
-                hint-mode.overlay.point-box-border-thickness=0
-                hint-mode.overlay.point-line-thickness=4
-                hint-mode.overlay.point-line-color=#00FF00
-                hint-mode.overlay.point-line-opacity=1
+                hint-mode.overlay.hotspot-box-width=10
+                hint-mode.overlay.hotspot-box-height=10
+                hint-mode.overlay.hotspot-box-color=#FF0000
+                hint-mode.overlay.hotspot-box-opacity=1
+                hint-mode.overlay.hotspot-box-border-thickness=0
+                hint-mode.overlay.hotspot-line-thickness=4
+                hint-mode.overlay.hotspot-line-color=#00FF00
+                hint-mode.overlay.hotspot-line-opacity=1
                 """, List.of(), List.of(new Point(380, 300)), probes));
     }
 
     @Test
-    void aPointThatMovesAgainLeavesNothingWhereItWas() throws IOException {
+    void aHotspotThatMovesAgainLeavesNothingWhereItWas() throws IOException {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         assertEquals(List.of(0, 0, 0xFFFF0000, 0xFF00FF00, 0xFF0000FF), colors("""
-                hint-mode.overlay.point-box-width=10
-                hint-mode.overlay.point-box-height=10
-                hint-mode.overlay.point-box-color=#FF0000
-                hint-mode.overlay.point-box-opacity=1
-                hint-mode.overlay.point-box-border-thickness=0
-                hint-mode.overlay.point-line-thickness=4
-                hint-mode.overlay.point-line-color=#00FF00
-                hint-mode.overlay.point-line-opacity=1
+                hint-mode.overlay.hotspot-box-width=10
+                hint-mode.overlay.hotspot-box-height=10
+                hint-mode.overlay.hotspot-box-color=#FF0000
+                hint-mode.overlay.hotspot-box-opacity=1
+                hint-mode.overlay.hotspot-box-border-thickness=0
+                hint-mode.overlay.hotspot-line-thickness=4
+                hint-mode.overlay.hotspot-line-color=#00FF00
+                hint-mode.overlay.hotspot-line-opacity=1
                 """, List.of(), List.of(new Point(380, 300), new Point(500, 220)),
                 List.of(new Point(380, 300), new Point(360, 280), new Point(500, 220),
                         new Point(450, 220), new Point(300, 220))));
     }
 
     @Test
-    void anAcrossHintSweepMovesWithItsPointBox() throws IOException {
+    void anAcrossHintSweepMovesWithItsHotspotBox() throws IOException {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         List<Integer> colors = colors("""
-                hint-mode.overlay.point-box-width=10
-                hint-mode.overlay.point-box-height=10
-                hint-mode.overlay.point-box-color=across-hint per-pixel top-to-bottom #FF0000 #0000FF
-                hint-mode.overlay.point-box-opacity=1
-                hint-mode.overlay.point-box-border-thickness=0
+                hint-mode.overlay.hotspot-box-width=10
+                hint-mode.overlay.hotspot-box-height=10
+                hint-mode.overlay.hotspot-box-color=across-hint per-pixel top-to-bottom #FF0000 #0000FF
+                hint-mode.overlay.hotspot-box-opacity=1
+                hint-mode.overlay.hotspot-box-border-thickness=0
                 """, List.of(), List.of(new Point(380, 300), new Point(500, 220)),
                 List.of(new Point(500, 216), new Point(500, 224)));
         assertTrue((colors.getFirst() >> 16 & 0xFF) > (colors.getFirst() & 0xFF));
@@ -225,14 +225,14 @@ class PointBoxTest {
     void anAcrossHintLineTakesTheColorAtTheCenterOfItsBox() throws IOException {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         List<Integer> colors = colors("""
-                hint-mode.overlay.point-box-width=11
-                hint-mode.overlay.point-box-height=11
-                hint-mode.overlay.point-box-color=across-hint per-pixel top-to-bottom #FF0000 #0000FF
-                hint-mode.overlay.point-box-opacity=1
-                hint-mode.overlay.point-box-border-thickness=0
-                hint-mode.overlay.point-line-thickness=4
-                hint-mode.overlay.point-line-color=across-hint per-pixel top-to-bottom #FF0000 #0000FF
-                hint-mode.overlay.point-line-opacity=1
+                hint-mode.overlay.hotspot-box-width=11
+                hint-mode.overlay.hotspot-box-height=11
+                hint-mode.overlay.hotspot-box-color=across-hint per-pixel top-to-bottom #FF0000 #0000FF
+                hint-mode.overlay.hotspot-box-opacity=1
+                hint-mode.overlay.hotspot-box-border-thickness=0
+                hint-mode.overlay.hotspot-line-thickness=4
+                hint-mode.overlay.hotspot-line-color=across-hint per-pixel top-to-bottom #FF0000 #0000FF
+                hint-mode.overlay.hotspot-line-opacity=1
                 """, List.of(), List.of(new Point(380, 300)), probes);
         for (int shift : List.of(16, 8, 0))
             assertTrue(Math.abs((colors.get(0) >> shift & 0xFF) - (colors.get(1) >> shift & 0xFF))
@@ -240,29 +240,29 @@ class PointBoxTest {
     }
 
     @Test
-    void aHintThatLosesItsPointShowsNoPointBox() throws IOException {
+    void aHintThatLosesItsHotspotShowsNoHotspotBox() throws IOException {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         assertEquals(List.of(0, 0xFF0000FF), colors("""
-                hint-mode.overlay.point-box-width=10
-                hint-mode.overlay.point-box-height=10
-                hint-mode.overlay.point-box-color=#FF0000
-                hint-mode.overlay.point-box-opacity=1
+                hint-mode.overlay.hotspot-box-width=10
+                hint-mode.overlay.hotspot-box-height=10
+                hint-mode.overlay.hotspot-box-color=#FF0000
+                hint-mode.overlay.hotspot-box-opacity=1
                 """, List.of(), Arrays.asList(new Point(380, 300), new Point(390, 300), null),
                 List.of(new Point(390, 300), new Point(300, 220))));
     }
 
     @Test
-    void aSavedHintTakesTheSavedColorsOfItsPointBox() throws IOException {
+    void aSavedHintTakesTheSavedColorsOfItsHotspotBox() throws IOException {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         assertEquals(0xFFFFFF00, colors("""
-                hint-mode.overlay.point-box-color=#FF0000
-                hint-mode.overlay.point-box-opacity=1
-                hint-mode.overlay.saved-point-box-color=#FFFF00
+                hint-mode.overlay.hotspot-box-color=#FF0000
+                hint-mode.overlay.hotspot-box-opacity=1
+                hint-mode.overlay.saved-hotspot-box-color=#FFFF00
                 """, List.of(hint), List.of(new Point(380, 300)), probes).getFirst());
     }
 
     @Test
-    void aPointShowsNothingByDefault() throws IOException {
+    void aHotspotShowsNothingByDefault() throws IOException {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         assertEquals(List.of(0, 0, 0xFF0000FF),
                 colors("", List.of(), List.of(new Point(380, 300)), probes));
@@ -272,10 +272,10 @@ class PointBoxTest {
     void theBackgroundCoversItsAreaAroundTheHints() throws IOException {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         assertEquals(List.of(0xFFFF0000, 0xFFFFFF00), colors("""
-                hint-mode.overlay.point-box-width=10
-                hint-mode.overlay.point-box-height=10
-                hint-mode.overlay.point-box-color=#FF0000
-                hint-mode.overlay.point-box-opacity=1
+                hint-mode.overlay.hotspot-box-width=10
+                hint-mode.overlay.hotspot-box-height=10
+                hint-mode.overlay.hotspot-box-color=#FF0000
+                hint-mode.overlay.hotspot-box-opacity=1
                 hint-mode.overlay.background-color=#FFFF00
                 hint-mode.overlay.background-opacity=1
                 """, List.of(), List.of(new Point(380, 300)),

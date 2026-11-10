@@ -269,7 +269,7 @@ public class Mousemaster {
         // ComboWatcher is the sole broadcaster to ModeListeners: it broadcasts
         // on mode switch (delegated from ModeController) and on mode mutation.
         // ZoomManager must be notified after HintManager because it calls
-        // lastSelectedHintPoint() which is updated by HintManager#modeChanged. IndicatorManager
+        // lastSelectedHotspot() which is updated by HintManager#modeChanged. IndicatorManager
         // draws with the state of both.
         comboWatcher.setModeListeners(
                 List.of(platform, mouseManager, hintManager, zoomManager,

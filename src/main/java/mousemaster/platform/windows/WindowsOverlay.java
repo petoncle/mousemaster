@@ -33,12 +33,12 @@ public class WindowsOverlay implements Overlay {
     private final List<WindowsLayeredWindow> followingIndicatorWindows = new ArrayList<>();
     private final List<IndicatorRenderer> anchoredIndicatorRenderers = new ArrayList<>();
     private final List<WindowsLayeredWindow> anchoredIndicatorWindows = new ArrayList<>();
-    private final List<WindowsLayeredWindow> hintPointWindows = new ArrayList<>();
+    private final List<WindowsLayeredWindow> hotspotWindows = new ArrayList<>();
     private final Set<TransparentWindow> hintMeshWindowsShowingNothing = new HashSet<>();
     private final Map<TransparentWindow, Double> opacityByInvisibleHintMeshWindow =
             new HashMap<>();
     private List<WindowsLayeredWindow> unsentLayeredWindows = List.of();
-    /** After a mode change, the hint point windows go out with the indicator, drawn last. */
+    /** After a mode change, the hotspot windows go out with the indicator, drawn last. */
     private boolean indicatorDrawPending;
     private final Map<IndicatorLayerCopyKey, IndicatorRenderer>
             anchoredIndicatorRendererByCopyKey = new LinkedHashMap<>();
@@ -73,7 +73,7 @@ public class WindowsOverlay implements Overlay {
     public WindowsOverlay(WindowsMouseController mouse) {
         this.mouse = mouse;
         hintMeshRenderer = new HintMeshRenderer(this::createStyledHintMeshWindow,
-                this::createHintPointWindow, this::hintMeshEndAnimationEndedCallback);
+                this::createHotspotWindow, this::hintMeshEndAnimationEndedCallback);
     }
 
     @Override
@@ -104,7 +104,7 @@ public class WindowsOverlay implements Overlay {
     @Override
     public void runPendingHintMeshWork() {
         hintMeshRenderer.runPendingWork();
-        sendHintPointWindows();
+        sendHotspotWindows();
     }
 
     @Override
@@ -345,7 +345,7 @@ public class WindowsOverlay implements Overlay {
                                     boolean orderChanged) {
         indicatorDrawPending = false;
         List<WindowsLayeredWindow> windows = new ArrayList<>(changedWindows);
-        hintPointWindows.stream().filter(WindowsLayeredWindow::changed).forEach(windows::add);
+        hotspotWindows.stream().filter(WindowsLayeredWindow::changed).forEach(windows::add);
         if (orderChanged)
             setTopmost();
         windows.forEach(WindowsLayeredWindow::sendHidden);
@@ -391,9 +391,9 @@ public class WindowsOverlay implements Overlay {
         window.setWindowOpacity(0);
     }
 
-    private void sendHintPointWindows() {
+    private void sendHotspotWindows() {
         if (!indicatorDrawPending &&
-            hintPointWindows.stream().anyMatch(WindowsLayeredWindow::changed))
+            hotspotWindows.stream().anyMatch(WindowsLayeredWindow::changed))
             sendLayeredWindows(List.of(), false);
     }
 
@@ -457,22 +457,22 @@ public class WindowsOverlay implements Overlay {
         return window;
     }
 
-    private LayeredWindow createHintPointWindow() {
-        WindowsLayeredWindow hintPointWindow =
+    private LayeredWindow createHotspotWindow() {
+        WindowsLayeredWindow hotspotWindow =
                 createLayeredWindow(false, hintMeshExcludedFromCapture);
-        hintPointWindow.clear();
-        hintPointWindow.send();
-        hintPointWindows.add(hintPointWindow);
-        return hintPointWindow;
+        hotspotWindow.clear();
+        hotspotWindow.send();
+        hotspotWindows.add(hotspotWindow);
+        return hotspotWindow;
     }
 
-    /** The hint mesh windows, above the hint point windows. */
+    /** The hint mesh windows, above the hotspot windows. */
     private List<WinDef.HWND> hintMeshHwnds() {
         List<WinDef.HWND> hwnds = new ArrayList<>();
         for (TransparentWindow window : hintMeshRenderer.windows())
             hwnds.add(hwnd(window));
-        for (WindowsLayeredWindow hintPointWindow : hintPointWindows)
-            hwnds.add(hintPointWindow.hwnd());
+        for (WindowsLayeredWindow hotspotWindow : hotspotWindows)
+            hwnds.add(hotspotWindow.hwnd());
         return hwnds;
     }
 
@@ -611,14 +611,14 @@ public class WindowsOverlay implements Overlay {
         if (!renderAsCursor && !indicatorIsCursor &&
             windowLayerGroups.equals(currentWindowLayerGroups) && indicatorByCopyKey.isEmpty() &&
             this.indicatorByCopyKey.isEmpty() && layerNamesToAnchor.isEmpty()) {
-            sendHintPointWindows();
+            sendHotspotWindows();
             return;
         }
         if (mouse.tryFindMousePosition() == null) {
             if (!mousePositionMissing)
                 logger.warn("Unable to find mouse position for indicator");
             mousePositionMissing = true;
-            sendHintPointWindows();
+            sendHotspotWindows();
             return;
         }
         mousePositionMissing = false;
@@ -772,13 +772,13 @@ public class WindowsOverlay implements Overlay {
     @Override
     public void animateHintMatch(Hint hint) {
         hintMeshRenderer.animateHintMatch(hint, WindowsScreen.findScreens());
-        sendHintPointWindows();
+        sendHotspotWindows();
     }
 
     @Override
     public void stopHintMatchAnimation() {
         hintMeshRenderer.stopHintMatchAnimation();
-        sendHintPointWindows();
+        sendHotspotWindows();
     }
 
     @Override
@@ -797,13 +797,13 @@ public class WindowsOverlay implements Overlay {
         hintMeshRenderer.setHintMesh(hintMesh, zoom, animate, WindowsScreen.findScreens());
         if (!wasShowing)
             setTopmost();
-        sendHintPointWindows();
+        sendHotspotWindows();
     }
 
     @Override
     public void hideHintMesh() {
         hintMeshRenderer.hideHintMesh();
-        sendHintPointWindows();
+        sendHotspotWindows();
     }
 
     @Override

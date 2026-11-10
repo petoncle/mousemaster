@@ -5,7 +5,7 @@ import mousemaster.Rectangle;
 
 import java.util.function.BiConsumer;
 
-/** The window under a hint mesh window that the hint points, and what is under them, are drawn
+/** The window under a hint mesh window that the hotspots, and what is under them, are drawn
  *  in, so that they move without the hint mesh window being painted again. */
 public interface LayeredWindow {
 

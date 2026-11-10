@@ -11,7 +11,7 @@
 - [Mouse properties](#mouse-properties)
 - [Wheel properties](#wheel-scrolling-properties)
 - [Target properties](#target-properties)
-- [Hint point properties](#hint-point-properties)
+- [Hotspot properties](#hotspot-properties)
 - [Indicator properties](#indicator-properties)
 - [Cursor properties](#cursor-properties)
 - [Zoom properties](#zoom-properties)
@@ -322,23 +322,23 @@ The speed of `start-move-target` and the distance of `nudge-target` when the mou
 follow the target. The properties mean what the mouse ones do, with the same defaults. The target
 has no smooth jump.
 
-### Hint point properties
+### Hotspot properties
 
 ```properties
-hint-mode.hint-points.cell-x-percent=0.25
-hint-mode.hint-points.cell-y-percent=1
-hint-mode.hint-points.initial-velocity=30
-hint-mode.hint-points.max-velocity=130
-hint-mode.hint-points.acceleration=170
-hint-mode.hint-points.nudge-distance=4
+hint-mode.hotspots.cell-x-percent=0.25
+hint-mode.hotspots.cell-y-percent=1
+hint-mode.hotspots.initial-velocity=30
+hint-mode.hotspots.max-velocity=130
+hint-mode.hotspots.acceleration=170
+hint-mode.hotspots.nudge-distance=4
 ```
 
-- **`cell-x-percent`** / **`cell-y-percent`**: Where the point of each hint is, across and down
+- **`cell-x-percent`** / **`cell-y-percent`**: Where the hotspot of each hint is, across and down
   its cell, from `0` to `1` (default `0.5`, the center). `1` is the last pixel of the cell.
-- The other properties are the speed of `start-move-hint-points` and the distance of
-  `nudge-hint-points`. They mean what the mouse ones do, with the same defaults.
+- The other properties are the speed of `start-move-hotspots` and the distance of
+  `nudge-hotspots`. They mean what the mouse ones do, with the same defaults.
 
-See [Hint points](#hint-points).
+See [Hotspots](#hotspots).
 
 ### Indicator properties
 
@@ -550,7 +550,7 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
   ```
 - **`position-anchor`** / **`end-position-anchor`**: Each position is a point on the screen. Some
   positions also have a hint: `last-selected-hint` always has one, and a saved position has one
-  when the user saved it at the point of the last selected hint. `position-anchor` sets where a
+  when the user saved it at the hotspot of the last selected hint. `position-anchor` sets where a
   layer with an `end-position` starts, and `end-position-anchor` sets where it stops. Without an
   `end-position`, a hint anchor puts the layer over the hint box or the hint cell, as an `area`
   does, and the `area-*-inset` of the layer apply to it:
@@ -1203,7 +1203,7 @@ hint-mode.overlay.label-override=plus
   mode, not overlay properties. `move-to` moves the mouse to the point, and `move-target-to` the
   target:
   - `target` (`move-to` only) and `mouse` (`move-target-to` only).
-  - `last-selected-hint`: the point of the last selected hint (see [Hint points](#hint-points)).
+  - `last-selected-hint`: the hotspot of the last selected hint (see [Hotspots](#hotspots)).
   - `overlay-center`: the center of the hints that the selection keys keep, the point that
     `target-follows-overlay-center` uses.
   - `cell-center`: the center of the cell that the point is in, or of the nearest cell. When the
@@ -1220,39 +1220,40 @@ hint-mode.overlay.label-override=plus
 - **`eat-unused-selection-keys`**: If `false`, selection keys not used in the current hint display can be used in combos
 - **`label-override`**: Draws a fixed marker in every hint cell instead of each hint's own keys — visual only, you still press the real keys to select. The value is a key sequence rendered as the label: `plus` shows `+`, `plus plus` shows `++`. Useful for positional grids (e.g. a 3×3 recursive grid) where the per-cell letters are just clutter. Default: unset (each hint shows its own key sequence).
 
-### Hint points
+### Hotspots
 
-The point of a hint is where a selection of the hint puts the target. The
-[hint point properties](#hint-point-properties) `cell-x-percent` and `cell-y-percent` put the
-points of all the hints at the same place of their cells, the center by default. The box of a hint
-stays at the center. Before you select a hint, a key [mutation](#mode-property-mutation) moves the
-points: here, the first left arrow takes them to the left edges, and 3 a quarter across.
+The hotspot of a hint is where a selection of the hint puts the target, as the hotspot of a
+cursor is the one point of its image that clicks. The [hotspot properties](#hotspot-properties)
+`cell-x-percent` and `cell-y-percent` put the hotspots of all the hints at the same place of their
+cells, the center by default. The box of a hint stays at the center. Before you select a hint, a
+key [mutation](#mode-property-mutation) moves the hotspots: here, the first left arrow takes them
+to the left edges, and 3 a quarter across.
 
 ```properties
-hint-mode.hint-points.cell-x-percent=0.5 | _{ishintpointscentered} +leftarrow -> 0 \
+hint-mode.hotspots.cell-x-percent=0.5 | _{ishotspotscentered} +leftarrow -> 0 \
     | +1 -> 0 | +2 -> 0.125 | +3 -> 0.25
-hint-mode.nudge-hint-points.left=^{ishintpointscentered} +leftarrow
-hint-mode.hint-points.nudge-distance=4 | _{leftctrl} -> 2
+hint-mode.nudge-hotspots.left=^{ishotspotscentered} +leftarrow
+hint-mode.hotspots.nudge-distance=4 | _{leftctrl} -> 2
 ```
 
-- **`nudge-hint-points.<direction>`**: Moves the points by the `hint-points.nudge-distance` of the
+- **`nudge-hotspots.<direction>`**: Moves the hotspots by the `hotspots.nudge-distance` of the
   mode, in pixels at a 100% scale.
-- **`start-move-hint-points.<direction>`** / **`stop-move-hint-points.<direction>`**: Start and
-  stop a continuous move of the points, with the `hint-points` speed of the mode.
-- A point can leave its cell with a nudge or a move, but not the screen of its hint. Once every
-  point is at the edge of its screen, a nudge or a move that way does nothing.
+- **`start-move-hotspots.<direction>`** / **`stop-move-hotspots.<direction>`**: Start and
+  stop a continuous move of the hotspots, with the `hotspots` speed of the mode.
+- A hotspot can leave its cell with a nudge or a move, but not the screen of its hint. Once every
+  hotspot is at the edge of its screen, a nudge or a move that way does nothing.
 - A new `cell-x-percent` undoes the nudges and moves across, and a new `cell-y-percent` the ones
   down.
 - A mode without hints undoes the nudges and moves, and stops a move. A mode that gives the
-  `hint-points` properties the same values on the same combos keeps the points, such as
-  `pick-mode.hint-points=hint-mode.hint-points`.
-- A hint without a cell, such as a saved position, keeps its point at its center.
-- `ishintpointscentered` is pressed while the points are at the centers, and `ishintpointsmoving`
+  `hotspots` properties the same values on the same combos keeps the hotspots, such as
+  `pick-mode.hotspots=hint-mode.hotspots`.
+- A hint without a cell, such as a saved position, keeps its hotspot at its center.
+- `ishotspotscentered` is pressed while the hotspots are at the centers, and `ishotspotsmoving`
   while they move (see [Built-in virtual keys](combo-reference.md#built-in-virtual-keys)).
 - A hint saved in the overlay's `saved-hints` history has the position it was saved at as its
-  point: it does not move with the other points.
-- The overlay draws the point of each hint that is not at the center of its cell, behind the
-  boxes, with `point-box-*` and `point-line-*` (see [Hint appearance](#hint-appearance)).
+  hotspot: it does not move with the other hotspots.
+- The overlay draws the hotspot of each hint that is not at the center of its cell, behind the
+  boxes, with `hotspot-box-*` and `hotspot-line-*` (see [Hint appearance](#hint-appearance)).
 
 ### Hint appearance
 
@@ -1392,17 +1393,17 @@ hint-mode.overlay.background-opacity=0
     hint-mode.overlay.box-border-color=across-screen per-pixel center-to-edge #F97316 #3B82F6
     ```
   - `saved-box-color`, `saved-box-opacity`, `saved-box-border-color`, `saved-box-border-opacity` and
-    the same four `saved-ui-element-box-` and `saved-point-box-` properties: the box of a hint at a
-    saved position (see [Saved hints](#saved-hints)).
-  - `point-box-width` and `point-box-height` (pixels, default `8`), `point-box-color` (default
-    `#000000`), `point-box-opacity` (default `0`), `point-box-border-thickness` (default `1`),
-    `point-box-border-color` (default `#FFFFFF`), `point-box-border-opacity` (default `0`) and
-    `point-box-border-radius` (default `0`): the box drawn at the point of a hint that is not at
-    the center of its cell (see [Hint points](#hint-points)). A radius of half the size makes it a
+    the same four `saved-ui-element-box-` and `saved-hotspot-box-` properties: the box of a hint at
+    a saved position (see [Saved hints](#saved-hints)).
+  - `hotspot-box-width` and `hotspot-box-height` (pixels, default `8`), `hotspot-box-color` (default
+    `#000000`), `hotspot-box-opacity` (default `0`), `hotspot-box-border-thickness` (default `1`),
+    `hotspot-box-border-color` (default `#FFFFFF`), `hotspot-box-border-opacity` (default `0`) and
+    `hotspot-box-border-radius` (default `0`): the box drawn at the hotspot of a hint that is not at
+    the center of its cell (see [Hotspots](#hotspots)). A radius of half the size makes it a
     dot.
-  - `point-line-thickness` (default `1`), `point-line-color` (default `#FFFFFF`) and
-    `point-line-opacity` (default `0`): a line from the edge of the hint box to that point, when
-    the point is outside the hint box.
+  - `hotspot-line-thickness` (default `1`), `hotspot-line-color` (default `#FFFFFF`) and
+    `hotspot-line-opacity` (default `0`): a line from the edge of the hint box to that hotspot,
+    when the hotspot is outside the hint box.
   - `box-border-length`: Higher values create continuous lines between hint boxes, lower values create dotted separators
   - `box-border-radius`: Radius for rounded corners (0-1000, default 0).
   - `box-shadow-blur-radius`: Shadow blur radius (0-1000, default 10).
@@ -1602,18 +1603,17 @@ grid-mode.nudge-target.up=_{leftalt leftshift} +uparrow
   [Built-in virtual keys](combo-reference.md#built-in-virtual-keys)).
 - **`nudge-target.<direction>`**: Moves the target by `target.nudge-distance`, in pixels at a
   100% scale. When the mouse follows the target, it moves the mouse by `mouse.nudge-distance`.
-- **`nudge-hint-points.<direction>`**: Moves the points of the hints (see
-  [Hint points](#hint-points)).
-- **`start-move-hint-points.<direction>`** / **`stop-move-hint-points.<direction>`**: Start and
-  stop a continuous move of the points of the hints (see [Hint points](#hint-points)).
+- **`nudge-hotspots.<direction>`**: Moves the hotspots (see [Hotspots](#hotspots)).
+- **`start-move-hotspots.<direction>`** / **`stop-move-hotspots.<direction>`**: Start and
+  stop a continuous move of the hotspots (see [Hotspots](#hotspots)).
 
 A command name says what it acts on: `move-target-to`, `start-move-target` and `nudge-target`
-move the target, `start-move-hint-points` and `nudge-hint-points` move the points of the hints,
+move the target, `start-move-hotspots` and `nudge-hotspots` move the hotspots,
 and `move-overlay-to` and `shrink-overlay` change the overlay area. A name that says nothing,
 such as `start-move`, `nudge` or `move-to`, moves the mouse. `move-to`, `move-target-to` and
-`move-overlay-to` jump to a destination, `nudge`, `nudge-target` and `nudge-hint-points` move by
-a distance, and `start-move`, `start-move-target` and `start-move-hint-points` move until
-`stop-move`, `stop-move-target` and `stop-move-hint-points`.
+`move-overlay-to` jump to a destination, `nudge`, `nudge-target` and `nudge-hotspots` move by
+a distance, and `start-move`, `start-move-target` and `start-move-hotspots` move until
+`stop-move`, `stop-move-target` and `stop-move-hotspots`.
 
 The overlay area is the area of the overlay, or the cells that the typed selection keys keep. After
 `shrink-overlay` or `move-overlay-to`, the overlay shows what is in its new area: a grid lays its
@@ -1675,7 +1675,7 @@ normal-mode.clear.position-history=+f2
 ```
 
 - **`max-size`**: Maximum number of positions that can be stored, 1-100 (older positions are removed when this limit is reached). Default 16.
-- **`save`**: Command to save the position of the target to history. When the target is on the point of the last selected hint, the history also keeps that hint (see [Saved hints](#saved-hints) and the indicator's `position-anchor`)
+- **`save`**: Command to save the position of the target to history. When the target is on the hotspot of the last selected hint, the history also keeps that hint (see [Saved hints](#saved-hints) and the indicator's `position-anchor`)
 - **`unsave`**: Command to remove the saved position the target is on
 - **`toggle-save`**: Command to `unsave` the target when it is on a saved position, and to `save` it when it is not
 - **`clear`**: Command to clear all saved positions
@@ -1761,12 +1761,12 @@ ui-hint-mode.overlay.saved-font-color=#000000
 ```
 
 - A hint is saved when a position of the history was saved at it: the user saved the position at
-  the point of the last selected hint. The overlay finds that hint again by its element (UI hints),
-  by its cell (grids), or by its center when it has neither. A position saved anywhere else marks
-  no hint.
+  the hotspot of the last selected hint. The overlay finds that hint again by its element (UI
+  hints), by its cell (grids), or by its center when it has neither. A position saved anywhere else
+  marks no hint.
 - `saved-box-color`, `saved-box-opacity`, `saved-box-border-color`, `saved-box-border-opacity`,
   `saved-ui-element-box-color`, `saved-ui-element-box-opacity`, `saved-ui-element-box-border-color`,
-  `saved-ui-element-box-border-opacity` and the same four `saved-point-box-` properties replace
+  `saved-ui-element-box-border-opacity` and the same four `saved-hotspot-box-` properties replace
   the values of the box for a saved hint. A value that is not set is the value of the box,
   mutations included.
 - The `saved-font-*` properties replace every font state in the keys of a saved hint: default,

@@ -6857,47 +6857,47 @@
           "parameterTypes": []
         },
         {
-          "name": "pointBoxWidth",
+          "name": "hotspotBoxWidth",
           "parameterTypes": []
         },
         {
-          "name": "pointBoxHeight",
+          "name": "hotspotBoxHeight",
           "parameterTypes": []
         },
         {
-          "name": "pointBoxColor",
+          "name": "hotspotBoxColor",
           "parameterTypes": []
         },
         {
-          "name": "pointBoxOpacity",
+          "name": "hotspotBoxOpacity",
           "parameterTypes": []
         },
         {
-          "name": "pointBoxBorderThickness",
+          "name": "hotspotBoxBorderThickness",
           "parameterTypes": []
         },
         {
-          "name": "pointBoxBorderColor",
+          "name": "hotspotBoxBorderColor",
           "parameterTypes": []
         },
         {
-          "name": "pointBoxBorderOpacity",
+          "name": "hotspotBoxBorderOpacity",
           "parameterTypes": []
         },
         {
-          "name": "pointBoxBorderRadius",
+          "name": "hotspotBoxBorderRadius",
           "parameterTypes": []
         },
         {
-          "name": "pointLineThickness",
+          "name": "hotspotLineThickness",
           "parameterTypes": []
         },
         {
-          "name": "pointLineColor",
+          "name": "hotspotLineColor",
           "parameterTypes": []
         },
         {
-          "name": "pointLineOpacity",
+          "name": "hotspotLineOpacity",
           "parameterTypes": []
         },
         {
@@ -6933,19 +6933,19 @@
           "parameterTypes": []
         },
         {
-          "name": "savedPointBoxColor",
+          "name": "savedHotspotBoxColor",
           "parameterTypes": []
         },
         {
-          "name": "savedPointBoxOpacity",
+          "name": "savedHotspotBoxOpacity",
           "parameterTypes": []
         },
         {
-          "name": "savedPointBoxBorderColor",
+          "name": "savedHotspotBoxBorderColor",
           "parameterTypes": []
         },
         {
-          "name": "savedPointBoxBorderOpacity",
+          "name": "savedHotspotBoxBorderOpacity",
           "parameterTypes": []
         },
         {
@@ -7009,7 +7009,7 @@
       ]
     },
     {
-      "type": "mousemaster.HintPointConfiguration",
+      "type": "mousemaster.HotspotConfiguration",
       "methods": [
         {
           "name": "<init>",
@@ -7333,7 +7333,7 @@
             "mousemaster.ComboMap",
             "mousemaster.MovementConfiguration",
             "mousemaster.MovementConfiguration",
-            "mousemaster.HintPointConfiguration",
+            "mousemaster.HotspotConfiguration",
             "mousemaster.Wheel",
             "mousemaster.HintMeshConfiguration",
             "mousemaster.ModeTimeout",
@@ -7378,7 +7378,7 @@
           "parameterTypes": []
         },
         {
-          "name": "hintPoints",
+          "name": "hotspots",
           "parameterTypes": []
         },
         {

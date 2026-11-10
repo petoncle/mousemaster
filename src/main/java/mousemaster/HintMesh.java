@@ -16,14 +16,14 @@ public record HintMesh(boolean visible, boolean excludeFromCapture, List<Hint> h
                        ScreenFilterMap<HintMeshStyle> styleByFilter,
                        Rectangle area, Rectangle backgroundArea, HintMesh decoration,
                        HintMesh subDecoration, List<Hint> savedHints,
-                       Map<List<Key>, Point> pointByKeySequence) {
+                       Map<List<Key>, Point> hotspotByKeySequence) {
 
     public HintMeshBuilder builder() {
         return new HintMeshBuilder(this);
     }
 
-    public Point point(Hint hint) {
-        return pointByKeySequence.getOrDefault(hint.keySequence(),
+    public Point hotspot(Hint hint) {
+        return hotspotByKeySequence.getOrDefault(hint.keySequence(),
                 new Point(hint.centerX(), hint.centerY()));
     }
 
@@ -52,7 +52,7 @@ public record HintMesh(boolean visible, boolean excludeFromCapture, List<Hint> h
         private HintMesh decoration;
         private HintMesh subDecoration;
         private List<Hint> savedHints = List.of();
-        private Map<List<Key>, Point> pointByKeySequence = Map.of();
+        private Map<List<Key>, Point> hotspotByKeySequence = Map.of();
 
         public HintMeshBuilder() {
         }
@@ -69,7 +69,7 @@ public record HintMesh(boolean visible, boolean excludeFromCapture, List<Hint> h
             this.decoration = hintMesh.decoration;
             this.subDecoration = hintMesh.subDecoration;
             this.savedHints = hintMesh.savedHints;
-            this.pointByKeySequence = hintMesh.pointByKeySequence;
+            this.hotspotByKeySequence = hintMesh.hotspotByKeySequence;
         }
 
 
@@ -165,15 +165,15 @@ public record HintMesh(boolean visible, boolean excludeFromCapture, List<Hint> h
             return this;
         }
 
-        public HintMeshBuilder pointByKeySequence(Map<List<Key>, Point> pointByKeySequence) {
-            this.pointByKeySequence = pointByKeySequence;
+        public HintMeshBuilder hotspotByKeySequence(Map<List<Key>, Point> hotspotByKeySequence) {
+            this.hotspotByKeySequence = hotspotByKeySequence;
             return this;
         }
 
         public HintMesh build() {
             return new HintMesh(visible, excludeFromCapture, hints, prefixLength,
                     selectedKeySequence, styleByFilter, area, backgroundArea, decoration,
-                    subDecoration, savedHints, pointByKeySequence);
+                    subDecoration, savedHints, hotspotByKeySequence);
         }
     }
 

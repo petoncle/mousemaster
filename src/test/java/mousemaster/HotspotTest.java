@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Hint a is on the element at (100, 100, 200, 50), hint b on the one at (500, 500, 100, 100). */
-class HintPointTest {
+class HotspotTest {
 
     private final List<Object> mousePositions = new ArrayList<>();
     private final List<List<Object>> mouseMoveDirections = new ArrayList<>();
@@ -106,59 +106,59 @@ class HintPointTest {
         hintManager.selectHintKey(Key.ofName(keyName));
     }
 
-    private Point shownPoint(String keyName) {
+    private Point shownHotspot(String keyName) {
         return shownHintMesh.hints()
                             .stream()
                             .filter(hint -> hint.keySequence().equals(List.of(Key.ofName(keyName))))
-                            .map(shownHintMesh::point)
+                            .map(shownHintMesh::hotspot)
                             .findFirst()
                             .orElseThrow();
     }
 
     @Test
-    void aSelectionPutsTheTargetOnTheHintPoint() throws IOException {
+    void aSelectionPutsTheTargetOnTheHotspot() throws IOException {
         start("");
         switchMode("hint-mode");
-        assertEquals(Map.of(), shownHintMesh.pointByKeySequence());
+        assertEquals(Map.of(), shownHintMesh.hotspotByKeySequence());
         select("a");
         assertEquals(List.of(200, 125), mousePositions);
-        assertEquals(new Point(200, 125), hintManager.lastSelectedHintPoint());
+        assertEquals(new Point(200, 125), hintManager.lastSelectedHotspot());
     }
 
     @Test
-    void theHintPointsGoToTheEdgesOfTheirOwnCells() throws IOException {
+    void theHotspotsGoToTheEdgesOfTheirOwnCells() throws IOException {
         start("""
-                hint-mode.hint-points.cell-x-percent=0.5 | +q -> 0 | +w -> 1
-                hint-mode.hint-points.cell-y-percent=0.5 | +e -> 0 | +r -> 1
+                hint-mode.hotspots.cell-x-percent=0.5 | +q -> 0 | +w -> 1
+                hint-mode.hotspots.cell-y-percent=0.5 | +e -> 0 | +r -> 1
                 """);
         startComboWatcher();
         press("h");
         press("q");
-        assertEquals(new Point(100, 125), shownPoint("a"));
-        assertEquals(new Point(500, 550), shownPoint("b"));
+        assertEquals(new Point(100, 125), shownHotspot("a"));
+        assertEquals(new Point(500, 550), shownHotspot("b"));
         press("e");
-        assertEquals(new Point(100, 100), shownPoint("a"));
-        assertEquals(new Point(500, 500), shownPoint("b"));
+        assertEquals(new Point(100, 100), shownHotspot("a"));
+        assertEquals(new Point(500, 500), shownHotspot("b"));
         press("w");
-        assertEquals(new Point(299, 100), shownPoint("a"));
-        assertEquals(new Point(599, 500), shownPoint("b"));
+        assertEquals(new Point(299, 100), shownHotspot("a"));
+        assertEquals(new Point(599, 500), shownHotspot("b"));
         press("r");
-        assertEquals(new Point(299, 149), shownPoint("a"));
-        assertEquals(new Point(599, 599), shownPoint("b"));
+        assertEquals(new Point(299, 149), shownHotspot("a"));
+        assertEquals(new Point(599, 599), shownHotspot("b"));
         select("b");
         assertEquals(List.of(599, 599), mousePositions);
-        assertEquals(new Point(599, 599), hintManager.lastSelectedHintPoint());
+        assertEquals(new Point(599, 599), hintManager.lastSelectedHotspot());
     }
 
     @Test
-    void theHintPointsAreAtThePercentsOfTheirCells() throws IOException {
+    void theHotspotsAreAtThePercentsOfTheirCells() throws IOException {
         start("""
-                hint-mode.hint-points.cell-x-percent=0.25
-                hint-mode.hint-points.cell-y-percent=0.75
+                hint-mode.hotspots.cell-x-percent=0.25
+                hint-mode.hotspots.cell-y-percent=0.75
                 """);
         switchMode("hint-mode");
-        assertEquals(new Point(150, 138), shownPoint("a"));
-        assertEquals(new Point(525, 575), shownPoint("b"));
+        assertEquals(new Point(150, 138), shownHotspot("a"));
+        assertEquals(new Point(525, 575), shownHotspot("b"));
         select("a");
         assertEquals(List.of(150, 138), mousePositions);
     }
@@ -166,122 +166,122 @@ class HintPointTest {
     @Test
     void aNewPercentUndoesTheNudgesOnItsAxisOnly() throws IOException {
         start("""
-                hint-mode.hint-points.nudge-distance=4
-                hint-mode.hint-points.cell-x-percent=0.5 | +q -> 0 | +w -> 0.5
-                hint-mode.nudge-hint-points.right=+rightarrow
-                hint-mode.nudge-hint-points.down=+downarrow
+                hint-mode.hotspots.nudge-distance=4
+                hint-mode.hotspots.cell-x-percent=0.5 | +q -> 0 | +w -> 0.5
+                hint-mode.nudge-hotspots.right=+rightarrow
+                hint-mode.nudge-hotspots.down=+downarrow
                 """);
         startComboWatcher();
         press("h");
         press("rightarrow");
         press("downarrow");
-        assertEquals(new Point(204, 129), shownPoint("a"));
+        assertEquals(new Point(204, 129), shownHotspot("a"));
         press("q");
-        assertEquals(new Point(100, 129), shownPoint("a"));
+        assertEquals(new Point(100, 129), shownHotspot("a"));
         press("rightarrow");
         press("w");
-        assertEquals(new Point(200, 129), shownPoint("a"));
+        assertEquals(new Point(200, 129), shownHotspot("a"));
     }
 
     @Test
-    void aNudgeMovesTheHintPointsByTheirNudgeDistanceAtTheScreenScale() throws IOException {
+    void aNudgeMovesTheHotspotsByTheirNudgeDistanceAtTheScreenScale() throws IOException {
         screenScale = 2;
-        start("hint-mode.hint-points.nudge-distance=4\n");
+        start("hint-mode.hotspots.nudge-distance=4\n");
         switchMode("hint-mode");
-        hintManager.nudgeHintPointsRight();
-        hintManager.nudgeHintPointsRight();
-        hintManager.nudgeHintPointsUp();
-        assertEquals(new Point(216, 117), shownPoint("a"));
-        assertFalse(hintManager.hintPointsCentered());
-        hintManager.nudgeHintPointsLeft();
-        hintManager.nudgeHintPointsLeft();
-        hintManager.nudgeHintPointsDown();
-        assertTrue(hintManager.hintPointsCentered());
+        hintManager.nudgeHotspotsRight();
+        hintManager.nudgeHotspotsRight();
+        hintManager.nudgeHotspotsUp();
+        assertEquals(new Point(216, 117), shownHotspot("a"));
+        assertFalse(hintManager.hotspotsCentered());
+        hintManager.nudgeHotspotsLeft();
+        hintManager.nudgeHotspotsLeft();
+        hintManager.nudgeHotspotsDown();
+        assertTrue(hintManager.hotspotsCentered());
     }
 
     @Test
-    void aHintPointIsOnAWholePixel() throws IOException {
+    void aHotspotIsOnAWholePixel() throws IOException {
         screenScale = 1.25;
-        start("hint-mode.hint-points.nudge-distance=2\n");
+        start("hint-mode.hotspots.nudge-distance=2\n");
         switchMode("hint-mode");
-        hintManager.nudgeHintPointsRight();
-        assertEquals(new Point(203, 125), shownPoint("a"));
+        hintManager.nudgeHotspotsRight();
+        assertEquals(new Point(203, 125), shownHotspot("a"));
     }
 
     @Test
     void aModeWithoutHintsUndoesTheNudges() throws IOException {
         start("");
         switchMode("hint-mode");
-        hintManager.nudgeHintPointsRight();
-        assertEquals(new Point(201, 125), shownPoint("a"));
+        hintManager.nudgeHotspotsRight();
+        assertEquals(new Point(201, 125), shownHotspot("a"));
         switchMode("idle-mode");
-        assertTrue(hintManager.hintPointsCentered());
+        assertTrue(hintManager.hotspotsCentered());
         switchMode("hint-mode");
-        assertEquals(Map.of(), shownHintMesh.pointByKeySequence());
+        assertEquals(Map.of(), shownHintMesh.hotspotByKeySequence());
     }
 
     @Test
-    void aNudgeInAModeWithoutHintsMovesNoPoint() throws IOException {
+    void aNudgeInAModeWithoutHintsMovesNoHotspot() throws IOException {
         start("");
         switchMode("idle-mode");
-        hintManager.nudgeHintPointsRight();
+        hintManager.nudgeHotspotsRight();
         switchMode("hint-mode");
-        assertEquals(Map.of(), shownHintMesh.pointByKeySequence());
+        assertEquals(Map.of(), shownHintMesh.hotspotByKeySequence());
     }
 
     @Test
-    void aModeWithTheSameHintPointsKeepsThem() throws IOException {
+    void aModeWithTheSameHotspotsKeepsThem() throws IOException {
         start("""
-                hint-mode.hint-points.cell-x-percent=0.5 | +q -> 0
-                hint-mode.nudge-hint-points.right=+rightarrow
-                pick-mode.hint-points=hint-mode.hint-points
+                hint-mode.hotspots.cell-x-percent=0.5 | +q -> 0
+                hint-mode.nudge-hotspots.right=+rightarrow
+                pick-mode.hotspots=hint-mode.hotspots
                 """);
         startComboWatcher();
         press("h");
         press("q");
         press("rightarrow");
         press("p");
-        assertEquals(new Point(101, 125), shownPoint("a"));
-        assertFalse(hintManager.hintPointsCentered());
+        assertEquals(new Point(101, 125), shownHotspot("a"));
+        assertFalse(hintManager.hotspotsCentered());
     }
 
     @Test
-    void aPickKeepsTheHintPointItWasSavedAt() throws IOException {
+    void aPickKeepsTheHotspotItWasSavedAt() throws IOException {
         start("""
                 hint-mode.toggle-save.pick-position-history=+s
                 hint-mode.overlay.saved-hints=pick-position-history
-                hint-mode.hint-points.nudge-distance=99
+                hint-mode.hotspots.nudge-distance=99
                 """);
         switchMode("hint-mode");
-        hintManager.nudgeHintPointsRight();
+        hintManager.nudgeHotspotsRight();
         select("a");
         hintManager.saveCurrentPosition("pick-position-history");
         switchMode("pick-mode");
         switchMode("hint-mode");
-        hintManager.nudgeHintPointsLeft();
-        hintManager.nudgeHintPointsLeft();
-        assertEquals(new Point(299, 125), shownPoint("a"));
-        assertEquals(new Point(451, 550), shownPoint("b"));
+        hintManager.nudgeHotspotsLeft();
+        hintManager.nudgeHotspotsLeft();
+        assertEquals(new Point(299, 125), shownHotspot("a"));
+        assertEquals(new Point(451, 550), shownHotspot("b"));
         assertEquals(List.of(shownHintMesh.hints().getFirst()), shownHintMesh.savedHints());
         hintManager.unsaveCurrentPosition("pick-position-history");
-        assertEquals(new Point(101, 125), shownPoint("a"));
+        assertEquals(new Point(101, 125), shownHotspot("a"));
     }
 
     @Test
-    void aMovedHintPointOnItsCenterIsStillAPoint() throws IOException {
+    void aMovedHotspotOnItsCenterIsStillAHotspot() throws IOException {
         start("""
-                hint-mode.hint-points.cell-y-percent=0
-                hint-mode.hint-points.nudge-distance=25
+                hint-mode.hotspots.cell-y-percent=0
+                hint-mode.hotspots.nudge-distance=25
                 """);
         switchMode("hint-mode");
-        hintManager.nudgeHintPointsDown();
+        hintManager.nudgeHotspotsDown();
         assertEquals(Set.of(List.of(Key.ofName("a")), List.of(Key.ofName("b"))),
-                shownHintMesh.pointByKeySequence().keySet());
-        assertEquals(new Point(200, 125), shownPoint("a"));
+                shownHintMesh.hotspotByKeySequence().keySet());
+        assertEquals(new Point(200, 125), shownHotspot("a"));
     }
 
     @Test
-    void aHintSavedAtItsCenterShowsNoHintPoint() throws IOException {
+    void aHintSavedAtItsCenterShowsNoHotspot() throws IOException {
         start("""
                 hint-mode.toggle-save.pick-position-history=+s
                 hint-mode.overlay.saved-hints=pick-position-history
@@ -292,15 +292,15 @@ class HintPointTest {
         switchMode("pick-mode");
         switchMode("hint-mode");
         assertEquals(List.of(shownHintMesh.hints().getFirst()), shownHintMesh.savedHints());
-        assertEquals(Map.of(), shownHintMesh.pointByKeySequence());
+        assertEquals(Map.of(), shownHintMesh.hotspotByKeySequence());
     }
 
     @Test
-    void aHintPointStaysOnTheScreenOfItsHint() throws IOException {
+    void aHotspotStaysOnTheScreenOfItsHint() throws IOException {
         uiElements = List.of(new UiElement(new Rectangle(-50, 100, 200, 50)));
-        start("hint-mode.hint-points.cell-x-percent=0\n");
+        start("hint-mode.hotspots.cell-x-percent=0\n");
         switchMode("hint-mode");
-        assertEquals(new Point(0, 125), shownPoint("a"));
+        assertEquals(new Point(0, 125), shownHotspot("a"));
     }
 
     @Test
@@ -344,20 +344,20 @@ class HintPointTest {
         start("");
         hintManager.mouseMoved(100, 100);
         switchMode("hint-mode");
-        assertTrue(hintManager.hintPointsCentered());
+        assertTrue(hintManager.hotspotsCentered());
         hintManager.nudgeRight();
         hintManager.nudgeTargetDown();
         assertEquals(List.of(101, 100, 101, 101), mousePositions);
-        hintManager.nudgeHintPointsRight();
-        assertEquals(new Point(201, 125), shownPoint("a"));
+        hintManager.nudgeHotspotsRight();
+        assertEquals(new Point(201, 125), shownHotspot("a"));
     }
 
     @Test
     void aCellOfAnOddSizeHasItsEdgesOnItsFirstAndLastPixels() throws IOException {
         uiElements = List.of(new UiElement(new Rectangle(100, 100, 201, 51)));
         start("""
-                hint-mode.hint-points.cell-x-percent=0
-                hint-mode.hint-points.cell-y-percent=1
+                hint-mode.hotspots.cell-x-percent=0
+                hint-mode.hotspots.cell-y-percent=1
                 """);
         switchMode("hint-mode");
         select("a");
@@ -365,7 +365,7 @@ class HintPointTest {
     }
 
     @Test
-    void aHintWithoutACellKeepsItsPointAtItsCenter() throws IOException {
+    void aHintWithoutACellKeepsItsHotspotAtItsCenter() throws IOException {
         start("""
                 hint-mode.save.pick-position-history=+s
                 hint-mode.to.history-mode=+y
@@ -377,27 +377,27 @@ class HintPointTest {
         switchMode("idle-mode");
         hintManager.saveCurrentPosition("pick-position-history");
         switchMode("history-mode");
-        hintManager.nudgeHintPointsRight();
-        assertEquals(Map.of(), shownHintMesh.pointByKeySequence());
+        hintManager.nudgeHotspotsRight();
+        assertEquals(Map.of(), shownHintMesh.hotspotByKeySequence());
         select("a");
         assertEquals(List.of(300, 300), mousePositions);
     }
 
     @Test
-    void aGridWithoutLabelsHasNoPoints() throws IOException {
+    void aGridWithoutLabelsHasNoHotspots() throws IOException {
         start("""
                 hint-mode.to.grid-mode=+g
                 grid-mode.overlay.grid-cell-sizing=fit
                 grid-mode.overlay.grid-max-row-count=2
                 grid-mode.overlay.grid-max-column-count=2
-                grid-mode.hint-points.cell-x-percent=0
+                grid-mode.hotspots.cell-x-percent=0
                 """);
         switchMode("grid-mode");
-        assertEquals(Map.of(), shownHintMesh.pointByKeySequence());
+        assertEquals(Map.of(), shownHintMesh.hotspotByKeySequence());
     }
 
     @Test
-    void theHintsAreNotShownAgainWhenThePointsMoveAfterASelection() throws IOException {
+    void theHintsAreNotShownAgainWhenTheHotspotsMoveAfterASelection() throws IOException {
         start("""
                 hint-mode.save.pick-position-history=+s
                 hint-mode.to.history-mode=+y
@@ -410,21 +410,21 @@ class HintPointTest {
         switchMode("history-mode");
         select("a");
         int shownHintMeshCount = shownHintMeshes.size();
-        hintManager.nudgeHintPointsLeft();
+        hintManager.nudgeHotspotsLeft();
         assertEquals(shownHintMeshCount, shownHintMeshes.size());
     }
 
     @Test
-    void theHintPointsMoveInAModeThatShowsTheSameHintsWithAnotherZoom() throws IOException {
+    void theHotspotsMoveInAModeThatShowsTheSameHintsWithAnotherZoom() throws IOException {
         start("pick-mode.zoom.center=mouse\n");
         switchMode("hint-mode");
         switchMode("pick-mode");
-        hintManager.nudgeHintPointsLeft();
-        assertEquals(new Point(199, 125), shownPoint("a"));
+        hintManager.nudgeHotspotsLeft();
+        assertEquals(new Point(199, 125), shownHotspot("a"));
     }
 
     @Test
-    void aPointPastTheZoomGoesWhereItsHintIsUnzoomed() throws IOException {
+    void aHotspotPastTheZoomGoesWhereItsHintIsUnzoomed() throws IOException {
         screenRectangles = List.of(new Rectangle(0, 0, 1920, 1080),
                 new Rectangle(1920, 0, 1920, 1080));
         start("""
@@ -437,112 +437,112 @@ class HintPointTest {
                 grid-mode.overlay.grid-max-column-count=2
                 grid-mode.zoom.percent=2
                 grid-mode.zoom.center=mouse
-                grid-mode.hint-points.cell-x-percent=1
-                grid-mode.hint-points.nudge-distance=4
+                grid-mode.hotspots.cell-x-percent=1
+                grid-mode.hotspots.nudge-distance=4
                 """);
         hintManager.mouseMoved(960, 540);
         switchMode("grid-mode");
-        hintManager.nudgeHintPointsRight();
+        hintManager.nudgeHotspotsRight();
         select("b");
         assertEquals(List.of(1443, 540), mousePositions);
     }
 
     @Test
-    void theFirstArrowTakesTheHintPointsToTheEdgeAndTheNextOnesNudgeThem() throws IOException {
+    void theFirstArrowTakesTheHotspotsToTheEdgeAndTheNextOnesNudgeThem() throws IOException {
         start("""
-                hint-mode.hint-points.cell-x-percent=0.5 | _{ishintpointscentered} +rightarrow -> 1 \
+                hint-mode.hotspots.cell-x-percent=0.5 | _{ishotspotscentered} +rightarrow -> 1 \
                     | +q -> 0 | +w -> 0.25
-                hint-mode.nudge-hint-points.right=^{ishintpointscentered} +rightarrow
+                hint-mode.nudge-hotspots.right=^{ishotspotscentered} +rightarrow
                 """);
         startComboWatcher();
         press("h");
         press("rightarrow");
-        assertEquals(new Point(299, 125), shownPoint("a"));
+        assertEquals(new Point(299, 125), shownHotspot("a"));
         press("rightarrow");
-        assertEquals(new Point(300, 125), shownPoint("a"));
+        assertEquals(new Point(300, 125), shownHotspot("a"));
         press("w");
-        assertEquals(new Point(150, 125), shownPoint("a"));
+        assertEquals(new Point(150, 125), shownHotspot("a"));
         press("q");
-        assertEquals(new Point(100, 125), shownPoint("a"));
+        assertEquals(new Point(100, 125), shownHotspot("a"));
     }
 
     @Test
     void aMutatedNudgeDistanceAppliesToTheNextNudge() throws IOException {
         start("""
-                hint-mode.hint-points.nudge-distance=4 | _{leftctrl} -> 2
-                hint-mode.nudge-hint-points.right=+rightarrow
+                hint-mode.hotspots.nudge-distance=4 | _{leftctrl} -> 2
+                hint-mode.nudge-hotspots.right=+rightarrow
                 """);
         startComboWatcher();
         press("h");
         press("rightarrow");
-        assertEquals(new Point(204, 125), shownPoint("a"));
+        assertEquals(new Point(204, 125), shownHotspot("a"));
         down("leftctrl");
         press("rightarrow");
         up("leftctrl");
-        assertEquals(new Point(206, 125), shownPoint("a"));
+        assertEquals(new Point(206, 125), shownHotspot("a"));
     }
 
     @Test
-    void aMoveMovesTheHintPointsUntilItStops() throws IOException {
+    void aMoveMovesTheHotspotsUntilItStops() throws IOException {
         start("""
-                hint-mode.hint-points.initial-velocity=100
-                hint-mode.hint-points.max-velocity=100
-                hint-mode.hint-points.deceleration=0
-                hint-mode.start-move-hint-points.right=+rightarrow
-                hint-mode.stop-move-hint-points.right=-rightarrow
+                hint-mode.hotspots.initial-velocity=100
+                hint-mode.hotspots.max-velocity=100
+                hint-mode.hotspots.deceleration=0
+                hint-mode.start-move-hotspots.right=+rightarrow
+                hint-mode.stop-move-hotspots.right=-rightarrow
                 """);
         startComboWatcher();
         press("h");
         down("rightarrow");
         hintManager.update(0.1);
-        assertEquals(new Point(210, 125), shownPoint("a"));
+        assertEquals(new Point(210, 125), shownHotspot("a"));
         hintManager.update(0.1);
-        assertEquals(new Point(220, 125), shownPoint("a"));
+        assertEquals(new Point(220, 125), shownHotspot("a"));
         up("rightarrow");
         hintManager.update(0.1);
-        assertEquals(new Point(220, 125), shownPoint("a"));
+        assertEquals(new Point(220, 125), shownHotspot("a"));
     }
 
     @Test
-    void aHeldArrowNudgesThenMovesTheHintPointsAtTheirVelocity() throws IOException {
+    void aHeldArrowNudgesThenMovesTheHotspotsAtTheirVelocity() throws IOException {
         start("""
-                hint-mode.hint-points.nudge-distance=4
-                hint-mode.hint-points.initial-velocity=120
-                hint-mode.hint-points.max-velocity=120
-                hint-mode.hint-points.deceleration=0
-                hint-mode.nudge-hint-points.right=+rightarrow
-                hint-mode.start-move-hint-points.right=+rightarrow-500
-                hint-mode.stop-move-hint-points.right=-rightarrow
+                hint-mode.hotspots.nudge-distance=4
+                hint-mode.hotspots.initial-velocity=120
+                hint-mode.hotspots.max-velocity=120
+                hint-mode.hotspots.deceleration=0
+                hint-mode.nudge-hotspots.right=+rightarrow
+                hint-mode.start-move-hotspots.right=+rightarrow-500
+                hint-mode.stop-move-hotspots.right=-rightarrow
                 """);
         startComboWatcher();
         press("h");
         down("rightarrow");
-        assertEquals(new Point(204, 125), shownPoint("a"));
+        assertEquals(new Point(204, 125), shownHotspot("a"));
         now = now.plusMillis(400);
         comboWatcher.update(0.4);
         hintManager.update(0.4);
-        assertEquals(new Point(204, 125), shownPoint("a"));
+        assertEquals(new Point(204, 125), shownHotspot("a"));
         now = now.plusMillis(50);
         comboWatcher.update(0.05);
         for (int frame = 0; frame < 50; frame++)
             hintManager.update(0.016);
-        assertEquals(new Point(300, 125), shownPoint("a"));
+        assertEquals(new Point(300, 125), shownHotspot("a"));
         up("rightarrow");
         hintManager.update(0.1);
-        assertEquals(new Point(300, 125), shownPoint("a"));
+        assertEquals(new Point(300, 125), shownHotspot("a"));
     }
 
     @Test
-    void anArrowPressedWhileTheHintPointsMoveJoinsTheMove() throws IOException {
+    void anArrowPressedWhileTheHotspotsMoveJoinsTheMove() throws IOException {
         start("""
-                hint-mode.hint-points.nudge-distance=4
-                hint-mode.hint-points.initial-velocity=100
-                hint-mode.hint-points.max-velocity=100
-                hint-mode.hint-points.deceleration=0
-                hint-mode.nudge-hint-points.right=+rightarrow
-                hint-mode.nudge-hint-points.down=^{ishintpointsmoving} +downarrow
-                hint-mode.start-move-hint-points.right=+rightarrow-500
-                hint-mode.start-move-hint-points.down=_{ishintpointsmoving} +downarrow
+                hint-mode.hotspots.nudge-distance=4
+                hint-mode.hotspots.initial-velocity=100
+                hint-mode.hotspots.max-velocity=100
+                hint-mode.hotspots.deceleration=0
+                hint-mode.nudge-hotspots.right=+rightarrow
+                hint-mode.nudge-hotspots.down=^{ishotspotsmoving} +downarrow
+                hint-mode.start-move-hotspots.right=+rightarrow-500
+                hint-mode.start-move-hotspots.down=_{ishotspotsmoving} +downarrow
                 """);
         startComboWatcher();
         press("h");
@@ -550,11 +550,11 @@ class HintPointTest {
         now = now.plusMillis(450);
         comboWatcher.update(0.45);
         hintManager.update(0.1);
-        assertEquals(new Point(214, 125), shownPoint("a"));
+        assertEquals(new Point(214, 125), shownHotspot("a"));
         down("downarrow");
-        assertEquals(new Point(214, 125), shownPoint("a"));
+        assertEquals(new Point(214, 125), shownHotspot("a"));
         hintManager.update(0.1);
-        assertEquals(new Point(221, 132), shownPoint("a"));
+        assertEquals(new Point(221, 132), shownHotspot("a"));
     }
 
     @Test
@@ -604,41 +604,41 @@ class HintPointTest {
         start("""
                 hint-mode.to.normal-mode=+n
                 normal-mode.to.idle-mode=+esc
-                hint-mode.hint-points.initial-velocity=100
-                hint-mode.hint-points.max-velocity=100
-                hint-mode.start-move-hint-points.right=+rightarrow
+                hint-mode.hotspots.initial-velocity=100
+                hint-mode.hotspots.max-velocity=100
+                hint-mode.start-move-hotspots.right=+rightarrow
                 """);
         startComboWatcher();
         press("h");
         down("rightarrow");
         hintManager.update(0.1);
-        assertEquals(new Point(210, 125), shownPoint("a"));
+        assertEquals(new Point(210, 125), shownHotspot("a"));
         press("n");
         hintManager.update(0.1);
-        assertTrue(hintManager.hintPointsCentered());
+        assertTrue(hintManager.hotspotsCentered());
     }
 
     @Test
-    void theHintPointsComeBackAtOnceAfterAMovePastTheScreen() throws IOException {
+    void theHotspotsComeBackAtOnceAfterAMovePastTheScreen() throws IOException {
         start("""
-                hint-mode.hint-points.initial-velocity=10000
-                hint-mode.hint-points.max-velocity=10000
-                hint-mode.hint-points.deceleration=0
-                hint-mode.hint-points.nudge-distance=1000
-                hint-mode.start-move-hint-points.right=+rightarrow
-                hint-mode.stop-move-hint-points.right=-rightarrow
-                hint-mode.nudge-hint-points.left=+leftarrow
+                hint-mode.hotspots.initial-velocity=10000
+                hint-mode.hotspots.max-velocity=10000
+                hint-mode.hotspots.deceleration=0
+                hint-mode.hotspots.nudge-distance=1000
+                hint-mode.start-move-hotspots.right=+rightarrow
+                hint-mode.stop-move-hotspots.right=-rightarrow
+                hint-mode.nudge-hotspots.left=+leftarrow
                 """);
         startComboWatcher();
         press("h");
         down("rightarrow");
         hintManager.update(1);
         up("rightarrow");
-        assertEquals(new Point(1920, 125), shownPoint("a"));
-        assertEquals(new Point(1920, 550), shownPoint("b"));
+        assertEquals(new Point(1920, 125), shownHotspot("a"));
+        assertEquals(new Point(1920, 550), shownHotspot("b"));
         press("leftarrow");
-        assertEquals(new Point(920, 125), shownPoint("a"));
-        assertEquals(new Point(1270, 550), shownPoint("b"));
+        assertEquals(new Point(920, 125), shownHotspot("a"));
+        assertEquals(new Point(1270, 550), shownHotspot("b"));
     }
 
     private void startComboWatcher() {

@@ -117,9 +117,9 @@ public class IndicatorManager implements ModeListener {
         Map<IndicatorPosition, List<Point>> newPointsByPosition = new HashMap<>();
         newPointsByPosition.put(IndicatorPosition.PointIndicatorPosition.TARGET,
                 List.of(hintManager.targetPoint()));
-        if (hintManager.lastSelectedHintPoint() != null)
+        if (hintManager.lastSelectedHotspot() != null)
             newPointsByPosition.put(IndicatorPosition.PointIndicatorPosition.LAST_SELECTED_HINT,
-                    List.of(hintManager.lastSelectedHintPoint()));
+                    List.of(hintManager.lastSelectedHotspot()));
         for (IndicatorLayerConfiguration layer : indicator.layerByName().values())
             for (IndicatorPosition position : layer.positions())
                 if (layer.enabled() && position instanceof
@@ -147,8 +147,8 @@ public class IndicatorManager implements ModeListener {
                 continue;
             for (IndicatorPosition position : layer.positions()) {
                 if (position == IndicatorPosition.PointIndicatorPosition.LAST_SELECTED_HINT &&
-                    hintManager.lastSelectedHintPoint() != null)
-                    newHintRectanglesByPoint.put(hintManager.lastSelectedHintPoint(),
+                    hintManager.lastSelectedHotspot() != null)
+                    newHintRectanglesByPoint.put(hintManager.lastSelectedHotspot(),
                             hintManager.lastSelectedHintRectangles());
                 else if (position instanceof IndicatorPosition.PositionHistoryIndicatorPosition(
                         String positionHistoryName)) {

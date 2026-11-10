@@ -297,10 +297,10 @@ public class ComboWatcher {
                 keyboardState.pressingUnhandledKeyInCurrentMode());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_OVERLAY_EMPTY,
                 hintManager.hintMeshEmpty());
-        setVirtualKeyPressed(BuiltInVirtualKey.IS_HINT_POINTS_CENTERED,
-                hintManager.hintPointsCentered());
-        setVirtualKeyPressed(BuiltInVirtualKey.IS_HINT_POINTS_MOVING,
-                hintManager.movingHintPoints());
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_HOTSPOTS_CENTERED,
+                hintManager.hotspotsCentered());
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_HOTSPOTS_MOVING,
+                hintManager.movingHotspots());
         for (String positionHistoryName : hintManager.positionHistoryNames())
             setVirtualKeyPressed(BuiltInVirtualKey.positionHistoryKey(positionHistoryName),
                     hintManager.positionHistory(positionHistoryName, () -> lastActiveApp)
@@ -1397,18 +1397,18 @@ public class ComboWatcher {
                  command instanceof Command.UnsavePosition ||
                  command instanceof Command.ToggleSavePosition ||
                  command instanceof Command.ClearPositionHistory ||
-                 command instanceof Command.NudgeHintPointsUp ||
-                 command instanceof Command.NudgeHintPointsDown ||
-                 command instanceof Command.NudgeHintPointsLeft ||
-                 command instanceof Command.NudgeHintPointsRight ||
-                 command instanceof Command.StartMoveHintPointsUp ||
-                 command instanceof Command.StartMoveHintPointsDown ||
-                 command instanceof Command.StartMoveHintPointsLeft ||
-                 command instanceof Command.StartMoveHintPointsRight ||
-                 command instanceof Command.StopMoveHintPointsUp ||
-                 command instanceof Command.StopMoveHintPointsDown ||
-                 command instanceof Command.StopMoveHintPointsLeft ||
-                 command instanceof Command.StopMoveHintPointsRight);
+                 command instanceof Command.NudgeHotspotsUp ||
+                 command instanceof Command.NudgeHotspotsDown ||
+                 command instanceof Command.NudgeHotspotsLeft ||
+                 command instanceof Command.NudgeHotspotsRight ||
+                 command instanceof Command.StartMoveHotspotsUp ||
+                 command instanceof Command.StartMoveHotspotsDown ||
+                 command instanceof Command.StartMoveHotspotsLeft ||
+                 command instanceof Command.StartMoveHotspotsRight ||
+                 command instanceof Command.StopMoveHotspotsUp ||
+                 command instanceof Command.StopMoveHotspotsDown ||
+                 command instanceof Command.StopMoveHotspotsLeft ||
+                 command instanceof Command.StopMoveHotspotsRight);
     }
 
     private Set<Key> findSatisfiedPressedPreconditionKeys(Combo combo,

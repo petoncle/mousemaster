@@ -233,7 +233,7 @@ public class MacosPlatform implements Platform {
         long sleepMillis =
                 overlay.hintTransitionAnimating() || zoomManager.animating() ||
                 indicatorManager.animating() || hintManager.waitingForUiElements() ||
-                hintManager.movingHintPoints() || overlay.hintMeshBuildPending() ? 1 : 10;
+                hintManager.movingHotspots() || overlay.hintMeshBuildPending() ? 1 : 10;
         KeyEvent keyEvent = keyEventQueue.poll(sleepMillis, TimeUnit.MILLISECONDS);
         if (keyEvent != null)
             keyEventQueue.addFirst(keyEvent);

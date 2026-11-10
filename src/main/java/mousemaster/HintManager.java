@@ -41,7 +41,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final Map<String, PositionHistoryConfiguration> positionHistoryConfigurationByName;
     private final Map<PositionHistoryKey, PositionHistory> positionHistoryByKey =
             new HashMap<>();
-    private Point lastSelectedHintPoint;
+    private Point lastSelectedHotspot;
     private Rectangle lastSelectedHintCell;
     // One level per last-selected-hint-cell drill-down step. The area is frozen at push
     // time so going back restores the view that step rendered.
@@ -53,14 +53,14 @@ public class HintManager implements ModeListener, MousePositionListener {
     private Rectangle lastOverlayArea;
     private Point stoppedTargetPoint;
     private final Mover targetMover = new Mover();
-    private final Mover hintPointMover = new Mover();
-    private double hintPointXPercent = 0.5;
-    private double hintPointYPercent = 0.5;
-    private double hintPointXOffset;
-    private double hintPointYOffset;
-    private double hintPointFrameDelta;
+    private final Mover hotspotMover = new Mover();
+    private double hotspotXPercent = 0.5;
+    private double hotspotYPercent = 0.5;
+    private double hotspotXOffset;
+    private double hotspotYOffset;
+    private double hotspotFrameDelta;
 
-    private record CellGridLevel(String modeName, Rectangle cell, Point point, Rectangle area) {
+    private record CellGridLevel(String modeName, Rectangle cell, Point hotspot, Rectangle area) {
     }
 
     private boolean lastHintCommandSupercedesOtherCommands;
@@ -80,10 +80,10 @@ public class HintManager implements ModeListener, MousePositionListener {
     /**
      * It would be better to have an instance of Zoom instead of ZoomConfiguration
      * (one ZoomConfiguration could lead to two different HintMeshes on two screens),
-     * but #modeChanged needs to create a HintMeshKey to alter lastSelectedHintPoint
+     * but #modeChanged needs to create a HintMeshKey to alter lastSelectedHotspot
      * (this is arguably hacky, it is used for undoing the triple hint grid in the
      * author's configuration),
-     * and that altered lastSelectedHintPoint is used to instantiate a Zoom object
+     * and that altered lastSelectedHotspot is used to instantiate a Zoom object
      * from the ZoomConfiguration.
      */
     private record HintMeshKey(HintMeshType type, List<Key> selectionKeys,
@@ -92,7 +92,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private record HintMeshState(HintMesh hintMesh,
-                                 Point previousModeSelectedHintPoint,
+                                 Point previousModeSelectedHotspot,
                                  Rectangle previousModeSelectedHintCell) {
 
     }
@@ -258,9 +258,9 @@ public class HintManager implements ModeListener, MousePositionListener {
         return stoppedTargetPoint == null ? new Point(mouseX, mouseY) : stoppedTargetPoint;
     }
 
-    public Point lastSelectedHintPoint() {
-        logger.trace("Zoom " + lastSelectedHintPoint);
-        return lastSelectedHintPoint;
+    public Point lastSelectedHotspot() {
+        logger.trace("Zoom " + lastSelectedHotspot);
+        return lastSelectedHotspot;
     }
 
     public Rectangle lastSelectedHintCell() {
@@ -272,9 +272,9 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public void moveToLastSelectedHint() {
-        if (lastSelectedHintPoint == null)
+        if (lastSelectedHotspot == null)
             return;
-        moveTo(lastSelectedHintPoint);
+        moveTo(lastSelectedHotspot);
     }
 
     public void moveToOverlayCenter() {
@@ -391,9 +391,9 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public void moveTargetToLastSelectedHint() {
-        if (lastSelectedHintPoint == null)
+        if (lastSelectedHotspot == null)
             return;
-        moveTargetTo(lastSelectedHintPoint);
+        moveTargetTo(lastSelectedHotspot);
     }
 
     public void moveTargetToOverlayCenter() {
@@ -453,86 +453,86 @@ public class HintManager implements ModeListener, MousePositionListener {
                 point.y() + (horizontal ? 0 : distance));
     }
 
-    public boolean hintPointsCentered() {
-        return hintPointXPercent == 0.5 && hintPointYPercent == 0.5 && hintPointXOffset == 0 &&
-               hintPointYOffset == 0;
+    public boolean hotspotsCentered() {
+        return hotspotXPercent == 0.5 && hotspotYPercent == 0.5 && hotspotXOffset == 0 &&
+               hotspotYOffset == 0;
     }
 
-    public void nudgeHintPointsUp() {
-        nudgeHintPoints(false, false);
+    public void nudgeHotspotsUp() {
+        nudgeHotspots(false, false);
     }
 
-    public void nudgeHintPointsDown() {
-        nudgeHintPoints(false, true);
+    public void nudgeHotspotsDown() {
+        nudgeHotspots(false, true);
     }
 
-    public void nudgeHintPointsLeft() {
-        nudgeHintPoints(true, false);
+    public void nudgeHotspotsLeft() {
+        nudgeHotspots(true, false);
     }
 
-    public void nudgeHintPointsRight() {
-        nudgeHintPoints(true, true);
+    public void nudgeHotspotsRight() {
+        nudgeHotspots(true, true);
     }
 
-    public void startMoveHintPointsUp() {
-        hintPointMover.startMoveUp();
+    public void startMoveHotspotsUp() {
+        hotspotMover.startMoveUp();
     }
 
-    public void startMoveHintPointsDown() {
-        hintPointMover.startMoveDown();
+    public void startMoveHotspotsDown() {
+        hotspotMover.startMoveDown();
     }
 
-    public void startMoveHintPointsLeft() {
-        hintPointMover.startMoveLeft();
+    public void startMoveHotspotsLeft() {
+        hotspotMover.startMoveLeft();
     }
 
-    public void startMoveHintPointsRight() {
-        hintPointMover.startMoveRight();
+    public void startMoveHotspotsRight() {
+        hotspotMover.startMoveRight();
     }
 
-    public void stopMoveHintPointsUp() {
-        hintPointMover.stopMoveUp();
+    public void stopMoveHotspotsUp() {
+        hotspotMover.stopMoveUp();
     }
 
-    public void stopMoveHintPointsDown() {
-        hintPointMover.stopMoveDown();
+    public void stopMoveHotspotsDown() {
+        hotspotMover.stopMoveDown();
     }
 
-    public void stopMoveHintPointsLeft() {
-        hintPointMover.stopMoveLeft();
+    public void stopMoveHotspotsLeft() {
+        hotspotMover.stopMoveLeft();
     }
 
-    public void stopMoveHintPointsRight() {
-        hintPointMover.stopMoveRight();
+    public void stopMoveHotspotsRight() {
+        hotspotMover.stopMoveRight();
     }
 
-    public boolean movingHintPoints() {
-        return hintPointMover.moving();
+    public boolean movingHotspots() {
+        return hotspotMover.moving();
     }
 
-    private void nudgeHintPoints(boolean horizontal, boolean forward) {
-        double distance = (forward ? 1 : -1) * currentMode.hintPoints().movement().nudgeDistance();
-        moveHintPoints(horizontal ? distance : 0, horizontal ? 0 : distance);
+    private void nudgeHotspots(boolean horizontal, boolean forward) {
+        double distance = (forward ? 1 : -1) * currentMode.hotspots().movement().nudgeDistance();
+        moveHotspots(horizontal ? distance : 0, horizontal ? 0 : distance);
     }
 
-    private void moveHintPoints(double xDistance, double yDistance) {
+    private void moveHotspots(double xDistance, double yDistance) {
         if (hintMesh == null)
             return;
-        double xOffset = hintPointOffset(hintPointXOffset + xDistance, true);
-        double yOffset = hintPointOffset(hintPointYOffset + yDistance, false);
-        if (xOffset == hintPointXOffset && yOffset == hintPointYOffset)
+        double xOffset = hotspotOffset(hotspotXOffset + xDistance, true);
+        double yOffset = hotspotOffset(hotspotYOffset + yDistance, false);
+        if (xOffset == hotspotXOffset && yOffset == hotspotYOffset)
             return;
-        hintPointXOffset = xOffset;
-        hintPointYOffset = yOffset;
+        hotspotXOffset = xOffset;
+        hotspotYOffset = yOffset;
         showPositions();
     }
 
-    private double hintPointOffset(double offset, boolean horizontal) {
+    private double hotspotOffset(double offset, boolean horizontal) {
         Set<Screen> screens = screenManager.screens();
         double minOffset = Double.POSITIVE_INFINITY;
         double maxOffset = Double.NEGATIVE_INFINITY;
         for (Hint hint : hintMesh.hints()) {
-            if (!hasHintPoint(hint) || hintMesh.savedHints().contains(hint))
+            if (!hasHotspot(hint) || hintMesh.savedHints().contains(hint))
                 continue;
             Point center = unzoomedHintCenter(hint, currentZoom);
             Screen screen = ScreenManager.nearestScreenContaining(screens, center.x(), center.y());
@@ -616,12 +616,12 @@ public class HintManager implements ModeListener, MousePositionListener {
             stoppedTargetPoint = nearestScreenPoint(stoppedTargetPoint.x() + (long) move.x() * scale,
                     stoppedTargetPoint.y() + (long) move.y() * scale);
         }
-        hintPointFrameDelta += delta;
-        if (hintPointFrameDelta >= Mousemaster.FRAME_INTERVAL) {
-            Point hintPointMove = hintPointMover.move(hintPointFrameDelta);
-            hintPointFrameDelta = 0;
-            if (hintPointMove != null)
-                moveHintPoints(hintPointMove.x(), hintPointMove.y());
+        hotspotFrameDelta += delta;
+        if (hotspotFrameDelta >= Mousemaster.FRAME_INTERVAL) {
+            Point hotspotMove = hotspotMover.move(hotspotFrameDelta);
+            hotspotFrameDelta = 0;
+            if (hotspotMove != null)
+                moveHotspots(hotspotMove.x(), hotspotMove.y());
         }
         centerGridOnAreaCenterPoint();
     }
@@ -786,14 +786,14 @@ public class HintManager implements ModeListener, MousePositionListener {
         targetMover.modeChanged(newMode.target(), newMode.stopCommandsFromPreviousMode() ||
                 newMode.hintMesh().mouseFollowsTarget());
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
-        HintPointConfiguration hintPoints = newMode.hintPoints();
-        if (!hintMeshConfiguration.enabled() || hintPoints.cellXPercent() != hintPointXPercent)
-            hintPointXOffset = 0;
-        if (!hintMeshConfiguration.enabled() || hintPoints.cellYPercent() != hintPointYPercent)
-            hintPointYOffset = 0;
-        hintPointXPercent = hintPoints.cellXPercent();
-        hintPointYPercent = hintPoints.cellYPercent();
-        hintPointMover.modeChanged(hintPoints.movement(),
+        HotspotConfiguration hotspots = newMode.hotspots();
+        if (!hintMeshConfiguration.enabled() || hotspots.cellXPercent() != hotspotXPercent)
+            hotspotXOffset = 0;
+        if (!hintMeshConfiguration.enabled() || hotspots.cellYPercent() != hotspotYPercent)
+            hotspotYOffset = 0;
+        hotspotXPercent = hotspots.cellXPercent();
+        hotspotYPercent = hotspots.cellYPercent();
+        hotspotMover.modeChanged(hotspots.movement(),
                 newMode.stopCommandsFromPreviousMode() || !hintMeshConfiguration.enabled());
         if (currentMode == null ||
             !hintMeshConfiguration.type().equals(currentMode.hintMesh().type()))
@@ -826,7 +826,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 // Same-mode mutation (e.g., variable change triggering
                 // refreshPreconditionOnlyMutations before SwitchMode runs).
                 // Skip rebuilding: the grid would get a new center (because
-                // lastSelectedHintPoint moved) making hints differ from the
+                // lastSelectedHotspot moved) making hints differ from the
                 // stored state, which resets selectedKeySequence to [].
                 // If we wanted to do the rebuilding, we should probably have a clear-selection command
                 // (similar to deselect).
@@ -848,7 +848,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                  AreaCenter.LAST_SELECTED_HINT) {
             // When going back from hint3-3 to hint3-2, we find the selected hint of hint1 that led to hint3-2.
             // (Because currently, last selected hint is the hint selected by hint3-2.)
-            // Skip for same-mode mutations (e.g. zoom toggle): lastSelectedHintPoint
+            // Skip for same-mode mutations (e.g. zoom toggle): lastSelectedHotspot
             // is already correct, and a stale cache entry (from a previous visit with
             // different variable state) could overwrite it with an outdated value.
             if (!sameMode) {
@@ -856,8 +856,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                         new HintMeshKey(hintMeshConfiguration.type(),
                                 selectionKeys, newMode.zoom()));
                 if (hintMeshState != null) {
-                    lastSelectedHintPoint =
-                            hintMeshState.previousModeSelectedHintPoint;
+                    lastSelectedHotspot =
+                            hintMeshState.previousModeSelectedHotspot;
                     lastSelectedHintCell =
                             hintMeshState.previousModeSelectedHintCell;
                 }
@@ -875,14 +875,14 @@ public class HintManager implements ModeListener, MousePositionListener {
                 if (pendingSelectedCell != null)
                     cellGridLevelStack.push(
                             new CellGridLevel(newMode.name(), pendingSelectedCell,
-                                    lastSelectedHintPoint,
+                                    lastSelectedHotspot,
                                     cellGridArea(pendingSelectedCell, size, center)));
             }
             else if (popLevelsAbove(newMode.name())) {
                 // The anchors still point at the level left behind, which is one deeper.
                 CellGridLevel level = cellGridLevelStack.peek();
                 lastSelectedHintCell = level.cell();
-                lastSelectedHintPoint = level.point();
+                lastSelectedHotspot = level.hotspot();
             }
             else
                 recomputeTopLevelArea(size, center);
@@ -990,7 +990,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 hintMeshConfiguration.keysByFilter().get(newScreenFilter).selectionKeys();
         hintMeshStates.put(new HintMeshKey(hintMeshConfiguration.type(), newSelectionKeys,
                         newMode.zoom()),
-                new HintMeshState(newHintMesh, lastSelectedHintPoint, lastSelectedHintCell));
+                new HintMeshState(newHintMesh, lastSelectedHotspot, lastSelectedHintCell));
         hintMesh = newHintMesh;
         AreaCenter center = hintMeshConfiguration.type().area().centerOrDefault();
         drawnAreaCenterPoint = areaCenterPoint(center);
@@ -1218,7 +1218,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (cellGridLevelStack.isEmpty())
             return;
         CellGridLevel level = cellGridLevelStack.pop();
-        cellGridLevelStack.push(new CellGridLevel(level.modeName(), level.cell(), level.point(),
+        cellGridLevelStack.push(new CellGridLevel(level.modeName(), level.cell(), level.hotspot(),
                 cellGridArea(level.cell(), size, center)));
     }
 
@@ -1243,8 +1243,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             case ACTIVE_SCREEN_CENTER -> screenManager.activeScreen().rectangle().center();
             case MOUSE -> new Point(mouseX, mouseY);
             case TARGET -> targetPoint();
-            case LAST_SELECTED_HINT -> lastSelectedHintPoint == null ?
-                    screenManager.activeScreen().rectangle().center() : lastSelectedHintPoint;
+            case LAST_SELECTED_HINT -> lastSelectedHotspot == null ?
+                    screenManager.activeScreen().rectangle().center() : lastSelectedHotspot;
             case ACTIVE_WINDOW_CENTER ->
                     overlay.activeWindowRectangle().center();
             case LAST_OVERLAY_AREA_CENTER -> lastOverlayArea().center();
@@ -1354,9 +1354,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                     };
                     gridCenter = switch (area.centerOrDefault()) {
                         case ACTIVE_SCREEN_CENTER -> activeScreen.rectangle().center();
-                        case LAST_SELECTED_HINT -> lastSelectedHintPoint == null ?
+                        case LAST_SELECTED_HINT -> lastSelectedHotspot == null ?
                                 activeScreen.rectangle().center() :
-                                zoomedPoint(lastSelectedHintPoint, zoom);
+                                zoomedPoint(lastSelectedHotspot, zoom);
                         case MOUSE, TARGET, ACTIVE_WINDOW_CENTER, LAST_OVERLAY_AREA_CENTER ->
                                 zoomedPoint(areaCenterPoint(area.centerOrDefault()), zoom);
                     };
@@ -1513,7 +1513,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
         PositionHistory savedPositionHistory = savedPositionHistory(hintMeshConfiguration);
         return hintMesh.savedHints(savedHints(savedPositionHistory, hintMesh.hints(), zoom))
-                       .pointByKeySequence(pointByKeySequence(savedPositionHistory,
+                       .hotspotByKeySequence(hotspotByKeySequence(savedPositionHistory,
                                hintMesh.hints(), zoom))
                        .build();
     }
@@ -1534,7 +1534,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     .toList();
     }
 
-    private Map<List<Key>, Point> pointByKeySequence(PositionHistory savedPositionHistory,
+    private Map<List<Key>, Point> hotspotByKeySequence(PositionHistory savedPositionHistory,
                                                      List<Hint> hints, Zoom zoom) {
         Map<Rectangle, Point> savedPositionByHintCell = new HashMap<>();
         if (savedPositionHistory != null)
@@ -1543,33 +1543,33 @@ public class HintManager implements ModeListener, MousePositionListener {
                 if (hintCell != null)
                     savedPositionByHintCell.put(hintCell, position);
             }
-        boolean hintPointsCentered = hintPointsCentered();
-        if (hintPointsCentered && savedPositionByHintCell.isEmpty())
+        boolean hotspotsCentered = hotspotsCentered();
+        if (hotspotsCentered && savedPositionByHintCell.isEmpty())
             return Map.of();
         Set<Screen> screens = screenManager.screens();
-        Map<List<Key>, Point> pointByKeySequence = new HashMap<>();
+        Map<List<Key>, Point> hotspotByKeySequence = new HashMap<>();
         for (Hint hint : hints) {
-            if (!hasHintPoint(hint))
+            if (!hasHotspot(hint))
                 continue;
             Rectangle cell = unzoomedHintCell(hint, zoom);
             Point center = unzoomedHintCenter(hint, zoom);
             Point point = savedPositionByHintCell.get(cell);
-            if (point == null && !hintPointsCentered) {
+            if (point == null && !hotspotsCentered) {
                 Screen screen =
                         ScreenManager.nearestScreenContaining(screens, center.x(), center.y());
                 point = screen.rectangle().nearestPoint(
                         Math.round(cellPointCoordinate(cell, true) +
-                                   hintPointXOffset * screen.scale()),
+                                   hotspotXOffset * screen.scale()),
                         Math.round(cellPointCoordinate(cell, false) +
-                                   hintPointYOffset * screen.scale()));
+                                   hotspotYOffset * screen.scale()));
             }
-            if (point != null && (!hintPointsCentered || !point.equals(center)))
-                pointByKeySequence.put(hint.keySequence(), zoom.zoomedPoint(point));
+            if (point != null && (!hotspotsCentered || !point.equals(center)))
+                hotspotByKeySequence.put(hint.keySequence(), zoom.zoomedPoint(point));
         }
-        return pointByKeySequence;
+        return hotspotByKeySequence;
     }
 
-    private static boolean hasHintPoint(Hint hint) {
+    private static boolean hasHotspot(Hint hint) {
         return !hint.keySequence().isEmpty() &&
                (hint.cellWidth() > 0 || hint.elementRectangle() != null);
     }
@@ -1581,24 +1581,24 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private double cellPointCoordinate(Rectangle cell, boolean horizontal) {
         return horizontal ?
-                cellCoordinate(cell.x() + hintPointXPercent * cell.width(), cell.x(),
+                cellCoordinate(cell.x() + hotspotXPercent * cell.width(), cell.x(),
                         cell.width()) :
-                cellCoordinate(cell.y() + hintPointYPercent * cell.height(), cell.y(),
+                cellCoordinate(cell.y() + hotspotYPercent * cell.height(), cell.y(),
                         cell.height());
     }
 
-    /** A position is saved at the last selected hint when it is that hint's point. */
+    /** A position is saved at the last selected hint when it is that hint's hotspot. */
     private void savePosition(PositionHistory positionHistory, Point position) {
-        positionHistory.save(position, lastSelectedHintPoint != null &&
-                                       Math.round(position.x()) == lastSelectedHintPoint.x() &&
-                                       Math.round(position.y()) == lastSelectedHintPoint.y() ?
+        positionHistory.save(position, lastSelectedHotspot != null &&
+                                       Math.round(position.x()) == lastSelectedHotspot.x() &&
+                                       Math.round(position.y()) == lastSelectedHotspot.y() ?
                 lastSelectedHintRectangles().cell() : null);
     }
 
     /** The rectangles of the last selected hint: see {@link HintRectangles}. */
     public HintRectangles lastSelectedHintRectangles() {
         return hintRectangles(lastSelectedHintCell != null ? lastSelectedHintCell :
-                new Rectangle((int) lastSelectedHintPoint.x(), (int) lastSelectedHintPoint.y(),
+                new Rectangle((int) lastSelectedHotspot.x(), (int) lastSelectedHotspot.y(),
                         0, 0));
     }
 
@@ -1627,14 +1627,14 @@ public class HintManager implements ModeListener, MousePositionListener {
         hintMesh = hintMesh.builder()
                            .savedHints(savedHints(savedPositionHistory, hintMesh.hints(),
                                    currentZoom))
-                           .pointByKeySequence(pointByKeySequence(savedPositionHistory,
+                           .hotspotByKeySequence(hotspotByKeySequence(savedPositionHistory,
                                    hintMesh.hints(), currentZoom))
                            .build();
         hintMeshStates.computeIfPresent(new HintMeshKey(hintMeshConfiguration.type(),
                         hintMeshConfiguration.keysByFilter().get(screenFilter).selectionKeys(),
                         currentMode.zoom()),
                 (k, hintMeshState) -> new HintMeshState(hintMesh,
-                        hintMeshState.previousModeSelectedHintPoint,
+                        hintMeshState.previousModeSelectedHotspot,
                         hintMeshState.previousModeSelectedHintCell));
         overlay.setHintMesh(hintMesh, currentZoom, true);
     }
@@ -2245,21 +2245,21 @@ public class HintManager implements ModeListener, MousePositionListener {
             return;
         }
         if (exactMatchHint != null) {
-            Point point = hintMesh.point(exactMatchHint);
-            Point exactMatchHintPoint =
+            Point point = hintMesh.hotspot(exactMatchHint);
+            Point exactMatchHotspot =
                     isInZoom(exactMatchHint.centerX(), exactMatchHint.centerY()) ?
                             currentZoom.unzoomedPoint(point) : point;
-            lastSelectedHintPoint = new Point(Math.round(exactMatchHintPoint.x()),
-                    Math.round(exactMatchHintPoint.y()));
-            logger.trace("Saving lastSelectedHintPoint " + lastSelectedHintPoint);
-            // Unzoomed, like lastSelectedHintPoint: a cell in screen units could not
+            lastSelectedHotspot = new Point(Math.round(exactMatchHotspot.x()),
+                    Math.round(exactMatchHotspot.y()));
+            logger.trace("Saving lastSelectedHotspot " + lastSelectedHotspot);
+            // Unzoomed, like lastSelectedHotspot: a cell in screen units could not
             // compound, so zooming into it twice would magnify by the same factor.
             pendingSelectedCell =
                     exactMatchHint.cellWidth() > 0 || exactMatchHint.elementRectangle() != null ?
                             unzoomedHintCell(exactMatchHint, currentZoom) : null;
             lastSelectedHintCell = pendingSelectedCell;
             areaOverride = null;
-            moveTargetTo(exactMatchHintPoint);
+            moveTargetTo(exactMatchHotspot);
             finalizeHintSelection(exactMatchHint, newSelectedKeySequence);
         }
         else {

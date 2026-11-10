@@ -59,15 +59,15 @@ public class CommandRunner {
             case StopMoveTargetLeft stopMoveTargetLeft -> hintManager.stopMoveTargetLeft();
             case StopMoveTargetRight stopMoveTargetRight -> hintManager.stopMoveTargetRight();
 
-            case StartMoveHintPointsUp startMoveHintPointsUp -> hintManager.startMoveHintPointsUp();
-            case StartMoveHintPointsDown startMoveHintPointsDown -> hintManager.startMoveHintPointsDown();
-            case StartMoveHintPointsLeft startMoveHintPointsLeft -> hintManager.startMoveHintPointsLeft();
-            case StartMoveHintPointsRight startMoveHintPointsRight -> hintManager.startMoveHintPointsRight();
+            case StartMoveHotspotsUp startMoveHotspotsUp -> hintManager.startMoveHotspotsUp();
+            case StartMoveHotspotsDown startMoveHotspotsDown -> hintManager.startMoveHotspotsDown();
+            case StartMoveHotspotsLeft startMoveHotspotsLeft -> hintManager.startMoveHotspotsLeft();
+            case StartMoveHotspotsRight startMoveHotspotsRight -> hintManager.startMoveHotspotsRight();
 
-            case StopMoveHintPointsUp stopMoveHintPointsUp -> hintManager.stopMoveHintPointsUp();
-            case StopMoveHintPointsDown stopMoveHintPointsDown -> hintManager.stopMoveHintPointsDown();
-            case StopMoveHintPointsLeft stopMoveHintPointsLeft -> hintManager.stopMoveHintPointsLeft();
-            case StopMoveHintPointsRight stopMoveHintPointsRight -> hintManager.stopMoveHintPointsRight();
+            case StopMoveHotspotsUp stopMoveHotspotsUp -> hintManager.stopMoveHotspotsUp();
+            case StopMoveHotspotsDown stopMoveHotspotsDown -> hintManager.stopMoveHotspotsDown();
+            case StopMoveHotspotsLeft stopMoveHotspotsLeft -> hintManager.stopMoveHotspotsLeft();
+            case StopMoveHotspotsRight stopMoveHotspotsRight -> hintManager.stopMoveHotspotsRight();
 
             case PressLeft pressLeft -> mouseManager.pressLeft();
             case PressMiddle pressMiddle -> mouseManager.pressMiddle();
@@ -129,10 +129,10 @@ public class CommandRunner {
             case NudgeTargetLeft nudgeTargetLeft -> hintManager.nudgeTargetLeft();
             case NudgeTargetRight nudgeTargetRight -> hintManager.nudgeTargetRight();
 
-            case NudgeHintPointsUp nudgeHintPointsUp -> hintManager.nudgeHintPointsUp();
-            case NudgeHintPointsDown nudgeHintPointsDown -> hintManager.nudgeHintPointsDown();
-            case NudgeHintPointsLeft nudgeHintPointsLeft -> hintManager.nudgeHintPointsLeft();
-            case NudgeHintPointsRight nudgeHintPointsRight -> hintManager.nudgeHintPointsRight();
+            case NudgeHotspotsUp nudgeHotspotsUp -> hintManager.nudgeHotspotsUp();
+            case NudgeHotspotsDown nudgeHotspotsDown -> hintManager.nudgeHotspotsDown();
+            case NudgeHotspotsLeft nudgeHotspotsLeft -> hintManager.nudgeHotspotsLeft();
+            case NudgeHotspotsRight nudgeHotspotsRight -> hintManager.nudgeHotspotsRight();
 
             case SavePosition(String positionHistoryName) -> hintManager.saveCurrentPosition(positionHistoryName);
             case UnsavePosition(String positionHistoryName) -> hintManager.unsaveCurrentPosition(positionHistoryName);

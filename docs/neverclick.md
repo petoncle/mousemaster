@@ -49,15 +49,15 @@ Hold `?` while the hints are open to show this cheatsheet.
 
 A pick stays on screen, outlined, with a dashed line to the next one.
 
-## Points
+## Hotspots
 
-Each hint acts at its point, at the center of its element at first. Before you type a hint, these keys move the points of all the hints together. A moved point shows as a dot in the color of its hint, with a line from its label.
+Each hint acts at its hotspot, at the center of its element at first. Before you type a hint, these keys move the hotspots of all the hints together. A moved hotspot shows as a dot in the color of its hint, with a line from its label.
 
-- Arrows (or `Shift+I J K L`): the first one to the edge of the elements, then 4px steps. Hold an arrow to move the points on after half a second. An arrow pressed during the move joins it. Hold `Ctrl` for 2px steps and half the speed.
+- Arrows (or `Shift+I J K L`): the first one to the edge of the elements, then 4px steps. Hold an arrow to move the hotspots on after half a second. An arrow pressed during the move joins it. Hold `Ctrl` for 2px steps and half the speed.
 - `1` to `9`: across the elements in eighths, from the left edge (`1`) through the center (`5`) to the right edge (`9`). `Shift` and a digit: down them.
 - Numpad: the nine points of the elements.
 
-A pick keeps its point. The next activation starts the points at the centers again.
+A pick keeps its hotspot. The next activation starts the hotspots at the centers again.
 
 ## Sticky hints
 

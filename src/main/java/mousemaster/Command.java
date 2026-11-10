@@ -24,15 +24,15 @@ public sealed interface Command {
     record StopMoveTargetLeft() implements Command {}
     record StopMoveTargetRight() implements Command {}
 
-    record StartMoveHintPointsUp() implements Command {}
-    record StartMoveHintPointsDown() implements Command {}
-    record StartMoveHintPointsLeft() implements Command {}
-    record StartMoveHintPointsRight() implements Command {}
+    record StartMoveHotspotsUp() implements Command {}
+    record StartMoveHotspotsDown() implements Command {}
+    record StartMoveHotspotsLeft() implements Command {}
+    record StartMoveHotspotsRight() implements Command {}
 
-    record StopMoveHintPointsUp() implements Command {}
-    record StopMoveHintPointsDown() implements Command {}
-    record StopMoveHintPointsLeft() implements Command {}
-    record StopMoveHintPointsRight() implements Command {}
+    record StopMoveHotspotsUp() implements Command {}
+    record StopMoveHotspotsDown() implements Command {}
+    record StopMoveHotspotsLeft() implements Command {}
+    record StopMoveHotspotsRight() implements Command {}
 
     record PressLeft() implements Command {}
     record PressMiddle() implements Command {}
@@ -94,10 +94,10 @@ public sealed interface Command {
     record NudgeTargetLeft() implements Command {}
     record NudgeTargetRight() implements Command {}
 
-    record NudgeHintPointsUp() implements Command {}
-    record NudgeHintPointsDown() implements Command {}
-    record NudgeHintPointsLeft() implements Command {}
-    record NudgeHintPointsRight() implements Command {}
+    record NudgeHotspotsUp() implements Command {}
+    record NudgeHotspotsDown() implements Command {}
+    record NudgeHotspotsLeft() implements Command {}
+    record NudgeHotspotsRight() implements Command {}
 
     record SavePosition(String positionHistoryName) implements Command {}
     record UnsavePosition(String positionHistoryName) implements Command {}
