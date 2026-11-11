@@ -3114,7 +3114,7 @@ public final class HintMeshRenderer {
         }
 
         CasterKey casterKey() {
-            return new CasterKey(pixelRectangle(0, 0), borderRadius, shadowColor);
+            return new CasterKey(pixelRectangle(0, 0), borderRadius, borderThickness, shadowColor);
         }
 
         public void paint(QPainter painter) {
@@ -3353,13 +3353,19 @@ public final class HintMeshRenderer {
             if (borderRadius > 0) {
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
                 painter.drawRoundedRect(pixels(x), pixels(y), pixels(width), pixels(height),
-                        borderRadius, borderRadius);
+                        outerRadius(), outerRadius());
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
             else {
                 painter.drawRect(pixels(x), pixels(y), pixels(width), pixels(height));
             }
             painter.restore();
+        }
+
+        /** The radius of the outer edge of a rounded box: its border strokes the box inset by half
+         *  its thickness, which rounds the outer edge by that much more. */
+        private double outerRadius() {
+            return borderRadius + borderThickness / 2d;
         }
 
         private void drawBorders(QPainter painter, int left, int top) {
@@ -4144,7 +4150,8 @@ public final class HintMeshRenderer {
                              boolean alphaOnly, int dotsPerMeter, double qtScaleFactor) {
     }
 
-    private record CasterKey(Rectangle ink, int borderRadius, QBrush shadowColor) {
+    private record CasterKey(Rectangle ink, int borderRadius, int borderThickness,
+                             QBrush shadowColor) {
     }
 
     /** Shadows that differ only in color blur together, each in its own color. */
