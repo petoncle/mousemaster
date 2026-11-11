@@ -556,6 +556,7 @@ public final class HintMeshRenderer {
         cancelPendingBuild();
         clearBoxShadowPixmaps();
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
+            boolean showedNothing = hintMeshWindow.window().showsNothing();
             // Drop the crop before hiding children, or update() would call container.setMask()
             // on a widget whose C++ object has been destroyed.
             containerCropByWindow.remove(hintMeshWindow.window());
@@ -568,12 +569,11 @@ public final class HintMeshRenderer {
             showHotspots(hintMeshWindow.window(), null);
             // An opaque window is cleared with what changes with it, such as the indicator. A
             // faded one is cleared before it is made opaque again for reuse.
-            if (hintMeshWindow.window().windowOpacity() == 1)
+            if (!showedNothing && hintMeshWindow.window().windowOpacity() == 1)
                 hintMeshWindow.window().update();
-            else {
+            else if (!showedNothing)
                 hintMeshWindow.window().repaint();
-                hintMeshWindow.window().setWindowOpacity(1.0);
-            }
+            hintMeshWindow.window().setWindowOpacity(1.0);
         }
         for (LayeredWindow hotspotWindow : hotspotWindowByWindow.values())
             hotspotWindow.setOpacity(1);
@@ -923,7 +923,7 @@ public final class HintMeshRenderer {
                 matchBoxPixmap != null ? matchBoxPixmap :
                         hintMeshPixmaps.get(pixmapKey(hintMeshKey));
         boolean isHintGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
-        QWidget newContainer;
+        ClearBackgroundQLabel newContainer;
         if (pixmapsAndPosition != null) {
             logger.trace("Using cached hint mesh pixmaps " + pixmapsAndPosition);
             ClearBackgroundQLabel pixmapLabel = new ClearBackgroundQLabel(window);
@@ -1008,8 +1008,6 @@ public final class HintMeshRenderer {
                         transitionHintContainers(animateTransition,
                                 oldContainer, newContainer,
                                 window, hintMeshWindow, style.transition());
-                        if (!container.aboveHotspotImages.isEmpty())
-                            container.hide();
                         showHotspots(window, container);
                         // Non-grid hints draw their own borders and only need the window shown.
                         morphBorders(window, hintMeshWindow, container, boxes, enclosingInk,
@@ -1080,7 +1078,8 @@ public final class HintMeshRenderer {
     }
 
     private void transitionHintContainers(boolean animateTransition, QWidget oldContainer,
-                                                 QWidget newContainer, TransparentWindow window,
+                                                 ClearBackgroundQLabel newContainer,
+                                                 TransparentWindow window,
                                                  HintMeshWindow hintMeshWindow,
                                                  Transition transition) {
         // TODO Should use .geometry() instead of .rect() which is relative to the widget
@@ -1149,15 +1148,21 @@ public final class HintMeshRenderer {
             else {
                 oldContainer.setParent(null);
                 disposeWidget(oldContainer);
-                newContainer.show();
+                showInHintMeshWindow(newContainer);
                 transitionedCropByWindow.remove(window);
                 hintContainerAnimationEnded();
             }
         }
         else {
-            newContainer.show();
+            showInHintMeshWindow(newContainer);
         }
         window.show();
+    }
+
+    /** A container that the hotspot window draws whole stays hidden: showing it even for a moment
+     *  paints the hint mesh window. */
+    private static void showInHintMeshWindow(ClearBackgroundQLabel container) {
+        container.setVisible(container.aboveHotspotImages.isEmpty());
     }
 
     /** The visible extent of the window's containers, in window coordinates. */
