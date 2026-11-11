@@ -786,18 +786,22 @@ public class HintManager implements ModeListener, MousePositionListener {
         targetMover.modeChanged(newMode.target(), newMode.stopCommandsFromPreviousMode() ||
                 newMode.hintMesh().mouseFollowsTarget());
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
+        boolean sameHintMeshType = currentMode != null &&
+                                   hintMeshConfiguration.type()
+                                                        .equals(currentMode.hintMesh().type());
+        if (!sameHintMeshType)
+            areaOverride = null;
         HotspotConfiguration hotspots = newMode.hotspots();
-        if (!hintMeshConfiguration.enabled() || hotspots.cellXPercent() != hotspotXPercent)
+        if (!hintMeshConfiguration.enabled() || !sameHintMeshType ||
+            hotspots.cellXPercent() != hotspotXPercent)
             hotspotXOffset = 0;
-        if (!hintMeshConfiguration.enabled() || hotspots.cellYPercent() != hotspotYPercent)
+        if (!hintMeshConfiguration.enabled() || !sameHintMeshType ||
+            hotspots.cellYPercent() != hotspotYPercent)
             hotspotYOffset = 0;
         hotspotXPercent = hotspots.cellXPercent();
         hotspotYPercent = hotspots.cellYPercent();
         hotspotMover.modeChanged(hotspots.movement(),
                 newMode.stopCommandsFromPreviousMode() || !hintMeshConfiguration.enabled());
-        if (currentMode == null ||
-            !hintMeshConfiguration.type().equals(currentMode.hintMesh().type()))
-            areaOverride = null;
         boolean sameUiElementQueryArea =
                 areaOverride == null || areaOverride.equals(uiElementQueryArea);
         boolean sameUiElementQuery = hintMeshConfiguration.enabled() &&

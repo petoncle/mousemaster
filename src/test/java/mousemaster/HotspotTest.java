@@ -221,6 +221,19 @@ class HotspotTest {
     }
 
     @Test
+    void aModeWithOtherHintsUndoesTheNudges() throws IOException {
+        start("""
+                hint-mode.to.grid-mode=+g
+                grid-mode.overlay.type=grid
+                grid-mode.overlay.selection-keys=a b
+                """);
+        switchMode("hint-mode");
+        hintManager.nudgeHotspotsRight();
+        switchMode("grid-mode");
+        assertTrue(hintManager.hotspotsCentered());
+    }
+
+    @Test
     void aNudgeInAModeWithoutHintsMovesNoHotspot() throws IOException {
         start("");
         switchMode("idle-mode");

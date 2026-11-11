@@ -1244,9 +1244,10 @@ hint-mode.hotspots.nudge-distance=4 | _{leftctrl} -> 2
   hotspot is at the edge of its screen, a nudge or a move that way does nothing.
 - A new `cell-x-percent` undoes the nudges and moves across, and a new `cell-y-percent` the ones
   down.
-- A mode without hints undoes the nudges and moves, and stops a move. A mode that gives the
-  `hotspots` properties the same values on the same combos keeps the hotspots, such as
-  `pick-mode.hotspots=hint-mode.hotspots`.
+- A mode without hints undoes the nudges and moves, and stops a move. A mode with the same
+  `overlay.type`, area and layout keeps the hotspots where the commands left them, as it keeps the
+  overlay area: `pick-mode.overlay=hint-mode.overlay` with `pick-mode.hotspots=hint-mode.hotspots`
+  keeps them.
 - A hint without a cell, such as a saved position, keeps its hotspot at its center.
 - `ishotspotscentered` is pressed while the hotspots are at the centers, and `ishotspotsmoving`
   while they move (see [Built-in virtual keys](combo-reference.md#built-in-virtual-keys)).
