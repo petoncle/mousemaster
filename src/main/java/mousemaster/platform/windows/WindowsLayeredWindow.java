@@ -42,6 +42,8 @@ final class WindowsLayeredWindow implements LayeredWindow {
     private Rectangle rectangle = new Rectangle(0, 0, 1, 1);
     private List<WindowImage> windowImages = List.of();
     private Rectangle unsentArea;
+    /** The pixels outside it are transparent. */
+    private Rectangle drawnArea;
     private double opacity = 1;
     private boolean cleared;
     private int sentAlpha;
@@ -102,9 +104,14 @@ final class WindowsLayeredWindow implements LayeredWindow {
     @Override
     public void draw(Rectangle rectangle, Rectangle dirty,
                      BiConsumer<QPainter, Rectangle> paintArea) {
+        boolean moved = !rectangle.equals(this.rectangle);
+        Rectangle area = moved ? rectangle : dirty.intersection(rectangle);
+        // The first draw after a clear erases what the window held before.
+        if (cleared && !moved && drawnArea != null)
+            area = Rectangle.union(List.of(area, drawnArea)).intersection(rectangle);
+        drawnArea = cleared || moved || drawnArea == null ? dirty.intersection(rectangle) :
+                Rectangle.union(List.of(drawnArea, area));
         cleared = false;
-        Rectangle area = rectangle.equals(this.rectangle) ? dirty.intersection(rectangle) :
-                rectangle;
         this.rectangle = rectangle;
         if (area.isEmpty())
             return;

@@ -456,14 +456,15 @@ public final class HintMeshRenderer {
         LayeredWindow hotspotWindow = hotspotWindowByWindow.get(window);
         if (hotspotWindow == null)
             return;
+        hotspotWindow.clear();
         if (container == null || !container.inHotspotWindow) {
             hotspotContainerByWindow.remove(window);
-            hotspotWindow.clear();
             return;
         }
         hotspotContainerByWindow.put(window, container);
-        drawHotspots(window, container,
-                new Rectangle(-container.x(), -container.y(), window.width(), window.height()));
+        List<Rectangle> areas = hotspotInks(container);
+        areas.add(container.belowHotspotArea);
+        drawHotspots(window, container, Rectangle.union(areas));
     }
 
     /** dirty is in the coordinates of the container. */
@@ -475,21 +476,23 @@ public final class HintMeshRenderer {
         hotspotWindowByWindow.get(window).draw(rectangle,
                 new Rectangle(rectangle.x() + x + dirty.x(), rectangle.y() + y + dirty.y(),
                         dirty.width(), dirty.height()), (painter, area) -> {
-                    paintImages(painter, area, container.belowHotspotImages);
                     painter.translate(x, y);
                     Rectangle containerArea = new Rectangle(area.x() - x, area.y() - y,
                             area.width(), area.height());
+                    paintImages(painter, containerArea, container.belowHotspotArea.x(),
+                            container.belowHotspotArea.y(), container.belowHotspotImages);
                     container.paintHotspotBoxes(painter, containerArea);
-                    paintImages(painter, containerArea, container.aboveHotspotImages);
+                    paintImages(painter, containerArea, 0, 0, container.aboveHotspotImages);
                 });
     }
 
-    private static void paintImages(QPainter painter, Rectangle area, List<QImage> images) {
-        int y = 0;
+    /** The images are rows down from (x, y). */
+    private static void paintImages(QPainter painter, Rectangle area, int x, int y,
+                                    List<QImage> images) {
         for (QImage image : images) {
             int height = (int) Math.round(image.height() / image.devicePixelRatio());
             if (y < area.y() + area.height() && area.y() < y + height)
-                painter.drawImage(0, y, image);
+                painter.drawImage(x, y, image);
             y += height;
         }
     }
@@ -702,6 +705,8 @@ public final class HintMeshRenderer {
         /** Set when the hotspots, and what is under them, are drawn in the hotspot window. */
         private boolean inHotspotWindow;
         private int hotspotBoxWidth, hotspotBoxHeight;
+        /** The container and its background, in the coordinates of the container. */
+        private Rectangle belowHotspotArea;
         private List<QImage> belowHotspotImages = List.of();
         private List<QImage> aboveHotspotImages = List.of();
 
@@ -2647,10 +2652,13 @@ public final class HintMeshRenderer {
         int dotsPerMeter = dotsPerMeter(screenScale);
         List<QImage> images;
         if (container.inHotspotWindow) {
+            container.belowHotspotArea = background == null ? area : Rectangle.union(List.of(area,
+                    new Rectangle(backgroundRectangle.x() - containerX,
+                            backgroundRectangle.y() - containerY, backgroundRectangle.width(),
+                            backgroundRectangle.height())));
             if (background != null || !belowHotspotLayers.isEmpty())
                 container.belowHotspotImages = ImageChunks.paintChunks(
-                        new Rectangle(-containerX, -containerY, container.window().width(),
-                                container.window().height()), devicePixelRatio, dotsPerMeter,
+                        container.belowHotspotArea, devicePixelRatio, dotsPerMeter,
                         paintBelowHotspots);
             images = ImageChunks.paintChunks(area, devicePixelRatio, dotsPerMeter,
                     (painter, chunk) -> paintLayers(painter, chunk, aboveHotspotLayers,

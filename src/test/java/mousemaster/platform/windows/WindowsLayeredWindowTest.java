@@ -1,11 +1,18 @@
 package mousemaster.platform.windows;
 
+import mousemaster.MousemasterApplication;
+import mousemaster.QtManager;
 import mousemaster.Rectangle;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WindowsLayeredWindowTest {
 
@@ -35,6 +42,36 @@ class WindowsLayeredWindowTest {
     @Test
     void theWindowCoversAScreenItsImagesCover() {
         assertEquals(SCREEN, WindowsLayeredWindow.grownRectangle(SCREEN, List.of(SCREEN)));
+    }
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    void theFirstDrawAfterAClearErasesWhatTheWindowHeld() {
+        MousemasterApplication.tempDirectory =
+                System.getProperty("java.io.tmpdir") + "/mousemaster-layered-window-test";
+        try {
+            QtManager.initialize();
+        } catch (Throwable alreadyInitializedByAnotherTest) {
+        }
+        WindowsLayeredWindow window = new WindowsLayeredWindow(false);
+        Rectangle rectangle = new Rectangle(0, 0, 1000, 1000);
+        Rectangle first = new Rectangle(100, 100, 50, 50);
+        window.draw(rectangle, first, (painter, area) -> {
+        });
+        window.clear();
+        Rectangle second = new Rectangle(600, 600, 50, 50);
+        assertTrue(paintedArea(window, rectangle, second).contains(first));
+        window.clear();
+        Rectangle paintedArea = paintedArea(window, rectangle, new Rectangle(600, 700, 50, 50));
+        assertTrue(paintedArea.contains(second));
+        assertTrue(paintedArea.intersection(first).isEmpty());
+    }
+
+    private static Rectangle paintedArea(WindowsLayeredWindow window, Rectangle rectangle,
+                                         Rectangle dirty) {
+        List<Rectangle> areas = Collections.synchronizedList(new ArrayList<>());
+        window.draw(rectangle, dirty, (painter, area) -> areas.add(area));
+        return Rectangle.union(areas);
     }
 
 }
