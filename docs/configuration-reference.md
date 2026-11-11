@@ -1253,8 +1253,9 @@ hint-mode.hotspots.nudge-distance=4 | _{leftctrl} -> 2
   while they move (see [Built-in virtual keys](combo-reference.md#built-in-virtual-keys)).
 - A hint saved in the overlay's `saved-hints` history has the position it was saved at as its
   hotspot: it does not move with the other hotspots.
-- The overlay draws the hotspot of each hint that is not at the center of its cell, behind the
+- Once the hotspots are not at the centers, the overlay draws the hotspot of each hint, behind the
   boxes, with `hotspot-box-*` and `hotspot-line-*` (see [Hint appearance](#hint-appearance)).
+  While they are at the centers, it draws only the hotspot of a saved hint that is off its center.
 
 ### Hint appearance
 

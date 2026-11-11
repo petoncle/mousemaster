@@ -496,7 +496,7 @@ Some virtual keys are maintained by mousemaster. They can be read like any other
 | `isidling`                 | The mouse is neither moving, wheeling, nor pressing a button.                                                     |
 | `isunhandledkeypressing`   | A key that is not part of any combo of the current mode is held.                                                  |
 | `isoverlayempty`           | The current mode's overlay has been computed and holds no hint. Only [accessibility UI hints](configuration-reference.md#accessibility-ui-hints) and [vision UI hints](configuration-reference.md#vision-ui-hints) can come up empty. |
-| `ishotspotscentered`       | The [hotspots](configuration-reference.md#hotspots) are at the centers of their cells, as they start. |
+| `ishotspotscentered`       | The [hotspots](configuration-reference.md#hotspots) are at the centers of their cells: both cell percents are 0.5, and no nudge or move took them away. |
 | `ishotspotsmoving`         | mousemaster is moving the [hotspots](configuration-reference.md#hotspots) (`start-move-hotspots`). |
 | `iswindows`, `ismacos`     | mousemaster runs on that operating system.                                                                       |
 | `isdragpositionhistoryempty` | The [position history](configuration-reference.md#position-history) `drag-position-history`, of the active app, holds no position. A history's key is `is`, its name without the hyphens, then `empty`. |
