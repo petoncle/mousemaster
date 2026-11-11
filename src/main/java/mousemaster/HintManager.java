@@ -618,7 +618,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             stoppedTargetPoint = nearestScreenPoint(stoppedTargetPoint.x() + (long) move.x() * scale,
                     stoppedTargetPoint.y() + (long) move.y() * scale);
         }
-        hotspotFrameDelta += delta;
+        hotspotFrameDelta = hotspotMover.moving() ? hotspotFrameDelta + delta : 0;
         if (hotspotFrameDelta >= Mousemaster.FRAME_INTERVAL) {
             Point hotspotMove = hotspotMover.move(hotspotFrameDelta);
             hotspotFrameDelta = 0;

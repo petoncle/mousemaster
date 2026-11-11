@@ -557,6 +557,21 @@ class HotspotTest {
     }
 
     @Test
+    void aMoveCountsNoTimeFromBeforeItStarts() throws IOException {
+        start("""
+                hint-mode.hotspots.initial-velocity=120
+                hint-mode.hotspots.max-velocity=120
+                hint-mode.start-move-hotspots.right=+rightarrow
+                """);
+        startComboWatcher();
+        press("h");
+        hintManager.update(0.01);
+        down("rightarrow");
+        hintManager.update(0.01);
+        assertTrue(hintManager.hotspotsCentered());
+    }
+
+    @Test
     void anArrowPressedWhileTheHotspotsMoveJoinsTheMove() throws IOException {
         start("""
                 hint-mode.hotspots.nudge-distance=4
