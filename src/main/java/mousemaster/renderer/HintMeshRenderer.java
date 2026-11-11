@@ -4195,7 +4195,7 @@ public final class HintMeshRenderer {
                     entry.getValue().keySet().stream().map(HintBox::casterKey).toList(),
                     boxShadow, shadowColor.rgba(), alphaOnly, dotsPerMeter, qtScaleFactor);
             List<QPixmap> shadowPixmaps = boxShadowPixmaps.computeIfAbsent(shadowKey,
-                    key -> shadowPixmaps(StackedShadowEffect.renderShadow(area, dotsPerMeter,
+                    key -> shadowPixmaps(Shadows.renderShadow(area, dotsPerMeter,
                             (painter, chunk) -> paintCasters(painter, chunk, entry.getValue(),
                                     padding, HintBox::paintOpaque),
                             shadowColor, boxShadow.blurRadius(), boxShadow.horizontalOffset(),
@@ -4365,7 +4365,7 @@ public final class HintMeshRenderer {
             Rectangle area = new Rectangle(layer.originX, layer.originY, layer.width(),
                     layer.height());
             QColor shadowColor = shadowColor(shadowRgbs, labelStyle.shadowColor().alpha());
-            layer.addShadowPixmaps(shadowPixmaps(StackedShadowEffect.renderShadow(area,
+            layer.addShadowPixmaps(shadowPixmaps(Shadows.renderShadow(area,
                     dotsPerMeter(screenScale),
                     (painter, chunk) -> paintCasters(painter, chunk, inkByBox, padding,
                             (box, boxPainter) -> box.paintDecorationLabels(boxPainter,
@@ -4434,7 +4434,7 @@ public final class HintMeshRenderer {
             for (HintLabel label : entry.getValue().keySet())
                 shadowRgbs.add(label.labelFontStyle.defaultStyle().shadowColor().rgb());
             QColor shadowColor = shadowColor(shadowRgbs, shadowStyle.shadowColor().alpha());
-            layer.addShadowPixmaps(shadowPixmaps(StackedShadowEffect.renderShadow(area,
+            layer.addShadowPixmaps(shadowPixmaps(Shadows.renderShadow(area,
                     dotsPerMeter(screenScale),
                     (painter, chunk) -> paintCasters(painter, chunk, entry.getValue(), padding,
                             HintLabel::paintOpaque),
@@ -4493,7 +4493,7 @@ public final class HintMeshRenderer {
                 continue;
             QColor shadowColor = shadowColor(entry.getValue(), group.alpha());
             // Render source image with only keys matching this group.
-            List<QImage> shadowImages = StackedShadowEffect.renderShadow(area,
+            List<QImage> shadowImages = Shadows.renderShadow(area,
                     dotsPerMeter(screenScale),
                     (painter, chunk) -> paintCasters(painter, chunk, inkByLabel, padding,
                             (label, labelPainter) -> label.paintOpaqueFiltered(labelPainter,

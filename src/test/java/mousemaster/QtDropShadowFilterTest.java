@@ -1,17 +1,26 @@
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LGPL-3.0-only
+//
+// PortedDropShadowEffect.draw is a Java translation, made in 2026, of
+// QGraphicsDropShadowEffect::draw, from qtbase/src/widgets/effects/qgraphicseffect.cpp at Qt 6.8.2.
+// See THIRD-PARTY-NOTICES.md.
 package mousemaster;
 
+import io.qt.core.QPoint;
 import io.qt.core.QRect;
 import io.qt.core.QRectF;
+import io.qt.core.Qt;
 import io.qt.gui.QBrush;
 import io.qt.gui.QColor;
 import io.qt.gui.QImage;
 import io.qt.gui.QPainter;
 import io.qt.gui.QPixmap;
+import io.qt.gui.QTransform;
 import io.qt.widgets.QGraphicsDropShadowEffect;
 import io.qt.widgets.QGraphicsEffect;
 import io.qt.widgets.QGraphicsPixmapItem;
 import io.qt.widgets.QGraphicsScene;
-import mousemaster.qt.StackedShadowEffect;
+import mousemaster.qt.QtDropShadowFilter;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +35,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * The ported blur has to stay bit-exact with the one it replaces, or shadows change appearance.
  * Renders the same source through Qt's own drop shadow and through ours, and compares every byte.
  */
-class QtDropShadowEffectTest {
+class QtDropShadowFilterTest {
 
     private static final int WIDTH = 220, HEIGHT = 160;
 
@@ -68,11 +77,10 @@ class QtDropShadowEffectTest {
                         return effect;
                     });
                     byte[] ported = render(source(0xFFFFFF), () -> {
-                        StackedShadowEffect effect = new StackedShadowEffect();
+                        PortedDropShadowEffect effect = new PortedDropShadowEffect(true);
                         effect.setBlurRadius(radius);
                         effect.setOffset(offset[0], offset[1]);
                         effect.setColor(color);
-                        effect.setStackCount(1);
                         return effect;
                     });
                     int differing = 0, maxDelta = 0;
@@ -124,14 +132,55 @@ class QtDropShadowEffectTest {
         assertTrue(mismatches.isEmpty(), String.join("\n", mismatches));
     }
 
-    private static StackedShadowEffect effect(double radius, int alpha, boolean alphaOnly) {
-        StackedShadowEffect effect = new StackedShadowEffect();
+    private static PortedDropShadowEffect effect(double radius, int alpha, boolean alphaOnly) {
+        PortedDropShadowEffect effect = new PortedDropShadowEffect(alphaOnly);
         effect.setBlurRadius(radius);
         effect.setOffset(2, 3);
         effect.setColor(new QColor(255, 255, 255, alpha));
-        effect.setStackCount(1);
-        effect.setAlphaOnly(alphaOnly);
         return effect;
+    }
+
+    /** Qt's drop shadow effect with its filter swapped for {@link QtDropShadowFilter}. */
+    private static class PortedDropShadowEffect extends QGraphicsDropShadowEffect {
+
+        private final boolean alphaOnly;
+
+        PortedDropShadowEffect(boolean alphaOnly) {
+            this.alphaOnly = alphaOnly;
+        }
+
+        @Override
+        protected void draw(QPainter painter) {
+            if (blurRadius() <= 0 && xOffset() == 0 && yOffset() == 0) {
+                drawSource(painter);
+                return;
+            }
+            QPoint sourceOffset = new QPoint();
+            QPixmap sourcePixmap = sourcePixmap(Qt.CoordinateSystem.DeviceCoordinates,
+                    sourceOffset, PixmapPadMode.PadToEffectiveBoundingRect);
+            if (sourcePixmap.isNull()) {
+                sourcePixmap.dispose();
+                sourceOffset.dispose();
+                return;
+            }
+            QImage sourceImage = sourcePixmap.toImage();
+            QColor shadowColor = color();
+            QImage shadow = QtDropShadowFilter.shadows(List.of(sourceImage), sourceImage.height(),
+                    xOffset(), yOffset(), blurRadius(), shadowColor, null, alphaOnly, false)
+                                              .getFirst();
+            shadowColor.dispose();
+            QTransform savedTransform = painter.worldTransform();
+            QTransform identity = new QTransform();
+            painter.setWorldTransform(identity);
+            painter.drawImage(sourceOffset, shadow);
+            painter.drawPixmap(sourceOffset, sourcePixmap);
+            painter.setWorldTransform(savedTransform);
+            savedTransform.dispose();
+            identity.dispose();
+            shadow.dispose();
+            sourcePixmap.dispose();
+            sourceOffset.dispose();
+        }
     }
 
     /** The source through a scene carrying {@code effect}, as the hint mesh renders its shadows. */

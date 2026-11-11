@@ -19,7 +19,7 @@ MIT-SLF4J.txt and MIT-jsoup.txt.
 Qt and QtJambi are embedded unmodified. Their source is available from
 https://code.qt.io/cgit/qt/qtbase.git and https://github.com/OmixVisualization/qtjambi.
 
-`src/main/java/mousemaster/qt/ExpBlur.java` and `QtDropShadowEffect.java` are ports of Qt source,
+`src/main/java/mousemaster/qt/ExpBlur.java` and `QtDropShadowFilter.java` are ports of Qt source,
 licensed LGPL-3.0-only.
 
 ## Relinking

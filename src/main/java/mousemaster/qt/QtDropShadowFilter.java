@@ -1,23 +1,17 @@
 // Copyright (C) 2016 The Qt Company Ltd.
 // SPDX-License-Identifier: LGPL-3.0-only
 //
-// A Java translation, made in 2026, of QGraphicsDropShadowEffect::draw, from
-// qtbase/src/widgets/effects/qgraphicseffect.cpp, and QPixmapDropShadowFilter::draw, from
-// qtbase/src/widgets/effects/qpixmapfilter.cpp, both at Qt 6.8.2, with the call to qt_blurImage
-// replaced by ExpBlur. Upstream is available under LicenseRef-Qt-Commercial OR LGPL-3.0-only OR
+// A Java translation, made in 2026, of QPixmapDropShadowFilter::draw, from
+// qtbase/src/widgets/effects/qpixmapfilter.cpp at Qt 6.8.2, with the call to qt_blurImage replaced
+// by ExpBlur. Upstream is available under LicenseRef-Qt-Commercial OR LGPL-3.0-only OR
 // GPL-2.0-only OR GPL-3.0-only; this translation elects LGPL-3.0-only. See THIRD-PARTY-NOTICES.md.
 package mousemaster.qt;
 
-import io.qt.core.QPoint;
 import io.qt.core.QRect;
-import io.qt.core.Qt;
 import io.qt.gui.QBrush;
 import io.qt.gui.QColor;
 import io.qt.gui.QImage;
 import io.qt.gui.QPainter;
-import io.qt.gui.QPixmap;
-import io.qt.gui.QTransform;
-import io.qt.widgets.QGraphicsDropShadowEffect;
 
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
@@ -25,64 +19,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Qt's drop shadow with its blur swapped for {@link ExpBlur}. Qt still pads the source, upscales
- * the halved blur, colors the shadow and composites it, so only the blur itself has to be kept
- * bit-exact.
+ * Qt's drop shadow filter with its blur swapped for {@link ExpBlur}. Qt still upscales the halved
+ * blur, colors the shadow and composites it, so only the blur itself has to be kept bit-exact.
  */
-public class QtDropShadowEffect extends QGraphicsDropShadowEffect {
-
-    private QBrush shadowBrush;
-    private boolean alphaOnly = true;
-
-    /** Tints the shadow with a brush instead of {@link #color()}, so it can be a gradient. */
-    public void setShadowBrush(QBrush shadowBrush) {
-        this.shadowBrush = shadowBrush;
-    }
-
-    protected QBrush shadowBrush() {
-        return shadowBrush;
-    }
-
-    /** false blurs the source's colors too: {@link #color()} then gives only the opacity. */
-    public void setAlphaOnly(boolean alphaOnly) {
-        this.alphaOnly = alphaOnly;
-    }
-
-    protected boolean alphaOnly() {
-        return alphaOnly;
-    }
-
-    protected void drawBlurredShadow(QPainter painter) {
-        if (blurRadius() <= 0 && xOffset() == 0 && yOffset() == 0) {
-            drawSource(painter);
-            return;
-        }
-        QPoint sourceOffset = new QPoint();
-        QPixmap sourcePixmap = sourcePixmap(Qt.CoordinateSystem.DeviceCoordinates, sourceOffset,
-                PixmapPadMode.PadToEffectiveBoundingRect);
-        if (sourcePixmap.isNull()) {
-            sourcePixmap.dispose();
-            sourceOffset.dispose();
-            return;
-        }
-        QImage sourceImage = sourcePixmap.toImage();
-        QColor shadowColor = color();
-        QImage shadow = shadows(List.of(sourceImage), sourceImage.height(), xOffset(), yOffset(),
-                blurRadius(), shadowColor, shadowBrush, alphaOnly, false).getFirst();
-        shadowColor.dispose();
-
-        QTransform savedTransform = painter.worldTransform();
-        QTransform identity = new QTransform();
-        painter.setWorldTransform(identity);
-        painter.drawImage(sourceOffset, shadow);
-        painter.drawPixmap(sourceOffset, sourcePixmap);
-        painter.setWorldTransform(savedTransform);
-        savedTransform.dispose();
-        identity.dispose();
-        shadow.dispose();
-        sourcePixmap.dispose();
-        sourceOffset.dispose();
-    }
+public class QtDropShadowFilter {
 
     /**
      * The shadow of the source, colored with the brush if there is one, or else with the color, or
@@ -92,9 +32,9 @@ public class QtDropShadowEffect extends QGraphicsDropShadowEffect {
      * own. Consumes the sources. Brushes are cached and shared, so this fills with one rather than
      * disposing it.
      */
-    protected static List<QImage> shadows(List<QImage> sources, int chunkHeight, double xOffset,
-                                          double yOffset, double blurRadius, QColor color,
-                                          QBrush brush, boolean alphaOnly, boolean cutOut) {
+    public static List<QImage> shadows(List<QImage> sources, int chunkHeight, double xOffset,
+                                       double yOffset, double blurRadius, QColor color,
+                                       QBrush brush, boolean alphaOnly, boolean cutOut) {
         int width = sources.getFirst().width();
         int height = (sources.size() - 1) * chunkHeight + sources.getLast().height();
         // qt_blurImage halves the image once the radius reaches 4, and scales it back afterwards.

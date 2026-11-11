@@ -16,7 +16,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-class StackedShadowEffectTest {
+class ShadowsTest {
 
     /** Odd, so the halved blur leaves a last column and row to fill. */
     private static final int WIDTH = 901, HEIGHT = 701;
@@ -49,10 +49,10 @@ class StackedShadowEffectTest {
         List<String> mismatches = new ArrayList<>();
         for (double radius : new double[]{2, 12})
             for (boolean alphaOnly : new boolean[]{true, false}) {
-                QImage shadow = QtDropShadowEffect.shadows(List.of(source()), HEIGHT, -2, 3,
+                QImage shadow = QtDropShadowFilter.shadows(List.of(source()), HEIGHT, -2, 3,
                         radius, color, null, alphaOnly, true).getFirst();
                 byte[] shadowBytes = bytes(shadow);
-                List<QImage> chunks = StackedShadowEffect.renderShadow(
+                List<QImage> chunks = Shadows.renderShadow(
                         new Rectangle(0, 0, WIDTH, HEIGHT), 3780,
                         (painter, chunk) -> painter.drawImage(0, 0, source), color, radius, -2,
                         3, alphaOnly, true);

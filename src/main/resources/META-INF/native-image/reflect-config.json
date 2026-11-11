@@ -1030,20 +1030,6 @@
   "name":"mousemaster.qt.ScreenshotWidget$WhenMappings"
 },
 {
-  "name":"mousemaster.qt.StackedShadowEffect",
-  "allDeclaredFields":true,
-  "allDeclaredClasses":true,
-  "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true,
-  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"getStackCount","parameterTypes":[] }, {"name":"getTransparencyOnly","parameterTypes":[] }, {"name":"hasTransparencyOnly","parameterTypes":[] }, {"name":"isTransparencyOnly","parameterTypes":[] }, {"name":"redrawSourceOverShadow","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setColors","parameterTypes":["io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"stackCount","parameterTypes":[] }, {"name":"transparencyOnly","parameterTypes":[] }]
-},
-{
-  "name":"mousemaster.qt.StackedShadowEffect$1"
-},
-{
-  "name":"mousemaster.qt.StackedShadowEffect$WhenMappings"
-},
-{
   "name":"mousemaster.qt.TransparentWindow",
   "allDeclaredFields":true,
   "allDeclaredClasses":true,
@@ -1122,48 +1108,6 @@
 },
 {
   "name":"mousemaster.renderer.HintMeshRenderer$HintPaintLayer$WhenMappings"
-},
-{
-  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorLabelWidget",
-  "allDeclaredFields":true,
-  "allDeclaredClasses":true,
-  "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true,
-  "methods":[{"name":"getIndicatorOutlinePadding","parameterTypes":[] }, {"name":"getLabelFontScale","parameterTypes":[] }, {"name":"indicatorOutlinePadding","parameterTypes":[] }, {"name":"labelFontScale","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
-},
-{
-  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorLabelWidget$1"
-},
-{
-  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorLabelWidget$WhenMappings"
-},
-{
-  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorShadowEffect",
-  "allDeclaredFields":true,
-  "allDeclaredClasses":true,
-  "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true,
-  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }]
-},
-{
-  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorShadowEffect$1"
-},
-{
-  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorShadowEffect$WhenMappings"
-},
-{
-  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorLayerWidget",
-  "allDeclaredFields":true,
-  "allDeclaredClasses":true,
-  "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true,
-  "methods":[{"name":"color","parameterTypes":[] }, {"name":"edgeCount","parameterTypes":[] }, {"name":"getColor","parameterTypes":[] }, {"name":"getEdgeCount","parameterTypes":[] }, {"name":"getOutlineScale","parameterTypes":[] }, {"name":"outlineScale","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
-},
-{
-  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorLayerWidget$1"
-},
-{
-  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorLayerWidget$WhenMappings"
 },
 {
   "name":"mousemaster.renderer.QtJambi_LibraryUtilities"

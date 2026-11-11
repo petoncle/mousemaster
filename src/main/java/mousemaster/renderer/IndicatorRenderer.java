@@ -863,7 +863,7 @@ public final class IndicatorRenderer {
         QImage source = shadowSource(layers);
         for (ShadowCast shadowCast : shadowCasts) {
             Shadow shadow = shadowCast.shadow();
-            StackedShadowEffect.drawShadow(painter,
+            Shadows.drawShadow(painter,
                     shadowCast.drawnLayers().size() == layers.size() ? new QImage(source) :
                             shadowSource(shadowCast.drawnLayers()),
                     shadowSourceArea.x(), shadowSourceArea.y(), shadow.blurRadius() * shadowScale,
