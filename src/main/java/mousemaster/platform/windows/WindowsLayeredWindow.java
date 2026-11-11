@@ -22,10 +22,10 @@ import java.util.List;
 import java.util.function.BiConsumer;
 
 /**
- * An indicator window or a hotspot window: UpdateLayeredWindow moves it and replaces its
- * pixels in one call, which a Qt window cannot do. It is painted across cores, and redraws and
- * sends only where it changed. It is shown once and never hidden: a window that shows reaches
- * the screen a frame after the others are updated.
+ * An indicator window or the layered window of a hint mesh: UpdateLayeredWindow moves it and
+ * replaces its pixels in one call, which a Qt window cannot do. It is painted across cores, and
+ * redraws and sends only where it changed. It is shown once and never hidden: a window that
+ * shows reaches the screen a frame after the others are updated.
  */
 final class WindowsLayeredWindow implements LayeredWindow {
 

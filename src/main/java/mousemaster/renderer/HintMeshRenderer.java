@@ -89,11 +89,11 @@ public final class HintMeshRenderer {
     /** Creates a styled native window. */
     private final Supplier<TransparentWindow> windowFactory;
     /** Null where the hint mesh windows draw their hotspots themselves. */
-    private final Supplier<LayeredWindow> hotspotWindowFactory;
-    private final Map<TransparentWindow, LayeredWindow> hotspotWindowByWindow =
+    private final Supplier<LayeredWindow> layeredWindowFactory;
+    private final Map<TransparentWindow, LayeredWindow> layeredWindowByWindow =
             new HashMap<>();
-    /** The container whose hotspots, and what is under them, each hotspot window draws. */
-    private final Map<TransparentWindow, ClearBackgroundQLabel> hotspotContainerByWindow =
+    /** The container that each layered window draws. */
+    private final Map<TransparentWindow, ClearBackgroundQLabel> layeredWindowContainerByWindow =
             new HashMap<>();
 
     /** A per-screen hint mesh window (no HWND — the overlay derives the native handle from
@@ -183,10 +183,10 @@ public final class HintMeshRenderer {
     }
 
     public HintMeshRenderer(Supplier<TransparentWindow> windowFactory,
-                            Supplier<LayeredWindow> hotspotWindowFactory,
+                            Supplier<LayeredWindow> layeredWindowFactory,
                             Runnable hintMeshEndAnimationEndedCallback) {
         this.windowFactory = windowFactory;
-        this.hotspotWindowFactory = hotspotWindowFactory;
+        this.layeredWindowFactory = layeredWindowFactory;
         this.hintMeshEndAnimationEndedCallback = hintMeshEndAnimationEndedCallback;
     }
 
@@ -381,15 +381,15 @@ public final class HintMeshRenderer {
                     opacity -> {
                         for (HintMeshWindow w : hintMeshWindows.values())
                             w.window().setWindowOpacity(opacity);
-                        for (LayeredWindow hotspotWindow : hotspotWindowByWindow.values())
-                            hotspotWindow.setOpacity(opacity);
+                        for (LayeredWindow layeredWindow : layeredWindowByWindow.values())
+                            layeredWindow.setOpacity(opacity);
                     },
                     this::doHideHintMesh);
             hintMeshFadeAnimator.fadeIn(style(currentHintMesh).fade());
         }
     }
 
-    /** Moves the hotspots in the hotspot windows, unless a window has hotspots that its hotspot
+    /** Moves the hotspots in the layered windows, unless a window has hotspots that its layered
      *  window does not draw, or a hint gains or loses its hotspot. */
     private boolean moveHotspots(HintMesh hintMesh) {
         if (!hintMesh.hotspotByKeySequence().keySet()
@@ -400,14 +400,14 @@ public final class HintMeshRenderer {
             HintMeshStyle style = hintMesh.styleByFilter().get(ScreenFilter.of(entry.getKey()));
             if (!entry.getValue().hints().isEmpty() &&
                 (hotspotBoxVisible(style) || hotspotBoxVisible(style.saved())) &&
-                (!hotspotContainerByWindow.containsKey(window) ||
+                (!layeredWindowContainerByWindow.containsKey(window) ||
                  setUncachedHintMeshWindowRunnables.containsKey(window)))
                 return false;
         }
-        hotspotContainerByWindow.forEach((window, container) -> {
+        layeredWindowContainerByWindow.forEach((window, container) -> {
             Rectangle dirty = moveHotspots(container, hintMesh.hotspotByKeySequence());
             if (dirty != null)
-                drawHotspots(window, container, dirty);
+                drawInLayeredWindow(window, container, dirty);
         });
         return true;
     }
@@ -451,29 +451,29 @@ public final class HintMeshRenderer {
         }
     }
 
-    /** The hotspot window shows nothing when the container draws its hotspots itself. */
-    private void showHotspots(TransparentWindow window, ClearBackgroundQLabel container) {
-        LayeredWindow hotspotWindow = hotspotWindowByWindow.get(window);
-        if (hotspotWindow == null)
+    /** The layered window shows nothing when the hint mesh window draws the container. */
+    private void showInLayeredWindow(TransparentWindow window, ClearBackgroundQLabel container) {
+        LayeredWindow layeredWindow = layeredWindowByWindow.get(window);
+        if (layeredWindow == null)
             return;
-        hotspotWindow.clear();
-        if (container == null || !container.inHotspotWindow) {
-            hotspotContainerByWindow.remove(window);
+        layeredWindow.clear();
+        if (container == null || !container.inLayeredWindow) {
+            layeredWindowContainerByWindow.remove(window);
             return;
         }
-        hotspotContainerByWindow.put(window, container);
+        layeredWindowContainerByWindow.put(window, container);
         List<Rectangle> areas = hotspotInks(container);
         areas.add(container.belowHotspotArea);
-        drawHotspots(window, container, Rectangle.union(areas));
+        drawInLayeredWindow(window, container, Rectangle.union(areas));
     }
 
     /** dirty is in the coordinates of the container. */
-    private void drawHotspots(TransparentWindow window, ClearBackgroundQLabel container,
-                                Rectangle dirty) {
+    private void drawInLayeredWindow(TransparentWindow window, ClearBackgroundQLabel container,
+                                     Rectangle dirty) {
         int x = container.x(), y = container.y();
         Rectangle rectangle = new Rectangle(window.xInPixels(), window.yInPixels(),
                 window.widthInPixels(), window.heightInPixels());
-        hotspotWindowByWindow.get(window).draw(rectangle,
+        layeredWindowByWindow.get(window).draw(rectangle,
                 new Rectangle(rectangle.x() + x + dirty.x(), rectangle.y() + y + dirty.y(),
                         dirty.width(), dirty.height()), (painter, area) -> {
                     painter.translate(x, y);
@@ -569,7 +569,7 @@ public final class HintMeshRenderer {
                 stopBorderMorph(lineMorph);
             hintMeshWindow.window().setBackground(null, null, 0, null, 0);
             hintMeshWindow.window().hideChildren();
-            showHotspots(hintMeshWindow.window(), null);
+            showInLayeredWindow(hintMeshWindow.window(), null);
             // An opaque window is cleared with what changes with it, such as the indicator. A
             // faded one is cleared before it is made opaque again for reuse.
             if (!showedNothing && hintMeshWindow.window().windowOpacity() == 1)
@@ -578,8 +578,8 @@ public final class HintMeshRenderer {
                 hintMeshWindow.window().repaint();
             hintMeshWindow.window().setWindowOpacity(1.0);
         }
-        for (LayeredWindow hotspotWindow : hotspotWindowByWindow.values())
-            hotspotWindow.setOpacity(1);
+        for (LayeredWindow layeredWindow : layeredWindowByWindow.values())
+            layeredWindow.setOpacity(1);
     }
 
     private void createOrUpdateHintMeshWindows(HintMesh hintMesh, Zoom zoom, boolean animate,
@@ -597,7 +597,7 @@ public final class HintMeshRenderer {
             HintMeshWindow window = entry.getValue();
             if (!hintsByScreen.containsKey(screen)) {
                 window.hints().clear();
-                showHotspots(window.window(), null);
+                showInLayeredWindow(window.window(), null);
             }
         }
         for (Map.Entry<Screen, List<Hint>> entry : hintsByScreen.entrySet()) {
@@ -665,8 +665,8 @@ public final class HintMeshRenderer {
     private HintMeshWindow createHintMeshWindow(Screen screen, List<Hint> hints, Zoom zoom) {
         TransparentWindow window = windowFactory.get();
         window.coverInPixels(screen);
-        if (hotspotWindowFactory != null)
-            hotspotWindowByWindow.put(window, hotspotWindowFactory.get());
+        if (layeredWindowFactory != null)
+            layeredWindowByWindow.put(window, layeredWindowFactory.get());
         return new HintMeshWindow(window, hints, zoom, new AtomicReference<>(),
                 new AtomicBoolean());
     }
@@ -702,8 +702,8 @@ public final class HintMeshRenderer {
         /** Layer 0, under the hotspots. */
         private List<HintPaintLayer> belowHotspotLayers = List.of();
         private List<HintBox> hotspotBoxes = List.of();
-        /** Set when the hotspots, and what is under them, are drawn in the hotspot window. */
-        private boolean inHotspotWindow;
+        /** Set when the layered window draws the container. */
+        private boolean inLayeredWindow;
         private int hotspotBoxWidth, hotspotBoxHeight;
         /** The container and its background, in the coordinates of the container. */
         private Rectangle belowHotspotArea;
@@ -911,7 +911,7 @@ public final class HintMeshRenderer {
         if (hintMeshWindow.hints().isEmpty()) {
             showBackground(window, backgroundColor, backgroundRectangle, backgroundRadius,
                     backgroundBorderColor, backgroundBorderThickness);
-            showHotspots(window, null);
+            showInLayeredWindow(window, null);
             QWidget container = new QWidget(window);
             container.setGeometry(0, 0, 0, 0);
             container.show();
@@ -960,7 +960,7 @@ public final class HintMeshRenderer {
                     backgroundBorderColor, backgroundBorderThickness);
             transitionHintContainers(animateTransition, oldContainer, newContainer,
                     window, hintMeshWindow, style.transition());
-            showHotspots(window, null);
+            showInLayeredWindow(window, null);
             if (pixmapsAndPosition.boxes() != null)
                 morphBorders(window, hintMeshWindow, pixmapLabel, pixmapsAndPosition.boxes(),
                         pixmapsAndPosition.enclosingInk(), animateTransition,
@@ -1008,12 +1008,12 @@ public final class HintMeshRenderer {
                         }
                         boolean animateTransition = style.transition().enabled() && isHintGrid && !oldContainerHidden && animate;
                         showBackground(window, backgroundColor,
-                                container.inHotspotWindow ? null : backgroundRectangle,
+                                container.inLayeredWindow ? null : backgroundRectangle,
                                 backgroundRadius, backgroundBorderColor, backgroundBorderThickness);
                         transitionHintContainers(animateTransition,
                                 oldContainer, newContainer,
                                 window, hintMeshWindow, style.transition());
-                        showHotspots(window, container);
+                        showInLayeredWindow(window, container);
                         // Non-grid hints draw their own borders and only need the window shown.
                         morphBorders(window, hintMeshWindow, container, boxes, enclosingInk,
                                 animateTransition, style.transition());
@@ -1164,7 +1164,7 @@ public final class HintMeshRenderer {
         window.show();
     }
 
-    /** A container that the hotspot window draws whole stays hidden: showing it even for a moment
+    /** A container that the layered window draws whole stays hidden: showing it even for a moment
      *  paints the hint mesh window. */
     private static void showInHintMeshWindow(ClearBackgroundQLabel container) {
         container.setVisible(container.aboveHotspotImages.isEmpty());
@@ -1982,10 +1982,10 @@ public final class HintMeshRenderer {
         }
         // A grid stays in one window until its hotspots move: two windows can change in
         // different frames.
-        boolean inHotspotWindow =
+        boolean inLayeredWindow =
                 (!isHintPartOfGrid || !hintMeshKey.hotspotByKeySequence().isEmpty()) &&
-                hotspotWindowByWindow.containsKey(hintMeshWindow.window);
-        if (!hintMeshKey.hotspotByKeySequence().isEmpty() && !inHotspotWindow) {
+                layeredWindowByWindow.containsKey(hintMeshWindow.window);
+        if (!hintMeshKey.hotspotByKeySequence().isEmpty() && !inLayeredWindow) {
             minHintLeft = Math.min(minHintLeft, hintMeshWindow.window.x());
             minHintTop = Math.min(minHintTop, hintMeshWindow.window.y());
             maxHintRight = Math.max(maxHintRight,
@@ -2119,7 +2119,7 @@ public final class HintMeshRenderer {
             hotspotBoxes.add(hotspotBox);
         }
         container.hotspotBoxes = hotspotBoxes;
-        container.inHotspotWindow = inHotspotWindow;
+        container.inLayeredWindow = inLayeredWindow;
         container.hotspotBoxWidth = hotspotBoxWidth;
         container.hotspotBoxHeight = hotspotBoxHeight;
         List<HintBox> prefixBoxes = new ArrayList<>();
@@ -2653,7 +2653,7 @@ public final class HintMeshRenderer {
         double devicePixelRatio = container.devicePixelRatio();
         int dotsPerMeter = dotsPerMeter(screenScale);
         List<QImage> images;
-        if (container.inHotspotWindow) {
+        if (container.inLayeredWindow) {
             container.belowHotspotArea = background == null ? area : Rectangle.union(List.of(area,
                     new Rectangle(backgroundRectangle.x() - containerX,
                             backgroundRectangle.y() - containerY, backgroundRectangle.width(),

@@ -65,7 +65,7 @@ class HotspotBoxTest {
         }
     }
 
-    /** Paints into its pixels as the hotspot window on Windows does. */
+    /** Paints into its pixels as the layered window on Windows does. */
     private static class BufferLayeredWindow implements LayeredWindow {
 
         private final ByteBuffer pixels = ByteBuffer.allocateDirect(
@@ -91,7 +91,7 @@ class HotspotBoxTest {
     }
 
     /** The colors at the probes, after the mesh is shown with its hotspot at each of the points in
-     *  turn: the same whether the hotspots are drawn in a hotspot window or not. */
+     *  turn: the same whether the hotspots are drawn in a layered window or not. */
     private static List<Integer> colors(String properties, List<Hint> savedHints,
                                         List<Point> points, List<Point> probes)
             throws IOException {
@@ -113,10 +113,10 @@ class HotspotBoxTest {
 
     private static List<Integer> colors(Configuration configuration, List<Hint> savedHints,
                                         List<Point> points, List<Point> probes,
-                                        boolean withHotspotWindow) {
-        List<BufferLayeredWindow> hotspotWindows = new ArrayList<>();
+                                        boolean withLayeredWindow) {
+        List<BufferLayeredWindow> layeredWindows = new ArrayList<>();
         HintMeshRenderer hintMeshRenderer =
-                hintMeshRenderer(withHotspotWindow ? hotspotWindows : null, () -> {
+                hintMeshRenderer(withLayeredWindow ? layeredWindows : null, () -> {
                 });
         for (Point point : points) {
             HintMesh hintMesh = new HintMesh.HintMeshBuilder()
@@ -134,12 +134,12 @@ class HotspotBoxTest {
                 QImage.Format.Format_ARGB32_Premultiplied);
         image.fill(0);
         QPainter painter = new QPainter(image);
-        for (BufferLayeredWindow hotspotWindow : hotspotWindows) {
-            QImage hotspotImage = new QImage(hotspotWindow.pixels,
+        for (BufferLayeredWindow layeredWindow : layeredWindows) {
+            QImage layeredWindowImage = new QImage(layeredWindow.pixels,
                     screen.rectangle().width(), screen.rectangle().height(),
                     QImage.Format.Format_ARGB32_Premultiplied);
-            painter.drawImage(0, 0, hotspotImage);
-            hotspotImage.dispose();
+            painter.drawImage(0, 0, layeredWindowImage);
+            layeredWindowImage.dispose();
         }
         for (TransparentWindow window : hintMeshRenderer.windows()) {
             if (!window.isVisible())
@@ -160,18 +160,18 @@ class HotspotBoxTest {
         return colors;
     }
 
-    /** Without hotspot windows when hotspotWindows is null. */
-    private static HintMeshRenderer hintMeshRenderer(List<BufferLayeredWindow> hotspotWindows,
+    /** Without layered windows when layeredWindows is null. */
+    private static HintMeshRenderer hintMeshRenderer(List<BufferLayeredWindow> layeredWindows,
                                                      Runnable beforePaint) {
         return new HintMeshRenderer(() -> {
             TransparentWindow window = new TransparentWindow();
             window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen);
             window.setBeforePaint(beforePaint);
             return window;
-        }, hotspotWindows == null ? null : () -> {
-            BufferLayeredWindow hotspotWindow = new BufferLayeredWindow();
-            hotspotWindows.add(hotspotWindow);
-            return hotspotWindow;
+        }, layeredWindows == null ? null : () -> {
+            BufferLayeredWindow layeredWindow = new BufferLayeredWindow();
+            layeredWindows.add(layeredWindow);
+            return layeredWindow;
         }, () -> {
         });
     }
@@ -279,8 +279,8 @@ class HotspotBoxTest {
         Screen otherScreen = new Screen(new Rectangle(1920, 0, 1920, 1080), 96, 1);
         Hint otherHint = new Hint(2220, 220, -1, -1, List.of(Key.ofName("b")),
                 new Rectangle(2120, 200, 200, 40));
-        List<BufferLayeredWindow> hotspotWindows = new ArrayList<>();
-        HintMeshRenderer hintMeshRenderer = hintMeshRenderer(hotspotWindows, () -> {
+        List<BufferLayeredWindow> layeredWindows = new ArrayList<>();
+        HintMeshRenderer hintMeshRenderer = hintMeshRenderer(layeredWindows, () -> {
         });
         HintMesh.HintMeshBuilder hintMesh = new HintMesh.HintMeshBuilder()
                 .visible(true)
@@ -297,8 +297,8 @@ class HotspotBoxTest {
                                        .build(), Set.of(screen, otherScreen));
         show(hintMeshRenderer, hintMesh.hotspotByKeySequence(Map.of(otherHint.keySequence(),
                 new Point(2510, 220))).build(), Set.of(screen, otherScreen));
-        for (BufferLayeredWindow hotspotWindow : hotspotWindows)
-            assertEquals(0, hotspotWindow.pixels.getInt(4 * (300 * 1920 + 380)));
+        for (BufferLayeredWindow layeredWindow : layeredWindows)
+            assertEquals(0, layeredWindow.pixels.getInt(4 * (300 * 1920 + 380)));
         hintMeshRenderer.hideHintMesh();
         for (TransparentWindow window : hintMeshRenderer.windows())
             window.disposeLater();
@@ -337,7 +337,7 @@ class HotspotBoxTest {
     }
 
     @Test
-    void aMeshThatIsNotAGridIsDrawnInTheHotspotWindowFromItsShow() throws IOException {
+    void aMeshThatIsNotAGridIsDrawnInTheLayeredWindowFromItsShow() throws IOException {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         Configuration configuration = ConfigurationParser.parse(
                 PropertiesReader.readPropertiesFile(new BufferedReader(new StringReader("""
@@ -348,8 +348,8 @@ class HotspotBoxTest {
                         hint-mode.overlay.box-border-opacity=0
                         hint-mode.overlay.font-opacity=0
                         """))), KeyboardLayout.keyboardLayoutByShortName.get("us-qwerty"));
-        List<BufferLayeredWindow> hotspotWindows = new ArrayList<>();
-        HintMeshRenderer hintMeshRenderer = hintMeshRenderer(hotspotWindows, () -> {
+        List<BufferLayeredWindow> layeredWindows = new ArrayList<>();
+        HintMeshRenderer hintMeshRenderer = hintMeshRenderer(layeredWindows, () -> {
         });
         show(hintMeshRenderer, new HintMesh.HintMeshBuilder()
                 .visible(true)
@@ -357,7 +357,7 @@ class HotspotBoxTest {
                 .styleByFilter(configuration.modeMap().get("hint-mode").hintMesh()
                                             .styleByFilter())
                 .build(), Set.of(screen));
-        assertEquals(0xFF0000FF, hotspotWindows.getFirst().pixels.getInt(4 * (220 * 1920 + 300)));
+        assertEquals(0xFF0000FF, layeredWindows.getFirst().pixels.getInt(4 * (220 * 1920 + 300)));
         assertTrue(hintMeshRenderer.windows().iterator().next().showsNothing());
         hintMeshRenderer.hideHintMesh();
         for (TransparentWindow window : hintMeshRenderer.windows())
