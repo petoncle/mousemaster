@@ -79,7 +79,6 @@ public class WindowsPlatform implements Platform {
     private final List<ReentrantKeyEvent> reentrantKeyEvents = new ArrayList<>();
     private Set<Key> extendedKeys = new HashSet<>();
     private final Set<Key> keysPressedInHook = new HashSet<>();
-    private Mode currentMode;
     private double stuckKeyCheckTimer;
     private double lockedCheckTimer;
     private boolean locked;
@@ -115,7 +114,6 @@ public class WindowsPlatform implements Platform {
         if (killProcessRequested)
             killProcess(0);
         killProcessIfConsoleIsGone(delta);
-        overlay.setWaitForZoomBeforeRepainting(false);
         keyboard.update(delta);
         sanityCheckCurrentlyPressedKeys(delta);
         resetIfLockedChanged(delta);
@@ -929,12 +927,7 @@ public class WindowsPlatform implements Platform {
 
     @Override
     public void modeChanged(Mode newMode) {
-        // If zoom is going to change, WindowsOverlay.setZoom() will repaint the hint mesh
-        // after the zoom window is initialized.
-        overlay.setWaitForZoomBeforeRepainting(
-                currentMode != null && !currentMode.zoom().equals(newMode.zoom()));
         overlay.modeChanged();
-        currentMode = newMode;
     }
 
     @Override

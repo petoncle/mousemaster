@@ -386,14 +386,4 @@ public class MacosOverlay implements Overlay {
         zoomFrameWait = Math.max(Mousemaster.FRAME_INTERVAL, 2 * renderDuration);
     }
 
-    /** The window server composites a whole frame at once, so nothing tears. */
-    @Override
-    public boolean waitForZoomBeforeRepainting() {
-        return false;
-    }
-
-    @Override
-    public void setWaitForZoomBeforeRepainting(boolean value) {
-    }
-
 }

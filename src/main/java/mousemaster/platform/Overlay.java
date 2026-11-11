@@ -67,8 +67,4 @@ public interface Overlay {
     boolean canZoom(Rectangle screenRectangle);
 
     void setZoom(Zoom zoom);
-
-    boolean waitForZoomBeforeRepainting();
-
-    void setWaitForZoomBeforeRepainting(boolean value);
 }

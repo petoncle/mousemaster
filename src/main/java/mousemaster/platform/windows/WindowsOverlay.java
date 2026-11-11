@@ -27,7 +27,6 @@ public class WindowsOverlay implements Overlay {
     private static final Duration ZOOM_IDLE_RELEASE = Duration.ofSeconds(30);
 
     private final WindowsMouseController mouse;
-    private boolean waitForZoom;
     private IndicatorRenderer followingIndicatorRenderer;
     private final List<IndicatorRenderer> followingIndicatorRenderers = new ArrayList<>();
     private final List<WindowsLayeredWindow> followingIndicatorWindows = new ArrayList<>();
@@ -74,16 +73,6 @@ public class WindowsOverlay implements Overlay {
         this.mouse = mouse;
         hintMeshRenderer = new HintMeshRenderer(this::createStyledHintMeshWindow,
                 this::createHotspotWindow, this::hintMeshEndAnimationEndedCallback);
-    }
-
-    @Override
-    public boolean waitForZoomBeforeRepainting() {
-        return waitForZoom;
-    }
-
-    @Override
-    public void setWaitForZoomBeforeRepainting(boolean waitForZoom) {
-        this.waitForZoom = waitForZoom;
     }
 
     @Override
