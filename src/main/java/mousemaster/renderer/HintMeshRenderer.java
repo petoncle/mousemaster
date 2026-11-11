@@ -437,14 +437,16 @@ public final class HintMeshRenderer {
         int originX = container.window().x() + container.x();
         int originY = container.window().y() + container.y();
         for (HintBox hotspotBox : container.hotspotBoxes) {
-            Point point = hotspotByKeySequence.get(hotspotBox.hint.keySequence());
+            Point hotspot = hotspotByKeySequence.get(hotspotBox.hint.keySequence());
             double qtScaleFactor = hotspotBox.qtScaleFactor;
-            int left = (int) Math.round((point.x() - container.hotspotBoxWidth / 2d) / qtScaleFactor);
-            int top = (int) Math.round((point.y() - container.hotspotBoxHeight / 2d) / qtScaleFactor);
-            int right =
-                    (int) Math.round((point.x() + container.hotspotBoxWidth / 2d) / qtScaleFactor);
-            int bottom =
-                    (int) Math.round((point.y() + container.hotspotBoxHeight / 2d) / qtScaleFactor);
+            int left = (int) Math.round(
+                    (hotspot.x() - container.hotspotBoxWidth / 2d) / qtScaleFactor);
+            int top = (int) Math.round(
+                    (hotspot.y() - container.hotspotBoxHeight / 2d) / qtScaleFactor);
+            int right = (int) Math.round(
+                    (hotspot.x() + container.hotspotBoxWidth / 2d) / qtScaleFactor);
+            int bottom = (int) Math.round(
+                    (hotspot.y() + container.hotspotBoxHeight / 2d) / qtScaleFactor);
             hotspotBox.setGeometry(left - originX, top - originY, right - left, bottom - top);
         }
     }

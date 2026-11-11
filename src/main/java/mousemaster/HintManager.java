@@ -524,7 +524,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             return;
         hotspotXOffset = xOffset;
         hotspotYOffset = yOffset;
-        showPositions();
+        showSavedHintsAndHotspots();
     }
 
     private double hotspotOffset(double offset, boolean horizontal) {
@@ -540,7 +540,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             Screen screen = ScreenManager.nearestScreenContaining(screens, center.x(), center.y());
             Rectangle screenRectangle = screen.rectangle();
             double coordinate =
-                    cellPointCoordinate(unzoomedHintCell(hint, currentZoom), horizontal);
+                    hotspotCoordinate(unzoomedHintCell(hint, currentZoom), horizontal);
             double start = horizontal ? screenRectangle.x() : screenRectangle.y();
             double end = start + (horizontal ? screenRectangle.width() : screenRectangle.height());
             minOffset = Math.min(minOffset, (start - coordinate) / screen.scale());
@@ -1559,25 +1559,28 @@ public class HintManager implements ModeListener, MousePositionListener {
                 continue;
             Rectangle cell = unzoomedHintCell(hint, zoom);
             Point center = unzoomedHintCenter(hint, zoom);
-            Point point = savedPositionByHintCell.get(cell);
-            if (point == null && !hotspotsCentered) {
+            Point hotspot = savedPositionByHintCell.get(cell);
+            if (hotspot == null && !hotspotsCentered) {
                 Screen screen =
                         ScreenManager.nearestScreenContaining(screens, center.x(), center.y());
-                point = screen.rectangle().nearestPoint(
-                        Math.round(cellPointCoordinate(cell, true) +
+                hotspot = screen.rectangle().nearestPoint(
+                        Math.round(hotspotCoordinate(cell, true) +
                                    hotspotXOffset * screen.scale()),
-                        Math.round(cellPointCoordinate(cell, false) +
+                        Math.round(hotspotCoordinate(cell, false) +
                                    hotspotYOffset * screen.scale()));
             }
-            if (point != null && (!hotspotsCentered || !point.equals(center)))
-                hotspotByKeySequence.put(hint.keySequence(), zoom.zoomedPoint(point));
+            if (hotspot != null && (!hotspotsCentered || !hotspot.equals(center)))
+                hotspotByKeySequence.put(hint.keySequence(), zoom.zoomedPoint(hotspot));
         }
         return hotspotByKeySequence;
     }
 
     private static boolean hasHotspot(Hint hint) {
-        return !hint.keySequence().isEmpty() &&
-               (hint.cellWidth() > 0 || hint.elementRectangle() != null);
+        return !hint.keySequence().isEmpty() && hasCell(hint);
+    }
+
+    private static boolean hasCell(Hint hint) {
+        return hint.cellWidth() > 0 || hint.elementRectangle() != null;
     }
 
     private static Point unzoomedHintCenter(Hint hint, Zoom zoom) {
@@ -1585,7 +1588,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 Math.round(zoom.unzoomedY(hint.centerY())));
     }
 
-    private double cellPointCoordinate(Rectangle cell, boolean horizontal) {
+    private double hotspotCoordinate(Rectangle cell, boolean horizontal) {
         return horizontal ?
                 cellCoordinate(cell.x() + hotspotXPercent * cell.width(), cell.x(),
                         cell.width()) :
@@ -1620,12 +1623,12 @@ public class HintManager implements ModeListener, MousePositionListener {
     /** Shows a save, unsave or clear on the overlay that styles that history's positions. */
     private void showSavedPositions(String positionHistoryName) {
         if (positionHistoryName.equals(currentMode.hintMesh().savedPositionHistory()))
-            showPositions();
+            showSavedHintsAndHotspots();
     }
 
     /** A completed selection is not drawn, as in finalizeHintSelection, and UI hints still being
-     *  found are built with the positions once they are. */
-    private void showPositions() {
+     *  found are built with them once they are. */
+    private void showSavedHintsAndHotspots() {
         if (hintMesh == null || hintJustSelected || pendingUiHintQuery != null)
             return;
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
@@ -2251,18 +2254,17 @@ public class HintManager implements ModeListener, MousePositionListener {
             return;
         }
         if (exactMatchHint != null) {
-            Point point = hintMesh.hotspot(exactMatchHint);
+            Point hotspot = hintMesh.hotspot(exactMatchHint);
             Point exactMatchHotspot =
                     isInZoom(exactMatchHint.centerX(), exactMatchHint.centerY()) ?
-                            currentZoom.unzoomedPoint(point) : point;
+                            currentZoom.unzoomedPoint(hotspot) : hotspot;
             lastSelectedHotspot = new Point(Math.round(exactMatchHotspot.x()),
                     Math.round(exactMatchHotspot.y()));
             logger.trace("Saving lastSelectedHotspot " + lastSelectedHotspot);
             // Unzoomed, like lastSelectedHotspot: a cell in screen units could not
             // compound, so zooming into it twice would magnify by the same factor.
             pendingSelectedCell =
-                    exactMatchHint.cellWidth() > 0 || exactMatchHint.elementRectangle() != null ?
-                            unzoomedHintCell(exactMatchHint, currentZoom) : null;
+                    hasCell(exactMatchHint) ? unzoomedHintCell(exactMatchHint, currentZoom) : null;
             lastSelectedHintCell = pendingSelectedCell;
             areaOverride = null;
             moveTargetTo(exactMatchHotspot);
