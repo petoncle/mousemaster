@@ -234,6 +234,17 @@ class HotspotTest {
     }
 
     @Test
+    void aNudgeBeforeTheUiHintsAreFoundMovesTheirHotspots() throws IOException {
+        start("");
+        switchMode("idle-mode");
+        mouseManager.modeChanged(modeMap.get("hint-mode"));
+        hintManager.modeChanged(modeMap.get("hint-mode"));
+        hintManager.nudgeHotspotsRight();
+        hintManager.completePendingUiHintQuery();
+        assertEquals(new Point(201, 125), shownHotspot("a"));
+    }
+
+    @Test
     void aNudgeInAModeWithoutHintsMovesNoHotspot() throws IOException {
         start("");
         switchMode("idle-mode");

@@ -516,7 +516,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private void moveHotspots(double xDistance, double yDistance) {
-        if (hintMesh == null)
+        if (hintMesh == null && pendingUiHintQuery == null)
             return;
         double xOffset = hotspotOffset(hotspotXOffset + xDistance, true);
         double yOffset = hotspotOffset(hotspotYOffset + yDistance, false);
@@ -528,6 +528,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private double hotspotOffset(double offset, boolean horizontal) {
+        if (pendingUiHintQuery != null)
+            return offset;
         Set<Screen> screens = screenManager.screens();
         double minOffset = Double.POSITIVE_INFINITY;
         double maxOffset = Double.NEGATIVE_INFINITY;
