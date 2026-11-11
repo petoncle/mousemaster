@@ -590,8 +590,10 @@ public final class HintMeshRenderer {
         for (Map.Entry<Screen, HintMeshWindow> entry : hintMeshWindows.entrySet()) {
             Screen screen = entry.getKey();
             HintMeshWindow window = entry.getValue();
-            if (!hintsByScreen.containsKey(screen))
+            if (!hintsByScreen.containsKey(screen)) {
                 window.hints().clear();
+                showHotspots(window.window(), null);
+            }
         }
         for (Map.Entry<Screen, List<Hint>> entry : hintsByScreen.entrySet()) {
             Screen screen = entry.getKey();

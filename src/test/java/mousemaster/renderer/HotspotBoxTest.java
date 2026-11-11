@@ -135,14 +135,7 @@ class HotspotBoxTest {
                     .styleByFilter(configuration.modeMap().get("hint-mode").hintMesh()
                                                 .styleByFilter())
                     .build();
-            hintMeshRenderer.setHintMesh(hintMesh,
-                    new Zoom(1, screen.rectangle().center(), screen.rectangle()), false,
-                    Set.of(screen));
-            for (int frame = 0; frame < 10 || hintMeshRenderer.buildPending(); frame++) {
-                QApplication.processEvents();
-                hintMeshRenderer.update(Mousemaster.FRAME_INTERVAL);
-                hintMeshRenderer.runPendingWork();
-            }
+            show(hintMeshRenderer, hintMesh, Set.of(screen));
         }
         QImage image = new QImage(screen.rectangle().width(), screen.rectangle().height(),
                 QImage.Format.Format_ARGB32_Premultiplied);
@@ -172,6 +165,17 @@ class HotspotBoxTest {
         for (TransparentWindow window : hintMeshRenderer.windows())
             window.disposeLater();
         return colors;
+    }
+
+    private static void show(HintMeshRenderer hintMeshRenderer, HintMesh hintMesh,
+                             Set<Screen> screens) {
+        hintMeshRenderer.setHintMesh(hintMesh,
+                new Zoom(1, screen.rectangle().center(), screen.rectangle()), false, screens);
+        for (int frame = 0; frame < 10 || hintMeshRenderer.buildPending(); frame++) {
+            QApplication.processEvents();
+            hintMeshRenderer.update(Mousemaster.FRAME_INTERVAL);
+            hintMeshRenderer.runPendingWork();
+        }
     }
 
     @Test
@@ -249,6 +253,54 @@ class HotspotBoxTest {
                 hint-mode.overlay.hotspot-box-opacity=1
                 """, List.of(), Arrays.asList(new Point(380, 300), new Point(390, 300), null),
                 List.of(new Point(390, 300), new Point(300, 220))));
+    }
+
+    @Test
+    void aScreenThatLosesItsHintsLosesItsHotspots() throws IOException {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        Configuration configuration = ConfigurationParser.parse(
+                PropertiesReader.readPropertiesFile(new BufferedReader(new StringReader("""
+                        idle-mode.to.hint-mode=+u
+                        hint-mode.overlay.selection-keys=a b
+                        hint-mode.overlay.hotspot-box-width=10
+                        hint-mode.overlay.hotspot-box-height=10
+                        hint-mode.overlay.hotspot-box-color=#FF0000
+                        hint-mode.overlay.hotspot-box-opacity=1
+                        """))), KeyboardLayout.keyboardLayoutByShortName.get("us-qwerty"));
+        Screen otherScreen = new Screen(new Rectangle(1920, 0, 1920, 1080), 96, 1);
+        Hint otherHint = new Hint(2220, 220, -1, -1, List.of(Key.ofName("b")),
+                new Rectangle(2120, 200, 200, 40));
+        List<BufferLayeredWindow> hotspotWindows = new ArrayList<>();
+        HintMeshRenderer hintMeshRenderer = new HintMeshRenderer(() -> {
+            TransparentWindow window = new TransparentWindow();
+            window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen);
+            return window;
+        }, () -> {
+            BufferLayeredWindow hotspotWindow = new BufferLayeredWindow();
+            hotspotWindows.add(hotspotWindow);
+            return hotspotWindow;
+        }, () -> {
+        });
+        HintMesh.HintMeshBuilder hintMesh = new HintMesh.HintMeshBuilder()
+                .visible(true)
+                .styleByFilter(configuration.modeMap().get("hint-mode").hintMesh()
+                                            .styleByFilter());
+        show(hintMeshRenderer, hintMesh.hints(List.of(hint, otherHint))
+                                       .hotspotByKeySequence(Map.of(hint.keySequence(),
+                                               new Point(380, 300), otherHint.keySequence(),
+                                               new Point(2500, 220)))
+                                       .build(), Set.of(screen, otherScreen));
+        show(hintMeshRenderer, hintMesh.hints(List.of(otherHint))
+                                       .hotspotByKeySequence(Map.of(otherHint.keySequence(),
+                                               new Point(2500, 220)))
+                                       .build(), Set.of(screen, otherScreen));
+        show(hintMeshRenderer, hintMesh.hotspotByKeySequence(Map.of(otherHint.keySequence(),
+                new Point(2510, 220))).build(), Set.of(screen, otherScreen));
+        for (BufferLayeredWindow hotspotWindow : hotspotWindows)
+            assertEquals(0, hotspotWindow.pixels.getInt(4 * (300 * 1920 + 380)));
+        hintMeshRenderer.hideHintMesh();
+        for (TransparentWindow window : hintMeshRenderer.windows())
+            window.disposeLater();
     }
 
     @Test
