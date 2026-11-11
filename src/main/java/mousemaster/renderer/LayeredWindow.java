@@ -5,9 +5,9 @@ import mousemaster.Rectangle;
 
 import java.util.function.BiConsumer;
 
-/** The window under a hint mesh window that the moved hotspots, and what is under them, are
- *  drawn in, so that they move without the hint mesh window being painted again. A mesh that is
- *  not a grid is drawn there whole once its hotspots moved. */
+/** The window under a hint mesh window that a mesh that is not a grid is drawn in, and the
+ *  hotspots of a grid once they moved, with what is under them: the hotspots move without the
+ *  hint mesh window being painted again. */
 public interface LayeredWindow {
 
     /** Paints the dirty part of the window at rectangle, both in screen pixels: paintArea paints

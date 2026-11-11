@@ -1980,9 +1980,11 @@ public final class HintMeshRenderer {
             maxHintBottom = Math.max(maxHintBottom, (int) Math.round(
                     (area.y() + area.height() + verticalPadding) / qtScaleFactor));
         }
-        // One window until the hotspots move: two windows can change in different frames.
-        boolean inHotspotWindow = !hintMeshKey.hotspotByKeySequence().isEmpty() &&
-                                    hotspotWindowByWindow.containsKey(hintMeshWindow.window);
+        // A grid stays in one window until its hotspots move: two windows can change in
+        // different frames.
+        boolean inHotspotWindow =
+                (!isHintPartOfGrid || !hintMeshKey.hotspotByKeySequence().isEmpty()) &&
+                hotspotWindowByWindow.containsKey(hintMeshWindow.window);
         if (!hintMeshKey.hotspotByKeySequence().isEmpty() && !inHotspotWindow) {
             minHintLeft = Math.min(minHintLeft, hintMeshWindow.window.x());
             minHintTop = Math.min(minHintTop, hintMeshWindow.window.y());

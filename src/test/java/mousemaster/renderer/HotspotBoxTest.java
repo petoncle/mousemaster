@@ -337,6 +337,34 @@ class HotspotBoxTest {
     }
 
     @Test
+    void aMeshThatIsNotAGridIsDrawnInTheHotspotWindowFromItsShow() throws IOException {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        Configuration configuration = ConfigurationParser.parse(
+                PropertiesReader.readPropertiesFile(new BufferedReader(new StringReader("""
+                        idle-mode.to.hint-mode=+u
+                        hint-mode.overlay.selection-keys=a b
+                        hint-mode.overlay.box-color=#0000FF
+                        hint-mode.overlay.box-opacity=1
+                        hint-mode.overlay.box-border-opacity=0
+                        hint-mode.overlay.font-opacity=0
+                        """))), KeyboardLayout.keyboardLayoutByShortName.get("us-qwerty"));
+        List<BufferLayeredWindow> hotspotWindows = new ArrayList<>();
+        HintMeshRenderer hintMeshRenderer = hintMeshRenderer(hotspotWindows, () -> {
+        });
+        show(hintMeshRenderer, new HintMesh.HintMeshBuilder()
+                .visible(true)
+                .hints(List.of(hint))
+                .styleByFilter(configuration.modeMap().get("hint-mode").hintMesh()
+                                            .styleByFilter())
+                .build(), Set.of(screen));
+        assertEquals(0xFF0000FF, hotspotWindows.getFirst().pixels.getInt(4 * (220 * 1920 + 300)));
+        assertTrue(hintMeshRenderer.windows().iterator().next().showsNothing());
+        hintMeshRenderer.hideHintMesh();
+        for (TransparentWindow window : hintMeshRenderer.windows())
+            window.disposeLater();
+    }
+
+    @Test
     void aSavedHintTakesTheSavedColorsOfItsHotspotBox() throws IOException {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         assertEquals(0xFFFFFF00, colors("""
