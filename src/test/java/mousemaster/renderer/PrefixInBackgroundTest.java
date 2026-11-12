@@ -27,7 +27,7 @@ class PrefixInBackgroundTest {
             List.of("color", "outline-color", "shadow-color");
 
     private static final String gradient =
-            "across-screen per-subgrid left-to-right #FF0000 #0000FF";
+            "across-screen per-group left-to-right #FF0000 #0000FF";
 
     private static boolean qtAvailable;
 
@@ -48,7 +48,7 @@ class PrefixInBackgroundTest {
     }
 
     @Test
-    void aKeyInTheBackgroundTakesTheColorOfItsSubgrid() throws IOException {
+    void aKeyInTheBackgroundTakesTheColorOfItsGroup() throws IOException {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         double screenScale = Os.macos ? 2 :
                 QApplication.primaryScreen().logicalDotsPerInchX() / 96;
@@ -69,7 +69,7 @@ class PrefixInBackgroundTest {
             for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
                 Ink ink = inks.get(hintIndex);
                 if (ink.red() + ink.blue() == 0 || ink.red() > ink.blue() != (hintIndex == 0))
-                    wrongColors.add(String.format("prefix-font-%s, subgrid %s: %d red, %d blue",
+                    wrongColors.add(String.format("prefix-font-%s, group %s: %d red, %d blue",
                             colorProperty, hints.get(hintIndex).keySequence().getFirst(),
                             ink.red(), ink.blue()));
             }

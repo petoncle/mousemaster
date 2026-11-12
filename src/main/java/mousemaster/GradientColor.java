@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * hint.box-color=across-screen left-to-right #FF0000 #FFA500 #800080
  */
 public record GradientColor(List<String> hexColors, GradientDirection direction,
-                            GradientArea area, GradientStep step) implements Color {
+                            GradientSpan span, GradientStep step) implements Color {
 
     @Override
     public GradientColor gradientColor(LastSelectedHintColors lastSelectedHintColors) {
@@ -25,7 +25,7 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
     /** Qt's stops and the sampled colors both come from these, so the two agree. */
     public static final int rampSteps = 256;
 
-    /** What an across-element sweep runs over, every shape it fills being mapped onto it. */
+    /** What an across-box sweep runs over, every shape it fills being mapped onto it. */
     public static final Rectangle unitArea = new Rectangle(0, 0, 1, 1);
 
     public static GradientColor parse(String value, Map<String, GradientColor> colorAliases) {
@@ -38,9 +38,9 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
     public static GradientColor parse(String value) {
         List<String> hexColors = new ArrayList<>();
         GradientDirection direction = GradientDirection.TOP_TO_BOTTOM;
-        GradientArea area = GradientArea.AREA;
-        GradientStep step = GradientStep.ELEMENT;
-        String directionToken = null, areaToken = null, stepToken = null;
+        GradientSpan span = GradientSpan.AREA;
+        GradientStep step = GradientStep.HINT;
+        String directionToken = null, spanToken = null, stepToken = null;
         for (String token : value.split("\\s+")) {
             // A direction reads X-to-Y or is in-turn, and the other keywords name their own axis,
             // so a token says which one it is on and only one of each may be given.
@@ -68,15 +68,14 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
                 };
             }
             else if (token.startsWith("across-")) {
-                areaToken = once(areaToken, token, value);
-                area = switch (token) {
-                    case "across-element", "across-hint" -> GradientArea.ELEMENT;
-                    case "across-group", "across-subgrid" -> GradientArea.GROUP;
-                    case "across-all-elements", "across-all-hints" ->
-                            GradientArea.ALL_ELEMENTS;
-                    case "across-area" -> GradientArea.AREA;
-                    case "across-screen" -> GradientArea.SCREEN;
-                    case "across-all-screens" -> GradientArea.ALL_SCREENS;
+                spanToken = once(spanToken, token, value);
+                span = switch (token) {
+                    case "across-box" -> GradientSpan.BOX;
+                    case "across-group" -> GradientSpan.GROUP;
+                    case "across-all-hints" -> GradientSpan.ALL_HINTS;
+                    case "across-area" -> GradientSpan.AREA;
+                    case "across-screen" -> GradientSpan.SCREEN;
+                    case "across-all-screens" -> GradientSpan.ALL_SCREENS;
                     default -> throw invalid(token);
                 };
             }
@@ -84,8 +83,8 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
                 stepToken = once(stepToken, token, value);
                 step = switch (token) {
                     case "per-pixel" -> GradientStep.PIXEL;
-                    case "per-element", "per-hint" -> GradientStep.ELEMENT;
-                    case "per-group", "per-subgrid" -> GradientStep.GROUP;
+                    case "per-hint" -> GradientStep.HINT;
+                    case "per-group" -> GradientStep.GROUP;
                     default -> throw invalid(token);
                 };
             }
@@ -96,16 +95,16 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
         }
         if (hexColors.isEmpty())
             throw new IllegalArgumentException("Invalid color " + value + ": no color given");
-        if (step == GradientStep.GROUP && (area == GradientArea.ELEMENT ||
-                                           area == GradientArea.GROUP))
+        if (step == GradientStep.GROUP && (span == GradientSpan.BOX ||
+                                           span == GradientSpan.GROUP))
             throw new IllegalArgumentException("Invalid color " + value +
-                                               ": per-group needs an area wider than a group");
+                                               ": per-group needs a span larger than a group");
         if (direction == GradientDirection.IN_TURN &&
-            (areaToken != null || step == GradientStep.PIXEL))
+            (spanToken != null || step == GradientStep.PIXEL))
             throw new IllegalArgumentException("Invalid color " + value +
                                                ": in-turn cannot be given with an across-" +
                                                " keyword or per-pixel");
-        return new GradientColor(List.copyOf(hexColors), direction, area, step);
+        return new GradientColor(List.copyOf(hexColors), direction, span, step);
     }
 
     private static String once(String given, String token, String value) {
@@ -154,7 +153,7 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
         for (int i = 0; i < hexColors.size(); i++)
             mixedHexColors.add(Color.hexColor(
                     mixRgb(hexColors.get(i), other.hexColors.get(i), t)));
-        return new GradientColor(mixedHexColors, other.direction, other.area, other.step);
+        return new GradientColor(mixedHexColors, other.direction, other.span, other.step);
     }
 
     private static int mixRgb(String fromHexColor, String toHexColor, double t) {
@@ -294,13 +293,13 @@ public record GradientColor(List<String> hexColors, GradientDirection direction,
     }
 
     /** What one full sweep covers. */
-    public enum GradientArea {
-        ELEMENT, GROUP, ALL_ELEMENTS, AREA, SCREEN, ALL_SCREENS
+    public enum GradientSpan {
+        BOX, GROUP, ALL_HINTS, AREA, SCREEN, ALL_SCREENS
     }
 
     /** The unit that shares one color. */
     public enum GradientStep {
-        PIXEL, ELEMENT, GROUP
+        PIXEL, HINT, GROUP
     }
 
 }

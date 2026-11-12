@@ -757,7 +757,7 @@ public class WindowsOverlay implements Overlay {
 
     /**
      * The reason we don't call setHintMesh with the match hint is because
-     * that does not keep the prefix box borders of the previous hint mesh.
+     * that does not keep the group box borders of the previous hint mesh.
      */
     @Override
     public void animateHintMatch(Hint hint) {

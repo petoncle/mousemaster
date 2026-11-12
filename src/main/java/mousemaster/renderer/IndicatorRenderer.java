@@ -6,7 +6,7 @@ import mousemaster.qt.*;
 import io.qt.core.*;
 import io.qt.gui.*;
 import mousemaster.*;
-import mousemaster.GradientColor.GradientArea;
+import mousemaster.GradientColor.GradientSpan;
 import mousemaster.GradientColor.GradientStep;
 import mousemaster.IndicatorPosition.PointIndicatorPosition;
 
@@ -212,7 +212,8 @@ public final class IndicatorRenderer {
     }
 
     private static GradientColor sweep(GradientColor color) {
-        return color.gradient() && color.step() == GradientStep.PIXEL ? color : null;
+        return color.gradient() && (color.step() == GradientStep.PIXEL ||
+                                    color.span() == GradientSpan.BOX) ? color : null;
     }
 
     /** The screen a sweep runs over, relative to the layer the brush spans. */
@@ -225,7 +226,7 @@ public final class IndicatorRenderer {
     private static QBrush brush(QColor color, GradientColor sweep, Rectangle sweepArea) {
         if (sweep == null)
             return QtColorUtil.qBrush(color);
-        if (sweep.area() == GradientArea.ELEMENT)
+        if (sweep.span() == GradientSpan.BOX)
             return QtColorUtil.qBrush(sweep, color.alphaF());
         return QtColorUtil.qBrush(sweep, color.alphaF(),
                 sweep.direction().start(sweepArea), sweep.direction().end(sweepArea));
@@ -791,7 +792,7 @@ public final class IndicatorRenderer {
                 GradientColor gradientColor = color.gradientColor(lastSelectedHintColors);
                 GradientColor sweep = sweep(gradientColor);
                 if (sweep == null ? gradientColor.gradient() :
-                        sweep.area() != GradientArea.ELEMENT)
+                        sweep.span() != GradientSpan.BOX)
                     return false;
             }
         return true;
@@ -1367,7 +1368,7 @@ public final class IndicatorRenderer {
                     painter.drawPath(path);
                 }
                 else {
-                    if (strokeSweep != null && strokeSweep.area() == GradientArea.ELEMENT) {
+                    if (strokeSweep != null && strokeSweep.span() == GradientSpan.BOX) {
                         QRectF bounds = path.boundingRect();
                         pen.setBrush(QtColorUtil.qBrush(strokeSweep, strokeColor.alphaF(),
                                 new Rectangle((int) Math.round(bounds.x()),

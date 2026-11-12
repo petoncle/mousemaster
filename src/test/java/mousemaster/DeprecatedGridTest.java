@@ -16,8 +16,8 @@ class DeprecatedGridTest {
                                   .modeMap().get(modeName).hintMesh();
     }
 
-    private static HintGridLayout layout(HintMeshConfiguration hint) {
-        return hint.type().layout(
+    private static HintGridShape layout(HintMeshConfiguration hint) {
+        return hint.type().shape(
                 ScreenFilter.of(new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1)));
     }
 

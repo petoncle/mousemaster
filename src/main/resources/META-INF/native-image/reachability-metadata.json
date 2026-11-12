@@ -6394,7 +6394,7 @@
       ]
     },
     {
-      "type": "mousemaster.HintGridLayout",
+      "type": "mousemaster.HintGridShape",
       "methods": [
         {
           "name": "<init>",
@@ -6416,7 +6416,7 @@
             "mousemaster.HintCellSizing",
             "int",
             "int",
-            "boolean"
+            "mousemaster.HintGridOrder"
           ]
         },
         {
@@ -6432,15 +6432,15 @@
           "parameterTypes": []
         },
         {
-          "name": "layoutColumnCount",
+          "name": "groupColumnCount",
           "parameterTypes": []
         },
         {
-          "name": "layoutRowCount",
+          "name": "groupRowCount",
           "parameterTypes": []
         },
         {
-          "name": "layoutRowOriented",
+          "name": "order",
           "parameterTypes": []
         },
         {
@@ -6785,27 +6785,27 @@
           "parameterTypes": []
         },
         {
-          "name": "prefixBoxBorderColor",
+          "name": "groupBoxBorderColor",
           "parameterTypes": []
         },
         {
-          "name": "prefixBoxBorderLength",
+          "name": "groupBoxBorderLength",
           "parameterTypes": []
         },
         {
-          "name": "prefixBoxBorderOpacity",
+          "name": "groupBoxBorderOpacity",
           "parameterTypes": []
         },
         {
-          "name": "prefixBoxBorderThickness",
+          "name": "groupBoxBorderThickness",
           "parameterTypes": []
         },
         {
-          "name": "prefixBoxEnabled",
+          "name": "groupBoxEnabled",
           "parameterTypes": []
         },
         {
-          "name": "prefixBoxFramed",
+          "name": "groupBoxFramed",
           "parameterTypes": []
         },
         {
@@ -6983,7 +6983,7 @@
           "parameterTypes": []
         },
         {
-          "name": "gridLayoutByFilter",
+          "name": "gridShapeByFilter",
           "parameterTypes": []
         },
         {

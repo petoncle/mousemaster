@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -329,11 +330,34 @@ class GridCommandTest {
                 label-grid-mode.overlay.grid-cell-sizing=fit
                 label-grid-mode.overlay.grid-max-row-count=8
                 label-grid-mode.overlay.grid-max-column-count=16
-                label-grid-mode.overlay.layout-row-count=4
-                label-grid-mode.overlay.layout-column-count=4
+                label-grid-mode.overlay.group-row-count=4
+                label-grid-mode.overlay.group-column-count=4
                 """);
         switchMode("label-grid-mode");
         assertEquals(128, shownHintMesh.hints().stream().map(Hint::keySequence).distinct().count());
+    }
+
+    @Test
+    void theGridOrderGivesTheLabelsRowByRowOrColumnByColumn() throws IOException {
+        for (String gridOrder : List.of("", "top-to-bottom", "left-to-right")) {
+            start("""
+                    idle-mode.to.label-grid-mode=+l
+                    label-grid-mode.overlay.selection-keys=a b c d
+                    label-grid-mode.overlay.grid-cell-sizing=fit
+                    label-grid-mode.overlay.grid-max-row-count=4
+                    label-grid-mode.overlay.grid-max-column-count=4
+                    label-grid-mode.overlay.group-row-count=2
+                    label-grid-mode.overlay.group-column-count=2
+                    """ + (gridOrder.isEmpty() ? "" :
+                    "label-grid-mode.overlay.grid-order=" + gridOrder));
+            switchMode("label-grid-mode");
+            Hint topRight = shownHintMesh.hints().stream()
+                                         .min(Comparator.comparingDouble(Hint::centerY)
+                                                        .thenComparingDouble(hint -> -hint.centerX()))
+                                         .orElseThrow();
+            assertEquals(gridOrder.equals("left-to-right") ? List.of("c", "c") : List.of("b", "b"),
+                    topRight.keySequence().stream().map(Key::name).toList(), gridOrder);
+        }
     }
 
     @Test

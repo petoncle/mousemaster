@@ -225,7 +225,7 @@ class HotspotBoxTest {
         List<Integer> colors = colors("""
                 hint-mode.overlay.hotspot-box-width=10
                 hint-mode.overlay.hotspot-box-height=10
-                hint-mode.overlay.hotspot-box-color=across-hint per-pixel top-to-bottom #FF0000 #0000FF
+                hint-mode.overlay.hotspot-box-color=across-box per-pixel top-to-bottom #FF0000 #0000FF
                 hint-mode.overlay.hotspot-box-opacity=1
                 hint-mode.overlay.hotspot-box-border-thickness=0
                 """, List.of(), List.of(new Point(380, 300), new Point(500, 220)),
@@ -240,11 +240,11 @@ class HotspotBoxTest {
         List<Integer> colors = colors("""
                 hint-mode.overlay.hotspot-box-width=11
                 hint-mode.overlay.hotspot-box-height=11
-                hint-mode.overlay.hotspot-box-color=across-hint per-pixel top-to-bottom #FF0000 #0000FF
+                hint-mode.overlay.hotspot-box-color=across-box per-pixel top-to-bottom #FF0000 #0000FF
                 hint-mode.overlay.hotspot-box-opacity=1
                 hint-mode.overlay.hotspot-box-border-thickness=0
                 hint-mode.overlay.hotspot-line-thickness=4
-                hint-mode.overlay.hotspot-line-color=across-hint per-pixel top-to-bottom #FF0000 #0000FF
+                hint-mode.overlay.hotspot-line-color=across-box per-pixel top-to-bottom #FF0000 #0000FF
                 hint-mode.overlay.hotspot-line-opacity=1
                 """, List.of(), List.of(new Point(380, 300)), probes);
         for (int shift : List.of(16, 8, 0))

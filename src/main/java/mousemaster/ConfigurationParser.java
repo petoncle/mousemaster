@@ -4,7 +4,7 @@ import ch.qos.logback.classic.Level;
 import mousemaster.ComboMove.KeyComboMove;
 import mousemaster.ComboMove.PressComboMove;
 import mousemaster.HideCursor.HideCursorBuilder;
-import mousemaster.HintGridLayout.HintGridLayoutBuilder;
+import mousemaster.HintGridShape.HintGridShapeBuilder;
 import mousemaster.HintMeshConfiguration.HintMeshConfigurationBuilder;
 import mousemaster.HintMeshKeys.HintMeshKeysBuilder;
 import mousemaster.HintMeshStyle.HintMeshStyleBuilder;
@@ -79,7 +79,7 @@ public class ConfigurationParser {
         gridHintMesh.visible(false)
                     .mouseFollowsTarget(false)
                     .targetFollowsOverlayCenter(false);
-        gridHintMesh.type().gridLayout(AnyScreenFilter.ANY_SCREEN_FILTER)
+        gridHintMesh.type().gridShape(AnyScreenFilter.ANY_SCREEN_FILTER)
                     .cellSizingType(HintCellSizing.HintCellSizingType.FIT)
                     .maxRowCount(2)
                     .maxColumnCount(2);
@@ -270,12 +270,12 @@ public class ConfigurationParser {
                 .stackCount(1);
         hintMeshStyleBuilder.uiElementBoxShadow().extend(hintMeshStyleBuilder.boxShadow());
         hintMeshStyleBuilder
-                .prefixBoxEnabled(false)
-                .prefixBoxBorderThickness(2d)
-                .prefixBoxBorderLength(10_000d)
-                .prefixBoxBorderColor(Color.parse("#FFD93D"))
-                .prefixBoxBorderOpacity(0.8d)
-                .prefixBoxFramed(true)
+                .groupBoxEnabled(false)
+                .groupBoxBorderThickness(2d)
+                .groupBoxBorderLength(10_000d)
+                .groupBoxBorderColor(Color.parse("#FFD93D"))
+                .groupBoxBorderOpacity(0.8d)
+                .groupBoxFramed(true)
                 .uiElementBoxColor(GradientColor.parse("#000000"))
                 .uiElementBoxOpacity(0d)
                 .uiElementBoxBorderThickness(1d)
@@ -334,15 +334,15 @@ public class ConfigurationParser {
         hintMesh.z(0);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
-                           .gridLayout(AnyScreenFilter.ANY_SCREEN_FILTER)
+                           .gridShape(AnyScreenFilter.ANY_SCREEN_FILTER)
                            .maxRowCount(200)
                            .maxColumnCount(200)
                            .cellSizingType(HintCellSizing.HintCellSizingType.FIXED)
                            .cellWidth(73d)
                            .cellHeight(36d)
-                           .layoutRowCount(1_000_000)
-                           .layoutColumnCount(1)
-                           .layoutRowOriented(true);
+                           .groupRowCount(1_000_000)
+                           .groupColumnCount(1)
+                           .order(HintGridOrder.TOP_TO_BOTTOM);
         Area.AreaBuilder areaBuilder = hintMesh.type().area();
         areaBuilder.source(AreaSizeSource.ACTIVE_SCREEN)
                    .widthPercent(1.0)
@@ -383,6 +383,7 @@ public class ConfigurationParser {
                                       KeyboardLayout platformActiveKeyboardLayout) {
         properties = desugarOverlayKeys(properties);
         properties = desugarHintMeshEmpty(properties);
+        properties = desugarGradientKeywords(properties);
         properties = desugarIndicatorStates(properties);
         properties = desugarIndicatorAndZoomKeys(properties);
         properties = desugarMouseMovement(desugarGrid(properties));
@@ -982,7 +983,54 @@ public class ConfigurationParser {
             Map.entry("transition-animation-enabled", "transition-enabled"),
             Map.entry("transition-animation-duration-millis", "transition-duration-millis"),
             Map.entry("fade-animation-enabled", "fade-enabled"),
-            Map.entry("fade-animation-duration-millis", "fade-duration-millis"));
+            Map.entry("fade-animation-duration-millis", "fade-duration-millis"),
+            Map.entry("layout-row-count", "group-row-count"),
+            Map.entry("layout-column-count", "group-column-count"),
+            Map.entry("layout-row-oriented", "grid-order"));
+
+    private static final Pattern booleanPattern =
+            Pattern.compile("(?<![\\w-])(true|false)(?![\\w-])");
+
+    private static final Map<String, String> GRADIENT_KEYWORD_BY_DEPRECATED_KEYWORD = Map.of(
+            "across-hint", "across-box",
+            "across-element", "across-box",
+            "across-all-elements", "across-all-hints",
+            "across-subgrid", "across-group",
+            "per-element", "per-hint",
+            "per-subgrid", "per-group");
+
+    private static final Pattern deprecatedGradientKeywordPattern = Pattern.compile(
+            "(?<![\\w-])(" + String.join("|", GRADIENT_KEYWORD_BY_DEPRECATED_KEYWORD.keySet()) +
+            ")(?![\\w-])");
+
+    /**
+     * Rewrites the deprecated gradient keywords: a-mode.overlay.box-color=across-hint #FF0000
+     * #0000FF becomes a-mode.overlay.box-color=across-box #FF0000 #0000FF.
+     */
+    private static List<String> desugarGradientKeywords(List<String> properties) {
+        List<String> desugared = new ArrayList<>(properties.size());
+        for (String property : properties) {
+            Matcher lineMatcher = propertyLinePattern.matcher(property);
+            if (!lineMatcher.matches()) {
+                desugared.add(property);
+                continue;
+            }
+            Matcher keywordMatcher =
+                    deprecatedGradientKeywordPattern.matcher(lineMatcher.group(2));
+            if (!keywordMatcher.find()) {
+                desugared.add(property);
+                continue;
+            }
+            String value = keywordMatcher.replaceAll(match -> {
+                String keyword = GRADIENT_KEYWORD_BY_DEPRECATED_KEYWORD.get(match.group());
+                logger.warn(match.group() + " in " + lineMatcher.group(1).strip() +
+                            " has been deprecated: use " + keyword + " instead");
+                return keyword;
+            });
+            desugared.add(lineMatcher.group(1).strip() + "=" + value.strip());
+        }
+        return desugared;
+    }
 
     private static final Pattern hintMeshEmptyPattern =
             Pattern.compile("(?<![\\w-])ishintmeshempty(?![\\w-])");
@@ -1031,13 +1079,19 @@ public class ConfigurationParser {
                         suffix.equals("closed") ? "box-framed" :
                         suffix.equals("selection-keys") ? "label-keys" : suffix);
             }
+            else if (key != null && key.startsWith("prefix-box-"))
+                key = "group-box-" + key.substring("prefix-box-".length());
             else if (key != null)
                 key = OVERLAY_KEY_BY_DEPRECATED_KEY.getOrDefault(key, key);
             String propertyKey = keyMatcher.group(1) + ".overlay" +
                                  (key == null ? "" : "." + key) +
                                  (keyMatcher.group(7) == null ? "" : "." + keyMatcher.group(7));
             String value = lineMatcher.group(2).strip();
-            String overlayValue = key == null ? value.replaceFirst("\\.hint$", ".overlay") : value;
+            String overlayValue = key == null ? value.replaceFirst("\\.hint$", ".overlay") :
+                    "layout-row-oriented".equals(keyMatcher.group(5)) ?
+                            booleanPattern.matcher(value).replaceAll(
+                                    match -> match.group().equals("true") ? "top-to-bottom" :
+                                            "left-to-right") : value;
             if (!propertyKey.equals(lineMatcher.group(1).strip()))
                 logger.warn(lineMatcher.group(1).strip() + " has been deprecated: use " +
                             propertyKey + " instead");
@@ -2969,23 +3023,23 @@ public class ConfigurationParser {
         if (hintMeshType.type() != null) {
             switch (hintMeshType.type()) {
                 case GRID -> {
-                    HintGridLayoutBuilder defaultLayout =
-                            hintMeshType.gridLayout(AnyScreenFilter.ANY_SCREEN_FILTER);
-                    if (defaultLayout.maxRowCount() == null ||
-                        defaultLayout.maxColumnCount() == null ||
-                        defaultLayout.cellWidth() == null ||
-                        defaultLayout.cellHeight() == null ||
-                        defaultLayout.layoutRowCount() == null ||
-                        defaultLayout.layoutColumnCount() == null ||
-                        defaultLayout.layoutRowOriented() == null
+                    HintGridShapeBuilder defaultShape =
+                            hintMeshType.gridShape(AnyScreenFilter.ANY_SCREEN_FILTER);
+                    if (defaultShape.maxRowCount() == null ||
+                        defaultShape.maxColumnCount() == null ||
+                        defaultShape.cellWidth() == null ||
+                        defaultShape.cellHeight() == null ||
+                        defaultShape.groupRowCount() == null ||
+                        defaultShape.groupColumnCount() == null ||
+                        defaultShape.order() == null
                     )
                         throw new IllegalArgumentException(
                                 "Definition of overlay for " + mode.modeName +
                                 " is incomplete: expected " +
                                 List.of("grid-max-row-count", "grid-max-column-count",
                                         "grid-cell-width", "grid-cell-height",
-                                        "layout-row-count", "layout-column-count",
-                                        "layout-row-oriented"));
+                                        "group-row-count", "group-column-count",
+                                        "grid-order"));
                 }
                 case POSITION_HISTORY -> {
                     // No op.
@@ -3516,14 +3570,14 @@ public class ConfigurationParser {
             case "area-right-inset" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "rightInset"), v -> parseDouble(v, true, -10_000, 10_000), v -> hintMeshBuilder.type().area().rightInset(v));
             case "area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseAreaCenter("overlay.area-center", v), v -> hintMeshBuilder.type().area().center(v));
             // Grid layout properties (screen-filtered)
-            case "grid-max-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxRowCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(screenFilter).maxRowCount(v));
-            case "grid-max-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxColumnCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(screenFilter).maxColumnCount(v));
-            case "grid-cell-width" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellSizing", "cellWidth"), v -> parseDouble(v, false, 0, 10_000), v -> hintMeshBuilder.type().gridLayout(screenFilter).cellWidth(v));
-            case "grid-cell-height" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellSizing", "cellHeight"), v -> parseDouble(v, false, 0, 10_000), v -> hintMeshBuilder.type().gridLayout(screenFilter).cellHeight(v));
-            case "grid-cell-sizing" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellSizing", "type"), v -> parseHintCellSizingType("overlay.grid-cell-sizing", v), v -> hintMeshBuilder.type().gridLayout(screenFilter).cellSizingType(v));
-            case "layout-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "layoutRowCount"), v -> parseUnsignedInteger(v, 1, 1_000_000_000), v -> hintMeshBuilder.type().gridLayout(screenFilter).layoutRowCount(v));
-            case "layout-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "layoutColumnCount"), v -> parseUnsignedInteger(v, 1, 1_000_000_000), v -> hintMeshBuilder.type().gridLayout(screenFilter).layoutColumnCount(v));
-            case "layout-row-oriented" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "layoutRowOriented"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.type().gridLayout(screenFilter).layoutRowOriented(v));
+            case "grid-max-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridShapeByFilter", "maxRowCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridShape(screenFilter).maxRowCount(v));
+            case "grid-max-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridShapeByFilter", "maxColumnCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridShape(screenFilter).maxColumnCount(v));
+            case "grid-cell-width" -> ModePropertyHandler.of(prefix.append("type", "gridShapeByFilter", "cellSizing", "cellWidth"), v -> parseDouble(v, false, 0, 10_000), v -> hintMeshBuilder.type().gridShape(screenFilter).cellWidth(v));
+            case "grid-cell-height" -> ModePropertyHandler.of(prefix.append("type", "gridShapeByFilter", "cellSizing", "cellHeight"), v -> parseDouble(v, false, 0, 10_000), v -> hintMeshBuilder.type().gridShape(screenFilter).cellHeight(v));
+            case "grid-cell-sizing" -> ModePropertyHandler.of(prefix.append("type", "gridShapeByFilter", "cellSizing", "type"), v -> parseHintCellSizingType("overlay.grid-cell-sizing", v), v -> hintMeshBuilder.type().gridShape(screenFilter).cellSizingType(v));
+            case "group-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridShapeByFilter", "groupRowCount"), v -> parseUnsignedInteger(v, 1, 1_000_000_000), v -> hintMeshBuilder.type().gridShape(screenFilter).groupRowCount(v));
+            case "group-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridShapeByFilter", "groupColumnCount"), v -> parseUnsignedInteger(v, 1, 1_000_000_000), v -> hintMeshBuilder.type().gridShape(screenFilter).groupColumnCount(v));
+            case "grid-order" -> ModePropertyHandler.of(prefix.append("type", "gridShapeByFilter", "order"), v -> parseHintGridOrder("overlay.grid-order", v), v -> hintMeshBuilder.type().gridShape(screenFilter).order(v));
             // Key properties (screen-filtered)
             case "selection-keys" -> ModePropertyHandler.of(prefix.append("keysByFilter", "selectionKeys"), v -> parseHintKeys(v, keyAliases, keyResolver), v -> hintMeshBuilder.keys(screenFilter).selectionKeys(v));
             case "row-key-offset" -> ModePropertyHandler.of(prefix.append("keysByFilter", "rowKeyOffset"), v -> parseUnsignedInteger(v, 0, 1_000), v -> hintMeshBuilder.keys(screenFilter).rowKeyOffset(v));
@@ -3652,13 +3706,13 @@ public class ConfigurationParser {
             case "box-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxShadow", "stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> hintMeshBuilder.style(screenFilter).boxShadow().stackCount(v));
             case "box-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxShadow", "horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).boxShadow().horizontalOffset(v));
             case "box-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxShadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).boxShadow().verticalOffset(v));
-            // Style: prefix box
-            case "prefix-box-enabled" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxEnabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(screenFilter).prefixBoxEnabled(v));
-            case "prefix-box-border-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxBorderThickness"), v -> parseDouble(v, true, 0, 10_000), v -> { if (hintMeshBuilder.style(screenFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(screenFilter).prefixBoxEnabled(true); hintMeshBuilder.style(screenFilter).prefixBoxBorderThickness(v); });
-            case "prefix-box-border-length" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxBorderLength"), v -> parseDouble(v, true, 0, 10_000), v -> { if (hintMeshBuilder.style(screenFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(screenFilter).prefixBoxEnabled(true); hintMeshBuilder.style(screenFilter).prefixBoxBorderLength(v); });
-            case "prefix-box-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxBorderColor"), v -> Color.parse(v, colorAliases), v -> { if (hintMeshBuilder.style(screenFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(screenFilter).prefixBoxEnabled(true); hintMeshBuilder.style(screenFilter).prefixBoxBorderColor(v); });
-            case "prefix-box-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> { if (hintMeshBuilder.style(screenFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(screenFilter).prefixBoxEnabled(true); hintMeshBuilder.style(screenFilter).prefixBoxBorderOpacity(v); });
-            case "prefix-box-framed" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxFramed"), v -> Boolean.parseBoolean(v), v -> { if (hintMeshBuilder.style(screenFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(screenFilter).prefixBoxEnabled(true); hintMeshBuilder.style(screenFilter).prefixBoxFramed(v); });
+            // Style: group box
+            case "group-box-enabled" -> ModePropertyHandler.of(prefix.append("styleByFilter", "groupBoxEnabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(screenFilter).groupBoxEnabled(v));
+            case "group-box-border-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "groupBoxBorderThickness"), v -> parseDouble(v, true, 0, 10_000), v -> { if (hintMeshBuilder.style(screenFilter).groupBoxEnabled() == null) hintMeshBuilder.style(screenFilter).groupBoxEnabled(true); hintMeshBuilder.style(screenFilter).groupBoxBorderThickness(v); });
+            case "group-box-border-length" -> ModePropertyHandler.of(prefix.append("styleByFilter", "groupBoxBorderLength"), v -> parseDouble(v, true, 0, 10_000), v -> { if (hintMeshBuilder.style(screenFilter).groupBoxEnabled() == null) hintMeshBuilder.style(screenFilter).groupBoxEnabled(true); hintMeshBuilder.style(screenFilter).groupBoxBorderLength(v); });
+            case "group-box-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "groupBoxBorderColor"), v -> Color.parse(v, colorAliases), v -> { if (hintMeshBuilder.style(screenFilter).groupBoxEnabled() == null) hintMeshBuilder.style(screenFilter).groupBoxEnabled(true); hintMeshBuilder.style(screenFilter).groupBoxBorderColor(v); });
+            case "group-box-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "groupBoxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> { if (hintMeshBuilder.style(screenFilter).groupBoxEnabled() == null) hintMeshBuilder.style(screenFilter).groupBoxEnabled(true); hintMeshBuilder.style(screenFilter).groupBoxBorderOpacity(v); });
+            case "group-box-framed" -> ModePropertyHandler.of(prefix.append("styleByFilter", "groupBoxFramed"), v -> Boolean.parseBoolean(v), v -> { if (hintMeshBuilder.style(screenFilter).groupBoxEnabled() == null) hintMeshBuilder.style(screenFilter).groupBoxEnabled(true); hintMeshBuilder.style(screenFilter).groupBoxFramed(v); });
             // Style: element box
             case "ui-element-box-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxColor"), v -> GradientColor.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).uiElementBoxColor(v));
             case "ui-element-box-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "uiElementBoxOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).uiElementBoxOpacity(v));
@@ -4165,7 +4219,25 @@ public class ConfigurationParser {
             gradientColor.direction() == GradientColor.GradientDirection.IN_TURN)
             throw new IllegalArgumentException("Invalid color " + propertyValue +
                                                ": an indicator cannot take the colors in-turn");
+        if (color instanceof GradientColor gradientColor &&
+            (gradientColor.step() == GradientColor.GradientStep.GROUP ||
+             gradientColor.span() == GradientColor.GradientSpan.GROUP ||
+             gradientColor.span() == GradientColor.GradientSpan.ALL_HINTS))
+            throw new IllegalArgumentException("Invalid color " + propertyValue +
+                                               ": an indicator has no hints, so it cannot" +
+                                               " take per-group, across-group or" +
+                                               " across-all-hints");
         return color;
+    }
+
+    private static HintGridOrder parseHintGridOrder(String propertyKey, String propertyValue) {
+        return switch (propertyValue) {
+            case "top-to-bottom" -> HintGridOrder.TOP_TO_BOTTOM;
+            case "left-to-right" -> HintGridOrder.LEFT_TO_RIGHT;
+            default -> throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": should be one of " + List.of("top-to-bottom", "left-to-right"));
+        };
     }
 
     private static LabelLength parseLabelLength(String propertyKey, String propertyValue) {
@@ -4524,53 +4596,53 @@ public class ConfigurationParser {
                 if (builder.type().positionHistoryName() == null)
                     builder.type().positionHistoryName(parent.type().positionHistoryName());
                 for (var parentEntry : parent.type()
-                                             .gridLayoutByFilter()
+                                             .gridShapeByFilter()
                                              .map()
                                              .entrySet()
                                              .stream()
                                              .sorted(defaultFilterLastComparator())
                                              .toList()) {
-                    HintGridLayoutBuilder parentLayout =
+                    HintGridShapeBuilder parentShape =
                             parentEntry.getValue();
                     ScreenFilter filter = parentEntry.getKey();
-                    HintGridLayoutBuilder childLayout =
-                            builder.type().gridLayout(filter);
-                    ScreenFilterMapBuilder<HintGridLayoutBuilder, HintGridLayout>
-                            childLayoutByFilter = builder.type().gridLayoutByFilter();
+                    HintGridShapeBuilder childShape =
+                            builder.type().gridShape(filter);
+                    ScreenFilterMapBuilder<HintGridShapeBuilder, HintGridShape>
+                            childShapeByFilter = builder.type().gridShapeByFilter();
                     if (!childDoesNotNeedParentProperty(
-                            HintGridLayoutBuilder::maxRowCount, childLayoutByFilter,
+                            HintGridShapeBuilder::maxRowCount, childShapeByFilter,
                             filter))
-                        childLayout.maxRowCount(parentLayout.maxRowCount());
+                        childShape.maxRowCount(parentShape.maxRowCount());
                     if (!childDoesNotNeedParentProperty(
-                            HintGridLayoutBuilder::maxColumnCount,
-                            childLayoutByFilter, filter))
-                        childLayout.maxColumnCount(parentLayout.maxColumnCount());
+                            HintGridShapeBuilder::maxColumnCount,
+                            childShapeByFilter, filter))
+                        childShape.maxColumnCount(parentShape.maxColumnCount());
                     if (!childDoesNotNeedParentProperty(
-                            HintGridLayoutBuilder::cellSizingType, childLayoutByFilter,
+                            HintGridShapeBuilder::cellSizingType, childShapeByFilter,
                             filter))
-                        childLayout.cellSizingType(parentLayout.cellSizingType());
+                        childShape.cellSizingType(parentShape.cellSizingType());
                     if (!childDoesNotNeedParentProperty(
-                            HintGridLayoutBuilder::cellWidth, childLayoutByFilter,
+                            HintGridShapeBuilder::cellWidth, childShapeByFilter,
                             filter))
-                        childLayout.cellWidth(parentLayout.cellWidth());
+                        childShape.cellWidth(parentShape.cellWidth());
                     if (!childDoesNotNeedParentProperty(
-                            HintGridLayoutBuilder::cellHeight, childLayoutByFilter,
+                            HintGridShapeBuilder::cellHeight, childShapeByFilter,
                             filter))
-                        childLayout.cellHeight(parentLayout.cellHeight());
+                        childShape.cellHeight(parentShape.cellHeight());
                     if (!childDoesNotNeedParentProperty(
-                            HintGridLayoutBuilder::layoutRowCount,
-                            childLayoutByFilter, filter))
-                        childLayout.layoutRowCount(parentLayout.layoutRowCount());
+                            HintGridShapeBuilder::groupRowCount,
+                            childShapeByFilter, filter))
+                        childShape.groupRowCount(parentShape.groupRowCount());
                     if (!childDoesNotNeedParentProperty(
-                            HintGridLayoutBuilder::layoutColumnCount,
-                            childLayoutByFilter, filter))
-                        childLayout.layoutColumnCount(
-                                parentLayout.layoutColumnCount());
+                            HintGridShapeBuilder::groupColumnCount,
+                            childShapeByFilter, filter))
+                        childShape.groupColumnCount(
+                                parentShape.groupColumnCount());
                     if (!childDoesNotNeedParentProperty(
-                            HintGridLayoutBuilder::layoutRowOriented,
-                            childLayoutByFilter, filter))
-                        childLayout.layoutRowOriented(
-                                parentLayout.layoutRowOriented());
+                            HintGridShapeBuilder::order,
+                            childShapeByFilter, filter))
+                        childShape.order(
+                                parentShape.order());
                 }
                 for (var parentEntry : parent.keysByFilter()
                                              .map()
@@ -4641,31 +4713,31 @@ public class ConfigurationParser {
                         childStyle.boxFramed(parentStyle.boxFramed());
                     childStyle.boxShadow().extend(parentStyle.boxShadow());
                     if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::prefixBoxEnabled,
+                            HintMeshStyleBuilder::groupBoxEnabled,
                             childStyleByFilter, filter))
-                        childStyle.prefixBoxEnabled(
-                                parentStyle.prefixBoxEnabled());
+                        childStyle.groupBoxEnabled(
+                                parentStyle.groupBoxEnabled());
                     if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::prefixBoxBorderThickness,
+                            HintMeshStyleBuilder::groupBoxBorderThickness,
                             childStyleByFilter, filter))
-                        childStyle.prefixBoxBorderThickness(
-                                parentStyle.prefixBoxBorderThickness());
+                        childStyle.groupBoxBorderThickness(
+                                parentStyle.groupBoxBorderThickness());
                     if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::prefixBoxBorderLength, childStyleByFilter,
+                            HintMeshStyleBuilder::groupBoxBorderLength, childStyleByFilter,
                             filter))
-                        childStyle.prefixBoxBorderLength(parentStyle.prefixBoxBorderLength());
+                        childStyle.groupBoxBorderLength(parentStyle.groupBoxBorderLength());
                     if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::prefixBoxBorderColor,
+                            HintMeshStyleBuilder::groupBoxBorderColor,
                             childStyleByFilter, filter))
-                        childStyle.prefixBoxBorderColor(parentStyle.prefixBoxBorderColor());
+                        childStyle.groupBoxBorderColor(parentStyle.groupBoxBorderColor());
                     if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::prefixBoxBorderOpacity,
+                            HintMeshStyleBuilder::groupBoxBorderOpacity,
                             childStyleByFilter, filter))
-                        childStyle.prefixBoxBorderOpacity(parentStyle.prefixBoxBorderOpacity());
+                        childStyle.groupBoxBorderOpacity(parentStyle.groupBoxBorderOpacity());
                     if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::prefixBoxFramed,
+                            HintMeshStyleBuilder::groupBoxFramed,
                             childStyleByFilter, filter))
-                        childStyle.prefixBoxFramed(parentStyle.prefixBoxFramed());
+                        childStyle.groupBoxFramed(parentStyle.groupBoxFramed());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::uiElementBoxColor,
                             childStyleByFilter, filter))

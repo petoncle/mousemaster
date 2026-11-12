@@ -15,12 +15,12 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             double boxBorderRadius,
                             boolean boxFramed,
                             Shadow boxShadow,
-                            boolean prefixBoxEnabled,
-                            double prefixBoxBorderThickness,
-                            double prefixBoxBorderLength,
-                            Color prefixBoxBorderColor,
-                            double prefixBoxBorderOpacity,
-                            boolean prefixBoxFramed,
+                            boolean groupBoxEnabled,
+                            double groupBoxBorderThickness,
+                            double groupBoxBorderLength,
+                            Color groupBoxBorderColor,
+                            double groupBoxBorderOpacity,
+                            boolean groupBoxFramed,
                             GradientColor uiElementBoxColor,
                             double uiElementBoxOpacity,
                             double uiElementBoxBorderThickness,
@@ -127,12 +127,12 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Double boxBorderRadius;
         private Boolean boxFramed;
         private Shadow.ShadowBuilder boxShadow = new Shadow.ShadowBuilder();
-        private Boolean prefixBoxEnabled;
-        private Double prefixBoxBorderThickness;
-        private Double prefixBoxBorderLength;
-        private Color prefixBoxBorderColor;
-        private Double prefixBoxBorderOpacity;
-        private Boolean prefixBoxFramed;
+        private Boolean groupBoxEnabled;
+        private Double groupBoxBorderThickness;
+        private Double groupBoxBorderLength;
+        private Color groupBoxBorderColor;
+        private Double groupBoxBorderOpacity;
+        private Boolean groupBoxFramed;
         private GradientColor uiElementBoxColor;
         private Double uiElementBoxOpacity;
         private Double uiElementBoxBorderThickness;
@@ -202,12 +202,12 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.boxBorderRadius = style.boxBorderRadius;
             this.boxFramed = style.boxFramed;
             this.boxShadow = new Shadow.ShadowBuilder(style.boxShadow);
-            this.prefixBoxEnabled = style.prefixBoxEnabled;
-            this.prefixBoxBorderThickness = style.prefixBoxBorderThickness;
-            this.prefixBoxBorderLength = style.prefixBoxBorderLength;
-            this.prefixBoxBorderColor = style.prefixBoxBorderColor;
-            this.prefixBoxBorderOpacity = style.prefixBoxBorderOpacity;
-            this.prefixBoxFramed = style.prefixBoxFramed;
+            this.groupBoxEnabled = style.groupBoxEnabled;
+            this.groupBoxBorderThickness = style.groupBoxBorderThickness;
+            this.groupBoxBorderLength = style.groupBoxBorderLength;
+            this.groupBoxBorderColor = style.groupBoxBorderColor;
+            this.groupBoxBorderOpacity = style.groupBoxBorderOpacity;
+            this.groupBoxFramed = style.groupBoxFramed;
             this.uiElementBoxColor = style.uiElementBoxColor;
             this.uiElementBoxOpacity = style.uiElementBoxOpacity;
             this.uiElementBoxBorderThickness = style.uiElementBoxBorderThickness;
@@ -305,33 +305,33 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
-        public HintMeshStyleBuilder prefixBoxEnabled(Boolean prefixBoxEnabled) {
-            this.prefixBoxEnabled = prefixBoxEnabled;
+        public HintMeshStyleBuilder groupBoxEnabled(Boolean groupBoxEnabled) {
+            this.groupBoxEnabled = groupBoxEnabled;
             return this;
         }
 
-        public HintMeshStyleBuilder prefixBoxBorderThickness(Double prefixBoxBorderThickness) {
-            this.prefixBoxBorderThickness = prefixBoxBorderThickness;
+        public HintMeshStyleBuilder groupBoxBorderThickness(Double groupBoxBorderThickness) {
+            this.groupBoxBorderThickness = groupBoxBorderThickness;
             return this;
         }
 
-        public HintMeshStyleBuilder prefixBoxBorderLength(Double prefixBoxBorderLength) {
-            this.prefixBoxBorderLength = prefixBoxBorderLength;
+        public HintMeshStyleBuilder groupBoxBorderLength(Double groupBoxBorderLength) {
+            this.groupBoxBorderLength = groupBoxBorderLength;
             return this;
         }
 
-        public HintMeshStyleBuilder prefixBoxBorderColor(Color prefixBoxBorderColor) {
-            this.prefixBoxBorderColor = prefixBoxBorderColor;
+        public HintMeshStyleBuilder groupBoxBorderColor(Color groupBoxBorderColor) {
+            this.groupBoxBorderColor = groupBoxBorderColor;
             return this;
         }
 
-        public HintMeshStyleBuilder prefixBoxBorderOpacity(Double prefixBoxBorderOpacity) {
-            this.prefixBoxBorderOpacity = prefixBoxBorderOpacity;
+        public HintMeshStyleBuilder groupBoxBorderOpacity(Double groupBoxBorderOpacity) {
+            this.groupBoxBorderOpacity = groupBoxBorderOpacity;
             return this;
         }
 
-        public HintMeshStyleBuilder prefixBoxFramed(Boolean prefixBoxFramed) {
-            this.prefixBoxFramed = prefixBoxFramed;
+        public HintMeshStyleBuilder groupBoxFramed(Boolean groupBoxFramed) {
+            this.groupBoxFramed = groupBoxFramed;
             return this;
         }
 
@@ -616,28 +616,28 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return boxShadow;
         }
 
-        public Boolean prefixBoxEnabled() {
-            return prefixBoxEnabled;
+        public Boolean groupBoxEnabled() {
+            return groupBoxEnabled;
         }
 
-        public Double prefixBoxBorderThickness() {
-            return prefixBoxBorderThickness;
+        public Double groupBoxBorderThickness() {
+            return groupBoxBorderThickness;
         }
 
-        public Double prefixBoxBorderLength() {
-            return prefixBoxBorderLength;
+        public Double groupBoxBorderLength() {
+            return groupBoxBorderLength;
         }
 
-        public Color prefixBoxBorderColor() {
-            return prefixBoxBorderColor;
+        public Color groupBoxBorderColor() {
+            return groupBoxBorderColor;
         }
 
-        public Double prefixBoxBorderOpacity() {
-            return prefixBoxBorderOpacity;
+        public Double groupBoxBorderOpacity() {
+            return groupBoxBorderOpacity;
         }
 
-        public Boolean prefixBoxFramed() {
-            return prefixBoxFramed;
+        public Boolean groupBoxFramed() {
+            return groupBoxFramed;
         }
 
         public GradientColor uiElementBoxColor() {
@@ -848,12 +848,12 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     boxBorderRadius == null ? defaultStyle.boxBorderRadius : boxBorderRadius,
                     boxFramed == null ? defaultStyle.boxFramed : boxFramed,
                     boxShadow.build(),
-                    prefixBoxEnabled == null ? defaultStyle.prefixBoxEnabled : prefixBoxEnabled,
-                    prefixBoxBorderThickness == null ? defaultStyle.prefixBoxBorderThickness : prefixBoxBorderThickness,
-                    prefixBoxBorderLength == null ? defaultStyle.prefixBoxBorderLength : prefixBoxBorderLength,
-                    prefixBoxBorderColor == null ? defaultStyle.prefixBoxBorderColor : prefixBoxBorderColor,
-                    prefixBoxBorderOpacity == null ? defaultStyle.prefixBoxBorderOpacity : prefixBoxBorderOpacity,
-                    prefixBoxFramed == null ? defaultStyle.prefixBoxFramed : prefixBoxFramed,
+                    groupBoxEnabled == null ? defaultStyle.groupBoxEnabled : groupBoxEnabled,
+                    groupBoxBorderThickness == null ? defaultStyle.groupBoxBorderThickness : groupBoxBorderThickness,
+                    groupBoxBorderLength == null ? defaultStyle.groupBoxBorderLength : groupBoxBorderLength,
+                    groupBoxBorderColor == null ? defaultStyle.groupBoxBorderColor : groupBoxBorderColor,
+                    groupBoxBorderOpacity == null ? defaultStyle.groupBoxBorderOpacity : groupBoxBorderOpacity,
+                    groupBoxFramed == null ? defaultStyle.groupBoxFramed : groupBoxFramed,
                     uiElementBoxColor == null ? defaultStyle.uiElementBoxColor : uiElementBoxColor,
                     uiElementBoxOpacity == null ? defaultStyle.uiElementBoxOpacity : uiElementBoxOpacity,
                     uiElementBoxBorderThickness == null ? defaultStyle.uiElementBoxBorderThickness : uiElementBoxBorderThickness,

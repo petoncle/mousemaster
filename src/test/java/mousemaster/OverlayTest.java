@@ -62,6 +62,29 @@ class OverlayTest {
     }
 
     @Test
+    void theDeprecatedGroupKeysAndGradientKeywordsAreTheirNewOnes() {
+        assertEquals(
+                overlay("grid-mode", "idle-mode.to.grid-mode=+g",
+                        "grid-mode.overlay.group-row-count=4",
+                        "grid-mode.overlay.group-column-count=2",
+                        "grid-mode.overlay.grid-order=left-to-right | _{leftctrl} -> top-to-bottom",
+                        "grid-mode.overlay.group-box-border-color=#FF0000",
+                        "grid-mode.overlay.box-color=across-box per-hint #FF0000 #0000FF",
+                        "grid-mode.overlay.box-border-color=across-group per-pixel #FF0000 #0000FF",
+                        "grid-mode.overlay.ui-element-box-color=across-box #FF0000 #0000FF",
+                        "grid-mode.overlay.background-color=across-all-hints per-group #FF0000 #0000FF"),
+                overlay("grid-mode", "idle-mode.to.grid-mode=+g",
+                        "grid-mode.overlay.layout-row-count=4",
+                        "grid-mode.overlay.layout-column-count=2",
+                        "grid-mode.overlay.layout-row-oriented=false | _{leftctrl} -> true",
+                        "grid-mode.overlay.prefix-box-border-color=#FF0000",
+                        "grid-mode.overlay.box-color=across-hint per-element #FF0000 #0000FF",
+                        "grid-mode.overlay.box-border-color=across-subgrid per-pixel #FF0000 #0000FF",
+                        "grid-mode.overlay.ui-element-box-color=across-element #FF0000 #0000FF",
+                        "grid-mode.overlay.background-color=across-all-elements per-subgrid #FF0000 #0000FF"));
+    }
+
+    @Test
     void aReferenceCanMixOverlayAndHint() {
         for (String reference : List.of("other-grid-mode.overlay=grid-mode.hint",
                 "other-grid-mode.hint=grid-mode.overlay")) {
@@ -70,7 +93,7 @@ class OverlayTest {
                     "grid-mode.to.other-grid-mode=+o",
                     "grid-mode.overlay.grid-max-row-count=3",
                     reference);
-            assertEquals(3, overlay.type().layout(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER)
+            assertEquals(3, overlay.type().shape(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER)
                     .maxRowCount(), reference);
         }
     }
@@ -177,7 +200,7 @@ class OverlayTest {
     void aTypeBranchGivesTheOverlayTheSettingsOfItsType() {
         HintMeshType grid = branchType("ui-vision", "grid");
         assertEquals(HintMeshType.HintMeshTypeType.GRID, grid.type());
-        assertEquals(3, grid.layout(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER).maxRowCount());
+        assertEquals(3, grid.shape(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER).maxRowCount());
         HintMeshType ui = branchType("grid", "ui-accessibility");
         assertEquals(HintMeshType.HintMeshTypeType.UI_ACCESSIBILITY, ui.type());
         assertEquals(UiHintOrder.LEFT_TO_RIGHT, ui.order());
@@ -198,7 +221,7 @@ class OverlayTest {
                 overlayWhileIdling("idle-mode.overlay.type=grid",
                         "idle-mode.overlay.grid-cell-sizing=fit | _{isidling} -> fixed",
                         "idle-mode.overlay.grid-cell-width=50")
-                        .type().layout(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER)
+                        .type().shape(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER)
                         .cellSizing());
     }
 

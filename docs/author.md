@@ -755,12 +755,12 @@ A few macros reach into specific applications, all through `macro-hint-mode`, an
 idle-mode.to.macro-hint-mode=+f13
 macro-hint-mode.overlay.visible=false
 macro-hint-mode.overlay.grid-cell-width=9.8
-macro-hint-mode.overlay.layout-row-count=4
-macro-hint-mode.overlay.layout-column-count=10
+macro-hint-mode.overlay.group-row-count=4
+macro-hint-mode.overlay.group-column-count=10
 macro-hint-mode.press.left=+space
 ```
 
-Forty selection keys over a 4×10 subgrid layout label every cell with a subgrid prefix plus one cell key
+Forty selection keys over groups of 4×10 cells label every cell with a group prefix plus one cell key
 — three keystrokes at the author's resolution. So `f13`, three keys, `space` clicks any point on screen.
 That is how the Firefox proxy toggles (`f7`/`f6`) click two toolbar buttons 300 ms apart, and how
 `space`+`i` deals with RustDesk:

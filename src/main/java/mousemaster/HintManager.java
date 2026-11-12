@@ -1315,9 +1315,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                     Rectangle areaRectangle = scaledArea(screen.rectangle(), area.size(),
                             screen.rectangle().center(), screen.scale());
                     areaRectangles.add(areaRectangle);
-                    HintGridLayout gridLayout = type.layout(
+                    HintGridShape gridShape = type.shape(
                             ScreenFilter.of(activeScreen));
-                    fixedSizeHintGrids.add(hintGridForArea(areaRectangle, gridLayout,
+                    fixedSizeHintGrids.add(hintGridForArea(areaRectangle, gridShape,
                             screen.scale(), zoom));
                 }
                 hintMesh.area(Rectangle.union(areaRectangles));
@@ -1371,8 +1371,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                 logger.trace("Grid center " + gridCenter);
                 Screen scaleScreen = screenManager.nearestScreenContaining(
                         gridCenter.x(), gridCenter.y());
-                HintGridLayout gridLayout = type.layout(screenFilter);
-                fixedSizeHintGrids.add(hintGridForArea(areaRectangle, gridLayout,
+                HintGridShape gridShape = type.shape(screenFilter);
+                fixedSizeHintGrids.add(hintGridForArea(areaRectangle, gridShape,
                         scaleScreen.scale(), zoom));
                 hintMesh.area(areaRectangle);
                 hintMesh.backgroundArea(
@@ -1382,38 +1382,38 @@ public class HintManager implements ModeListener, MousePositionListener {
             int hintCountSum = fixedSizeHintGrids.stream()
                                                  .mapToInt(FixedSizeHintGrid::hintCount)
                                                  .sum();
-            HintGridLayout firstScreenGridLayout = type.layout(screenFilter);
+            HintGridShape firstScreenGridShape = type.shape(screenFilter);
             FixedSizeHintGrid firstScreen = fixedSizeHintGrids.getFirst();
-            int layoutRowCount = Math.min(firstScreen.rowCount(),
-                    firstScreenGridLayout.layoutRowCount());
-            int layoutColumnCount = Math.min(firstScreen.columnCount(),
-                    firstScreenGridLayout.layoutColumnCount());
-            boolean layoutRowOriented = firstScreenGridLayout.layoutRowOriented();
-            int subgridCount = fixedSizeHintGrids.stream()
-                                                 .mapToInt(
-                                                         fixedSizeHintGrid -> fixedSizeHintGrid.subgridCount(
-                                                                 layoutRowCount,
-                                                                 layoutColumnCount))
-                                                 .sum();
+            int groupRowCount = Math.min(firstScreen.rowCount(),
+                    firstScreenGridShape.groupRowCount());
+            int groupColumnCount = Math.min(firstScreen.columnCount(),
+                    firstScreenGridShape.groupColumnCount());
+            HintGridOrder gridOrder = firstScreenGridShape.order();
+            int groupCount = fixedSizeHintGrids.stream()
+                                               .mapToInt(
+                                                       fixedSizeHintGrid -> fixedSizeHintGrid.groupCount(
+                                                               groupRowCount,
+                                                               groupColumnCount))
+                                               .sum();
             HintMeshKeys hintMeshKeys =
                     hintMeshConfiguration.keysByFilter().get(screenFilter);
             List<Key> selectionKeys = hintMeshKeys.selectionKeys();
             int rowKeyOffset = hintMeshKeys.rowKeyOffset();
             List<Hint> hints = new ArrayList<>();
-            int beginSubgridIndex = 0;
+            int beginGroupIndex = 0;
             Set<Integer> prefixLengths = new HashSet<>();
             for (FixedSizeHintGrid fixedSizeHintGrid : fixedSizeHintGrids) {
                 int beginHintIndex = hints.size();
                 hints.addAll(buildHints(fixedSizeHintGrid,
                         selectionKeys, rowKeyOffset,
                         hintCountSum,
-                        beginSubgridIndex, subgridCount,
+                        beginGroupIndex, groupCount,
                         beginHintIndex,
-                        layoutRowCount,
-                        layoutColumnCount, layoutRowOriented,
+                        groupRowCount,
+                        groupColumnCount, gridOrder,
                         prefixLengths));
-                beginSubgridIndex +=
-                        fixedSizeHintGrid.subgridCount(layoutRowCount, layoutColumnCount);
+                beginGroupIndex +=
+                        fixedSizeHintGrid.groupCount(groupRowCount, groupColumnCount);
             }
             hintMesh.hints(hints)
                     .prefixLength(prefixLengths.size() == 1 ?
@@ -1766,9 +1766,9 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private static List<Hint> buildHints(FixedSizeHintGrid fixedSizeHintGrid,
                                          List<Key> selectionKeys, int rowKeyOffset, int hintCount,
-                                         int beginSubgridIndex, int subgridCount,
-                                         int beginHintIndex, int layoutRowCount,
-                                         int layoutColumnCount, boolean layoutRowOriented,
+                                         int beginGroupIndex, int groupCount,
+                                         int beginHintIndex, int groupRowCount,
+                                         int groupColumnCount, HintGridOrder gridOrder,
                                          Set<Integer> prefixLengths) {
         int rowCount = fixedSizeHintGrid.rowCount();
         int columnCount = fixedSizeHintGrid.columnCount();
@@ -1784,11 +1784,11 @@ public class HintManager implements ModeListener, MousePositionListener {
             double columnWidthOffset = 0;
             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                 List<Key> keySequence = hintKeySequence(selectionKeys, rowKeyOffset, hintCount,
-                        beginSubgridIndex, subgridCount,
+                        beginGroupIndex, groupCount,
                         hintIndex,
                         rowIndex, columnIndex,
                         rowCount, columnCount,
-                        layoutRowCount, layoutColumnCount, layoutRowOriented,
+                        groupRowCount, groupColumnCount, gridOrder,
                         prefixLengths);
                 double hintCenterX = hintMeshX + columnWidthOffset + cellWidth / 2d;
                 double hintCenterY = hintMeshY + rowHeightOffset + cellHeight / 2d;
@@ -1820,24 +1820,23 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private static List<Key> hintKeySequence(List<Key> keys, int rowKeyOffset, int hintCount,
-                                             int beginSubgridIndex, int subgridCount,
+                                             int beginGroupIndex, int groupCount,
                                              int hintIndex,
                                              int rowIndex, int columnIndex,
                                              int rowCount, int columnCount,
-                                             int layoutRowCount, int layoutColumnCount,
-                                             boolean layoutRowOriented,
+                                             int groupRowCount, int groupColumnCount,
+                                             HintGridOrder gridOrder,
                                              Set<Integer> prefixLengths) {
         if (keys.isEmpty())
             return List.of();
-        int bigColumnCount = (int) Math.ceil((double) columnCount / layoutColumnCount);
-        // Number of sub grids in a column.
-        int bigRowCount = (int) Math.ceil((double) rowCount / layoutRowCount);
+        int groupCountPerRow = (int) Math.ceil((double) columnCount / groupColumnCount);
+        int groupCountPerColumn = (int) Math.ceil((double) rowCount / groupRowCount);
         int keyCount = keys.size();
         if (rowIndex != -1) {
             if (hintCount <= keyCount) {
                 return List.of(keys.get(hintIndex));
             }
-            // With no subgrids, we want the hints to look like this:
+            // With no groups, we want the hints to look like this:
             // (column prefix)(row suffix)
             // (aa)(aa), (ab)(aa), ..., (ba)(aa), ..., (zz)(aa)
             // (aa)(ab), (ab)(ab), ..., (ba)(aa), ..., (zz)(ab)
@@ -1846,49 +1845,49 @@ public class HintManager implements ModeListener, MousePositionListener {
             // ...
             // (aa)(zz), (ab)(zz), ..., (ba)(aa), ..., (zz)(zz)
             // The ideal situation is when rowCount = columnCount = hintKeys.size().
-            // With subgrids (here layoutRowCount = 6 and layoutColumnCount = 5):
+            // With groups (here groupRowCount = 6 and groupColumnCount = 5):
             // qq qw qe qr qt wq ww we wr wt ... tq tw te tr tt
             // qa qs qd qf qg wa ws wd wf wg ... ta ts td tf tg
             // ...
             // yq yw ye yr yt ... pq pw pe pr pt
             // ...
             // yn ym y, y. y/ ... pn pm p, p. p/
-            HintKeySequenceLayout layout =
-                    hintKeySequenceLayout(layoutRowOriented, keyCount,
+            HintKeySequenceParts parts =
+                    hintKeySequenceParts(gridOrder, keyCount,
                             columnIndex, rowIndex,
-                            bigColumnCount, bigRowCount,
-                            layoutColumnCount, layoutRowCount, beginSubgridIndex,
-                            subgridCount, hintCount);
-            int second = layout.second + rowKeyOffset;
-            if (layout.oneOne) {
+                            groupCountPerRow, groupCountPerColumn,
+                            groupColumnCount, groupRowCount, beginGroupIndex,
+                            groupCount, hintCount);
+            int second = parts.second + rowKeyOffset;
+            if (parts.oneOne) {
                 prefixLengths.add(1);
                 return List.of(
-                        keys.get(layout.first),
+                        keys.get(parts.first),
                         keys.get(second % keyCount)
                 );
             }
-            else if (layout.threeOrFour) {
-                if (layout.oneTwo) {
+            else if (parts.threeOrFour) {
+                if (parts.oneTwo) {
                     prefixLengths.add(1);
                     return List.of(
-                            keys.get(layout.first),
+                            keys.get(parts.first),
                             keys.get(second / keyCount % keyCount),
                             keys.get(second % keyCount)
                     );
                 }
-                if (layout.twoOne) {
+                if (parts.twoOne) {
                     prefixLengths.add(2);
                     return List.of(
-                            keys.get(layout.first / keyCount),
-                            keys.get(layout.first % keyCount),
+                            keys.get(parts.first / keyCount),
+                            keys.get(parts.first % keyCount),
                             keys.get(second % keyCount)
                     );
                 }
-                if (layout.twoTwo) { // 6^4 = 1296 hints
+                if (parts.twoTwo) { // 6^4 = 1296 hints
                     prefixLengths.add(2);
                     return List.of(
-                            keys.get(layout.first / keyCount),
-                            keys.get(layout.first % keyCount),
+                            keys.get(parts.first / keyCount),
+                            keys.get(parts.first % keyCount),
                             keys.get(second / keyCount % keyCount),
                             keys.get(second % keyCount)
                     );
@@ -1923,37 +1922,38 @@ public class HintManager implements ModeListener, MousePositionListener {
     /**
      * columnIndex is the index of the column in the current FixedSizeHintGrid.
      * columnCount is the number of columns in the current FixedSizeHintGrid.
-     * bigColumnCount is the number of big columns in the current FixedSizeHintGrid.
+     * groupCountPerRow is the number of groups in a row of the current FixedSizeHintGrid.
      */
-    private static HintKeySequenceLayout hintKeySequenceLayout(boolean layoutRowOriented, int keyCount,
-                                                               int columnIndex, int rowIndex,
-                                                               int bigColumnCount, int bigRowCount,
-                                                               int layoutColumnCount, int layoutRowCount,
-                                                               int beginSubgridIndex,
-                                                               int subgridCount, int hintCount) {
+    private static HintKeySequenceParts hintKeySequenceParts(HintGridOrder gridOrder, int keyCount,
+                                                             int columnIndex, int rowIndex,
+                                                             int groupCountPerRow,
+                                                             int groupCountPerColumn,
+                                                             int groupColumnCount, int groupRowCount,
+                                                             int beginGroupIndex,
+                                                             int groupCount, int hintCount) {
         int first;
         int maxFirst;
         int second;
         int maxSecond;
-        if (layoutRowOriented) {
-            columnIndex += beginSubgridIndex * layoutColumnCount
-                           + rowIndex / layoutRowCount * (bigColumnCount * layoutColumnCount);
-            int columnCount = subgridCount * layoutColumnCount;
+        if (gridOrder == HintGridOrder.TOP_TO_BOTTOM) {
+            columnIndex += beginGroupIndex * groupColumnCount
+                           + rowIndex / groupRowCount * (groupCountPerRow * groupColumnCount);
+            int columnCount = groupCount * groupColumnCount;
 
-            first = columnIndex / layoutColumnCount;
-            maxFirst = (columnCount - 1) / layoutColumnCount;
-            second = columnIndex % layoutColumnCount + rowIndex % layoutRowCount * layoutColumnCount;
-            maxSecond = layoutColumnCount - 1 + (layoutRowCount - 1) * layoutColumnCount;
+            first = columnIndex / groupColumnCount;
+            maxFirst = (columnCount - 1) / groupColumnCount;
+            second = columnIndex % groupColumnCount + rowIndex % groupRowCount * groupColumnCount;
+            maxSecond = groupColumnCount - 1 + (groupRowCount - 1) * groupColumnCount;
         }
         else {
-            rowIndex += beginSubgridIndex * layoutRowCount
-                        + columnIndex / layoutColumnCount * (bigRowCount * layoutRowCount);
-            int rowCount = subgridCount * layoutRowCount;
+            rowIndex += beginGroupIndex * groupRowCount
+                        + columnIndex / groupColumnCount * (groupCountPerColumn * groupRowCount);
+            int rowCount = groupCount * groupRowCount;
 
-            first = rowIndex / layoutRowCount;
-            maxFirst = (rowCount - 1) / layoutRowCount;
-            second = rowIndex % layoutRowCount + columnIndex % layoutColumnCount * layoutRowCount;
-            maxSecond = layoutRowCount - 1 + (layoutColumnCount - 1) * layoutRowCount;
+            first = rowIndex / groupRowCount;
+            maxFirst = (rowCount - 1) / groupRowCount;
+            second = rowIndex % groupRowCount + columnIndex % groupColumnCount * groupRowCount;
+            maxSecond = groupRowCount - 1 + (groupColumnCount - 1) * groupRowCount;
         }
         boolean oneOne = maxFirst <= keyCount - 1 && maxSecond <= keyCount - 1;
         boolean threeOrFour = !oneOne && hintCount >= 100 &&
@@ -1966,30 +1966,30 @@ public class HintManager implements ModeListener, MousePositionListener {
         // always start with A or B.
         boolean twoTwo = threeOrFour && keyCount <= 6;
 
-        return new HintKeySequenceLayout(first, maxFirst, second, maxSecond, oneOne,
+        return new HintKeySequenceParts(first, maxFirst, second, maxSecond, oneOne,
                 threeOrFour, oneTwo, twoOne, twoTwo);
     }
 
     /**
-     * With a simple AA-ZZ layout, first is e.g. H, maxFirst is Z, second is I, maxSecond is Z.
+     * With simple AA-ZZ labels, first is e.g. H, maxFirst is Z, second is I, maxSecond is Z.
      */
-    private record HintKeySequenceLayout(int first, int maxFirst, int second, int maxSecond,
-                                         boolean oneOne, boolean threeOrFour, boolean oneTwo, boolean twoOne, boolean twoTwo) {
+    private record HintKeySequenceParts(int first, int maxFirst, int second, int maxSecond,
+                                        boolean oneOne, boolean threeOrFour, boolean oneTwo, boolean twoOne, boolean twoTwo) {
 
     }
 
     private FixedSizeHintGrid hintGridForArea(Rectangle areaRectangle,
-                                              HintGridLayout gridLayout, double scale,
+                                              HintGridShape gridShape, double scale,
                                               Zoom zoom) {
-        HintCellSizing cellSizing = gridLayout.cellSizing();
+        HintCellSizing cellSizing = gridShape.cellSizing();
         return switch (cellSizing.type()) {
             case FIXED -> fixedSizeHintGrid(
-                    areaRectangle, gridLayout.maxRowCount(),
-                    gridLayout.maxColumnCount(),
+                    areaRectangle, gridShape.maxRowCount(),
+                    gridShape.maxColumnCount(),
                     cellSizing.cellWidth() * scale * zoom.percent(),
                     cellSizing.cellHeight() * scale * zoom.percent());
             case FIT -> fitToAreaHintGrid(
-                    areaRectangle, gridLayout.maxRowCount(), gridLayout.maxColumnCount());
+                    areaRectangle, gridShape.maxRowCount(), gridShape.maxColumnCount());
         };
     }
 
@@ -2052,19 +2052,20 @@ public class HintManager implements ModeListener, MousePositionListener {
         boolean hasFill = decoration.boxOpacity() > 0;
         if (!hasGrid && !hasLabel && !decoration.boxFramed() && !hasFill)
             return null;
-        HintGridLayout decorationLayout = new HintGridLayout(
+        HintGridShape decorationShape = new HintGridShape(
                 decoration.maxRowCount(), decoration.maxColumnCount(),
                 new HintCellSizing(HintCellSizing.HintCellSizingType.FIT, 0, 0),
-                decoration.maxRowCount(), decoration.maxColumnCount(), true);
-        FixedSizeHintGrid grid = hintGridForArea(area, decorationLayout, scale, zoom);
-        int layoutRowCount = Math.min(grid.rowCount(), decorationLayout.layoutRowCount());
-        int layoutColumnCount = Math.min(grid.columnCount(),
-                decorationLayout.layoutColumnCount());
-        int subgridCount = grid.subgridCount(layoutRowCount, layoutColumnCount);
+                decoration.maxRowCount(), decoration.maxColumnCount(),
+                HintGridOrder.TOP_TO_BOTTOM);
+        FixedSizeHintGrid grid = hintGridForArea(area, decorationShape, scale, zoom);
+        int groupRowCount = Math.min(grid.rowCount(), decorationShape.groupRowCount());
+        int groupColumnCount = Math.min(grid.columnCount(),
+                decorationShape.groupColumnCount());
+        int groupCount = grid.groupCount(groupRowCount, groupColumnCount);
         Set<Integer> prefixLengths = new HashSet<>();
         List<Hint> decorationHints = buildHints(grid, decoration.labelKeys(), 0,
-                grid.hintCount(), 0, subgridCount, 0, layoutRowCount,
-                layoutColumnCount, decorationLayout.layoutRowOriented(),
+                grid.hintCount(), 0, groupCount, 0, groupRowCount,
+                groupColumnCount, decorationShape.order(),
                 prefixLengths);
         int prefixLength = prefixLengths.size() == 1 ?
                 prefixLengths.iterator().next() : -1;
@@ -2077,7 +2078,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 .boxBorderOpacity(decoration.boxBorderOpacity())
                 .boxBorderRadius(decoration.boxBorderRadius())
                 .prefixInBackground(false)
-                .prefixBoxEnabled(false)
+                .groupBoxEnabled(false)
                 .boxWidthPercent(1d)
                 .boxHeightPercent(1d)
                 .backgroundOpacity(0d)
@@ -2171,16 +2172,16 @@ public class HintManager implements ModeListener, MousePositionListener {
             return rowCount * columnCount;
         }
 
-        public int bigColumnCount(int layoutColumnCount) {
-            return (int) Math.ceil((double) columnCount / layoutColumnCount);
+        public int groupCountPerRow(int groupColumnCount) {
+            return (int) Math.ceil((double) columnCount / groupColumnCount);
         }
 
-        public int bigRowCount(int layoutRowCount) {
-            return (int) Math.ceil((double) rowCount / layoutRowCount);
+        public int groupCountPerColumn(int groupRowCount) {
+            return (int) Math.ceil((double) rowCount / groupRowCount);
         }
 
-        public int subgridCount(int layoutRowCount, int layoutColumnCount) {
-            return bigRowCount(layoutRowCount) * bigColumnCount(layoutColumnCount);
+        public int groupCount(int groupRowCount, int groupColumnCount) {
+            return groupCountPerColumn(groupRowCount) * groupCountPerRow(groupColumnCount);
         }
 
     }

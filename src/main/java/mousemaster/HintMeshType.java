@@ -1,20 +1,20 @@
 package mousemaster;
 
-import mousemaster.HintGridLayout.HintGridLayoutBuilder;
+import mousemaster.HintGridShape.HintGridShapeBuilder;
 import mousemaster.ScreenFilterMap.ScreenFilterMapBuilder;
 
 import java.util.function.Function;
 
 public record HintMeshType(HintMeshTypeType type, Area area,
-                           ScreenFilterMap<HintGridLayout> gridLayoutByFilter,
+                           ScreenFilterMap<HintGridShape> gridShapeByFilter,
                            UiHintOrder order, LabelLength labelLength, int density,
                            double minSize, String positionHistoryName) {
 
-    public HintGridLayout layout(ScreenFilter filter) {
-        HintGridLayout layout = gridLayoutByFilter.get(filter);
-        if (layout != null)
-            return layout;
-        return gridLayoutByFilter.get(
+    public HintGridShape shape(ScreenFilter filter) {
+        HintGridShape shape = gridShapeByFilter.get(filter);
+        if (shape != null)
+            return shape;
+        return gridShapeByFilter.get(
                 ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER);
     }
 
@@ -29,7 +29,7 @@ public record HintMeshType(HintMeshTypeType type, Area area,
 
         @Override
         public HintMeshType apply(HintMeshType hintMeshType) {
-            return new HintMeshType(type, hintMeshType.area, hintMeshType.gridLayoutByFilter,
+            return new HintMeshType(type, hintMeshType.area, hintMeshType.gridShapeByFilter,
                     hintMeshType.order, hintMeshType.labelLength, hintMeshType.density,
                     hintMeshType.minSize,
                     positionHistoryName == null ? hintMeshType.positionHistoryName :
@@ -48,11 +48,11 @@ public record HintMeshType(HintMeshTypeType type, Area area,
         private Integer visionDensity;
         private Double visionMinSize;
         private String positionHistoryName;
-        private final ScreenFilterMapBuilder<HintGridLayoutBuilder, HintGridLayout>
-                gridLayoutByFilter;
+        private final ScreenFilterMapBuilder<HintGridShapeBuilder, HintGridShape>
+                gridShapeByFilter;
 
         public HintMeshTypeBuilder() {
-            this.gridLayoutByFilter = new ScreenFilterMapBuilder<>();
+            this.gridShapeByFilter = new ScreenFilterMapBuilder<>();
         }
 
         public HintMeshTypeType type() {
@@ -108,13 +108,13 @@ public record HintMeshType(HintMeshTypeType type, Area area,
             return this;
         }
 
-        public HintGridLayoutBuilder gridLayout(ScreenFilter filter) {
-            return gridLayoutByFilter.map().computeIfAbsent(filter,
-                    filter1 -> new HintGridLayoutBuilder());
+        public HintGridShapeBuilder gridShape(ScreenFilter filter) {
+            return gridShapeByFilter.map().computeIfAbsent(filter,
+                    filter1 -> new HintGridShapeBuilder());
         }
 
-        public ScreenFilterMapBuilder<HintGridLayoutBuilder, HintGridLayout> gridLayoutByFilter() {
-            return gridLayoutByFilter;
+        public ScreenFilterMapBuilder<HintGridShapeBuilder, HintGridShape> gridShapeByFilter() {
+            return gridShapeByFilter;
         }
 
         public HintMeshTypeBuilder type(HintMeshTypeType type) {
@@ -124,7 +124,7 @@ public record HintMeshType(HintMeshTypeType type, Area area,
 
         public HintMeshType build() {
             return new HintMeshType(type, area.build(),
-                    gridLayoutByFilter.build(HintGridLayoutBuilder::build), uiOrder,
+                    gridShapeByFilter.build(HintGridShapeBuilder::build), uiOrder,
                     labelLength, visionDensity, visionMinSize, positionHistoryName);
         }
     }

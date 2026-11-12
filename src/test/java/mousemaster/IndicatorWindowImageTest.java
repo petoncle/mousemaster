@@ -380,6 +380,21 @@ class IndicatorWindowImageTest {
         assertTrue((center >> 16 & 0xFF) > (center & 0xFF), Integer.toHexString(center));
     }
 
+    @Test
+    void anAcrossBoxColorBlendsInsideTheLayer() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        WindowImage box = render(new IndicatorRenderer(), indicator(
+                "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=rectangle",
+                "idle-mode.indicator.size=40", "idle-mode.indicator.fill-opacity=1",
+                "idle-mode.indicator.stroke-thickness=0",
+                "idle-mode.indicator.fill-color=across-box top-to-bottom #FF0000 #0000FF"),
+                Set.of("indicator"), 500);
+        int top = argbAt(box, 504, 488);
+        int bottom = argbAt(box, 504, 520);
+        assertTrue((top >> 16 & 0xFF) - (top & 0xFF) > 0x80, Integer.toHexString(top));
+        assertTrue((bottom & 0xFF) - (bottom >> 16 & 0xFF) > 0x80, Integer.toHexString(bottom));
+    }
+
     private static WindowImage renderOnATopAndABottomCell(String... lines) {
         List<String> allLines = new ArrayList<>(List.of("idle-mode.save.position-history=+f1",
                 "idle-mode.indicator.enabled=true",

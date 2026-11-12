@@ -3,7 +3,7 @@ package mousemaster;
 import io.qt.core.Qt;
 import io.qt.gui.QImage;
 import io.qt.gui.QPainter;
-import mousemaster.GradientColor.GradientArea;
+import mousemaster.GradientColor.GradientSpan;
 import mousemaster.GradientColor.GradientDirection;
 import mousemaster.GradientColor.GradientStep;
 import mousemaster.qt.QtColorUtil;
@@ -34,10 +34,10 @@ class GradientColorTest {
     @Test
     void keywordsAreOrderFree() {
         GradientColor color =
-                GradientColor.parse("#FF0000 per-subgrid #0000FF across-screen right-to-left");
+                GradientColor.parse("#FF0000 per-group #0000FF across-screen right-to-left");
         assertEquals(List.of("#FF0000", "#0000FF"), color.hexColors());
         assertEquals(GradientDirection.RIGHT_TO_LEFT, color.direction());
-        assertEquals(GradientArea.SCREEN, color.area());
+        assertEquals(GradientSpan.SCREEN, color.span());
         assertEquals(GradientStep.GROUP, color.step());
     }
 
@@ -45,8 +45,8 @@ class GradientColorTest {
     void defaultsAreAreaTopToBottomPerHint() {
         GradientColor color = GradientColor.parse("#FF0000 #0000FF");
         assertEquals(GradientDirection.TOP_TO_BOTTOM, color.direction());
-        assertEquals(GradientArea.AREA, color.area());
-        assertEquals(GradientStep.ELEMENT, color.step());
+        assertEquals(GradientSpan.AREA, color.span());
+        assertEquals(GradientStep.HINT, color.step());
     }
 
     @Test
@@ -157,7 +157,7 @@ class GradientColorTest {
     @Test
     void acrossAreaParses() {
         GradientColor color = GradientColor.parse("across-area #FF0000 #0000FF");
-        assertEquals(GradientArea.AREA, color.area());
+        assertEquals(GradientSpan.AREA, color.span());
     }
 
     @Test
@@ -167,9 +167,9 @@ class GradientColorTest {
         assertThrows(IllegalArgumentException.class,
                 () -> GradientColor.parse("across-screen"));
         assertThrows(IllegalArgumentException.class,
-                () -> GradientColor.parse("across-hint per-subgrid #FF0000 #0000FF"));
+                () -> GradientColor.parse("across-box per-group #FF0000 #0000FF"));
         assertThrows(IllegalArgumentException.class,
-                () -> GradientColor.parse("across-subgrid per-subgrid #FF0000 #0000FF"));
+                () -> GradientColor.parse("across-group per-group #FF0000 #0000FF"));
     }
 
     @Test

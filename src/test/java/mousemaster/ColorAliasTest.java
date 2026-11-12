@@ -33,9 +33,16 @@ class ColorAliasTest {
     @Test
     void anIndicatorRejectsAnInTurnColor() {
         assertThrows(IllegalArgumentException.class, () -> parse(
-                "color-alias.key-colors=per-group in-turn #F97316 #3B82F6",
+                "color-alias.key-colors=in-turn #F97316 #3B82F6",
                 "idle-mode.hint.box-color=key-colors",
                 "idle-mode.indicator.fill-color=key-colors"));
+    }
+
+    @Test
+    void anIndicatorRejectsAColorOfHints() {
+        for (String keyword : List.of("per-group", "across-group", "across-all-hints"))
+            assertThrows(IllegalArgumentException.class, () -> parse(
+                    "idle-mode.indicator.fill-color=" + keyword + " #F97316 #3B82F6"), keyword);
     }
 
     @Test

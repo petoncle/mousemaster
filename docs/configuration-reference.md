@@ -362,8 +362,9 @@ Any color property takes a hex color (`#FFFFFF`), a gradient (see [hint appearan
 or a color of the box of the hint selected last, black until one has been selected:
 `last-selected-hint-box-color` is the `box-color` of that box, gradient included, and
 `last-selected-hint-box-center-color` is the one color at the center of the box. A gradient that is
-not `per-pixel` gives a layer the color at its center, so a layer drawn on each saved position takes
-the color of its place. `last-selected-hint-box-center-color` plays a click in the color of the hint
+not `per-pixel` or `across-box` gives a layer the color at its center, so a layer drawn on each
+saved position takes the color of its place. An indicator has no hints, so its colors cannot use
+`per-group`, `across-group` or `across-all-hints`. `last-selected-hint-box-center-color` plays a click in the color of the hint
 that was clicked:
 
 ```properties
@@ -523,7 +524,7 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
   and `y` move it away from the edges. `target` and `last-selected-hint` center the layer on
   those points of the overlay (see `mouse-follows-target`), not on the cursor, and
   `active-window-center` and `last-overlay-area-center` on those points of
-  [`area-center`](#overlay-area-and-layout). While the mouse
+  [`area-center`](#overlay-area-and-grid). While the mouse
   follows the target, the target is the mouse, and a layer that follows the target is drawn
   again at each mouse move: to draw at the cursor, use `mouse`. A position history
   stands for the positions saved in it, in the order they were saved: the layer is drawn on each
@@ -575,7 +576,7 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
   `false`, the layer stays where it was when it was enabled, or when its keyframes started over.
 - **`area`**: The area the layer covers. It takes the values of the overlay's `area`, with
   `area-width-percent`, `area-height-percent`, the `area-*-inset` and `area-center` (see
-  [Overlay area and layout](#overlay-area-and-layout)). The layer takes its position and its size
+  [Overlay area and grid](#overlay-area-and-grid)). The layer takes its position and its size
   from the area, so `position`, `end-position`, `size` and `aspect-ratio` cannot be set. The
   stroke is centered on the edge of the area: an inset of minus half the stroke thickness puts
   the stroke just outside it. A box around the element of the last selected UI
@@ -710,7 +711,7 @@ hint2-2-mode.zoom.center=last-selected-hint
 
 - `zoom.percent` is between 1.0 (100%, no magnification) and 100.
 - `zoom.center` is the point the zoom is centered on. It takes the values of
-  [`area-center`](#overlay-area-and-layout) (default `active-screen-center`). With `mouse` or
+  [`area-center`](#overlay-area-and-grid) (default `active-screen-center`). With `mouse` or
   `target`, the zoom follows that point.
 - `zoom.area-size-source` is what the magnified area is sized from: `percent` (default), or
   `last-selected-hint-cell`: the cell, scaled by `zoom.area-width-percent` /
@@ -859,7 +860,7 @@ ui-hint-mode.overlay.box-vertical-padding=0
 ui-hint-mode.overlay.box-border-radius=3
 ```
 
-**`area`** (see [Overlay area and layout](#overlay-area-and-layout)) selects the
+**`area`** (see [Overlay area and grid](#overlay-area-and-grid)) selects the
 windows the elements are looked for in:
 - `active-screen`: Every visible window on the screen with the mouse cursor
 - `all-screens`: Every visible window on every connected screen
@@ -1003,7 +1004,7 @@ pressed when a scan finds nothing, exactly as for accessibility UI hints.
 On macOS the capture asks for the Screen Recording permission the first time a scan runs;
 hints appear once it is granted.
 
-### Overlay area and layout
+### Overlay area and grid
 
 The following properties control where hints appear and how they're arranged:
 
@@ -1016,8 +1017,8 @@ hint-mode.overlay.area-center=active-screen-center
 hint-mode.overlay.grid-cell-width=74
 hint-mode.overlay.grid-cell-height=36
 hint-mode.overlay.grid-cell-sizing=fixed
-hint-mode.overlay.layout-row-count=6
-hint-mode.overlay.layout-column-count=5
+hint-mode.overlay.group-row-count=6
+hint-mode.overlay.group-column-count=5
 ```
 
 The hint area is two independent settings: **`area`** sets its *size*, **`area-center`** sets
@@ -1078,14 +1079,14 @@ the point it is *centered* on. For UI hints it is the region the elements are lo
   - `fixed` (default): the cell count is the area divided by `grid-cell-width` x `grid-cell-height`, capped by `grid-max-row-count`/`grid-max-column-count`. The cells are then stretched to fill the area, so the pixel sizes pick the count rather than the size drawn.
   - `fit`: cells are sized to fill the area with exactly `grid-max-row-count` x `grid-max-column-count` cells (the pixel sizes are ignored). Useful for a fixed grid shape (e.g. 3x3) that adapts to any screen, and for a recursive grid via `area=last-selected-hint-cell`.
 
-- **Subgrid layout**: `layout-row-count` x `layout-column-count` is the subgrid, the block of cells
-  that shares a hint prefix. The grid is tiled with subgrids; a hint's subgrid prefix says which
-  subgrid it is in and its cell keys where it sits inside that subgrid. They do not change the grid's
+- **Groups**: `group-row-count` x `group-column-count` is the group, the block of cells
+  that shares a hint prefix. The grid is tiled with groups; a hint's prefix says which
+  group it is in and its cell keys where it sits inside that group. They do not change the grid's
   own row and column counts, which come from `grid-cell-sizing`.
-  - `layout-row-count=6` and `layout-column-count=5`: 6x5 subgrids, as the shipped configurations use
-  - `layout-row-count=1` and a column count wider than the grid: one prefix per row
-  - `layout-column-count=1` and a row count taller than the grid: one prefix per column, the default
-  - `layout-row-oriented=false` (default `true`) numbers the subgrids down columns instead of across rows
+  - `group-row-count=6` and `group-column-count=5`: 6x5 groups, as the shipped configurations use
+  - `group-row-count=1` and a column count wider than the grid: one prefix per row
+  - `group-column-count=1` and a row count taller than the grid: one prefix per column, the default
+  - `grid-order=left-to-right` (default `top-to-bottom`) numbers the groups down columns instead of across rows
 
   A grid with no more cells than there are selection keys gives every hint a single key and no prefix.
 
@@ -1097,8 +1098,8 @@ Any hint property can hold a different value per screen: give the screen as a pr
 # A 4K screen gets denser hints than the others:
 hint1-mode.overlay.grid-cell-width=74 | _{3840x2160-100%} -> 96
 hint1-mode.overlay.grid-cell-height=41 | _{3840x2160-100%} -> 54
-hint1-mode.overlay.layout-row-count=6 | _{3840x2160-100%} -> 4
-hint1-mode.overlay.layout-column-count=5 | _{3840x2160-100%} -> 10
+hint1-mode.overlay.group-row-count=6 | _{3840x2160-100%} -> 4
+hint1-mode.overlay.group-column-count=5 | _{3840x2160-100%} -> 10
 ```
 
 A screen filter is a screen resolution (`3840x2160`), a screen scale (`150%`), or both (`3840x2160-150%`). Each screen resolves its own value when the hints are drawn, so a mesh covering several screens gets a value per screen. The most specific matching filter wins: resolution and scale first, then resolution, then scale. A screen matching none of them takes the default value.
@@ -1245,7 +1246,7 @@ hint-mode.hotspots.nudge-distance=4 | _{leftctrl} -> 2
 - A new `cell-x-percent` undoes the nudges and moves across, and a new `cell-y-percent` the ones
   down.
 - A mode without hints undoes the nudges and moves, and stops a move. A mode with the same
-  `overlay.type`, area and layout keeps the hotspots where the commands left them, as it keeps the
+  `overlay.type`, area, grid and groups keeps the hotspots where the commands left them, as it keeps the
   overlay area: `pick-mode.overlay=hint-mode.overlay` with `pick-mode.hotspots=hint-mode.hotspots`
   keeps them.
 - A hint without a cell, such as a saved position, keeps its hotspot at its center.
@@ -1326,14 +1327,14 @@ hint-mode.overlay.font-shadow-vertical-offset=0
 hint-mode.overlay.selected-font-color=#A3A3A3
 hint-mode.overlay.selected-font-opacity=1.0
 
-# Prefix box (for multi-character hints). A border is never drawn where an enclosing one
-# already draws, so the hint boxes leave the prefix box its own.
-hint-mode.overlay.prefix-box-enabled=true
-hint-mode.overlay.prefix-box-border-thickness=2
-hint-mode.overlay.prefix-box-border-color=#FFD93D
-hint-mode.overlay.prefix-box-border-opacity=0.8
-# false draws the lines between the prefix boxes only, no frame around the grid
-hint-mode.overlay.prefix-box-framed=true
+# Group box (for multi-character hints). A border is never drawn where an enclosing one
+# already draws, so the hint boxes leave the group box its own.
+hint-mode.overlay.group-box-enabled=true
+hint-mode.overlay.group-box-border-thickness=2
+hint-mode.overlay.group-box-border-color=#FFD93D
+hint-mode.overlay.group-box-border-opacity=0.8
+# false draws the lines between the group boxes only, no frame around the grid
+hint-mode.overlay.group-box-framed=true
 hint-mode.overlay.prefix-in-background=true
 
 # Transition (when the hints change)
@@ -1353,8 +1354,8 @@ hint-mode.overlay.background-opacity=0
 
 - Box appearance: controls the background and border of hint boxes
   - `box-color`: One color, or several for a gradient through them, evenly spaced and interpolated
-    through OkLab. Each box takes the color at its own position, so with `top-to-bottom` a grid row
-    is one color. `box-opacity` applies to the whole gradient.
+    through OkLab. Each hint takes the color at its center, and its boxes show it, so with
+    `top-to-bottom` a grid row is one color. `box-opacity` applies to the whole gradient.
     ```properties
     hint-mode.overlay.box-color=#FF0000 #FFA500 #FFFF00 #00FF00 #800080
     hint-mode.overlay.box-color=across-screen left-to-right #FF6B00 #FF006E
@@ -1364,28 +1365,28 @@ hint-mode.overlay.background-opacity=0
       four diagonals (`top-left-to-bottom-right` and so on), and four round ones: `center-to-corner`
       and `corner-to-center` reach the last color at the corners, `center-to-edge` and
       `edge-to-center` at every edge.
-    - What one sweep covers, narrowest first: `across-hint` (each box), `across-subgrid` (each
-      [subgrid](#overlay-area-and-layout), so the gradient repeats), `across-all-hints` (the
+    - What one sweep covers, narrowest first: `across-box` (each box, blended inside it),
+      `across-group` (each [group](#overlay-area-and-grid), so the gradient repeats), `across-all-hints` (the
       hints on that screen), `across-area` (default, the region `area` names, so
       the sweep spans it even where no hint sits), `across-screen`, `across-all-screens` (one sweep
       over the whole arrangement).
-    - What shares one color: `per-hint` (default), `per-subgrid` (one color per subgrid),
+    - What shares one color: `per-hint` (default), `per-group` (one color per group),
       `per-pixel` (none: the gradient ramps inside a box and continues into the next).
-      `per-subgrid` needs an area wider than a subgrid, so not with `across-subgrid` or
-      `across-hint`.
-    - A grid without subgrids, such as one without `selection-keys`, is one subgrid: with
-      `per-subgrid`, all its boxes share one color.
-    - Hints without a grid (UI hints and position history hints) are in subgrids too: the hints
-      whose labels differ only in the last key are one subgrid. With the labels
-      `a b c da db dc`, `a b c` is one subgrid and `da db dc` is another. Thus with 2-key labels
-      and `per-subgrid in-turn`, each first key gets its own color.
+      `per-group` needs a span larger than a group, so not with `across-group` or
+      `across-box`.
+    - A grid without groups, such as one without `selection-keys`, is one group: with
+      `per-group`, all its boxes share one color.
+    - Hints without a grid (UI hints and position history hints) are in groups too: the hints
+      whose labels differ only in the last key are one group. With the labels
+      `a b c da db dc`, `a b c` is one group and `da db dc` is another. Thus with 2-key labels
+      and `per-group in-turn`, each first key gets its own color.
     - `in-turn`, in place of a direction: the colors are not blended. The hints (with
-      `per-hint`) or the subgrids (with `per-subgrid`) take the colors in turn, in the order
+      `per-hint`) or the groups (with `per-group`) take the colors in turn, in the order
       their labels are given, and start again at the first color after the last one. An
       `across-` keyword and `per-pixel` cannot be given with it, and an indicator color cannot
       use it:
       ```properties
-      hint-mode.overlay.box-color=per-subgrid in-turn #E06C75 #98C379 #61AFEF
+      hint-mode.overlay.box-color=per-group in-turn #E06C75 #98C379 #61AFEF
       ```
   - `box-border-color`: One color, or a gradient as for `box-color`. So is every other color of
     the overlay, such as `box-shadow-color`, `background-color` and `<level>-box-color`: a
@@ -1433,7 +1434,7 @@ hint-mode.overlay.background-opacity=0
   - `<level>-box-color` / `<level>-box-opacity`: Cell fill.
   - `<level>-box-border-thickness` / `<level>-box-border-color` / `<level>-box-border-opacity` / `<level>-box-border-radius`: The lines. (Names mirror the top-level `box-border-*`.)
   - `<level>-box-border-length`: Length of each line; high values (default 10000) draw continuous lines, low values draw short marks (e.g. a `+` at the center of a 2x2 decoration).
-  - `<level>-box-framed`: Whether this level draws its own frame (default false). A decoration spans its parent box exactly, so its frame would land on the parent's border and double it; false draws the interior lines only. Same property as the top-level `box-framed` and `prefix-box-framed`, which default to true since nothing above them draws that frame.
+  - `<level>-box-framed`: Whether this level draws its own frame (default false). A decoration spans its parent box exactly, so its frame would land on the parent's border and double it; false draws the interior lines only. Same property as the top-level `box-framed` and `group-box-framed`, which default to true since nothing above them draws that frame.
   - `<level>-box-horizontal-padding` / `<level>-box-vertical-padding`: Grow each box around its cell, as `box-horizontal-padding` grows a hint box (default 0). With `box-framed=false`, a framed `decoration-` with paddings equal to its border thickness draws its frame around the grid, where a UI hint's element box draws:
     ```properties
     refine-ui-hint-mode.overlay.box-framed=false
@@ -1456,8 +1457,8 @@ A hint is made of several keys (letters). For example, hint JKK is made of 3 key
 - The hint prefix is JK.
 - The prefix (JK) can be displayed "in the background" with `prefix-in-background=true`.
 
-- Hints in the same subgrid have the same prefix (see
-  [Subgrid layout](#overlay-area-and-layout)), so a subgrid one row tall gives one prefix per row
+- Hints in the same group have the same prefix (see
+  [Groups](#overlay-area-and-grid)), so a group one row tall gives one prefix per row
   and one column wide one prefix per column.
 
 Initially:
@@ -1622,7 +1623,7 @@ The overlay area is the area of the overlay, or the cells that the typed selecti
 cells out in it, UI hints look for the elements in it with a new query, and saved positions show
 the positions in it.
 
-A mode with the same `overlay.type`, area and layout keeps the overlay area where the commands left it. With
+A mode with the same `overlay.type`, area, grid and groups keeps the overlay area where the commands left it. With
 `target-follows-overlay-center=true`, the target goes to the center of the overlay after each
 change. The mouse follows the target, unless `mouse-follows-target=false`: then it stays
 where it is.

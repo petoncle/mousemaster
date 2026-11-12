@@ -62,7 +62,7 @@ public class LastSelectedHintBoxColorTest {
     @Test
     void anAcrossGradientStartsAtTheCenterOfTheBox() {
         GradientColor color =
-                GradientColor.parse("across-hint center-to-edge #FF0000 #0000FF");
+                GradientColor.parse("across-box center-to-edge #FF0000 #0000FF");
         assertEquals(0xFF0000,
                 color.rgbAt(GradientColor.unitArea, 0.5, 0.5));
     }
