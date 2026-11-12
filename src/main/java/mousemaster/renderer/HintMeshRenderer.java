@@ -1946,20 +1946,16 @@ public final class HintMeshRenderer {
             maxHintRight += borderPad;
             maxHintBottom += borderPad;
         }
-        // Expand container bounds to accommodate box shadow extent.
-        int shadowPadLeft = 0, shadowPadRight = 0, shadowPadTop = 0, shadowPadBottom = 0;
-        for (Shadow shadow : List.of(boxShadow, elementBoxShadow)) {
-            if (shadow.opacity() == 0)
-                continue;
-            shadowPadLeft = Math.max(shadowPadLeft, (int) Math.ceil((shadow.blurRadius() + Math.max(0, -shadow.horizontalOffset())) / qtScaleFactor));
-            shadowPadRight = Math.max(shadowPadRight, (int) Math.ceil((shadow.blurRadius() + Math.max(0, shadow.horizontalOffset())) / qtScaleFactor));
-            shadowPadTop = Math.max(shadowPadTop, (int) Math.ceil((shadow.blurRadius() + Math.max(0, -shadow.verticalOffset())) / qtScaleFactor));
-            shadowPadBottom = Math.max(shadowPadBottom, (int) Math.ceil((shadow.blurRadius() + Math.max(0, shadow.verticalOffset())) / qtScaleFactor));
-        }
-        minHintLeft -= shadowPadLeft;
-        minHintTop -= shadowPadTop;
-        maxHintRight += shadowPadRight;
-        maxHintBottom += shadowPadBottom;
+        // The container holds the areas the box shadows are blurred in.
+        int shadowPad = 0;
+        for (Shadow shadow : List.of(boxShadow, elementBoxShadow))
+            if (shadow.opacity() != 0)
+                shadowPad = Math.max(shadowPad, (int) Math.ceil(shadowPadding(shadow.blurRadius(),
+                        shadow.horizontalOffset(), shadow.verticalOffset()) / qtScaleFactor));
+        minHintLeft -= shadowPad;
+        minHintTop -= shadowPad;
+        maxHintRight += shadowPad;
+        maxHintBottom += shadowPad;
         if (hintMesh.decoration() != null) {
             Rectangle area = hintMesh.decoration().backgroundArea();
             int horizontalPadding =
