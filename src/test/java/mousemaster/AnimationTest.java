@@ -648,6 +648,21 @@ class AnimationTest {
     }
 
     @Test
+    void aHideCursorBranchStartsFromTheValueTheBranchBeforeItGave() {
+        load("first-animation.duration-millis=100",
+                "second-animation.duration-millis=100",
+                "idle-mode.start.first-animation=+a",
+                "idle-mode.start.second-animation=+b",
+                "idle-mode.hide-cursor.enabled=false | _{firstanimation} -> 0% true; 100% true" +
+                " | _{secondanimation} -> 0% current; 50% false");
+        tap("a");
+        assertTrue(hideCursorEnabled());
+        tap("b");
+        tick(0.01);
+        assertTrue(hideCursorEnabled());
+    }
+
+    @Test
     void keyframesCanShowTheIndicatorForPartOfAnAnimation() {
         load("click-burst-animation.duration-millis=100",
                 "idle-mode.start.click-burst-animation=+a",

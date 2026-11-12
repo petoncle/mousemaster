@@ -13,6 +13,11 @@ public class AnimationPlayer {
     private final Map<String, Double> elapsedByAnimationName = new HashMap<>();
     private final Set<String> runningAnimationNames = new HashSet<>();
     private final Set<String> startedAnimationNames = new HashSet<>();
+    private Map<ModePropertyPath, RunningTimeline> runningTimelineByPropertyPath = Map.of();
+    private Mode animatedMode;
+
+    public record RunningTimeline(Timeline timeline, double elapsed, Object current) {
+    }
 
     public AnimationPlayer(Map<String, AnimationConfiguration> animationConfigurationByName) {
         this.animationConfigurationByName = animationConfigurationByName;
@@ -68,18 +73,39 @@ public class AnimationPlayer {
         return backward ? 1 - progress : progress;
     }
 
+    /** The running timeline with its new elapsed time, or null when the timeline starts: it is
+     *  new, another one, or its animation started again. */
+    public RunningTimeline runOn(RunningTimeline runningTimeline, Timeline timeline) {
+        double elapsed = elapsed(timeline.animationName());
+        return runningTimeline != null && timeline.equals(runningTimeline.timeline()) &&
+               elapsed >= runningTimeline.elapsed() ?
+                new RunningTimeline(timeline, elapsed, runningTimeline.current()) : null;
+    }
+
     public Mode animate(Mode mode, String fieldName) {
+        Map<ModePropertyPath, RunningTimeline> newRunningTimelineByPropertyPath = new HashMap<>();
+        Mode newAnimatedMode = mode;
         for (Map.Entry<ModePropertyPath, Timeline> entry : mode.timelineByPropertyPath()
                                                                .entrySet()) {
             ModePropertyPath propertyPath = entry.getKey();
             if (!propertyPath.fieldNames().getFirst().equals(fieldName))
                 continue;
-            String animationName = entry.getValue().animationName();
-            mode = mode.mutate(propertyPath, entry.getValue().valueAt(
-                    progress(animationName, elapsed(animationName)), duration(animationName),
-                    ModePropertyMutator.getModeProperty(mode, propertyPath.fieldNames())));
+            Timeline timeline = entry.getValue();
+            String animationName = timeline.animationName();
+            RunningTimeline runningTimeline =
+                    runOn(runningTimelineByPropertyPath.get(propertyPath), timeline);
+            if (runningTimeline == null)
+                runningTimeline = new RunningTimeline(timeline, elapsed(animationName),
+                        ModePropertyMutator.getModeProperty(animatedMode == null ? mode :
+                                animatedMode, propertyPath.fieldNames()));
+            newRunningTimelineByPropertyPath.put(propertyPath, runningTimeline);
+            newAnimatedMode = newAnimatedMode.mutate(propertyPath, timeline.valueAt(
+                    progress(animationName, runningTimeline.elapsed()), duration(animationName),
+                    runningTimeline.current()));
         }
-        return mode;
+        runningTimelineByPropertyPath = newRunningTimelineByPropertyPath;
+        animatedMode = newAnimatedMode;
+        return newAnimatedMode;
     }
 
     public Duration duration(String animationName) {

@@ -1,5 +1,6 @@
 package mousemaster;
 
+import mousemaster.AnimationPlayer.RunningTimeline;
 import mousemaster.platform.Overlay;
 
 import java.util.HashMap;
@@ -205,9 +206,6 @@ public class IndicatorManager implements ModeListener {
         return points == null ? 1 : points.size();
     }
 
-    private record RunningTimeline(Timeline timeline, double elapsed, Object current) {
-    }
-
     private record IndicatorLayerCopy(
             IndicatorConfiguration indicator,
             Map<ModePropertyPath, RunningTimeline> runningTimelineByPropertyPath) {
@@ -261,20 +259,18 @@ public class IndicatorManager implements ModeListener {
             Timeline timeline = entry.getValue();
             if (!propertyPath.fieldNames().getFirst().equals("indicator"))
                 continue;
-            double elapsed = animationPlayer.elapsed(timeline.animationName());
-            RunningTimeline runningTimeline = runningTimelineByPropertyPath.get(propertyPath);
-            if (runningTimeline != null && timeline.equals(runningTimeline.timeline()) &&
-                elapsed >= runningTimeline.elapsed()) {
-                newRunningTimelineByPropertyPath.put(propertyPath,
-                        new RunningTimeline(timeline, elapsed, runningTimeline.current()));
-                if (animationPlayer.ended(timeline.animationName(), elapsed))
+            RunningTimeline runningTimeline = animationPlayer.runOn(
+                    runningTimelineByPropertyPath.get(propertyPath), timeline);
+            if (runningTimeline != null) {
+                newRunningTimelineByPropertyPath.put(propertyPath, runningTimeline);
+                if (animationPlayer.ended(timeline.animationName(), runningTimeline.elapsed()))
                     frameWait = 0;
                 continue;
             }
             Object current = ModePropertyMutator.getModeProperty(resolvedIndicator,
                     indicatorFieldNames(propertyPath));
             newRunningTimelineByPropertyPath.put(propertyPath, new RunningTimeline(timeline,
-                    elapsed, current == null ?
+                    animationPlayer.elapsed(timeline.animationName()), current == null ?
                     ModePropertyMutator.getModeProperty(currentMode.indicator(),
                             indicatorFieldNames(propertyPath)) : current));
             frameWait = 0;
