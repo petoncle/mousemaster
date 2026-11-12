@@ -1407,6 +1407,13 @@ hint-mode.overlay.background-opacity=0
   - `hotspot-line-thickness` (default `1`), `hotspot-line-color` (default `#FFFFFF`) and
     `hotspot-line-opacity` (default `0`): a line from the edge of the hint box to that hotspot,
     when the hotspot is outside the hint box.
+  - The six `hotspot-box-shadow-` and the six `hotspot-line-shadow-` properties, with the
+    `box-shadow-` defaults: each hotspot box casts its own shadow, only outside the box. The
+    hotspot lines cast one shadow together: where the shadows of two lines meet, their colors mix.
+    A line is drawn over its shadow. The shadow of a hotspot line takes its colors as the line
+    does. The shadow of a hotspot box has one color: the color of the gradient at its hint, at the
+    center of the box for an `across-box` gradient, or where the box is for a `per-pixel`
+    gradient.
   - `box-border-length`: Higher values create continuous lines between hint boxes, lower values create dotted separators
   - `box-border-radius`: Radius for rounded corners (0-1000, default 0).
   - `box-shadow-blur-radius`: Shadow blur radius (0-1000, default 10).

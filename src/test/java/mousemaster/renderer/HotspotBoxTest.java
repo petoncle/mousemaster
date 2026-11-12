@@ -375,6 +375,104 @@ class HotspotBoxTest {
     }
 
     @Test
+    void aHotspotBoxCastsTheShadowOfAnElementBoxOfItsShape() throws IOException {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        List<Point> ring = List.of(new Point(198, 220), new Point(199, 205),
+                new Point(300, 198), new Point(300, 241), new Point(401, 230),
+                new Point(199, 199), new Point(250, 220));
+        List<Integer> elementBoxShadow = colors("""
+                hint-mode.overlay.ui-element-box-horizontal-padding=0
+                hint-mode.overlay.ui-element-box-vertical-padding=0
+                hint-mode.overlay.ui-element-box-border-thickness=0
+                hint-mode.overlay.ui-element-box-shadow-color=#FF0000
+                hint-mode.overlay.ui-element-box-shadow-opacity=0.8
+                hint-mode.overlay.ui-element-box-shadow-blur-radius=4
+                """, List.of(), List.of(new Point(300, 220)), ring);
+        assertEquals(elementBoxShadow, colors("""
+                hint-mode.overlay.hotspot-box-width=200
+                hint-mode.overlay.hotspot-box-height=40
+                hint-mode.overlay.hotspot-box-border-thickness=0
+                hint-mode.overlay.hotspot-box-shadow-color=#FF0000
+                hint-mode.overlay.hotspot-box-shadow-opacity=0.8
+                hint-mode.overlay.hotspot-box-shadow-blur-radius=4
+                """, List.of(), List.of(new Point(300, 220)), ring));
+        assertTrue(elementBoxShadow.getFirst() >>> 24 > 0);
+        assertEquals(0, elementBoxShadow.getLast() >>> 24);
+    }
+
+    @Test
+    void aHotspotLineCastsItsShadowBesideIt() throws IOException {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        List<Integer> colors = colors("""
+                hint-mode.overlay.hotspot-box-width=10
+                hint-mode.overlay.hotspot-box-height=10
+                hint-mode.overlay.hotspot-line-thickness=4
+                hint-mode.overlay.hotspot-line-color=#00FF00
+                hint-mode.overlay.hotspot-line-opacity=1
+                hint-mode.overlay.hotspot-line-shadow-color=#FF0000
+                hint-mode.overlay.hotspot-line-shadow-opacity=1
+                hint-mode.overlay.hotspot-line-shadow-blur-radius=10
+                """, List.of(), List.of(new Point(380, 300)),
+                List.of(new Point(360, 280), new Point(364, 276), new Point(340, 290)));
+        assertEquals(0xFF00FF00, colors.getFirst());
+        assertTrue(colors.get(1) >>> 24 > 0);
+        assertEquals(0, colors.get(1) >> 8 & 0xFF);
+        assertEquals(0, colors.getLast());
+    }
+
+    @Test
+    void aMovedHotspotBoxShadowTakesTheColorWhereTheBoxIs() throws IOException {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        String properties = """
+                hint-mode.overlay.hotspot-box-width=10
+                hint-mode.overlay.hotspot-box-height=10
+                hint-mode.overlay.hotspot-box-shadow-color=across-screen per-pixel top-to-bottom #FF0000 #0000FF
+                hint-mode.overlay.hotspot-box-shadow-opacity=1
+                hint-mode.overlay.hotspot-box-shadow-blur-radius=10
+                """;
+        int top = colors(properties, List.of(), List.of(new Point(380, 100)),
+                List.of(new Point(388, 100))).getFirst();
+        int bottom = colors(properties, List.of(),
+                List.of(new Point(380, 100), new Point(380, 1000)),
+                List.of(new Point(388, 1000))).getFirst();
+        assertTrue((top >> 16 & 0xFF) > (top & 0xFF));
+        assertTrue((bottom & 0xFF) > (bottom >> 16 & 0xFF));
+    }
+
+    @Test
+    void aHotspotLineShadowTakesItsColorsAsTheLineDoes() throws IOException {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        List<Integer> colors = colors("""
+                hint-mode.overlay.hotspot-box-width=10
+                hint-mode.overlay.hotspot-box-height=10
+                hint-mode.overlay.hotspot-line-thickness=4
+                hint-mode.overlay.hotspot-line-shadow-color=across-screen per-pixel top-to-bottom #FF0000 #0000FF
+                hint-mode.overlay.hotspot-line-shadow-opacity=1
+                hint-mode.overlay.hotspot-line-shadow-blur-radius=10
+                """, List.of(), List.of(new Point(300, 900)),
+                List.of(new Point(304, 300), new Point(304, 850)));
+        assertTrue((colors.getFirst() >> 16 & 0xFF) > (colors.getFirst() & 0xFF));
+        assertTrue((colors.getLast() & 0xFF) > (colors.getLast() >> 16 & 0xFF));
+    }
+
+    @Test
+    void aHotspotThatMovesLeavesNoShadowWhereItWas() throws IOException {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        List<Integer> colors = colors("""
+                hint-mode.overlay.hotspot-box-width=10
+                hint-mode.overlay.hotspot-box-height=10
+                hint-mode.overlay.hotspot-box-shadow-opacity=1
+                hint-mode.overlay.hotspot-box-shadow-blur-radius=4
+                hint-mode.overlay.hotspot-line-shadow-opacity=1
+                hint-mode.overlay.hotspot-line-shadow-blur-radius=4
+                """, List.of(), List.of(new Point(380, 300), new Point(500, 220)),
+                List.of(new Point(386, 300), new Point(360, 280), new Point(506, 220)));
+        assertEquals(0, colors.get(0));
+        assertEquals(0, colors.get(1));
+        assertTrue(colors.get(2) >>> 24 > 0);
+    }
+
+    @Test
     void aHotspotShowsNothingByDefault() throws IOException {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         assertEquals(List.of(0, 0, 0xFF0000FF),

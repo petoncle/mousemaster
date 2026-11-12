@@ -269,6 +269,8 @@ public class ConfigurationParser {
                 .verticalOffset(0d)
                 .stackCount(1);
         hintMeshStyleBuilder.uiElementBoxShadow().extend(hintMeshStyleBuilder.boxShadow());
+        hintMeshStyleBuilder.hotspotBoxShadow().extend(hintMeshStyleBuilder.boxShadow());
+        hintMeshStyleBuilder.hotspotLineShadow().extend(hintMeshStyleBuilder.boxShadow());
         hintMeshStyleBuilder
                 .groupBoxEnabled(false)
                 .groupBoxBorderThickness(2d)
@@ -3746,9 +3748,21 @@ public class ConfigurationParser {
             case "hotspot-box-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotBoxBorderColor"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).hotspotBoxBorderColor(v));
             case "hotspot-box-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotBoxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).hotspotBoxBorderOpacity(v));
             case "hotspot-box-border-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotBoxBorderRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).hotspotBoxBorderRadius(v));
+            case "hotspot-box-shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotBoxShadow", "blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).hotspotBoxShadow().blurRadius(v));
+            case "hotspot-box-shadow-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotBoxShadow", "color"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).hotspotBoxShadow().color(v));
+            case "hotspot-box-shadow-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotBoxShadow", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).hotspotBoxShadow().opacity(v));
+            case "hotspot-box-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotBoxShadow", "stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> hintMeshBuilder.style(screenFilter).hotspotBoxShadow().stackCount(v));
+            case "hotspot-box-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotBoxShadow", "horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).hotspotBoxShadow().horizontalOffset(v));
+            case "hotspot-box-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotBoxShadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).hotspotBoxShadow().verticalOffset(v));
             case "hotspot-line-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotLineThickness"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(screenFilter).hotspotLineThickness(v));
             case "hotspot-line-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotLineColor"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).hotspotLineColor(v));
             case "hotspot-line-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotLineOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).hotspotLineOpacity(v));
+            case "hotspot-line-shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotLineShadow", "blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(screenFilter).hotspotLineShadow().blurRadius(v));
+            case "hotspot-line-shadow-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotLineShadow", "color"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).hotspotLineShadow().color(v));
+            case "hotspot-line-shadow-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotLineShadow", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).hotspotLineShadow().opacity(v));
+            case "hotspot-line-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotLineShadow", "stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> hintMeshBuilder.style(screenFilter).hotspotLineShadow().stackCount(v));
+            case "hotspot-line-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotLineShadow", "horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).hotspotLineShadow().horizontalOffset(v));
+            case "hotspot-line-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "hotspotLineShadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).hotspotLineShadow().verticalOffset(v));
             case "saved-hotspot-box-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "savedHotspotBoxColor"), v -> GradientColor.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).savedHotspotBoxColor(v));
             case "saved-hotspot-box-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "savedHotspotBoxOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).savedHotspotBoxOpacity(v));
             case "saved-hotspot-box-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "savedHotspotBoxBorderColor"), v -> Color.parse(v, colorAliases), v -> hintMeshBuilder.style(screenFilter).savedHotspotBoxBorderColor(v));
@@ -4839,6 +4853,7 @@ public class ConfigurationParser {
                             HintMeshStyleBuilder::hotspotBoxBorderRadius,
                             childStyleByFilter, filter))
                         childStyle.hotspotBoxBorderRadius(parentStyle.hotspotBoxBorderRadius());
+                    childStyle.hotspotBoxShadow().extend(parentStyle.hotspotBoxShadow());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::hotspotLineThickness,
                             childStyleByFilter, filter))
@@ -4851,6 +4866,7 @@ public class ConfigurationParser {
                             HintMeshStyleBuilder::hotspotLineOpacity,
                             childStyleByFilter, filter))
                         childStyle.hotspotLineOpacity(parentStyle.hotspotLineOpacity());
+                    childStyle.hotspotLineShadow().extend(parentStyle.hotspotLineShadow());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::savedHotspotBoxColor,
                             childStyleByFilter, filter))

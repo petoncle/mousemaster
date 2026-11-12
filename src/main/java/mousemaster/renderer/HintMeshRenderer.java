@@ -95,6 +95,8 @@ public final class HintMeshRenderer {
     /** The container that each layered window draws. */
     private final Map<TransparentWindow, ClearBackgroundQLabel> layeredWindowContainerByWindow =
             new HashMap<>();
+    private final Map<TransparentWindow, HotspotLineShadow> hotspotLineShadowByWindow =
+            new HashMap<>();
 
     /** A per-screen hint mesh window (no HWND — the overlay derives the native handle from
      *  {@link #window()}). Both sides share these instances, so the renderer's mutations to
@@ -406,10 +408,21 @@ public final class HintMeshRenderer {
         }
         layeredWindowContainerByWindow.forEach((window, container) -> {
             Rectangle dirty = moveHotspots(container, hintMesh.hotspotByKeySequence());
-            if (dirty != null)
-                drawInLayeredWindow(window, container, dirty);
+            if (dirty == null)
+                return;
+            setHotspotLineShadow(window, hotspotLineShadow(container));
+            drawInLayeredWindow(window, container, dirty);
         });
         return true;
+    }
+
+    private void setHotspotLineShadow(TransparentWindow window,
+                                      HotspotLineShadow hotspotLineShadow) {
+        HotspotLineShadow oldHotspotLineShadow = hotspotLineShadow == null ?
+                hotspotLineShadowByWindow.remove(window) :
+                hotspotLineShadowByWindow.put(window, hotspotLineShadow);
+        if (oldHotspotLineShadow != null)
+            oldHotspotLineShadow.image().dispose();
     }
 
     // Not in the container: the native image hangs while QtJambi resolves some widget members.
@@ -422,12 +435,37 @@ public final class HintMeshRenderer {
         return inks.isEmpty() ? null : Rectangle.union(inks);
     }
 
+    /** The shadows first, then all lines: a painter that turns antialiasing on and off for each
+     *  line paints them twice as slowly. */
+    private static void paintHotspotBoxes(ClearBackgroundQLabel container,
+                                          HotspotLineShadow hotspotLineShadow, QPainter painter,
+                                          Rectangle area) {
+        List<HintBox> hotspotBoxes = container.hotspotBoxes;
+        if (hotspotBoxes.isEmpty())
+            return;
+        if (hotspotLineShadow != null)
+            hotspotLineShadow.paint(painter, hotspotBoxes.getFirst().qtScaleFactor);
+        if (hotspotBoxes.getFirst().shadow != null)
+            for (HintBox hotspotBox : hotspotBoxes)
+                if (!hotspotBox.shadowInk().intersection(area).isEmpty())
+                    hotspotBox.paintShadow(painter);
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+        for (HintBox hotspotBox : hotspotBoxes)
+            hotspotBox.paintLine(painter, area);
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
+        for (HintBox hotspotBox : hotspotBoxes)
+            if (!hotspotBox.ink().intersection(area).isEmpty())
+                hotspotBox.paint(painter);
+    }
+
     private static List<Rectangle> hotspotInks(ClearBackgroundQLabel container) {
         List<Rectangle> inks = new ArrayList<>();
         for (HintBox hotspotBox : container.hotspotBoxes) {
-            inks.add(hotspotBox.ink());
+            inks.add(hotspotBox.shadow == null ? hotspotBox.ink() :
+                    Rectangle.union(List.of(hotspotBox.ink(), hotspotBox.shadowInk())));
             if (hotspotBox.lineInk() != null)
-                inks.add(hotspotBox.lineInk());
+                inks.add(hotspotBox.lineShadow == null ? hotspotBox.lineInk() :
+                        hotspotBox.lineShadowInk());
         }
         return inks;
     }
@@ -448,6 +486,14 @@ public final class HintMeshRenderer {
             int bottom = (int) Math.round(
                     (hotspot.y() + container.hotspotBoxHeight / 2d) / qtScaleFactor);
             hotspotBox.setGeometry(left - originX, top - originY, right - left, bottom - top);
+            HotspotBoxShadow shadow = hotspotBox.shadow;
+            if (shadow == null)
+                continue;
+            if (hotspotBox.shadowSweepArea != null)
+                hotspotBox.setShadowColor(QtColorUtil.qBrush(shadow.color(), shadow.opacity(),
+                        shadow.color().sweepPosition(hotspotBox.shadowSweepArea, hotspot.x(),
+                                hotspot.y())));
+            shadow.addColor(hotspotBox.shadowColor);
         }
     }
 
@@ -459,9 +505,11 @@ public final class HintMeshRenderer {
         layeredWindow.clear();
         if (container == null || !container.inLayeredWindow) {
             layeredWindowContainerByWindow.remove(window);
+            setHotspotLineShadow(window, null);
             return;
         }
         layeredWindowContainerByWindow.put(window, container);
+        setHotspotLineShadow(window, hotspotLineShadow(container));
         List<Rectangle> areas = hotspotInks(container);
         areas.add(container.belowHotspotArea);
         drawInLayeredWindow(window, container, Rectangle.union(areas));
@@ -481,7 +529,8 @@ public final class HintMeshRenderer {
                             area.width(), area.height());
                     paintImages(painter, containerArea, container.belowHotspotArea.x(),
                             container.belowHotspotArea.y(), container.belowHotspotImages);
-                    container.paintHotspotBoxes(painter, containerArea);
+                    paintHotspotBoxes(container, hotspotLineShadowByWindow.get(window), painter,
+                            containerArea);
                     paintImages(painter, containerArea, 0, 0, container.aboveHotspotImages);
                 });
     }
@@ -714,22 +763,12 @@ public final class HintMeshRenderer {
             this.pixelRowChunks = pixelRowChunks;
         }
 
-        /** All lines first: a painter that turns antialiasing on and off for each line paints
-         *  them twice as slowly. */
-        void paintHotspotBoxes(QPainter painter, Rectangle area) {
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            for (HintBox hotspotBox : hotspotBoxes)
-                hotspotBox.paintLine(painter, area);
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
-            for (HintBox hotspotBox : hotspotBoxes)
-                if (!hotspotBox.ink().intersection(area).isEmpty())
-                    hotspotBox.paint(painter);
-        }
-
         void disposeBuffers() {
             pixelRowChunks.forEach(QPixmap::dispose);
             belowHotspotImages.forEach(QImage::dispose);
             aboveHotspotImages.forEach(QImage::dispose);
+            if (!hotspotBoxes.isEmpty() && hotspotBoxes.getFirst().shadow != null)
+                hotspotBoxes.getFirst().shadow.dispose();
         }
 
         /** Crops to {@code r}, scheduling a paint of the band between the old and new crop (the whole
@@ -1671,6 +1710,14 @@ public final class HintMeshRenderer {
         int hotspotBoxBorderThickness = scaledLength(style.hotspotBoxBorderThickness(), screenScale);
         int hotspotBoxBorderRadius = scaledLength(style.hotspotBoxBorderRadius(), screenScale);
         int hotspotLineThickness = scaledLength(style.hotspotLineThickness(), screenScale);
+        Shadow hotspotBoxShadow = scaledShadow(style.hotspotBoxShadow(), screenScale);
+        GradientColor hotspotBoxShadowColor = gradientColor(hotspotBoxShadow.color());
+        Rectangle hotspotBoxShadowGradientArea =
+                gradientArea(hotspotBoxShadowColor.span(), hintMeshWindow, hintMesh);
+        Shadow hotspotLineShadow = scaledShadow(style.hotspotLineShadow(), screenScale);
+        GradientColor hotspotLineShadowColor = gradientColor(hotspotLineShadow.color());
+        Rectangle hotspotLineShadowGradientArea =
+                gradientArea(hotspotLineShadowColor.span(), hintMeshWindow, hintMesh);
         // One entry per tiled depth: subdecoration at index 0, subsubdecoration at index 1.
         List<DecorationStyle> subDecorationStyles = new ArrayList<>();
         if (hintMesh.subDecoration() != null) {
@@ -2096,19 +2143,34 @@ public final class HintMeshRenderer {
                         savedStyle.hotspotBoxBorderOpacity(), savedHotspotBoxBorderGradientArea,
                         hintGroup, hintCenter, turn, sweepOrigin));
             }
-            // A line takes the color of the sweep of its box where it ends, at the center.
-            if (style.hotspotLineOpacity() != 0)
+            if (style.hotspotLineOpacity() != 0 || hotspotLineShadow.opacity() != 0)
                 hotspotBox.setLine(hintBoxRectangles.get(hint.keySequence()),
-                        hotspotLineColor.span() == GradientSpan.BOX ?
-                                sampledBrush(hotspotLineColor, style.hotspotLineOpacity(),
-                                        hotspotBoxArea, hintGroup,
-                                        new Point(hotspotBoxWidth / 2d, hotspotBoxHeight / 2d), turn) :
-                                brush(hotspotLineColor, style.hotspotLineOpacity(),
-                                        hotspotLineGradientArea, hintGroup, hintCenter, turn, null,
-                                        sweepOrigin),
+                        hotspotLineBrush(hotspotLineColor, style.hotspotLineOpacity(),
+                                hotspotLineGradientArea, hotspotBoxArea, hintGroup, hintCenter,
+                                turn, sweepOrigin),
                         hotspotLineThickness);
+            if (hotspotBoxShadow.opacity() != 0) {
+                if (hotspotBoxShadowColor.step() == GradientStep.PIXEL &&
+                    hotspotBoxShadowColor.span() != GradientSpan.BOX)
+                    hotspotBox.shadowSweepArea = areaNarrowedToGroup(hotspotBoxShadowColor,
+                            hotspotBoxShadowGradientArea, hintGroup);
+                else
+                    hotspotBox.setShadowColor(hotspotLineBrush(hotspotBoxShadowColor,
+                            hotspotBoxShadow.opacity(), hotspotBoxShadowGradientArea,
+                            hotspotBoxArea, hintGroup, hintCenter, turn, null));
+            }
+            if (hotspotLineShadow.opacity() != 0) {
+                hotspotBox.lineShadow = hotspotLineShadow;
+                hotspotBox.lineShadowColor = hotspotLineBrush(hotspotLineShadowColor, 1,
+                        hotspotLineShadowGradientArea, hotspotBoxArea, hintGroup, hintCenter,
+                        turn, sweepOrigin);
+            }
             hotspotBoxes.add(hotspotBox);
         }
+        if (hotspotBoxShadow.opacity() != 0 && !hotspotBoxes.isEmpty())
+            setHotspotBoxShadow(hotspotBoxes, hotspotBoxShadow, hotspotBoxShadowColor,
+                    hotspotBoxWidth, hotspotBoxHeight, hotspotBoxBorderThickness,
+                    hotspotBoxBorderRadius, screenScale);
         container.hotspotBoxes = hotspotBoxes;
         container.inLayeredWindow = inLayeredWindow;
         container.hotspotBoxWidth = hotspotBoxWidth;
@@ -2678,13 +2740,17 @@ public final class HintMeshRenderer {
                 images = List.of();
             }
         }
-        else
+        else {
+            HotspotLineShadow hotspotLineShadow = hotspotLineShadow(container);
             images = ImageChunks.paintChunks(area, devicePixelRatio, dotsPerMeter,
                     (painter, chunk) -> {
                         paintBelowHotspots.accept(painter, chunk);
-                        container.paintHotspotBoxes(painter, chunk);
+                        paintHotspotBoxes(container, hotspotLineShadow, painter, chunk);
                         paintLayers(painter, chunk, aboveHotspotLayers, rectangleByLayer);
                     });
+            if (hotspotLineShadow != null)
+                hotspotLineShadow.image().dispose();
+        }
         List<QPixmap> pixelRowChunks = new ArrayList<>(images.size());
         for (QImage image : images) {
             pixelRowChunks.add(QPixmap.fromImage(image));
@@ -2785,7 +2851,8 @@ public final class HintMeshRenderer {
 
     private static boolean hotspotBoxVisible(HintMeshStyle style) {
         return style.hotspotBoxOpacity() != 0 || style.hotspotBoxBorderOpacity() != 0 ||
-               style.hotspotLineOpacity() != 0;
+               style.hotspotLineOpacity() != 0 || style.hotspotBoxShadow().opacity() != 0 ||
+               style.hotspotLineShadow().opacity() != 0;
     }
 
     private HintMesh trimmedHintMesh(HintMesh hintMesh, HintMeshStyle style, double screenScale,
@@ -2960,6 +3027,10 @@ public final class HintMeshRenderer {
         private Rectangle lineFrom;
         private QPen linePen;
         private int lineThickness;
+        private HotspotBoxShadow shadow;
+        private Rectangle shadowSweepArea;
+        private Shadow lineShadow;
+        private QBrush lineShadowColor;
         /** Set while drawBorders records where it would paint instead of painting. */
         private List<Rectangle> ink;
         final List<HintBox> decorationBoxes = new ArrayList<>();
@@ -3078,6 +3149,24 @@ public final class HintMeshRenderer {
                     Math.abs(lineStartY - height / 2) + 2 * linePadding);
         }
 
+        /** Where painting the shadow of the box can put ink. */
+        Rectangle shadowInk() {
+            int padding = (int) Math.ceil(shadow.padding() / qtScaleFactor);
+            return new Rectangle(x - padding, y - padding, width + 2 * padding,
+                    height + 2 * padding);
+        }
+
+        /** Where painting the shadow of the line can put ink, null without a line. */
+        Rectangle lineShadowInk() {
+            Rectangle lineInk = lineInk();
+            if (lineInk == null)
+                return null;
+            int padding = (int) Math.ceil(shadowPadding(lineShadow.blurRadius(),
+                    lineShadow.horizontalOffset(), lineShadow.verticalOffset()) / qtScaleFactor);
+            return new Rectangle(lineInk.x() - padding, lineInk.y() - padding,
+                    lineInk.width() + 2 * padding, lineInk.height() + 2 * padding);
+        }
+
         /** Where this depth's decoration labels put ink, in the coordinates they are painted in.
          *  Descends accumulating the offset paintDecorationLabels translates by. */
         void collectDecorationLabelBounds(int depth, int offsetX, int offsetY,
@@ -3163,6 +3252,25 @@ public final class HintMeshRenderer {
                     paintedLineEnd(start.x() + exit * (end.x() - start.x()),
                             start.y() + exit * (end.y() - start.y())));
             painter.restore();
+        }
+
+        void paintShadow(QPainter painter) {
+            painter.save();
+            scaleToPixels(painter);
+            painter.drawImage(pixels(x) - shadow.padding(), pixels(y) - shadow.padding(),
+                    shadow.imageByColor().get(shadowColor));
+            painter.restore();
+        }
+
+        /** Paints the line in its shadow color, in pixels. */
+        void paintLineShadowCaster(QPainter painter) {
+            Point lineStart = lineStart();
+            if (lineStart == null)
+                return;
+            painter.setPen(createPen(lineShadowColor, lineThickness));
+            painter.drawLine(pixels(x) + pixels((int) lineStart.x()),
+                    pixels(y) + pixels((int) lineStart.y()), pixels(x) + pixels(width) / 2,
+                    pixels(y) + pixels(height) / 2);
         }
 
         /** The box is drawn where it lands, so one gradient brush can span every box. */
@@ -4152,6 +4260,59 @@ public final class HintMeshRenderer {
     private record ShadowPixmap(QPixmap pixmap, int x, int y, int stackCount) {
     }
 
+    private record HotspotBoxShadow(List<QImage> shadowImages, List<QImage> casterImages,
+                                    Rectangle area, int padding, int stackCount,
+                                    GradientColor color, double opacity,
+                                    Map<QBrush, QImage> imageByColor) {
+
+        /** Cast as applyBoxShadow casts it. */
+        void addColor(QBrush shadowColor) {
+            if (imageByColor.containsKey(shadowColor))
+                return;
+            QImage image = new QImage(area.width(), area.height(),
+                    QImage.Format.Format_ARGB32_Premultiplied);
+            image.fill(0);
+            QPainter painter = new QPainter(image);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
+            paintImages(painter, area, 0, 0, shadowImages);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn);
+            painter.fillRect(0, 0, area.width(), area.height(), shadowColor);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationOut);
+            paintImages(painter, area, 0, 0, casterImages);
+            if (stackCount > 1) {
+                QImage layer = image.copy();
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+                for (int stack = 1; stack < stackCount; stack++)
+                    painter.drawImage(0, 0, layer);
+                layer.dispose();
+            }
+            painter.end();
+            painter.dispose();
+            imageByColor.put(shadowColor, image);
+        }
+
+        void dispose() {
+            shadowImages.forEach(QImage::dispose);
+            casterImages.forEach(QImage::dispose);
+            imageByColor.values().forEach(QImage::dispose);
+        }
+    }
+
+    /** The image covers the window at 1/scale of its size. (x, y) is the top left of the window,
+     *  in the pixels of the container. */
+    private record HotspotLineShadow(QImage image, int x, int y, int scale) {
+
+        void paint(QPainter painter, double qtScaleFactor) {
+            painter.save();
+            painter.scale(1 / qtScaleFactor, 1 / qtScaleFactor);
+            painter.translate(x, y);
+            painter.scale(scale, scale);
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
+            painter.drawImage(0, 0, image);
+            painter.restore();
+        }
+    }
+
     private record ShadowKey(Rectangle area, List<CasterKey> casters, Shadow shadow, int rgba,
                              boolean alphaOnly, int dotsPerMeter, double qtScaleFactor) {
     }
@@ -4210,6 +4371,83 @@ public final class HintMeshRenderer {
                     area.x(), area.y(), boxShadow.stackCount());
         }
         shadowColor.dispose();
+    }
+
+    /** A line or a shadow takes the color of the sweep of its box at the center. */
+    private static QBrush hotspotLineBrush(GradientColor color, double opacity,
+                                           Rectangle gradientArea, Rectangle hotspotBoxArea,
+                                           HintGroup hintGroup, Point hintCenter, int turn,
+                                           Point sweepOrigin) {
+        return color.span() == GradientSpan.BOX ?
+                sampledBrush(color, opacity, hotspotBoxArea, hintGroup,
+                        new Point(hotspotBoxArea.width() / 2d, hotspotBoxArea.height() / 2d),
+                        turn) :
+                brush(color, opacity, gradientArea, hintGroup, hintCenter, turn, null,
+                        sweepOrigin);
+    }
+
+    private static void setHotspotBoxShadow(List<HintBox> hotspotBoxes, Shadow shadow,
+                                            GradientColor color, int width, int height,
+                                            int borderThickness, int borderRadius,
+                                            double screenScale) {
+        int padding = shadowPadding(shadow.blurRadius(), shadow.horizontalOffset(),
+                shadow.verticalOffset());
+        HintBox caster = new HintBox(null, Integer.MAX_VALUE, borderThickness, null, null, false,
+                true, true, true, true, true, 1, borderRadius);
+        caster.setGeometry(padding, padding, width, height);
+        caster.setShadowColor(QtColorUtil.qBrush(0xFF000000));
+        Rectangle area = new Rectangle(0, 0, width + 2 * padding, height + 2 * padding);
+        int dotsPerMeter = dotsPerMeter(screenScale);
+        QColor opaque = QColor.fromRgba(0xFF000000);
+        List<QImage> shadowImages = Shadows.renderShadow(area, dotsPerMeter,
+                (painter, chunk) -> caster.paintOpaque(painter), opaque, shadow.blurRadius(),
+                shadow.horizontalOffset(), shadow.verticalOffset(), true, false);
+        opaque.dispose();
+        List<QImage> casterImages = ImageChunks.paintChunks(area, 1, dotsPerMeter,
+                (painter, chunk) -> caster.paintOpaque(painter));
+        HotspotBoxShadow hotspotBoxShadow = new HotspotBoxShadow(shadowImages, casterImages, area,
+                padding, shadow.stackCount(), color, shadow.opacity(), new IdentityHashMap<>());
+        for (HintBox hotspotBox : hotspotBoxes)
+            hotspotBox.shadow = hotspotBoxShadow;
+    }
+
+    /** Null when the lines cast none. The shadow is blurred smaller than the window it covers:
+     *  small enough for the blur to stay under the radius at which Qt halves the image. */
+    private HotspotLineShadow hotspotLineShadow(ClearBackgroundQLabel container) {
+        List<HintBox> hotspotBoxes = container.hotspotBoxes;
+        if (hotspotBoxes.isEmpty() || hotspotBoxes.getFirst().lineShadow == null)
+            return null;
+        Shadow shadow = hotspotBoxes.getFirst().lineShadow;
+        double qtScaleFactor = hotspotBoxes.getFirst().qtScaleFactor;
+        int scale = Math.max(1, Integer.highestOneBit((int) (shadow.blurRadius() / 2)));
+        int x = (int) Math.round(-container.x() * qtScaleFactor);
+        int y = (int) Math.round(-container.y() * qtScaleFactor);
+        Rectangle area = new Rectangle(0, 0,
+                (int) Math.ceil(container.window().width() * qtScaleFactor / scale),
+                (int) Math.ceil(container.window().height() * qtScaleFactor / scale));
+        QColor shadowColor = QtColorUtil.shadow(shadow, lastSelectedHintColors);
+        List<QImage> shadowImages = Shadows.renderShadow(area, dotsPerMeter(qtScaleFactor),
+                (painter, chunk) -> {
+                    painter.scale(1d / scale, 1d / scale);
+                    painter.translate(shadow.horizontalOffset() - x,
+                            shadow.verticalOffset() - y);
+                    painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+                    for (HintBox hotspotBox : hotspotBoxes)
+                        hotspotBox.paintLineShadowCaster(painter);
+                }, shadowColor, shadow.blurRadius() / scale, 0, 0,
+                !gradientColor(shadow.color()).gradient(), false);
+        shadowColor.dispose();
+        // One image, so that the scaled up rows blend across the chunks.
+        QImage image = new QImage(area.width(), area.height(),
+                QImage.Format.Format_ARGB32_Premultiplied);
+        image.fill(0);
+        QPainter painter = new QPainter(image);
+        for (int stack = 0; stack < shadow.stackCount(); stack++)
+            paintImages(painter, area, 0, 0, shadowImages);
+        painter.end();
+        painter.dispose();
+        shadowImages.forEach(QImage::dispose);
+        return new HotspotLineShadow(image, x, y, scale);
     }
 
     /** Consumes the chunks. */

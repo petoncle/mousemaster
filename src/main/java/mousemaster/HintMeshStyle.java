@@ -39,9 +39,11 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             Color hotspotBoxBorderColor,
                             double hotspotBoxBorderOpacity,
                             double hotspotBoxBorderRadius,
+                            Shadow hotspotBoxShadow,
                             double hotspotLineThickness,
                             Color hotspotLineColor,
                             double hotspotLineOpacity,
+                            Shadow hotspotLineShadow,
                             GradientColor savedBoxColor,
                             Double savedBoxOpacity,
                             Color savedBoxBorderColor,
@@ -151,9 +153,11 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Color hotspotBoxBorderColor;
         private Double hotspotBoxBorderOpacity;
         private Double hotspotBoxBorderRadius;
+        private Shadow.ShadowBuilder hotspotBoxShadow = new Shadow.ShadowBuilder();
         private Double hotspotLineThickness;
         private Color hotspotLineColor;
         private Double hotspotLineOpacity;
+        private Shadow.ShadowBuilder hotspotLineShadow = new Shadow.ShadowBuilder();
         private GradientColor savedBoxColor;
         private Double savedBoxOpacity;
         private Color savedBoxBorderColor;
@@ -226,9 +230,11 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.hotspotBoxBorderColor = style.hotspotBoxBorderColor;
             this.hotspotBoxBorderOpacity = style.hotspotBoxBorderOpacity;
             this.hotspotBoxBorderRadius = style.hotspotBoxBorderRadius;
+            this.hotspotBoxShadow = new Shadow.ShadowBuilder(style.hotspotBoxShadow);
             this.hotspotLineThickness = style.hotspotLineThickness;
             this.hotspotLineColor = style.hotspotLineColor;
             this.hotspotLineOpacity = style.hotspotLineOpacity;
+            this.hotspotLineShadow = new Shadow.ShadowBuilder(style.hotspotLineShadow);
             this.savedBoxColor = style.savedBoxColor;
             this.savedBoxOpacity = style.savedBoxOpacity;
             this.savedBoxBorderColor = style.savedBoxBorderColor;
@@ -712,6 +718,10 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return hotspotBoxBorderRadius;
         }
 
+        public Shadow.ShadowBuilder hotspotBoxShadow() {
+            return hotspotBoxShadow;
+        }
+
         public Double hotspotLineThickness() {
             return hotspotLineThickness;
         }
@@ -722,6 +732,10 @@ public record HintMeshStyle(HintFontStyle fontStyle,
 
         public Double hotspotLineOpacity() {
             return hotspotLineOpacity;
+        }
+
+        public Shadow.ShadowBuilder hotspotLineShadow() {
+            return hotspotLineShadow;
         }
 
         public GradientColor savedBoxColor() {
@@ -828,6 +842,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             if (defaultStyle != null) {
                 boxShadow.extend(new Shadow.ShadowBuilder(defaultStyle.boxShadow));
                 uiElementBoxShadow.extend(new Shadow.ShadowBuilder(defaultStyle.uiElementBoxShadow));
+                hotspotBoxShadow.extend(new Shadow.ShadowBuilder(defaultStyle.hotspotBoxShadow));
+                hotspotLineShadow.extend(new Shadow.ShadowBuilder(defaultStyle.hotspotLineShadow));
                 transition.extend(new Transition.TransitionBuilder(defaultStyle.transition));
                 fade.extend(new Transition.TransitionBuilder(defaultStyle.fade));
             }
@@ -872,9 +888,11 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     hotspotBoxBorderColor == null ? defaultStyle.hotspotBoxBorderColor : hotspotBoxBorderColor,
                     hotspotBoxBorderOpacity == null ? defaultStyle.hotspotBoxBorderOpacity : hotspotBoxBorderOpacity,
                     hotspotBoxBorderRadius == null ? defaultStyle.hotspotBoxBorderRadius : hotspotBoxBorderRadius,
+                    hotspotBoxShadow.build(),
                     hotspotLineThickness == null ? defaultStyle.hotspotLineThickness : hotspotLineThickness,
                     hotspotLineColor == null ? defaultStyle.hotspotLineColor : hotspotLineColor,
                     hotspotLineOpacity == null ? defaultStyle.hotspotLineOpacity : hotspotLineOpacity,
+                    hotspotLineShadow.build(),
                     savedBoxColor == null && defaultStyle != null ? defaultStyle.savedBoxColor : savedBoxColor,
                     savedBoxOpacity == null && defaultStyle != null ? defaultStyle.savedBoxOpacity : savedBoxOpacity,
                     savedBoxBorderColor == null && defaultStyle != null ? defaultStyle.savedBoxBorderColor : savedBoxBorderColor,

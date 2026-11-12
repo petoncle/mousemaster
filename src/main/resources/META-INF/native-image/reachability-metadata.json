@@ -6585,9 +6585,11 @@
             "mousemaster.Color",
             "double",
             "double",
+            "mousemaster.Shadow",
             "double",
             "mousemaster.Color",
             "double",
+            "mousemaster.Shadow",
             "mousemaster.GradientColor",
             "java.lang.Double",
             "mousemaster.Color",
@@ -6889,6 +6891,10 @@
           "parameterTypes": []
         },
         {
+          "name": "hotspotBoxShadow",
+          "parameterTypes": []
+        },
+        {
           "name": "hotspotLineThickness",
           "parameterTypes": []
         },
@@ -6898,6 +6904,10 @@
         },
         {
           "name": "hotspotLineOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "hotspotLineShadow",
           "parameterTypes": []
         },
         {
