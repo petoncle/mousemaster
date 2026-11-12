@@ -450,8 +450,11 @@ public final class HintMeshRenderer {
                 if (!hotspotBox.shadowInk().intersection(area).isEmpty())
                     hotspotBox.paintShadow(painter);
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+        painter.save();
+        hotspotBoxes.getFirst().scaleToPixels(painter);
         for (HintBox hotspotBox : hotspotBoxes)
             hotspotBox.paintLine(painter, area);
+        painter.restore();
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
         for (HintBox hotspotBox : hotspotBoxes)
             if (!hotspotBox.ink().intersection(area).isEmpty())
@@ -3229,7 +3232,7 @@ public final class HintMeshRenderer {
         }
 
         /** Paints the part of the line in area, which a long line crosses a small part of. The
-         *  line is antialiased, which the painter is set to once for every line. */
+         *  line is antialiased and in pixels, which the painter is set to once for every line. */
         void paintLine(QPainter painter, Rectangle area) {
             Point lineStart = lineStart();
             if (lineStart == null)
@@ -3244,14 +3247,11 @@ public final class HintMeshRenderer {
             double exit = Math.min(1, clip.exit(start, end));
             if (enter > exit)
                 return;
-            painter.save();
-            scaleToPixels(painter);
             painter.setPen(linePen);
             painter.drawLine(paintedPoint(start.x() + enter * (end.x() - start.x()),
                             start.y() + enter * (end.y() - start.y())),
                     paintedLineEnd(start.x() + exit * (end.x() - start.x()),
                             start.y() + exit * (end.y() - start.y())));
-            painter.restore();
         }
 
         void paintShadow(QPainter painter) {
