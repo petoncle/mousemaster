@@ -60,4 +60,12 @@ class BuiltInVirtualKeyTest {
             assertTrue(e.getMessage().contains("built-in"), e.getMessage());
         }
     }
+
+    @Test
+    void anEmptyPositionHistoryKeyCannotBePressedByAMacro() {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> parse("idle-mode.save.position-history=+f1",
+                        "idle-mode.macro.x=+a -> #ispositionhistoryempty"));
+        assertTrue(e.getMessage().contains("built-in"), e.getMessage());
+    }
 }

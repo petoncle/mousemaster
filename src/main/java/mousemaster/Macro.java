@@ -154,7 +154,7 @@ public record Macro(String name, MacroSequence output,
         }
         // A screen alias is a key alias of built-in keys, so an alias is checked key by key.
         for (Key key : keyOrAlias.possibleKeys()) {
-            if (BuiltInVirtualKey.isBuiltIn(key.name()))
+            if (keyResolver.isBuiltIn(key.name()))
                 throw new IllegalArgumentException(
                         "Virtual key " + key.name() +
                         " is built-in and cannot be pressed or released by a macro");

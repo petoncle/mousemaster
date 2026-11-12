@@ -401,12 +401,16 @@ public class ConfigurationParser {
         Map<String, AnimationConfiguration> animationConfigurationByName =
                 parseAnimationConfigurations(properties);
         Set<String> positionHistoryNames = parsePositionHistoryNames(properties);
+        Set<String> positionHistoryKeyNames = positionHistoryNames.stream()
+                .map(positionHistoryName -> BuiltInVirtualKey.positionHistoryKey(positionHistoryName).name())
+                .collect(Collectors.toSet());
         DeclaredVirtualKeyNames declaredVirtualKeyNames =
                 parseDeclaredVirtualKeyNames(properties, animationConfigurationByName.keySet(),
-                        positionHistoryNames);
+                        positionHistoryKeyNames);
         KeyResolver keyResolver =
                 new KeyResolver(activeKeyboardLayout, configurationKeyboardLayout,
-                        declaredVirtualKeyNames.names(), animationConfigurationByName.keySet());
+                        declaredVirtualKeyNames.names(), animationConfigurationByName.keySet(),
+                        positionHistoryKeyNames);
         Aliases configurationAliases = parseAliases(properties);
         Map<String, KeyAlias> keyAliases = buildKeyAliasesForActiveKeyboardLayout(
                 configurationAliases.layoutKeyAliasByName, activeKeyboardLayout,
@@ -1276,10 +1280,9 @@ public class ConfigurationParser {
     /** The names of the virtual-keys line: a built-in one is never declared. */
     private static DeclaredVirtualKeyNames parseDeclaredVirtualKeyNames(
             List<String> properties, Set<String> animationNames,
-            Set<String> positionHistoryNames) {
+            Set<String> positionHistoryKeyNames) {
         Set<String> names = new HashSet<>(animationNames);
-        for (String positionHistoryName : positionHistoryNames)
-            names.add(BuiltInVirtualKey.positionHistoryKey(positionHistoryName).name());
+        names.addAll(positionHistoryKeyNames);
         Set<String> initiallyPressed = new HashSet<>();
         for (String property : properties) {
             Matcher lineMatcher = propertyLinePattern.matcher(property);

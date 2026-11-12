@@ -19,7 +19,7 @@ class ComboWatcherRetainTest {
     static final KeyResolver identityKeyResolver = new KeyResolver(
             new KeyboardLayout("test", "test", "test", "test", null, List.of()),
             new KeyboardLayout("test", "test", "test", "test", null, List.of()), Set.of(),
-            Set.of());
+            Set.of(), Set.of());
 
     static final ComboPrecondition emptyPrecondition = new ComboPrecondition(
             new ComboKeyPrecondition(Set.of(), new PressedKeyPrecondition(List.of())),
