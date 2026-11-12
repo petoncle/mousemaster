@@ -43,7 +43,7 @@ public final class ExpBlur {
         int alpha = radius <= 1e-5 ? (1 << APREC) - 1
                 : (int) Math.round((1 << APREC) * (1 - Math.pow(2 * (1 / 255.0), 1 / radius)));
         byte[] pixels = new byte[stride * blurHeight];
-        ImageChunks.overRange(blurHeight, width, (from, to) -> {
+        ImageChunks.overRange(blurHeight, width * channels, (from, to) -> {
             int[] top = new int[width];
             int[] bottom = new int[width];
             for (int y = from; y < to; y++) {
@@ -60,7 +60,7 @@ public final class ExpBlur {
             }
             blurRows(pixels, stride, blurWidth, channels, from, to, alpha);
         });
-        ImageChunks.overRange(blurWidth, blurHeight, (from, to) ->
+        ImageChunks.overRange(blurWidth, blurHeight * channels, (from, to) ->
                 blurColumns(pixels, stride, blurHeight, from * channels, to * channels, alpha));
         return pixels;
     }
