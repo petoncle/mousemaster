@@ -18,4 +18,11 @@ class PropertyKeyTest {
         assertTrue(e.getMessage().contains("normal.to.idle-mode"), e.getMessage());
     }
 
+    @Test
+    void anUnknownCommandSuffixIsRejected() {
+        assertThrows(IllegalArgumentException.class,
+                () -> ConfigurationParser.parse(List.of("idle-mode.press.foo=+a"),
+                        KeyboardLayout.keyboardLayout("00000409", null)));
+    }
+
 }

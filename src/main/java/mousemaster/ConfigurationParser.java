@@ -1852,6 +1852,7 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid start-move property key");
                         // @formatter:on
                     }
                 }
@@ -1872,6 +1873,7 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid stop-move property key");
                         // @formatter:on
                     }
                 }
@@ -1892,6 +1894,7 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.startMoveTarget.builder,  propertyValue, new StartMoveTargetDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.startMoveTarget.builder,  propertyValue, new StartMoveTargetLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.startMoveTarget.builder,  propertyValue, new StartMoveTargetRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid start-move-target property key");
                         // @formatter:on
                     }
                 }
@@ -1912,6 +1915,7 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.stopMoveTarget.builder,  propertyValue, new StopMoveTargetDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.stopMoveTarget.builder,  propertyValue, new StopMoveTargetLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.stopMoveTarget.builder,  propertyValue, new StopMoveTargetRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid stop-move-target property key");
                         // @formatter:on
                     }
                 }
@@ -1932,6 +1936,7 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.startMoveHotspots.builder,  propertyValue, new StartMoveHotspotsDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.startMoveHotspots.builder,  propertyValue, new StartMoveHotspotsLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.startMoveHotspots.builder,  propertyValue, new StartMoveHotspotsRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid start-move-hotspots property key");
                         // @formatter:on
                     }
                 }
@@ -1952,6 +1957,7 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.stopMoveHotspots.builder,  propertyValue, new StopMoveHotspotsDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.stopMoveHotspots.builder,  propertyValue, new StopMoveHotspotsLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.stopMoveHotspots.builder,  propertyValue, new StopMoveHotspotsRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid stop-move-hotspots property key");
                         // @formatter:on
                     }
                 }
@@ -1971,6 +1977,7 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.nudge.builder,  propertyValue, new NudgeDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.nudge.builder,  propertyValue, new NudgeLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.nudge.builder,  propertyValue, new NudgeRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid nudge property key");
                         // @formatter:on
                     }
                 }
@@ -1991,6 +1998,7 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.nudgeTarget.builder,  propertyValue, new NudgeTargetDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.nudgeTarget.builder,  propertyValue, new NudgeTargetLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.nudgeTarget.builder,  propertyValue, new NudgeTargetRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid nudge-target property key");
                         // @formatter:on
                     }
                 }
@@ -2011,6 +2019,7 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.nudgeHotspots.builder,  propertyValue, new NudgeHotspotsDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.nudgeHotspots.builder,  propertyValue, new NudgeHotspotsLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.nudgeHotspots.builder,  propertyValue, new NudgeHotspotsRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid nudge-hotspots property key");
                         // @formatter:on
                     }
                 }
@@ -2029,6 +2038,7 @@ public class ConfigurationParser {
                         case "left" -> setCommand(mode.comboMap.press.builder,  propertyValue, new PressLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "middle" -> setCommand(mode.comboMap.press.builder,  propertyValue, new PressMiddle(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.press.builder,  propertyValue, new PressRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid press property key");
                         // @formatter:on
                     }
                 }
@@ -2048,6 +2058,7 @@ public class ConfigurationParser {
                         case "left" -> setCommand(mode.comboMap.release.builder,  propertyValue, new ReleaseLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "middle" -> setCommand(mode.comboMap.release.builder,  propertyValue, new ReleaseMiddle(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.release.builder,  propertyValue, new ReleaseRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid release property key");
                         // @formatter:on
                     }
                 }
@@ -2067,6 +2078,7 @@ public class ConfigurationParser {
                         case "left" -> setCommand(mode.comboMap.toggle.builder,  propertyValue, new ToggleLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "middle" -> setCommand(mode.comboMap.toggle.builder,  propertyValue, new ToggleMiddle(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.toggle.builder,  propertyValue, new ToggleRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid toggle property key");
                         // @formatter:on
                     }
                 }
@@ -2087,6 +2099,7 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid start-wheel property key");
                         // @formatter:on
                     }
                 }
@@ -2107,6 +2120,7 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid stop-wheel property key");
                         // @formatter:on
                     }
                 }
@@ -2130,6 +2144,7 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.shrinkOverlay.builder,  propertyValue, new ShrinkOverlayDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.shrinkOverlay.builder,  propertyValue, new ShrinkOverlayLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.shrinkOverlay.builder,  propertyValue, new ShrinkOverlayRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid shrink-overlay property key");
                         // @formatter:on
                     }
                 }
@@ -2150,6 +2165,7 @@ public class ConfigurationParser {
                         case "area-below" -> setCommand(mode.comboMap.moveOverlayTo.builder,  propertyValue, new MoveOverlayToAreaBelow(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "area-left" -> setCommand(mode.comboMap.moveOverlayTo.builder,  propertyValue, new MoveOverlayToAreaLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "area-right" -> setCommand(mode.comboMap.moveOverlayTo.builder,  propertyValue, new MoveOverlayToAreaRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid move-overlay-to property key");
                         // @formatter:on
                     }
                 }
@@ -2172,6 +2188,7 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.moveOverlayTo.builder,  propertyValue, new MoveOverlayToAreaBelow(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.moveOverlayTo.builder,  propertyValue, new MoveOverlayToAreaLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.moveOverlayTo.builder,  propertyValue, new MoveOverlayToAreaRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid move-grid property key");
                         // @formatter:on
                     }
                 }
@@ -2196,6 +2213,7 @@ public class ConfigurationParser {
                         case "cell-bottom" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellBottom(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "cell-left" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "cell-right" -> setCommand(mode.comboMap.moveTargetTo.builder,  propertyValue, new MoveTargetToCellRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid move-target-to property key");
                         // @formatter:on
                     }
                 }
@@ -2219,6 +2237,7 @@ public class ConfigurationParser {
                         case "cell-bottom" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToCellBottom(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "cell-left" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToCellLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "cell-right" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToCellRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid move-to property key");
                         // @formatter:on
                     }
                 }
@@ -2257,6 +2276,7 @@ public class ConfigurationParser {
                         case "down" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToCellBottom(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "left" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToCellLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         case "right" -> setCommand(mode.comboMap.moveTo.builder,  propertyValue, new MoveToCellRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        default -> throw new IllegalArgumentException("Invalid snap property key");
                     }
                 }
             }
