@@ -1,677 +1,638 @@
 # mousemaster configuration reference
 
+A configuration file is a list of `<name>=<value>` properties, one on each line. A line that starts
+with `#` is a comment. A line that ends with `\` continues on the next line. This reference
+describes each property. For the combo syntax, see [combo-reference.md](combo-reference.md).
+
 ## Contents
 - [Key aliases](#key-aliases)
 - [Combos](#combos)
 - [Modes](#modes)
-- [Mode switching](#switching-modes)
-- [Mode history](#mode-history)
-- [Standalone mode properties](#standalone-mode-properties)
 - [Mode property mutation](#mode-property-mutation)
-- [Mouse properties](#mouse-properties)
-- [Wheel properties](#wheel-scrolling-properties)
-- [Target properties](#target-properties)
-- [Hotspot properties](#hotspot-properties)
+- [Target](#target)
+- [Movement properties](#movement-properties)
+- [Mouse commands](#mouse-commands)
 - [Indicator properties](#indicator-properties)
+- [Animations](#animations)
 - [Cursor properties](#cursor-properties)
 - [Zoom properties](#zoom-properties)
 - [Transitions](#transitions)
-- [Mouse move commands](#mouse-move-commands)
-- [Mouse button click commands](#mouse-button-click-commands)
-- [Wheel commands](#wheel-scrolling-commands)
+- [Easings](#easings)
 - [Overlay properties](#overlay-properties)
 - [App aliases](#app-aliases)
 - [Position history](#position-history)
 - [Macros](#macros)
-- [Console window](#console-window)
+- [Virtual keys](#virtual-keys)
+- [Console window, exit and restart](#console-window-exit-and-restart)
 - [Logging](#logging)
 - [Keyboard layout](#keyboard-layout)
 
 ## Key aliases
 
-A key alias is a way to give a name to one or more keys:
+A key alias gives a name to one or more keys:
 
 ```properties
 key-alias.exit=q p
-key-alias.clickthendisable=.
 key-alias.up=w
 ```
 
-The alias can be then used as part of a combo:
+A combo can use the alias in place of a key. This combo completes when you press `q` or `p`:
 
 ```properties
 normal-mode.to.idle-mode=+exit
 ```
 
-This combo can be completed by either pressing q or p.
-
-An alias can be declared per keyboard layout, `key-alias.<name>.<layout>=...`, and mousemaster picks
-the one matching the active layout (`key-alias.up.us-qwerty=w`). A declaration with no layout is the
-fallback. See [Keyboard layout](#keyboard-layout) for the layout names.
-
-The complete available key list can be found in [key-list.md](key-list.md). 
+- `key-alias.<name>.<layout>` declares the alias for one keyboard layout:
+  `key-alias.up.us-qwerty=w`. mousemaster uses the declaration of the active layout. If no
+  declaration has the active layout, mousemaster uses the declaration without a layout. For the
+  layout names, see [Keyboard layout](#keyboard-layout).
+- For the key names, see [key-list.md](key-list.md).
 
 ## Combos
 
-Combos are sequences of key presses and releases that trigger commands in mousemaster. For the full syntax reference (duration, wait moves, aliases, optionality, negated moves, macros, etc.), see [combo-reference.md](combo-reference.md).
+A combo is a sequence of key presses and releases that runs a command. This table gives the basic
+syntax. For the full syntax, see [combo-reference.md](combo-reference.md).
 
-### Basic combo syntax
-
-| Syntax             | Meaning                                       |
-|--------------------|-----------------------------------------------|
-| `+key`             | Key press (eaten — not passed to the OS)      |
-| `#key`             | Key press (not eaten — passed to the OS)      |
-| `-key`             | Key release                                   |
-| `key`              | Tap (press then release)                      |
-| `{+a +b}`          | Any-order move set                            |
-| `_{keys}`          | Precondition: listed keys must be pressed     |
-| `^{keys}`          | Precondition: listed keys must not be pressed |
-| `combo1 \| combo2` | Multiple alternative combos                   |
-| `none`             | No combo                                      |
-
-### Examples
+| Syntax             | Meaning                                                    |
+|--------------------|------------------------------------------------------------|
+| `+key`             | Press. mousemaster eats the press: the OS does not get it. |
+| `#key`             | Press. The OS also gets the press.                         |
+| `-key`             | Release.                                                   |
+| `key`              | Tap: press, then release.                                  |
+| `{+a +b}`          | Key presses and releases in any order.                     |
+| `_{keys}`          | Precondition: the keys are pressed.                        |
+| `^{keys}`          | Precondition: the keys are not pressed.                    |
+| `combo1 \| combo2` | Alternative combos.                                        |
+| `none`             | No combo.                                                  |
 
 ```properties
-# Press e while holding leftctrl
+# Press e while leftctrl is pressed.
 normal-mode.to.hint-mode=_{leftctrl} +e
-
-# Press and release leftshift
+# Press and release leftshift.
 normal-mode.move-target-to.overlay-center=+leftshift -leftshift
-
-# Multiple combos for one command
+# Two alternative combos for one command.
 normal-mode.to.idle-mode=+q | +leftctrl +e
-
-# Press a and b in any order (chord)
-normal-mode.to.idle-mode={+a +b}
+# Press a and b in any order (a chord).
+normal-mode.to.grid-mode={+a +b}
 ```
 
 ## Modes
 
-Modes are a fundamental concept in mousemaster. Each mode represents a different state of the application with its own set of key bindings and behaviors.
+A mode is a state of mousemaster with its own combos and properties. A mode name ends with `-mode`.
+A mode property has the format `<mode>.<property>=<value>`:
 
-### Mode basics
-
-- Most properties are defined per-mode (e.g., `normal-mode.indicator.enabled=true`)
-- The only mode that exists by default is `idle-mode` (when mousemaster is inactive)
-- You must define all other modes yourself
-- Each mode can have its own key combos, mouse settings, and visual indicators
-
-### Mode properties
-
-Properties for a mode are defined using the format:
-```
-mode-name.property-category.property-name=value
-```
-
-For example:
 ```properties
 normal-mode.indicator.enabled=true
 normal-mode.mouse.initial-velocity=1600
 ui-hint-mode.overlay.type=ui-vision
 ```
 
-### Property inheritance
+- mousemaster starts in `idle-mode`. The configuration must give `idle-mode` at least one property.
+- Each mode other than `idle-mode` must be reachable from `idle-mode` with mode switches, unless its
+  name starts with `_`. Such a mode is only a [parent mode](#inheritance): no mode switch can go to
+  it.
 
-Modes can inherit properties from other modes to avoid duplication. For example, if `normal-mode` has defined indicator settings:
+### Inheritance
 
-```properties
-normal-mode.indicator.enabled=true
-normal-mode.indicator.fill-color=#FF0000
-normal-mode.indicator.size=26
-```
+A mode can take a set of properties from another mode:
 
-You can make another mode inherit these settings:
 ```properties
 slow-mode.indicator=normal-mode.indicator
+slow-mode.indicator.fill-color=#0000FF
 ```
 
-This applies all indicator properties from `normal-mode` to `slow-mode`. You can still override specific properties:
-```properties
-slow-mode.indicator=normal-mode.indicator
-slow-mode.indicator.fill-color=#0000FF  # Override just this property
-```
+`slow-mode` takes all the `indicator` properties of `normal-mode`. Its own `fill-color` replaces the
+`fill-color` of `normal-mode`.
 
-A mode can also inherit everything from one or more other modes:
+A mode can also take all the properties of one or more parent modes:
+
 ```properties
 slow-mode=_indicator-mode _clipboard-mode
 ```
 
-The mode's own properties come first, then each parent in turn: the first one to define a
-property keeps it. A property that names its own source (`slow-mode.indicator=other-mode.indicator`)
-takes it from there instead of from any parent.
+- The properties of the mode come first, then each parent in order. The first one that sets a
+  property gives its value.
+- A set that names its source (`slow-mode.indicator=normal-mode.indicator`) takes its values from
+  that source, not from a parent.
+- A command set to `none` has no combo. The mode does not take the combos of the parent for that
+  command: `slow-mode.press.middle=none`.
 
-A command set to `none` has no combo, and the mode does not take the parent's combos for it:
-```properties
-slow-mode.press.middle=none
-```
+### Mode switches
 
-### Common mode types
+`to.<mode>` switches to the mode:
 
-While you can create any modes you need, these are common in many configurations:
-
-- `idle-mode`: mousemaster is inactive (default mode when mousemaster starts)
-- `normal-mode`: Basic mouse control mode
-- `grid-mode`: For grid-based navigation
-- `hint1-mode` and `hint2-mode`: For hint-based navigation
-
-### Example mode configuration
-
-```properties
-# Define how to enter normal-mode from idle-mode
-idle-mode.to.normal-mode=_{leftctrl} +e
-
-# Define mouse movement in normal-mode
-normal-mode.start-move.up=+i
-normal-mode.start-move.down=+k
-normal-mode.start-move.left=+j
-normal-mode.start-move.right=+l
-normal-mode.stop-move.up=-i
-normal-mode.stop-move.down=-k
-normal-mode.stop-move.left=-j
-normal-mode.stop-move.right=-l
-
-# Define mouse speed in normal-mode
-normal-mode.mouse.initial-velocity=1600
-normal-mode.mouse.max-velocity=2200
-normal-mode.mouse.acceleration=1500
-
-# Define how to exit back to idle-mode
-normal-mode.to.idle-mode=+q
-```
-
-### Switching modes
 ```properties
 idle-mode.to.normal-mode=_{leftctrl} +e
 normal-mode.to.idle-mode=+q
 ```
 
-Combos can be initiated in one mode and continued in another.
+A combo can start in one mode and continue in another:
+
 ```properties
 normal-mode.press.left=+a
 normal-mode.to.click-mode=+a
 click-mode.release.left=+a -a
 ```
-In the above example, pressing _a_ triggers a press of the left mouse button and switches
-to the mode named click-mode. In click-mode, releasing _a_ triggers a release of the left mouse button.
-If we add the property:
+
+A press of `a` presses the left button and switches to `click-mode`. In `click-mode`, the release of
+`a` releases the left button.
+
+`break-combo-preparation` stops the combos that started before its own combo completed:
+
 ```properties
 normal-mode.break-combo-preparation=+a
 ```
-Then, the release command in click-mode will only be triggered if the user presses _a_
-again then releases it. This happens because the `+a` combo preparation initiated in normal-mode was broken.
+
+With this property, the `+a` of `normal-mode` does not continue in `click-mode`. `click-mode`
+releases the left button only after a new press and release of `a`.
 
 ### Mode history
 
 ```properties
-idle-mode.push-mode-to-history-stack=true
-hint2-2-mode.to.previous-mode-from-history-stack=+rightalt -rightalt
+hint1-mode.push-mode-to-history-stack=true
+hint2-mode.to.previous-mode-from-history-stack=+rightalt -rightalt
 ```
-- If `push-mode-to-history-stack` is true for a mode, the mode will be added to the mode
-  history as soon as the current mode is switched to that mode.
-- The last mode added to the history stack can be referred to in a mode switch (`to`) command with `previous-mode-from-history-stack`.
 
-### Standalone mode properties
+- **`push-mode-to-history-stack`**: If `true`, a switch from the mode to another mode adds the mode
+  to the history stack. The stack holds each mode one time only. Default: `false`.
+- **`to.previous-mode-from-history-stack`**: Switches to the last mode of the history stack.
+- A switch to a mode that is in the stack removes that mode, and the modes added after it, from the
+  stack.
+
+### Other mode properties
 
 ```properties
 idle-mode.stop-commands-from-previous-mode=true
 normal-mode.mode-after-unhandled-key-press=idle-mode
 ```
 
-- If `stop-commands-from-previous-mode` is true for a mode, and if the previous mode was executing
-  a command such as a mouse button press, then the command will be stopped (the mouse
-  button will be released) as soon as the current mode is switched to that mode.
-- `mode-after-unhandled-key-press` is for switching to a mode whenever a key that is not
-  part of any combo is pressed.
+- **`stop-commands-from-previous-mode`**: If `true`, a switch to the mode stops the commands of the
+  previous mode. The moves and the wheel scrolls stop, and mousemaster releases the mouse buttons.
+  Default: `true` for `idle-mode`, `false` for the other modes.
+- **`mode-after-unhandled-key-press`**: The mode to switch to when you press a key that no combo of
+  the mode can use at that time.
 
-### Mode property mutation
+## Mode property mutation
 
-Mode property mutation allows a mode property to change its value dynamically based on which keys are currently pressed, without switching modes.
+A property can change its value while keys are pressed, without a mode switch:
 
+```properties
+<mode>.<property>=<default> | <combo1> -> <value1> | <combo2> -> <value2>
 ```
-mode.property=default | combo1 -> value1 | combo2 -> value2
-```
 
-The `|` separates the default value from combo-triggered mutations. Each `combo -> value` pair applies its value when the combo is satisfied. When more than one is satisfied at the same time, the rightmost one wins. A part without `->` is the default value.
-
-For example, change the hint box border color while shift is held, to signal that a different action will follow:
+- The part without `->` is the default value.
+- Each `<combo> -> <value>` part is a branch. A branch gives its value when its combo completes.
+- If more than one branch applies at the same time, the rightmost branch gives the value.
 
 ```properties
 hint-mode.overlay.box-border-color=#FFFFFF | _{leftshift} -> #00FFFF
 ```
 
-- Default border color: `#FFFFFF` (white)
-- While shift is held: `#00FFFF` (cyan)
+The border is white. While `leftshift` is pressed, the border is cyan.
 
-When shift is released, the property reverts to its default. Mutations are most useful with precondition-only combos (combos that have no key sequence, only a precondition like `_{key}`). These combos activate when the precondition becomes true and revert when it becomes false.
+- If each branch of the property has only a precondition, such as `_{leftshift}`, the property
+  returns to its default value when no precondition is true.
+- If the property has a branch with a key sequence, such as `+move -> ...`, a value stays until
+  another branch gives a value.
+- After a mode switch, the value stays if the new mode has the same branch: the same combo with the
+  same value. Two modes with the same parent mode can have the same branch. Any other mode switch
+  sets the default value again.
+
+A [virtual key](#virtual-keys) can control a mutation. A virtual key keeps its state after a mode
+switch:
 
 ```properties
-# Change the indicator color while leftctrl is held
-normal-mode.indicator.fill-color=#00FF00 | _{leftctrl} -> #FF0000
-```
-
-Mutations can also be driven by [virtual keys](combo-reference.md#virtual-keys) instead of held keys, so the value
-persists across mode switches and survives key releases:
-
-```properties
-# Toggle iszoom on/off with z, change zoom percent based on the virtual key
+# z toggles iszoom. The zoom follows iszoom.
 virtual-key.iszoom=released
 hint-mode.macro.setiszoom=^{iszoom} +z -> #iszoom
 hint-mode.macro.unsetiszoom=_{iszoom} +z -> ~iszoom
 hint-mode.zoom.percent=1 | _{iszoom} -> 30
 ```
 
-A virtual key starts in its declared state, and reloading the configuration returns every one to it.
+## Target
 
-A combo with a key sequence, like `+move -> ...`, sets a value that stays until another combo of
-the property sets one. A mode switch keeps the value when the new mode gives the property the
-same value on the same combo, as a mode that extends the same parent does. Any other switch
-gives the property its default value back.
+The target is the point where the mouse goes. These move the target: a hint selection,
+`move-target-to`, `nudge-target`, `start-move-target`, `cycle-next`, `cycle-previous` and
+`overlay.target-follows-overlay-center`.
 
-When mutating a hint font property, the font properties that take their value from it change with
-it (see [Hint prefix](#hint-prefix)). For example, mutating `font-color` also mutates
-`selected-font-color`, `focused-font-color`, `saved-font-color`, and the corresponding prefix
-variants, unless the configuration sets them. Mutating `focused-font-color` also mutates
-`prefix-focused-font-color`.
+- **`overlay.mouse-follows-target`**: If `true`, the target is at the cursor, and a command that
+  moves the target moves the mouse. If `false`, the target is a separate point, and the mouse stays
+  where it is. A change from `true` to `false` puts the target at the cursor. `move-to.target` moves
+  the mouse to the target. Use `false` when the next mode shows another grid. Then
+  `move-to.last-selected-hint` moves the mouse there. Default: `true`.
 
-### Mouse properties
+## Movement properties
+
+Four sets of properties set the speed of a move:
+
+| Set        | What moves                                                                                |
+|------------|-------------------------------------------------------------------------------------------|
+| `mouse`    | The mouse: `start-move`, `nudge` and the jumps.                                           |
+| `target`   | The [target](#target), when the mouse does not follow it: `start-move-target`, `nudge-target`. |
+| `hotspots` | The [hotspots](#hotspots): `start-move-hotspots`, `nudge-hotspots`.                       |
+| `wheel`    | The wheel: `start-wheel`.                                                                 |
 
 ```properties
 normal-mode.mouse.initial-velocity=1600
-normal-mode.mouse.max-velocity=2200
-normal-mode.mouse.acceleration=1500
-normal-mode.mouse.acceleration-easing=1
-normal-mode.mouse.deceleration=0
-normal-mode.mouse.smooth-jump-enabled=true
-normal-mode.mouse.smooth-jump-velocity=30000
-normal-mode.mouse.nudge-distance=4
-```
-- `acceleration-easing` controls the shape of the acceleration curve. A number sets the polynomial exponent: 1 = linear, 2 = quadratic (slow start, fast ramp), 0.5 = square root (fast start, slow ramp). Named curves: `smoothstep` (S-curve), `smootherstep` (S-curve with longer precision zone, the default), `logarithmic` (fast start, aggressive flatten), `exponential` (very slow start, explosive ramp).
-- When movement keys are released, the cursor coasts to a stop. Higher deceleration = shorter coast. Set to 0 for instant stop (no coast).
-- The velocities and the acceleration are in pixels per second and pixels per square second at a
-  100% scale: on a 200% screen, the mouse moves twice as many pixels.
-- Whenever mousemaster sets the position of the mouse, the mouse will be teleported to the
-  target position. Smooth jumping is for avoiding the instantaneous teleportation and move
-  the mouse with a continuous movement instead. The jump speed is controlled with `smooth-jump-velocity`.
-- `nudge-distance` is the distance of `nudge`, in pixels at a 100% scale (default `1`).
-
-### Wheel (scrolling) properties
-
-```properties
-normal-mode.wheel.initial-velocity=1500
 normal-mode.wheel.max-velocity=2000
-normal-mode.wheel.acceleration=500
-normal-mode.wheel.acceleration-easing=1
-normal-mode.wheel.deceleration=0
 ```
 
-The properties mean what the mouse ones do, except that `acceleration-easing` defaults to `1`
-(linear) rather than `smootherstep`, and `deceleration` to `0` (no coast).
+| Property               | Default: `mouse`, `target`, `hotspots` | Default: `wheel` |
+|------------------------|----------------------------------------|------------------|
+| `initial-velocity`     | `1000`                                 | `1000`           |
+| `max-velocity`         | `2200`                                 | `1000`           |
+| `acceleration`         | `3000`                                 | `500`            |
+| `acceleration-easing`  | `smootherstep`                         | `1`              |
+| `deceleration`         | `20`                                   | `0`              |
+| `nudge-distance`       | `1`                                    | Does not apply   |
+| `smooth-jump-enabled`  | `true` (`mouse` only)                  | Does not apply   |
+| `smooth-jump-velocity` | `30000` (`mouse` only)                 | Does not apply   |
 
-### Target properties
+- **Units**: For `mouse`, `target` and `hotspots`, a velocity is in pixels per second and a distance
+  is in pixels, at a 100% scale. On a 200% screen, the mouse moves two times more pixels. For
+  `wheel`, the unit is a scroll unit, and the screen scale does not apply. On Windows, 120 scroll
+  units are one wheel notch. On macOS, a scroll unit is a scroll pixel.
+- **Speed**: The speed starts at `initial-velocity` and increases to `max-velocity`. `t` is the
+  time in seconds since the move started:
+
+  | `acceleration-easing`                                       | Speed, up to `max-velocity`                   |
+  |-------------------------------------------------------------|-----------------------------------------------|
+  | A number `p`                                                | `initial-velocity + acceleration × tᵖ`        |
+  | `logarithmic`                                               | `initial-velocity + acceleration × ln(1 + t)` |
+  | `exponential`                                               | `initial-velocity + acceleration × (eᵗ − 1)`  |
+  | `smoothstep`, `smootherstep`, `exponential-out-<n>`, `step` | The [easing](#easings) from `initial-velocity` to `max-velocity`, in `(max-velocity − initial-velocity) / acceleration` seconds |
+
+  If `initial-velocity` is equal to or more than `max-velocity`, the speed is immediately
+  `max-velocity`.
+- **`deceleration`**: After you release the move keys, the speed decreases to 0 as
+  `speed × e^(−deceleration × t)`. `0` stops the move immediately.
+- **`nudge-distance`**: The distance of a nudge.
+- **`smooth-jump-enabled`**: When mousemaster puts the mouse at a new position, for example after a
+  hint selection, the mouse jumps there. If `true`, the mouse moves there with a
+  [`smootherstep`](#easings) curve. If `false`, the mouse goes there immediately.
+- **`smooth-jump-velocity`**: The average speed of a smooth jump: the jump takes
+  `distance / smooth-jump-velocity` seconds.
+
+## Mouse commands
 
 ```properties
-grid-mode.target.initial-velocity=1600
-grid-mode.target.max-velocity=2200
-grid-mode.target.acceleration=1500
-grid-mode.target.acceleration-easing=1
-grid-mode.target.deceleration=0
-grid-mode.target.nudge-distance=4
+normal-mode.start-move.up=+i
+normal-mode.stop-move.up=-i
+normal-mode.nudge.up=_{leftalt} +i
+# _{none | leftctrl}: the combo also completes while leftctrl is pressed, for a ctrl-click.
+normal-mode.press.left=_{none | leftctrl} +f
+normal-mode.release.left=-f
+normal-mode.toggle.right=_{none | leftctrl} +g
+normal-mode.start-wheel.down=+n
+normal-mode.stop-wheel.down=-n
 ```
 
-The speed of `start-move-target` and the distance of `nudge-target` when the mouse does not
-follow the target. The properties mean what the mouse ones do, with the same defaults. The target
-has no smooth jump.
+- **`start-move.<direction>`** / **`stop-move.<direction>`**: Start and stop a move of the mouse,
+  with the `mouse` speed. The directions are `up`, `down`, `left` and `right`.
+- **`nudge.<direction>`**: Moves the mouse by `mouse.nudge-distance`.
+- **`press.<button>`** / **`release.<button>`** / **`toggle.<button>`**: Press, release or toggle
+  a mouse button. The buttons are `left`, `middle` and `right`.
+- **`start-wheel.<direction>`** / **`stop-wheel.<direction>`**: Start and stop a wheel scroll, with
+  the `wheel` speed. The directions are `up`, `down`, `left` and `right`.
 
-### Hotspot properties
+## Indicator properties
 
-```properties
-hint-mode.hotspots.cell-x-percent=0.25
-hint-mode.hotspots.cell-y-percent=1
-hint-mode.hotspots.initial-velocity=30
-hint-mode.hotspots.max-velocity=130
-hint-mode.hotspots.acceleration=170
-hint-mode.hotspots.nudge-distance=4
-```
-
-- **`cell-x-percent`** / **`cell-y-percent`**: Where the hotspot of each hint is, across and down
-  its cell, from `0` to `1` (default `0.5`, the center). `1` is the last pixel of the cell.
-- The other properties are the speed of `start-move-hotspots` and the distance of
-  `nudge-hotspots`. They mean what the mouse ones do, with the same defaults.
-
-See [Hotspots](#hotspots).
-
-### Indicator properties
-
-The indicator is drawn around the cursor as one or more layers, each a shape with a fill and a
-stroke. `<mode>.indicator.<property>` sets the main layer, and `<mode>.<name>-indicator.<property>`
-adds a layer of that name:
+The indicator is one or more shapes that mousemaster draws on the screen, by default at the cursor.
+Each shape is a layer, with a fill and a stroke. `<mode>.indicator.<property>` sets the `indicator`
+layer. `<mode>.<name>-indicator.<property>` adds a layer with that name:
 
 ```properties
 normal-mode.indicator.enabled=true
-normal-mode.ring-indicator.enabled=true
 normal-mode.ring-indicator.size=40
 normal-mode.ring-indicator.fill-opacity=0
 ```
 
-Every layer starts from the same defaults (a disabled 26-pixel red circle), not from the mode's
-`indicator`, and a mode that extends another extends each of its layers by name.
-`render-as-cursor` and `exclude-from-capture` belong to the whole indicator, so they are set on
-`<mode>.indicator` only.
+- Each layer starts from the same defaults. A layer does not take the values of the `indicator`
+  layer.
+- A mode that sets a property of a layer, and not its `enabled`, enables that layer.
+- A layer takes the properties of the layer with the same name in the parent modes.
+- `<mode>.indicator=<other-mode>.indicator` takes all the layers of the other mode.
+- A length is in pixels at a 100% scale. On a 200% screen, it is two times larger.
+- An opacity is from `0` to `1`.
+- `render-as-cursor` and `exclude-from-capture` apply to the whole indicator. Set them on
+  `<mode>.indicator`. They do not enable a layer.
 
-Any color property takes a hex color (`#FFFFFF`), a gradient (see [hint appearance](#hint-appearance)),
-or a color of the box of the hint selected last, black until one has been selected:
-`last-selected-hint-box-color` is the `box-color` of that box, gradient included, and
-`last-selected-hint-box-center-color` is the one color at the center of the box. A gradient that is
-not `per-pixel` or `across-box` gives a layer the color at its center, so a layer drawn on each
-saved position takes the color of its place. An indicator has no hints, so its colors cannot use
-`per-group`, `across-group` or `across-all-hints`. `last-selected-hint-box-center-color` plays a click in the color of the hint
-that was clicked:
+### Colors
+
+A color property takes:
+
+- A hex color, such as `#FF0000`.
+- A [gradient](#gradients), but not `in-turn`, `per-group`, `across-group` or `across-all-hints`.
+  The gradient spans the active screen. A layer takes the color of the gradient at its center. With
+  `per-pixel`, the gradient shows inside the layer. With `across-box`, the gradient spans the layer.
+- A [color alias](#gradients).
+- `last-selected-hint-box-color`: the `box-color` of the last selected hint, gradient included.
+- `last-selected-hint-box-center-color`: the one color at the center of the box of the last selected
+  hint.
+
+Before the first hint selection, the last two are black.
 
 ```properties
+# A click shows in the color of the hint that you selected.
 _hint-indicator-mode.indicator.fill-color=last-selected-hint-box-center-color
 ```
 
-#### Following the mouse state
+### Mouse state
 
-Any indicator property can take a different value per mouse state, with a
-[mutation](#mode-property-mutation) on the [built-in virtual key](combo-reference.md#built-in-virtual-keys)
-of that state. The rightmost matching branch wins:
+A [mutation](#mode-property-mutation) on a
+[built-in virtual key](combo-reference.md#built-in-virtual-keys) gives a property a value for a
+mouse state:
 
 ```properties
-normal-mode.indicator.fill-color=#FF0000 | _{iswheeling} -> #FFFF00 | _{ismousepressing} -> #00FF00 | _{isunhandledkeypressing} -> #0000FF
+normal-mode.indicator.fill-color=#FF0000 | _{iswheeling} -> #FFFF00 | _{ismousepressing} -> #00FF00
 normal-mode.indicator.fill-opacity=0 | _{isleftmousepressing ismoving} -> 1
 ```
 
-#### Layers
+### Shape
 
-- **`enabled`**: Whether the layer is drawn (default `false`).
-- **`z`**: The layer's order, higher on top (default `0`). The overlay is in the same order, at
-  its `z`: a layer with a lower `z` is drawn behind it. At equal `z`, a layer is drawn above the
-  overlay, and a layer that follows the cursor or its screen below the others.
+| Property         | Default  | Description |
+|------------------|----------|-------------|
+| `enabled`        | `false`  | If `true`, the layer shows. |
+| `z`              | `0`      | The order of the layers and the overlay. A higher `z` is on top. |
+| `shape`          | `circle` | `circle`, `triangle`, `rectangle`, `star`, `line`, `cross`, `path` or `text`. |
+| `size`           | `26`     | The longest side of the box of the shape. |
+| `aspect-ratio`   | `1`      | The width of the box divided by its height. |
+| `border-radius`  | `0`      | The radius of the corners of a `rectangle`, a `triangle`, a `star` or a `path`. |
+| `points`         | –        | The points of a `path`, such as `0,0 10,0 5,8`. Give at least three points. They cannot all have the same x, or all have the same y. The unit does not matter: mousemaster scales the points to the box. |
+| `x` / `y`        | `0`      | An offset from the position of the layer. A positive `x` goes right. A positive `y` goes down. |
+| `distance`       | `0`      | An offset in the direction of `angle`. |
+| `angle`          | `0`      | The direction of `distance`, in degrees clockwise from 12 o'clock. |
+| `rotation`       | `0`      | A rotation around the center of the layer, in degrees clockwise. |
 
-#### Shape
+- The overlay has its own `z` (`overlay.z`). A layer with a lower `z` is behind the overlay. At the
+  same `z`, a layer is above the overlay. At the same `z`, a layer that follows the cursor or the
+  screen with the cursor is below the other layers.
+- On a layer with one position, a `triangle`, a `star` and a `path` keep the proportions of their
+  points. `aspect-ratio` then stretches them.
+- An animation of `angle` moves the layer around its position. `rotation` turns the layer where it
+  is. `distance=30` with `angle=0 | _{orbitanimation} -> 0% 0; 100% 360` turns the layer around the
+  cursor (see [Keyframes](#keyframes)).
 
-```properties
-normal-mode.indicator.shape=rectangle
-normal-mode.indicator.size=30
-normal-mode.indicator.aspect-ratio=2
-normal-mode.indicator.border-radius=4
-normal-mode.indicator.rotation=45
-```
+### Fill and stroke
 
-- **`shape`**: `circle` (default), `triangle`, `rectangle`, `star`, `line`, `cross`, `path` or
-  `text`.
-- **`size`**: The largest side of the shape's box, in pixels (default `26`).
-- **`aspect-ratio`**: How much wider than tall the box is (default `1`). On a layer with one
-  position, a triangle, a star and a path keep the proportions of their points, which
-  `aspect-ratio` then stretches.
-- **`border-radius`**: The radius of the corners of a rectangle, a triangle, a star or a path, in
-  pixels (default `0`).
-- **`points`**: The points of a `path`, like `0,0 10,0 5,8`: at least three, spanning a width and
-  a height, in any units, since they are scaled to the box.
-- **`x`** / **`y`**: An offset from the layer's position, in pixels (default `0`).
-- **`distance`** / **`angle`**: A further offset of `distance` pixels in the direction of `angle`,
-  in degrees clockwise from 12 o'clock like `stroke-start-angle` (default `0`). Animating `angle`
-  moves the layer around its position, and `rotation` turns it where it is:
-  `distance=30` and `angle=0 | _{orbitanimation} -> 0% 0; 100% 360` orbit the cursor.
-- **`rotation`**: In degrees, clockwise, around the layer's own center (default `0`).
+| Property                | Default   | Description |
+|-------------------------|-----------|-------------|
+| `fill-color`            | `#FF0000` | The color of the inside of the shape. |
+| `fill-opacity`          | `0.2`     | The opacity of the inside. |
+| `stroke-thickness`      | `1`       | The thickness of the stroke. The stroke is centered on the edge of the shape. |
+| `stroke-color`          | `#FF0000` | The color of the stroke. |
+| `stroke-opacity`        | `1`       | The opacity of the stroke. |
+| `stroke-length-percent` | `1`       | The part of the stroke that shows, from `-1` to `1`. A negative value goes counterclockwise. |
+| `stroke-start-angle`    | `0`       | The start of a partial stroke, in degrees clockwise from 12 o'clock. |
+| `stroke-anchor`         | `start`   | `start` grows a partial stroke from its start angle. `middle` grows it in the two directions. |
+| `stroke-dash-length`    | `0`       | The length of a dash. |
+| `stroke-dash-gap`       | `0`       | The gap between two dashes. The dashes show only if the length and the gap are more than `0`. |
+| `stroke-dash-offset`    | `0`       | The offset of the dashes along the stroke. |
+| `stroke-cap`            | `flat`    | The ends of the stroke and of the dashes: `flat`, `round` or `square`. |
 
-#### Fill and stroke
+- For a second stroke, add a second layer.
+- A `line`, a `cross` and the letters of a `text` always have their full stroke.
 
-```properties
-normal-mode.indicator.fill-color=#FF0000
-normal-mode.indicator.fill-opacity=0.2
-normal-mode.indicator.stroke-thickness=2
-normal-mode.indicator.stroke-color=#FFFFFF
-normal-mode.indicator.stroke-length-percent=0.6
-normal-mode.indicator.stroke-start-angle=180
-```
+### Text
 
-- **`fill-color`** / **`fill-opacity`**: The inside of the shape (default `#FF0000` at `0.2`).
-- **`stroke-thickness`** / **`stroke-color`** / **`stroke-opacity`**: The outline, centered on the
-  shape's edge (default `1` pixel of `#FF0000` at `1`). A second outline is a second layer.
-- **`stroke-length-percent`**: How much of the outline is drawn, from `-1` to `1` (default `1`).
-  A negative length goes counterclockwise.
-- **`stroke-start-angle`**: Where a partial outline starts, in degrees clockwise from 12 o'clock
-  (default `0`).
-- **`stroke-anchor`**: `start` (default) grows a partial outline from its start angle, `middle`
-  grows it both ways.
-- **`stroke-dash-length`** / **`stroke-dash-gap`** / **`stroke-dash-offset`**: Dashes, in pixels
-  (default `0`, no dashes).
-- **`stroke-cap`**: The ends of the outline and of its dashes: `flat` (default), `round` or
-  `square`.
+| Property           | Default  | Description |
+|--------------------|----------|-------------|
+| `text`             | –        | The text. |
+| `font-name`        | `Arial`  | The font. |
+| `font-size`        | `8`      | The size of the font, in points. |
+| `font-weight`      | `normal` | `thin`, `extra-light`, `light`, `normal`, `medium`, `demi-bold`, `bold`, `extra-bold` or `black`. |
+| `text-style-sheet` | –        | CSS for a rich text (see below). |
 
-A line, a cross and the letters of a text have no single outline, so they are always stroked in
-full.
-
-#### Text
-
-With `shape=text`, the letters are the shape: the fill colors them, the stroke outlines them, and
-their size comes from the font rather than from `size` and `aspect-ratio`.
+With `shape=text`, the letters are the shape. The fill colors them and the stroke draws their edges.
+The font sets their size: `size` does not apply. An `aspect-ratio` other than `1` cuts the letters.
 
 ```properties
-typing-mode.text-indicator.enabled=true
 typing-mode.text-indicator.shape=text
 typing-mode.text-indicator.text=n
 typing-mode.text-indicator.font-name=Consolas | _{ismacos} -> Menlo
-typing-mode.text-indicator.font-size=9
-typing-mode.text-indicator.font-weight=bold
 ```
 
-- **`text`**: The text. `{alias}` is replaced with the names of the keys of a
-  [key alias](#key-aliases), like `{exit}` for `q p`. When the value comes from a combo that
-  pressed keys of that alias, it is instead the labels of the keys it pressed (`I`, `⇧`, `␣`...),
-  and `{!alias}` the key a `+!alias` pressed. A remap between the combo and the value gives
-  each key a text of its own instead of its label: with
-  `| +move -> move=up left down right -> {move}`, pressing `j` shows `left` (see
-  [alias remap](combo-reference.md#alias-remap)).
-- **`font-name`** / **`font-size`** / **`font-weight`**: The font, its size in points, and its weight
-  from `thin` to `black` (default Arial, `8`, `normal`).
-
-On any other shape, the text is rich text (the subset of HTML that Qt draws) drawn over the shape,
-and the shape takes the text's size: `size` and `aspect-ratio` no longer apply. The fill, the
-stroke and the `border-radius` style the box around the text, and `text-style-sheet` styles the
-text with CSS. The neo-mousekeys-ijkl cheatsheet is such a layer:
+With another shape, the text is rich text: the HTML subset that Qt draws. The text shows over the
+shape. The shape takes the size of the text: `size` and `aspect-ratio` do not apply. The fill, the
+stroke and `border-radius` style the box around the text. `text-style-sheet` styles the text with
+CSS:
 
 ```properties
 normal-mode.cheatsheet-indicator.shape=rectangle
 normal-mode.cheatsheet-indicator.position=active-screen-center
-normal-mode.cheatsheet-indicator.text-style-sheet=\
-td { color: #A9B1D6; } \
-.title { font-family: 'Segoe UI', 'Helvetica Neue'; font-size: x-large; color: #C0CAF5; } \
-.key { color: #E0AF68; }
-normal-mode.cheatsheet-indicator.text=<table cellpadding=14><tr><td><table>\
-<tr><td colspan=2 class=title>neo-mousekeys-ijkl\
-<tr><td class=key>{up} {left} {down} {right}<td>move\
-</table></table>
-normal-mode.cheatsheet-indicator.font-name=Consolas | _{ismacos} -> Menlo
-normal-mode.cheatsheet-indicator.font-size=9
+normal-mode.cheatsheet-indicator.text-style-sheet=td { color: #A9B1D6; } .key { color: #E0AF68; }
+normal-mode.cheatsheet-indicator.text=<table cellpadding=14><tr><td class=key>{exit}<td>exit</table>
 normal-mode.cheatsheet-indicator.border-radius=14
 normal-mode.cheatsheet-indicator.fill-color=#1A1B26
 ```
 
-- The letters take their color from the style sheet, or the system's text color, usually black.
-  Qt ignores a `body` rule, so a default color goes on the elements the text is made of, like `td`.
-- `font-size` sets the size of the whole text, and the style sheet sizes parts of it relative to
-  that: `small`, `medium`, `large`, `x-large` and `xx-large`. An absolute size in the style sheet
-  would ignore `font-size` and its per-screen values.
-- The padding of an outer table is the margin between the text and its box, and its width is
-  where the text wraps: `<table width=200>`.
+- The letters take their color from the style sheet. Without it, they take the text color of the
+  system, usually black. Qt ignores a `body` rule: put a default color on the elements of the text,
+  such as `td`.
+- `font-size` sets the size of the whole text. In the style sheet, use relative sizes: `small`,
+  `medium`, `large`, `x-large` and `xx-large`. An absolute size ignores `font-size`.
+- The padding of an outer table is the margin between the text and its box. The width of the table
+  is where the text wraps: `<table width=200>`.
 
-A value that comes from a combo stays after its keys are released, so a text can show the last
-key pressed for as long as an animation runs:
+Keys in a text:
+
+- `{alias}` shows the names of the keys of a [key alias](#key-aliases): `{exit}` shows `q p`.
+- If the value comes from a combo, `{alias}` shows the symbols of the alias keys that the combo
+  pressed: `I`, `⇧`, `␣`. `{!alias}` shows the key that a `+!alias` pressed.
+- A remap between the combo and the value gives each key its own text: with
+  `| +move -> move=up left down right -> {move}`, a press of `j` shows `left` (see
+  [alias remap](combo-reference.md#alias-remap)).
+- A value from a combo stays after the release of its keys. A text can show the last key that you
+  pressed while an animation runs:
+
+  ```properties
+  key-alias.move=i j k l
+  keycast-animation.duration-millis=1000
+  normal-mode.start.keycast-animation=+move
+  normal-mode.keycast-indicator.enabled=false | _{keycastanimation} -> true
+  normal-mode.keycast-indicator.shape=rectangle
+  normal-mode.keycast-indicator.text-style-sheet=td { color: #FFFFFF; }
+  normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You pressed <b>{move}</b></table>
+  ```
+
+### Position
+
+| Property              | Default | Description |
+|-----------------------|---------|-------------|
+| `position`            | `mouse` | Where the layer is (see the values below). |
+| `end-position`        | –       | Where a layer that runs between two points stops. It takes the values of `position`. |
+| `position-anchor`     | `point` | Where the layer starts on a hint (see below). |
+| `end-position-anchor` | `point` | Where the layer stops on a hint (see below). |
+| `follow`              | `true`  | If `false`, the layer stays where it was (see below). |
+| `area`                | –       | The area that the layer covers (see below). |
+
+| `position`      | Position |
+|-----------------|----------|
+| `mouse` | The cursor. The layer is behind the cursor: use a low opacity. |
+| `mouse-top-left`, `mouse-top-right`, `mouse-bottom-left`, `mouse-bottom-right` | That corner of the cursor. Near a screen edge, the layer goes to the other side of the cursor. A layer with a text goes inward. |
+| `active-screen-center` | The center of the screen with the cursor. |
+| `active-screen-top-left`, `active-screen-top-right`, `active-screen-bottom-left`, `active-screen-bottom-right` | That corner of the screen with the cursor. |
+| `target` | The [target](#target). |
+| `last-selected-hint` | The hotspot of the last selected hint. Before the first selection, the cursor. |
+| `active-window-center` | The center of the active window. |
+| `last-overlay-area-center` | The center of the area of the overlay of the previous mode. |
+| `position-history`, `<name>-position-history` | Each position of the [history](#position-history), in the order of the saves. With no position, the layer does not show. |
+
+While the mouse follows the target, the target is at the cursor. mousemaster draws a layer at
+`target` again at each mouse move. To draw at the cursor, use `mouse`.
+
+**`end-position`**: The layer starts at `position` and stops at `end-position`. `size` is its
+thickness, and the two points give its length. `rotation` turns it from the line between the two
+points. `aspect-ratio` cannot be set.
+
+- The layer runs from each point of `position` to each point of `end-position`.
+- From a position to the same position, the layer runs from each point to the next point.
+- Without two points, the layer does not show.
 
 ```properties
-key-alias.move=i j k l
-keycast-animation.duration-millis=1000
-normal-mode.start.keycast-animation=+move
-normal-mode.keycast-indicator.enabled=false | _{keycastanimation} -> true
-normal-mode.keycast-indicator.shape=rectangle
-normal-mode.keycast-indicator.text-style-sheet=td { color: #FFFFFF; }
-normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You pressed <b>{move}</b></table>
+# A line from the last selected hint to the target.
+grid-mode.line-indicator.shape=line
+grid-mode.line-indicator.position=last-selected-hint
+grid-mode.line-indicator.end-position=target
+# A line from each saved position to the next one.
+ui-hint-mode.save.click-position-history=+f1
+ui-hint-mode.line-indicator.shape=line
+ui-hint-mode.line-indicator.position=click-position-history
+ui-hint-mode.line-indicator.end-position=click-position-history
 ```
 
-#### Position
+**`position-anchor`** and **`end-position-anchor`**: Some positions have a hint.
+`last-selected-hint` has one after the first selection. A saved position has one if you saved it at
+the hotspot of the last selected hint.
 
-- **`position`**: `mouse` (default), `mouse-top-left`, `mouse-top-right`, `mouse-bottom-left`,
-  `mouse-bottom-right`, `active-screen-center`, `active-screen-top-left`,
-  `active-screen-top-right`, `active-screen-bottom-left`, `active-screen-bottom-right`, `target`,
-  `last-selected-hint`, `active-window-center`, `last-overlay-area-center`, or a position history
-  (`position-history` or any `<name>-position-history`). `mouse` centers the layer behind the
-  cursor, best with a low opacity so the cursor stays visible. Near a screen edge, a mouse corner position moves to the
-  other side of the cursor, and a layer with a text moves inward instead of being cut. An active
-  screen corner position puts the layer in that corner of the screen with the mouse cursor: `x`
-  and `y` move it away from the edges. `target` and `last-selected-hint` center the layer on
-  those points of the overlay (see `mouse-follows-target`), not on the cursor, and
-  `active-window-center` and `last-overlay-area-center` on those points of
-  [`area-center`](#overlay-area-and-grid). While the mouse
-  follows the target, the target is the mouse, and a layer that follows the target is drawn
-  again at each mouse move: to draw at the cursor, use `mouse`. A position history
-  stands for the positions saved in it, in the order they were saved: the layer is drawn on each
-  of them, and not drawn while the history is empty.
-- **`end-position`**: The same values as `position`. With `end-position`, the layer starts at
-  `position` and stops at `end-position`. `size` is its width, and `rotation` turns it from the
-  line between the two points. `aspect-ratio` cannot be set.
-  - The layer runs from each point of `position` to each point of `end-position`.
-  - From a position to the same position, the layer runs from each point to the next.
-  - Without two points to run between, the layer is not drawn.
-
-  A line from the last selected hint to the target, a line from each saved position to the
-  next, and a line from each saved position to the target:
-  ```properties
-  grid-mode.line-indicator.shape=line
-  grid-mode.line-indicator.position=last-selected-hint
-  grid-mode.line-indicator.end-position=target
-  ui-hint-mode.line-indicator.shape=line
-  ui-hint-mode.line-indicator.position=click-position-history
-  ui-hint-mode.line-indicator.end-position=click-position-history
-  ui-hint-mode.target-line-indicator.shape=line
-  ui-hint-mode.target-line-indicator.position=click-position-history
-  ui-hint-mode.target-line-indicator.end-position=target
-  ```
-- **`position-anchor`** / **`end-position-anchor`**: Each position is a point on the screen. Some
-  positions also have a hint: `last-selected-hint` always has one, and a saved position has one
-  when the user saved it at the hotspot of the last selected hint. `position-anchor` sets where a
-  layer with an `end-position` starts, and `end-position-anchor` sets where it stops. Without an
-  `end-position`, a hint anchor puts the layer over the hint box or the hint cell, as an `area`
-  does, and the `area-*-inset` of the layer apply to it:
-  - `point` (default): at the point. It does not use the hint.
-  - `hint-box-edge`: at the edge of the hint box.
-  - `hint-cell-edge`: at the edge of the hint cell.
-
-  At a position without a hint, or outside its hint box or cell, the layer starts or stops at the
-  point, whatever the value. The hint box is the box the overlay draws for the hint: when the
-  overlay does not draw it, the layer uses the cell. The cell of a UI hint is its element. Lines from the box of each saved hint to
-  the box of the next:
-  ```properties
-  ui-hint-mode.line-indicator.position=click-position-history
-  ui-hint-mode.line-indicator.position-anchor=hint-box-edge
-  ui-hint-mode.line-indicator.end-position=click-position-history
-  ui-hint-mode.line-indicator.end-position-anchor=hint-box-edge
-  ```
-- **`follow`**: Whether the layer moves with what its positions or its `area` name (default
-  `true`): the cursor, the screen with the mouse cursor, the target, the last selected hint, the
-  saved positions or the area. A layer with an `end-position` follows each of its two positions:
-  a line from `mouse` to `target` keeps its start on the cursor and its end on the target. With
-  `false`, the layer stays where it was when it was enabled, or when its keyframes started over.
-- **`area`**: The area the layer covers. It takes the values of the overlay's `area`, with
-  `area-width-percent`, `area-height-percent`, the `area-*-inset` and `area-center` (see
-  [Overlay area and grid](#overlay-area-and-grid)). The layer takes its position and its size
-  from the area, so `position`, `end-position`, `size` and `aspect-ratio` cannot be set. The
-  stroke is centered on the edge of the area: an inset of minus half the stroke thickness puts
-  the stroke just outside it. A box around the element of the last selected UI
-  hint:
-  ```properties
-  grid-mode.element-indicator.shape=rectangle
-  grid-mode.element-indicator.area=last-selected-hint-cell
-  grid-mode.element-indicator.area-top-inset=-0.5
-  grid-mode.element-indicator.area-bottom-inset=-0.5
-  grid-mode.element-indicator.area-left-inset=-0.5
-  grid-mode.element-indicator.area-right-inset=-0.5
-  grid-mode.element-indicator.fill-opacity=0
-  ```
-
-#### Shadow
+- `point`: the layer starts or stops at the point. The hint does not apply.
+- `hint-box-edge`: at the edge of the hint box. If the overlay does not draw the box, at the edge of
+  the cell.
+- `hint-cell-edge`: at the edge of the hint cell.
+- At a position without a hint, or outside its hint box or cell, the layer starts or stops at the
+  point.
+- Without `end-position`, a hint anchor puts the layer over the hint box or the hint cell, as an
+  `area` does. The `area-*-inset` properties of the layer apply.
 
 ```properties
-normal-mode.indicator.shadow-blur-radius=10
-normal-mode.indicator.shadow-color=#000000
-normal-mode.indicator.shadow-opacity=0.5
-normal-mode.indicator.shadow-horizontal-offset=2
-normal-mode.indicator.shadow-vertical-offset=2
+# Lines from the box of each saved hint to the box of the next one.
+ui-hint-mode.line-indicator.position-anchor=hint-box-edge
+ui-hint-mode.line-indicator.end-position-anchor=hint-box-edge
 ```
 
-- **`shadow-blur-radius`**: Blur radius in pixels (0-1000, default 10)
-- **`shadow-color`**: Color of the shadow (default #000000)
-- **`shadow-opacity`**: Opacity (0.0-1.0, default 0 = no shadow). Set to > 0 to enable.
-- **`shadow-stack-count`**: Number of times the shadow is composited on itself for a stronger effect (1-100, default 1)
-- **`shadow-horizontal-offset`** / **`shadow-vertical-offset`**: Shadow offset in pixels (-100 to 100, default 0)
+**`follow`**: With `follow=true`, a layer moves with what it is on. This is the cursor, the screen
+with the cursor, the target, the last selected hint, the saved positions or the area. A layer with an
+`end-position` follows its two positions. With `false`, the layer stays where it was at the last of
+these events:
 
-Each layer casts its own shadow, from its whole shape whatever its fill and stroke opacities, as a
-hint box does. Layers with the same shadow cast it as one shape, and a shadow is never drawn over a
-layer, even a transparent one.
+- The layer was enabled.
+- Its keyframes started again.
+- Its `position`, `end-position`, anchors or `area` changed.
 
-#### Rendering as the system cursor
+**`area`**: The layer covers an area. It takes the values of the overlay `area`, with
+`area-width-percent`, `area-height-percent`, the `area-*-inset` properties and `area-center` (see
+[Overlay area and grid](#overlay-area-and-grid)). The area sets the position and the size of the
+layer: `position`, `end-position`, `size` and `aspect-ratio` cannot be set. The stroke is centered on
+the edge of the area. An inset of minus half the stroke thickness puts the stroke outside the area:
+
+```properties
+# A box around the element of the last selected UI hint.
+grid-mode.element-indicator.shape=rectangle
+grid-mode.element-indicator.area=last-selected-hint-cell
+grid-mode.element-indicator.area-top-inset=-0.5
+grid-mode.element-indicator.area-bottom-inset=-0.5
+grid-mode.element-indicator.area-left-inset=-0.5
+grid-mode.element-indicator.area-right-inset=-0.5
+grid-mode.element-indicator.fill-opacity=0
+```
+
+### Shadow
+
+| Property                   | Default   | Description |
+|----------------------------|-----------|-------------|
+| `shadow-opacity`           | `0`       | The opacity of the shadow. |
+| `shadow-blur-radius`       | `10`      | The blur radius, from `0` to `1000`. |
+| `shadow-color`             | `#000000` | The color of the shadow. |
+| `shadow-stack-count`       | `1`       | How many times mousemaster draws the shadow on itself, from `1` to `100`. More times make it darker. |
+| `shadow-horizontal-offset` | `0`       | The horizontal offset, from `-100` to `100`. |
+| `shadow-vertical-offset`   | `0`       | The vertical offset, from `-100` to `100`. |
+
+- A shadow shows only if `shadow-opacity` and `shadow-blur-radius` are more than `0`.
+- Each layer casts its own shadow from its whole shape, whatever its fill and stroke opacities.
+- Layers with the same shadow cast it as one shape.
+- mousemaster never draws a shadow over a layer. This is also true for a transparent layer.
+
+### System cursor
 
 ```properties
 normal-mode.indicator.render-as-cursor=true
 ```
 
-`render-as-cursor` draws the layers at `mouse` that follow it, without a text or an
-`end-position`, into the system cursor image, with the real cursor glyph composited on top,
-instead of into a window that follows the pointer. Nothing can lag behind, since there is nothing
-to follow. The other layers stay in windows. Windows only (default false); it is ignored on
-macOS, where the indicator is always a window.
+**`render-as-cursor`**: If `true`, mousemaster draws some layers into the image of the system
+cursor. These layers are at `mouse`, follow it, and have no text and no `end-position`. The cursor
+is on top of these layers. They move with the cursor without delay. The other layers stay in
+windows. Windows only.
+Default: `false`.
 
-Because the indicator then *is* the cursor, anything that hides the cursor hides the indicator
-too. In particular, the Windows pointer option "Hide pointer while typing" (on by default)
-hides the cursor on every keystroke until the mouse moves, so with `render-as-cursor` the
-indicator disappears right after a key press and only comes back once the pointer is moved.
-Turn that option off (Mouse Properties > Pointer Options > Visibility) if you see this; the
-windowed indicator is not affected. See [#86](https://github.com/petoncle/mousemaster/issues/86).
+- While `hide-cursor` is enabled, the cursor image has the layers without the cursor.
+- The indicator is then the cursor: what hides the cursor also hides the indicator. The Windows
+  option "Hide pointer while typing" hides the cursor at each key press until the mouse moves. To
+  keep the indicator, clear this option in Mouse Properties > Pointer Options > Visibility. See
+  [#86](https://github.com/petoncle/mousemaster/issues/86).
 
-#### Excluding from capture
+### Capture exclusion
+
+**`exclude-from-capture`**: If `true`, the indicator does not show in screenshots and screen
+recordings. It stays on the screen. It applies to the windows of the indicator. The layers in the
+cursor image follow the cursor option of the capture tool. Default: `false`.
 
 ```properties
+# Exclude the indicator only while the screenshot flash shows.
 screenshot-animation.duration-millis=300
 normal-mode.start.screenshot-animation=#printscreen
 normal-mode.flash-indicator.enabled=false | _{screenshotanimation} -> true
 normal-mode.indicator.exclude-from-capture=false | _{screenshotanimation} -> true
 ```
 
-`exclude-from-capture` keeps the indicator out of screenshots and screen recordings while it
-stays on screen (default false), here only while a screenshot flash plays. It applies to the
-indicator's windows; drawn as the cursor, the indicator follows the capture tool's own cursor
-setting.
+## Animations
 
-An animation is a named clock, defined once for the whole configuration and started by combos:
+An animation is a named clock. You define it one time for the whole configuration. Combos start and
+stop it:
 
 ```properties
 click-burst-animation.duration-millis=500
-_indicator-mode.start.click-burst-animation=+isleftmousepressing | +ismiddlemousepressing | +isrightmousepressing
+_indicator-mode.start.click-burst-animation=+isleftmousepressing | +isrightmousepressing
 _indicator-mode.stop.click-burst-animation=_{clickburstanimation ismousepressing} wait-250
 ```
 
-- **`<name>-animation.duration-millis`**: The length of one cycle. Required.
-- **`<name>-animation.repeat`**: A number of cycles (default `1`) or `loop`.
-- **`<name>-animation.direction`**: `forward` (default) or `alternate`, which plays every other
-  cycle backwards.
-- **`<name>-animation.overlap`**: `true` to let a running animation play to its end when it is
-  started again (default `false`). A loop cannot overlap.
-- **`<mode>.start.<name>-animation`** / **`stop`**: The combos that start and stop it in that
-  mode.
-  Starting a running animation starts it over. With `overlap=true`, the running one leaves a copy
-  of the layers it animates, drawn below them: the copy keeps what was drawn and plays its
-  keyframes to the end. A copy is not a key, so combos and `stop` see the restarted animation
-  only.
+| Property                           | Default   | Description |
+|------------------------------------|-----------|-------------|
+| `<name>-animation.duration-millis` | –         | The length of one cycle. Required. |
+| `<name>-animation.repeat`          | `1`       | The number of cycles, from `1` to `10000`, or `loop`. |
+| `<name>-animation.direction`       | `forward` | `forward`, or `alternate`: each even-numbered cycle plays backward. |
+| `<name>-animation.overlap`         | `false`   | If `true`, a restart lets a copy of the old run play to its end (see below). A loop cannot overlap. |
 
-While it runs, an animation reads as a pressed key named without its hyphens
-(`clickburstanimation`), so `_{clickburstanimation}` matches while it runs and
-`-clickburstanimation` when it ends or is stopped. A loop runs until it is stopped. An animation
-keeps running across mode changes, but the layers it animates belong to their mode. To start one on
-entering a mode, use `start=#{*}-0`.
+The commands:
 
-A branch on an animation can give a property keyframes instead of a value:
+- **`start.<name>-animation`**: Starts the animation. A start of an animation that runs starts it
+  again. To start an animation on each switch to the mode, use
+  `<mode>.start.<name>-animation=#{*}-0`.
+- **`stop.<name>-animation`**: Stops the animation. A `loop` runs until you stop it.
+
+Rules:
+
+- While an animation runs, a key with its name without hyphens is pressed: `clickburstanimation`.
+  `_{clickburstanimation}` is true while it runs. `-clickburstanimation` occurs when it ends or
+  stops.
+- With `overlap=true`, the restart leaves a copy of the layers that the animation changes. The copy
+  is below the layers with the same `z`. It stays where it is and plays its keyframes to the end.
+  The copy does not press the animation key: combos and `stop` see only the new run.
+- An animation continues after a mode switch. Then the keyframes of the new mode apply: a branch
+  of the new mode on the animation plays from the time that the animation has reached.
+
+### Keyframes
+
+A branch on an animation can give a property keyframes in place of a value:
 
 ```properties
 click-rest-animation.duration-millis=80
@@ -680,290 +641,426 @@ _indicator-mode.indicator.size=26 | _{clickrestanimation} -> 0% current; 100% 26
 _indicator-mode.indicator.stroke-opacity=1 | _{clickburstanimation} -> 0% 1; 250ms 1; 500ms 0 0.7
 ```
 
-- A keyframe is a position, a value and an optional easing. The position is a percent of the
-  animation or a time (`250ms`).
-- `current` is the value the property had when the branch took over, so an animation can start
-  from wherever the previous one left it.
-- The easing shapes the change that ends at the keyframe: a polynomial exponent (`1`, the default,
-  is linear), `smoothstep`, `smootherstep`, `logarithmic`, `exponential`, `exponential-out-<n>`, or
-  `step`, which holds the previous value until the keyframe.
-- Numbers ease, and so do colors with as many colors on both sides. Anything else (a shape, a
-  text, `follow`...) switches at its keyframe.
-- The frame at 100% is drawn before the animation ends.
-- Keyframes need a branch that names exactly one animation, and only indicator and `hide-cursor`
-  properties take them. The overlay and the zoom change with [transitions](#transitions).
+- A keyframe is a time, a value and an optional [easing](#easings). The time is a percent of one
+  cycle, or milliseconds in the cycle (`250ms`).
+- The easing shapes the change that ends at the keyframe. Default: `1` (linear).
+- mousemaster draws the frame at 100% before the animation ends.
+- `current` is the value of the property when the branch started.
+- A number follows the easing to the value of the next keyframe.
+- A color follows the easing to the color of the next keyframe. A [gradient](#gradients) follows it
+  to a gradient with the same number of colors: each color goes to the color at the same place. A
+  keyframe value is one word, so a gradient needs a color alias.
+- Other values change at their keyframe: a shape, a text, `follow`, or a color and a gradient with
+  different numbers of colors.
+- Keyframes need a branch with exactly one animation. Only indicator properties and `hide-cursor`
+  properties take keyframes. The overlay and the zoom change with [transitions](#transitions).
 
-### Cursor properties
+## Cursor properties
 
-The cursor can be hidden after a certain duration of inactivity:
 ```properties
 hint1-mode.hide-cursor.enabled=true
 hint1-mode.hide-cursor.idle-duration-millis=0
 ```
 
-### Zoom properties
+- **`hide-cursor.enabled`**: If `true`, mousemaster hides the cursor in the mode. A mode that sets
+  another `hide-cursor` property, and not `hide-cursor.enabled`, enables it. Default: `false`.
+- **`hide-cursor.idle-duration-millis`**: The cursor hides after this time without a move, a wheel
+  scroll or a button press from mousemaster. While the overlay shows, the time starts again at each
+  frame. `0` hides the cursor immediately, also while the overlay shows. Default: `0`.
+- While the indicator is the cursor (`indicator.render-as-cursor=true`), the cursor image shows only
+  the layers, immediately. `idle-duration-millis` does not apply.
 
-Automatic zooming can be defined with:
+## Zoom properties
+
 ```properties
-hint2-2-mode.zoom.percent=5.0
-hint2-2-mode.zoom.center=last-selected-hint
+hint2-mode.zoom.percent=5
+hint2-mode.zoom.center=last-selected-hint
 ```
 
-- `zoom.percent` is between 1.0 (100%, no magnification) and 100.
-- `zoom.center` is the point the zoom is centered on. It takes the values of
-  [`area-center`](#overlay-area-and-grid) (default `active-screen-center`). With `mouse` or
-  `target`, the zoom follows that point.
-- `zoom.area-size-source` is what the magnified area is sized from: `percent` (default), or
-  `last-selected-hint-cell`: the cell, scaled by `zoom.area-width-percent` /
-  `zoom.area-height-percent` (default `1.0`), fills the screen. That zoom stays between 1.0 and
-  100: a scaled cell larger than the screen gets no zoom.
-- A zoom of 1.0 is no zoom, whatever its center.
-- On macOS, zooming needs the Screen Recording permission to capture what it magnifies.
+- **`zoom.percent`**: The magnification, from `1` (no zoom) to `100`. With `5`, the content shows 5
+  times larger. Default: `1`.
+- **`zoom.center`**: The point at the center of the zoom. It takes the values of
+  [`area-center`](#overlay-area-and-grid). With `mouse` or `target`, the zoom follows that point.
+  Default: `active-screen-center`.
+- **`zoom.area-size-source`**: What sets the zoom. Default: `percent`.
+  - `percent`: `zoom.percent`.
+  - `last-selected-hint-cell`: the largest zoom that keeps the cell of the last selected hint on the
+    screen. Before the first hint selection, `zoom.percent` applies.
+- **`zoom.area-width-percent`** / **`zoom.area-height-percent`**: With `last-selected-hint-cell`,
+  scale the cell before the zoom fits it. More than `0`, up to `100`. Default: `1`.
+- The zoom is always from `1` to `100`.
+- **`zoom.transition-*`**: See [Transitions](#transitions).
+- On macOS, the zoom needs the Screen Recording permission.
 
-A [transition](#transitions) moves the zoom from what it shows to the new zoom:
+## Transitions
+
+A transition moves what the overlay or the zoom shows to its new state. You set its duration and its
+easing. Each transition has three properties: `-enabled`, `-duration-millis` and `-easing` (see
+[Easings](#easings)).
+
+| Properties             | What moves | Defaults: `-enabled`, `-duration-millis`, `-easing` |
+|------------------------|------------|-----------------------------------------------------|
+| `overlay.transition-*` | The cells of a grid when its hints change, and the box of the selected hint at the end of a selection. | `true`, `100`, `smootherstep` |
+| `overlay.fade-*`       | The overlay when it shows or hides. | `true`, `100`, `smootherstep` |
+| `zoom.transition-*`    | The zoom when it changes. | `false`, `200`, `smootherstep` |
+
 ```properties
 zoom-mode.zoom.transition-enabled=true
-zoom-mode.zoom.transition-easing=smootherstep
 zoom-mode.zoom.transition-duration-millis=300
+zoom-mode.zoom.transition-easing=smootherstep
 ```
 
-- `zoom.transition-enabled` defaults to `false`.
-- `zoom.transition-duration-millis` is the time each change of the zoom takes (default `200`).
+- A transition uses the settings of the state it goes to. When the overlay hides, or the zoom returns
+  to `1`, the transition uses the settings of the state it leaves.
+- `overlay.transition-*` moves only the hints of a grid. UI hints and position history hints change
+  immediately.
+- A new transition does not stop a transition that runs. The old transition does its part of the
+  change, and the new transition adds the rest. What shows keeps its position. With an easing that
+  starts at rest, such as `smootherstep`, it also keeps its speed.
+- A change without a transition (`-enabled=false` or `-duration-millis=0`) stops the transitions
+  that run.
 
-### Transitions
+## Easings
 
-An animation changes a value that you write, from a time that a combo sets. The overlay and the
-zoom also change to states that you do not write: the hints that stay after a key, the result of a
-UI scan, a zoom that fits a cell, a zoom center that follows the mouse. A transition moves what is
-shown to such a state. You set its duration and its easing, not its values:
+An easing is the shape of a change from 0 to 1. `u` is the part of the duration that is done, from 0
+to 1:
 
-- `overlay.transition-*`: the hints change while the overlay shows.
-- `overlay.fade-*`: the overlay shows or hides.
-- `zoom.transition-*`: the zoom changes.
-
-Each one has `-enabled`, `-duration-millis` and `-easing`. The easing takes the values of a
-keyframe easing: a polynomial exponent (`1` is linear), `smoothstep`, `smootherstep` (the
-default), `logarithmic`, `exponential`, `exponential-out-<n>` or `step`.
-
-- A transition uses the settings of the state it goes to. A transition to nothing (the overlay
-  hides, or the zoom goes back to 100%) uses the settings of the state it leaves.
-- A transition that interrupts a running one does not stop it. The running one finishes its own
-  part of the change, and the new one adds the rest, from the old target to the new one. What is
-  shown keeps its place, and with an easing that starts at rest (such as `smootherstep`), it also
-  keeps its speed.
-
-### Mouse move commands
-
-```properties
-normal-mode.start-move.up=+up
-normal-mode.start-move.down=+down
-normal-mode.start-move.left=+left
-normal-mode.start-move.right=+right
-normal-mode.stop-move.up=-up
-normal-mode.stop-move.down=-down
-normal-mode.stop-move.left=-left
-normal-mode.stop-move.right=-right
-# Move the mouse by mouse.nudge-distance
-normal-mode.nudge.up=_{leftalt} +up
-normal-mode.nudge.down=_{leftalt} +down
-normal-mode.nudge.left=_{leftalt} +left
-normal-mode.nudge.right=_{leftalt} +right
-```
-
-### Mouse button click commands
-
-```properties
-# Capture leftctrl (i.e. do not exit to idle mode when leftctrl is pressed) to be able to ctrl-click.
-normal-mode.press.left=_{none | leftctrl} +leftbutton | _{none | leftctrl} +clickthendisable
-normal-mode.press.middle=+middlebutton
-normal-mode.press.right=_{none | leftctrl} +rightbutton
-normal-mode.release.left=-leftbutton
-normal-mode.release.middle=-middlebutton
-normal-mode.release.right=-rightbutton
-normal-mode.toggle.left=_{none | leftctrl} +toggleleft
-normal-mode.toggle.right=_{none | leftctrl} +toggleright
-```
-
-### Wheel (scrolling) commands
-```properties
-normal-mode.start-wheel.up=+wheelup
-normal-mode.start-wheel.down=+wheeldown
-normal-mode.start-wheel.left=+wheelleft
-normal-mode.start-wheel.right=+wheelright
-normal-mode.stop-wheel.up=-wheelup
-normal-mode.stop-wheel.down=-wheeldown
-normal-mode.stop-wheel.left=-wheelleft
-normal-mode.stop-wheel.right=-wheelright
-```
+| Easing                | Value at `u`                       | Shape                                  |
+|-----------------------|------------------------------------|----------------------------------------|
+| A number `p`          | `uᵖ`                               | `1` is linear. More than `1` starts slowly. |
+| `smoothstep`          | `3u² − 2u³`                        | Slow at the start and at the end.      |
+| `smootherstep`        | `6u⁵ − 15u⁴ + 10u³`                | Slower at the start and at the end.    |
+| `logarithmic`         | `log₂(1 + u)`                      | Fast at the start.                     |
+| `exponential`         | `(eᵘ − 1) / (e − 1)`               | Slow at the start.                     |
+| `exponential-out-<n>` | `(1 − 2^(−n·u)) / (1 − 2^(−n))`    | Very fast at the start. A larger `n` is faster. |
+| `step`                | `0` until `u = 1`, then `1`        | No change until the end.               |
 
 ## Overlay properties
 
-The overlay is what a mode lays over the screen to pick a place: a grid, boxes on UI elements, or
-saved positions. Each box is a hint, and `selection-keys` labels the hints with the keys to type.
-The indicator and the zoom are configured on their own: `overlay.visible=false` hides the overlay
-only.
+The overlay is what a mode shows over the screen to pick a place: a grid, boxes on UI elements or
+saved positions. Each grid cell, UI element or saved position gets a hint. `selection-keys` labels
+the hints with the keys to type. The cell of a UI hint is its element.
 
-`overlay.exclude-from-capture=true` keeps the overlay out of screenshots and screen recordings while
-it stays on screen (default false), as `indicator.exclude-from-capture` does for the indicator.
+An overlay property has the format `<mode>.overlay.<property>=<value>`. This section writes the
+overlay properties without `overlay.`. The `hotspots.*` properties have the format
+`<mode>.hotspots.<property>=<value>`.
 
-`overlay.z` is the place of the overlay in the order of the indicator layers (default `0`): a
-layer with a lower `z` is drawn behind the overlay, and one with the same or a higher `z` above
-it.
-
-The hint system in mousemaster displays labels on the screen that you can select with keystrokes to move the mouse to specific locations. This is similar to the hint systems in browser extensions like Vimium, but works system-wide.
+| Property               | Default | Description |
+|------------------------|---------|-------------|
+| `visible`              | `true`  | If `false`, the overlay does not show. The indicator and the zoom stay. |
+| `exclude-from-capture` | `false` | If `true`, the overlay does not show in screenshots and screen recordings. It stays on the screen. |
+| `z`                    | `0`     | The place of the overlay in the order of the indicator layers (see [Shape](#shape)). |
 
 ### Overlay types
-
-The type of overlay is configured with the following property:
 
 ```properties
 ui-hint-mode.overlay.type=ui-vision
 ```
 
-The **`type`** property determines what hints are displayed:
-- `grid` (default): Displays a grid of hints laid out across the screen
-- `position-history`, or any `<name>-position-history`: Displays discrete absolutely positioned hints at the positions saved in that history (see [Position history](#position-history))
-- `ui-accessibility`: Displays hints at interactive UI elements (see [Accessibility UI hints](#accessibility-ui-hints))
-- `ui-vision`: Displays hints at elements detected on screen (see [Vision UI hints](#vision-ui-hints))
+**`type`**: The hints that the overlay shows. Default: `grid`.
 
-A mode keeps the settings of every type, so a branch on `type` shows the hints of that type with
-the settings the mode gives it:
+| Value | Hints |
+|-------|-------|
+| `grid` | A grid of cells over the area. |
+| `position-history`, `<name>-position-history` | The saved positions of the [history](#position-history). |
+| `ui-accessibility` | The UI elements that the accessibility API finds (see [Accessibility UI hints](#accessibility-ui-hints)). |
+| `ui-vision` | The elements that a screen capture shows (see [Vision UI hints](#vision-ui-hints)). |
+
+A mode can have settings for each type. A branch on `type` shows the hints of that type, with the
+settings of the mode for that type:
 
 ```properties
+virtual-key.isgrid=released
 ui-hint-mode.overlay.type=ui-vision | _{isgrid} -> grid
 ui-hint-mode.overlay.vision-density=6
 ui-hint-mode.overlay.grid-max-row-count=20
 ```
 
-### Accessibility UI hints
-
-Accessibility UI hints detect interactive elements (buttons, links, text fields, checkboxes,
-etc.) and display a hint label on each one, with the UI Automation API on Windows and the
-Accessibility API on macOS. On macOS this needs the Accessibility permission, without which no
-element is found. Unlike grid hints, accessibility UI hints are positioned based on the UI
-elements' locations.
+### Overlay area and grid
 
 ```properties
-ui-hint-mode.overlay.type=ui-accessibility
-ui-hint-mode.overlay.area=active-screen
-ui-hint-mode.overlay.selection-keys=selectionkey
-ui-hint-mode.select=+selectionkey
-ui-hint-mode.deselect=backspace
-ui-hint-mode.overlay.mouse-follows-target=true
-ui-hint-mode.overlay.font-size=10
-ui-hint-mode.overlay.font-weight=bold
-ui-hint-mode.overlay.font-color=#FFFFFF
-ui-hint-mode.overlay.box-color=#204E8A
-ui-hint-mode.overlay.box-opacity=1
-ui-hint-mode.overlay.box-horizontal-padding=8
-ui-hint-mode.overlay.box-vertical-padding=0
-ui-hint-mode.overlay.box-border-radius=3
+hint-mode.overlay.area=active-screen
+hint-mode.overlay.area-center=active-screen-center
+hint-mode.overlay.grid-cell-width=74
+hint-mode.overlay.grid-cell-height=36
+hint-mode.overlay.group-row-count=6
+hint-mode.overlay.group-column-count=5
 ```
 
-**`area`** (see [Overlay area and grid](#overlay-area-and-grid)) selects the
-windows the elements are looked for in:
-- `active-screen`: Every visible window on the screen with the mouse cursor
-- `all-screens`: Every visible window on every connected screen
-- `active-window`: The active window, and its popups (menus, dropdowns, dialogs). A popup
-  is hinted even where it extends past the window.
-- `last-selected-hint-cell`: The cell of the last selected hint, the element of a UI hint
-- `last-overlay-area`: The area of the overlay before this mode, e.g. a grid shrunk by `shrink-overlay`
+`area` sets the size of the area. `area-center` sets the point at its center.
 
-With the other regions, elements are cropped to the region, and elements
-covered by a window drawn over theirs are left out, so a hint is only shown where the
-click it performs would reach the element. Windows of another virtual desktop and
-suspended apps are left out. Scanning several windows takes longer than scanning one: the
-hints appear once the scan is over, mousemaster stays responsive in the meantime.
+**`area`**: Default: `active-screen`.
 
-**`area-width-percent`**, **`area-height-percent`** and **`area-center`** shrink and move that
-region as they do a grid's, so that only the elements around a point get a hint. With
-`all-screens`, each screen is scaled around its own center. An `active-window` region that is
-scaled or moved is scanned like any other region, without the window's popups:
+| Value | Area |
+|-------|------|
+| `active-screen` | The screen with the cursor. |
+| `active-window` | The active window. |
+| `all-screens` | Each screen, with one grid on each screen. `area-center` does not apply. |
+| `last-selected-hint-cell` | The cell of the last selected hint, for [multi-level hints](#multi-level-hints). |
+| `last-overlay-area` | The area of the overlay of the previous mode, when this mode started. It is the area that the [overlay commands](#overlay-commands) left, or the cells that the typed selection keys keep. |
 
 ```properties
+# Shrink a grid, then show a grid with labels in what stays of it.
+screen-grid-mode.to.hint-mode=+h
+hint-mode.overlay.area=last-overlay-area
+hint-mode.overlay.selection-keys=selectionkey
+```
+
+**`area-width-percent`** / **`area-height-percent`**: Scale the area around `area-center`, more than
+`0`, up to `100`. `0.5` gives half the width. A value more than `1` makes the area larger. Default:
+`1`.
+
+**`area-top-inset`** / **`area-bottom-inset`** / **`area-left-inset`** / **`area-right-inset`**:
+Margins cut from the scaled area, in pixels at a 100% scale. A negative inset makes the area larger.
+Default: `0`.
+
+**`area-center`**: The point at the center of the area. The default depends on `area`.
+
+| Value | Point | Default for |
+|-------|-------|-------------|
+| `active-screen-center` | The center of the screen with the cursor. | `active-screen` |
+| `mouse` | The cursor. | |
+| `target` | The [target](#target). | |
+| `last-selected-hint` | The hotspot of the last selected hint. Before the first selection, the center of the screen with the cursor. | `last-selected-hint-cell` |
+| `active-window-center` | The center of the active window. | `active-window` |
+| `last-overlay-area-center` | The center of `last-overlay-area`. | `last-overlay-area` |
+
+- You can use any `area-center` with any `area` except `all-screens`. `area=active-window` with
+  `area-center=mouse` is a grid with the size of the window, at the cursor.
+- With `mouse` or `target`, a grid follows that point.
+
+**`grid-cell-width`** / **`grid-cell-height`**: The size of a cell, in pixels at a 100% scale.
+Default: `73` / `36`.
+
+- The zoom also scales the cells. In an `active-window`, `last-overlay-area` or
+  `last-selected-hint-cell` area, a cell covers the same content at each zoom. With
+  `zoom.percent=5`, a cell with `grid-cell-width=10` is 50 pixels wide on the screen. The grid keeps
+  its shape and its labels.
+- An `active-screen` or `all-screens` area does not change with the zoom. With `zoom.percent=5`, the
+  cells are 5 times larger and there are 5 times fewer cells on each line.
+
+**`grid-max-row-count`** / **`grid-max-column-count`**: The maximum number of rows and columns, from
+`1` to `200`. Default: `200`.
+
+**`grid-cell-sizing`**: How the grid gets its number of cells and their size. Default: `fixed`.
+
+- `fixed`: the number of cells is the area divided by the cell size, at least 1, up to the maximum
+  counts. The cells then stretch to fill the area. Exception: if a maximum count limits the grid, and
+  the space that stays is at least one cell, the cells keep their size. The grid is then at the
+  center of the area.
+- `fit`: the grid has `grid-max-row-count` × `grid-max-column-count` cells, and the cells fill the
+  area. `grid-cell-width` and `grid-cell-height` do not apply. Use it for a grid with a fixed shape,
+  such as 3×3, on any screen.
+
+**`group-row-count`** / **`group-column-count`**: A group is a block of `group-row-count` ×
+`group-column-count` cells. The grid is made of groups. Default: `1000000` / `1`, one group for
+each column.
+
+- The [prefix](#hint-prefix) of a label names the group of the hint. All the hints of a group have
+  the same prefix. The rest of the label names the cell of the hint in its group.
+- The prefix has one key if there are no more groups than selection keys. The rest of the label has
+  one key if a group has no more cells than selection keys.
+- If the grid has 100 hints or more, the prefix or the rest of the label can have two keys. Both can
+  have two keys only with 6 selection keys or fewer.
+- If this does not fit, the labels are the shortest labels, without a prefix.
+- A grid with no more cells than selection keys gives each hint one key, with no prefix.
+- The groups do not change the number of rows and columns of the grid. `grid-cell-sizing` sets
+  them.
+- `group-row-count=1` with a column count larger than the grid gives one prefix for each row.
+
+**`grid-order`**: The order of the groups, and of the cells in each group. The first ones get the
+first keys. Default: `top-to-bottom`.
+
+- `top-to-bottom`: in rows from the top. Each row goes from left to right.
+- `left-to-right`: in columns from the left. Each column goes from top to bottom.
+
+### Screen-specific values
+
+Some overlay properties can have a different value on each screen. Use the screen as a precondition
+of a [mutation](#mode-property-mutation):
+
+```properties
+# Larger cells on a 4K screen at 100%.
+hint1-mode.overlay.grid-cell-width=74 | _{3840x2160-100%} -> 96
+hint1-mode.overlay.grid-cell-height=41 | _{3840x2160-100%} -> 54
+```
+
+- These overlay properties can have a value for each screen: `selection-keys`, `grid-*`, `group-*`
+  and the [Hint appearance](#hint-appearance) properties, such as `box-*`, `font-*` and
+  `ui-element-box-*`.
+- A screen filter is a resolution (`3840x2160`), a scale (`150%`), or both (`3840x2160-150%`). A
+  filter without a scale matches the resolution at each scale. Give the scale on each filter to keep
+  each filter exact.
+- The most specific filter that matches a screen gives the values: a resolution and a scale first,
+  then a resolution, then a scale. A screen that no filter matches takes the default values.
+- A property that a filter does not set takes the default value, not the value of a less specific
+  filter.
+- The appearance properties take the value of the screen where mousemaster draws them.
+- With `all-screens`, the grids take their `grid-cell-sizing` values from the active screen, and
+  their groups, `grid-order` and selection keys from the screen on the left.
+- One grid on more than one screen takes its `selection-keys`, `grid-*` and `group-*` values from
+  one screen. This is the active screen, or with `active-window`, the screen nearest to the center
+  of the window.
+- A length (a padding, a border thickness, a radius, a border length, a shadow blur or offset) is in
+  pixels at a 100% scale. The scale of the screen makes it larger, as it does a font size. A hint
+  keeps its proportions on a 200% screen. To get an exact pixel count at one scale, divide:
+  `box-border-thickness=1 | _{150%} -> 0.67` draws one pixel at 150%.
+
+```properties
+# Two screens. A space means "and", so two filters must be alternatives.
+hint1-mode.overlay.box-border-radius=1 | _{3840x2160-300% | 1366x768-100%} -> 3
+# Two screens with a key: one filter in each branch.
+hint1-mode.overlay.box-border-radius=1 | _{leftshift 3840x2160-300%} -> 3 \
+    | _{leftshift 1366x768-100%} -> 3
+```
+
+On each other property, a screen filter is a
+[built-in virtual key](combo-reference.md#built-in-virtual-keys). mousemaster presses it while the
+active screen matches it:
+
+```properties
+normal-mode.mouse.smooth-jump-velocity=30000 | _{300%} -> 20000
+normal-mode.indicator.size=12 | ^{300%} -> 8 | _{300% leftshift} -> 24
+normal-mode.press.left=_{3840x2160-300%} +f
+```
+
+`screen-alias.<name>` gives a name to a set of screen filters. The alias matches a screen that one of
+its filters matches. A screen alias cannot have the name of a key alias. An alias can name another
+alias:
+
+```properties
+screen-alias.largescreen=3840x2160-100% 3440x1440-100%
+screen-alias.mediumscreen=3840x2160-150% 2560x1440-100%
+screen-alias.smallscreen=1920x1080-125% 1366x768-100%
+screen-alias.tunedscreen=largescreen mediumscreen smallscreen
+
+hint1-mode.overlay.grid-cell-sizing=fit
+hint1-mode.overlay.grid-max-column-count=25 | _{mediumscreen | largescreen} -> 40
+hint1-mode.overlay.grid-max-row-count=30 | _{smallscreen} -> 20 | _{mediumscreen | largescreen} -> 40
+```
+
+With aliases, a property names a set of screens. To change the values of a screen, move it to
+another set.
+
+### UI hints
+
+UI hints are the `ui-accessibility` and `ui-vision` types. They share these properties.
+
+`area`, `area-width-percent`, `area-height-percent` and `area-center` set where mousemaster finds
+the elements (see [Overlay area and grid](#overlay-area-and-grid)). With `all-screens`,
+mousemaster scales each screen around its own center, and the scan covers the rectangle around the
+scaled screens.
+
+```properties
+# Hints only near the cursor.
 ui-hint-mode.overlay.area-width-percent=0.33
 ui-hint-mode.overlay.area-height-percent=0.33
 ui-hint-mode.overlay.area-center=mouse
 ```
 
-**`ui-order`** is the order the elements are labeled in, the first ones getting the shortest labels
-(default `top-to-bottom`): an edge (`top-to-bottom`, `bottom-to-top`, `left-to-right`,
-`right-to-left`), a point of `area-center` (`active-screen-center`, `mouse`, `target`,
-`last-selected-hint`, `active-window-center`, `last-overlay-area-center`) or `random`. With a point, the
-elements nearest it come first, from where it was when the scan started: `active-screen-center`
-gives the shortest labels to the middle of the screen. With an edge, elements are labeled in rows
-from it, each read from left to right (in columns read from top to bottom for `left-to-right` and
-`right-to-left`). A row goes on as long as the next element's center is at most 6 pixels further
-(at 100% scaling), so with `left-to-right` a taskbar on the left edge, whose icons are a few pixels
-apart horizontally, is one column labeled from top to bottom:
+**`ui-order`**: The order of the elements. The first elements get the shortest labels. Default:
+`top-to-bottom`.
 
-```properties
-ui-hint-mode.overlay.ui-order=left-to-right
-```
+- An edge: `top-to-bottom`, `bottom-to-top`, `left-to-right` or `right-to-left`.
+  - With `top-to-bottom` and `bottom-to-top`, the elements are in rows from that edge. Each row goes
+    from left to right.
+  - With `left-to-right` and `right-to-left`, the elements are in columns from that edge. Each column
+    goes from top to bottom.
+  - A row or a column continues while each next center is at most 6 pixels further from the edge
+    than the center before it. The 6 pixels are at a 100% scale. For example, with
+    `left-to-right`, the icons of a taskbar on the left edge are one column.
+- A value of [`area-center`](#overlay-area-and-grid): the elements nearest to that point come
+  first. The point is where it was when the scan started.
+- `random`: an order that looks random but does not change. The same elements always get the same
+  labels.
 
-With `random`, the elements get an order that looks random but does not change: the same elements
-always get the same labels.
+**`label-length`**: The length of the labels. It also applies to position history hints. Default:
+`shortest`.
 
-`ui-order` only applies to `overlay.type=ui-accessibility` and `overlay.type=ui-vision`.
+- `shortest`: the first elements get labels one key shorter than the others. The labels need the
+  fewest key presses.
+- `equal`: all the labels have the same length: the shortest length that gives each element a label.
+  The first elements get the labels with the first keys. With the keys `a b c d`, the order is
+  `aa ab ba bb ac ca bc cb cc ad`. mousemaster sorts the labels by:
+  1. The last selection key that the label uses.
+  2. The sum of the positions of its keys in `selection-keys`.
+  3. The order of `selection-keys`.
 
-**`label-length`** sets the length of the labels (default `shortest`):
-- `shortest`: the first elements get labels one key shorter than the others. The labels then
-  need the fewest key presses.
-- `equal`: all labels have the same length, the smallest length that gives a label to each
-  element. The labels that use only the first selection keys come first. A label with a later key
-  comes after all the labels without it, and labels with the same keys come in the order of the
-  sum of their key positions. Thus the labels use only the first keys that are necessary, and the
-  first elements get the labels made of the first keys. With 4 keys `a b c d`, the order is
-  `aa ab ba bb ac ca bc cb cc ad`.
-
-```properties
-ui-hint-mode.overlay.label-length=equal
-```
-
-`label-length` applies to `overlay.type=ui-accessibility`, `overlay.type=ui-vision` and position
-history hints.
-
-A scan that finds no element leaves the mode showing nothing. The built-in virtual key
-`isoverlayempty` is pressed then, so a combo can leave the mode:
+If the scan finds no element, the mode shows no hint, and the built-in virtual key `isoverlayempty`
+is pressed. A combo can then leave the mode:
 
 ```properties
 ui-hint-mode.to.normal-mode=_{isoverlayempty}
 ```
 
-Accessibility UI hints use the same appearance properties as other hint types (`box-*`,
-`font-*`, etc.). The `box-horizontal-padding` and `box-vertical-padding` properties are
-particularly useful for UI hints since the hint boxes are sized to fit the label text rather than
-a fixed grid cell.
+**`ui-element-box-*`**: The box of each element, behind its hint box. These properties are the same
+as the `box-*` properties (see [Hint appearance](#hint-appearance)):
 
-The **`ui-element-box-*`** properties draw the box of each element, behind its hint box. They are
-the same as the `box-*` properties: `ui-element-box-color`, `ui-element-box-opacity`,
-`ui-element-box-border-thickness`, `ui-element-box-border-length`, `ui-element-box-border-color`,
-`ui-element-box-border-opacity`, `ui-element-box-border-radius`,
-`ui-element-box-horizontal-padding`, `ui-element-box-vertical-padding` and the six
-`ui-element-box-shadow-` properties. The box is the element, and its border is inside it, as in a
-hint box. The paddings grow the box around the element: with paddings equal to the border
-thickness, the border goes around the element and does not cover it. The shadow is outside the box
-only, so it does not cover the element either. The three opacities are 0 by default, so no element
-box is drawn:
+| Property                            | Default   |
+|-------------------------------------|-----------|
+| `ui-element-box-color`              | `#000000` |
+| `ui-element-box-opacity`            | `0`       |
+| `ui-element-box-border-thickness`   | `1`       |
+| `ui-element-box-border-length`      | `10000`   |
+| `ui-element-box-border-color`       | `#FFFFFF` |
+| `ui-element-box-border-opacity`     | `0`       |
+| `ui-element-box-border-radius`      | `0`       |
+| `ui-element-box-horizontal-padding` | `0`       |
+| `ui-element-box-vertical-padding`   | `0`       |
+| `ui-element-box-shadow-*`           | The `box-shadow-*` defaults |
+
+- The box is the element. Its border is inside it, as in a hint box.
+- The paddings make the box larger than the element. With paddings equal to the border thickness, the
+  border goes around the element and does not cover it.
+- The shadow is only outside the box, so it does not cover the element.
 
 ```properties
 ui-hint-mode.overlay.ui-element-box-border-color=#2EA043
 ui-hint-mode.overlay.ui-element-box-border-opacity=1
 ui-hint-mode.overlay.ui-element-box-border-thickness=2
-ui-hint-mode.overlay.ui-element-box-border-radius=3
 ui-hint-mode.overlay.ui-element-box-horizontal-padding=2
 ui-hint-mode.overlay.ui-element-box-vertical-padding=2
 ```
 
-`ui-element-box-*` only applies to `overlay.type=ui-accessibility` and `overlay.type=ui-vision`.
+### Accessibility UI hints
+
+Accessibility UI hints are on the UI elements: buttons, links, text fields, checkboxes. On Windows,
+mousemaster finds the elements with UI Automation. On macOS, it finds them with the Accessibility
+API, and needs the Accessibility permission.
+
+```properties
+ui-hint-mode.overlay.type=ui-accessibility
+ui-hint-mode.overlay.area=active-screen
+ui-hint-mode.overlay.selection-keys=selectionkey
+```
+
+**`area`**: Where mousemaster finds the elements:
+
+| Value | Area |
+|-------|------|
+| `active-screen` | Each visible window on the screen with the cursor. |
+| `all-screens` | Each visible window on each screen. |
+| `active-window` | The active window. On Windows, the area also has its popups (menus, lists, dialogs), with their parts outside the window. On macOS, only the active window. |
+| `last-selected-hint-cell` | The cell of the last selected hint. |
+| `last-overlay-area` | The area of the overlay of the previous mode. |
+
+- If you scale, move or inset an `active-window` area, mousemaster scans it as an `active-screen`
+  area: each visible window in the rectangle.
+- A scan of more than one window takes more time. The hints show when the scan ends. mousemaster
+  continues to respond during the scan.
+- On Windows, an element gets a hint if its center is in its window and in the area, and no other
+  window covers its center. The element keeps its full size. mousemaster ignores minimized windows
+  and windows that let clicks through.
+- On macOS, mousemaster cuts each element to the area. An element that is fully under a window in
+  front gets no hint. Menus, the Dock and the menu bar do not count as windows.
+- mousemaster also ignores the windows of other virtual desktops and of suspended apps.
 
 ### Vision UI hints
 
-Vision UI hints detect elements by their appearance rather than through the accessibility tree:
-the screen is captured, the content that stands out from its background is found, and each
-group of neighbouring content gets a hint. They therefore also cover games, canvas, remote
-desktops and anything else that exposes no accessibility information, at the cost of not
-knowing what an element is.
+mousemaster finds vision UI hints in a screen capture, not with the accessibility API. It finds the
+ink: the pixels that are different from their background. Ink that is close together gets one hint.
+Vision UI hints also work on games, canvases and remote desktops. They do not know what an element
+is.
 
 ```properties
 ui-hint-mode.overlay.type=ui-vision
@@ -971,264 +1068,87 @@ ui-hint-mode.overlay.area=active-screen
 ui-hint-mode.overlay.vision-density=6
 ```
 
-Vision UI hints read the same **`area`** and **`ui-order`** as accessibility UI hints, and
-share every selection, click and appearance property with them. Detection runs off the keyboard
-hook, so mousemaster stays responsive while a scan is in progress, and `isoverlayempty` is
-pressed when a scan finds nothing, exactly as for accessibility UI hints.
+- The capture is the rectangle of the area. The accessibility rules for popups, covered windows and
+  cuts do not apply: with `active-window`, the capture includes what is on top of the window.
+- On macOS, the capture needs the Screen Recording permission.
 
-- **`vision-density`**: How hard the detection looks, 1 to 8 (default 6). A higher value gives
-  more hints, on smaller things. It only applies to `overlay.type=ui-vision`.
-  - 1 leaves **plain text** out: it hints only what the ink draws without a gap (an icon, a
-    filled button, a checkbox, a picture) or what a border surrounds on every side (a field,
-    an outlined button).
-  - 2 to 7 look for **bounded regions** — a button, a field, a panel. Each step accepts a
-    narrower margin between a region's border and what it encloses, so it finds what the step
-    before it was too strict for. A region is parted where its ink changes colour, so a link
-    in a sentence, or grey text beside black, gets a hint of its own.
-  - 8 adds to 7 the **ink** that no region holds, parted at its gaps.
+**`vision-density`**: How much the detection finds, from `1` to `8`. A higher value gives more hints,
+on smaller things. Default: `6`.
 
-  A hint means something was drawn there, not that it can be clicked: on a page of prose, most
-  of the labels at density 6 land on body text. Lower the density when the labels crowd what
-  you are reading, raise it when something clickable goes unhinted.
+- `1` ignores plain text. It finds the ink that has no gap: an icon, a filled button, a checkbox, a
+  picture. It also finds what a border surrounds on all sides: a field, a button with a border.
+- `2` to `7` find bounded regions: a button, a field, a panel. Each step accepts a smaller margin
+  between the border of a region and its content.
+- `8` adds the ink that no region holds, cut at its gaps.
+- At each density, a gap between ink of two colors cuts a region. From density `2`, a link in a
+  sentence, or gray text next to black text, gets its own hint.
 
-- **`vision-min-size`**: An element narrower or shorter than this, in pixels at 100% scaling,
-  gets no hint (default 0). It leaves out the bars, separators and underlines detected beside
-  what they belong to, such as the bar a taskbar draws by the icon of an open app. It also
-  leaves out what is detected only by a thin part of it: at 6, a checkbox found by one edge of
-  its outline or a three-dot button loses its hint. It only applies to `overlay.type=ui-vision`.
+A hint shows that something is drawn there, not that you can click it. Decrease the density when the
+labels hide what you read. Increase it when something that you can click has no hint.
 
-  ```properties
-  ui-hint-mode.overlay.vision-min-size=6
-  ```
-
-On macOS the capture asks for the Screen Recording permission the first time a scan runs;
-hints appear once it is granted.
-
-### Overlay area and grid
-
-The following properties control where hints appear and how they're arranged:
+**`vision-min-size`**: The minimum size of an element, from `0` to `1000`, in pixels at a 100%
+scale. An element narrower or shorter than this size gets no hint. mousemaster measures the element
+before it trims the element to its ink. Use it to ignore thin lines, such as separators. Default:
+`0`.
 
 ```properties
-# Hint area configuration
-hint-mode.overlay.area=active-screen
-hint-mode.overlay.area-center=active-screen-center
-
-# Grid layout configuration
-hint-mode.overlay.grid-cell-width=74
-hint-mode.overlay.grid-cell-height=36
-hint-mode.overlay.grid-cell-sizing=fixed
-hint-mode.overlay.group-row-count=6
-hint-mode.overlay.group-column-count=5
+ui-hint-mode.overlay.vision-min-size=6
 ```
 
-The hint area is two independent settings: **`area`** sets its *size*, **`area-center`** sets
-the point it is *centered* on. For UI hints it is the region the elements are looked for in.
-
-- **`area`**:
-  - `active-screen`: The screen with the mouse cursor
-  - `active-window`: The currently active window
-  - `all-screens`: Every connected screen (one grid per screen — `area-center` does not apply)
-  - `last-selected-hint-cell`: The cell of the last selected hint (for a recursive grid), the
-    element of a UI hint
-  - `last-overlay-area`: The area of the overlay of the mode before, as it was when this mode
-    started: the area the grid commands left, or, when keys of a grid are selected, the cells
-    they leave. E.g. shrink a grid, then show a grid with labels in what is left of it:
-    ```properties
-    screen-grid-mode.to.hint-mode=+h
-    hint-mode.overlay.area=last-overlay-area
-    hint-mode.overlay.selection-keys=hintkey
-    ```
-
-  `active-screen` is the default. What each region scans for UI hints is described in
-  [Accessibility UI hints](#accessibility-ui-hints).
-
-- **`area-width-percent`** / **`area-height-percent`**: Scale the area to a
-  fraction of that region, keeping it centered on `area-center` (default `1.0`).
-  E.g. `area=active-screen` + `area-width-percent=0.5` covers the middle 50%
-  of the screen's width. Works with both `grid-cell-sizing=fit` and `=fixed`.
-
-- **`area-top-inset`** / **`area-bottom-inset`** / **`area-left-inset`** /
-  **`area-right-inset`**: Margins cut from the scaled area, in pixels at 100% scaling (default
-  `0`). E.g. `area=active-window` + `area-top-inset=15` leaves out the window's title bar. A
-  negative inset grows the area.
-
-- **`area-center`** (point the area is centered on):
-  - `active-screen-center`: Center of the screen with the mouse cursor
-  - `mouse`: Current mouse position
-  - `target`: Position of the target (see `mouse-follows-target`)
-  - `last-selected-hint`: Position of the last selected hint
-  - `active-window-center`: Center of the active window
-  - `last-overlay-area-center`: Center of the area `last-overlay-area` names
-
-  When omitted, the center defaults per size: `active-screen`/`all-screens` →
-  `active-screen-center`, `active-window` → `active-window-center`, `last-selected-hint-cell` →
-  `last-selected-hint` (grid stays over the cell), `last-overlay-area` →
-  `last-overlay-area-center`. The size and center compose freely — e.g. an
-  `active-window`-sized grid with `area-center=mouse` is a window-sized grid centered on the
-  cursor. With `mouse` or `target`, a grid follows that point.
-
-- **Grid dimensions**: Control the size of each hint cell:
-  - `grid-cell-width`: Width of each hint cell in pixels
-  - `grid-cell-height`: Height of each hint cell in pixels
-
-  The sizes are unzoomed pixels, so the zoom scales them: under a `zoom.percent` of 5, a
-  cell of width 10 is drawn 50 pixels wide and still covers 10 pixels of the magnified
-  content. A grid therefore keeps its shape, and its hint keys, whatever the zoom.
-
-- **`grid-cell-sizing`**: How cell size is determined:
-  - `fixed` (default): the cell count is the area divided by `grid-cell-width` x `grid-cell-height`, capped by `grid-max-row-count`/`grid-max-column-count`. The cells are then stretched to fill the area, so the pixel sizes pick the count rather than the size drawn.
-  - `fit`: cells are sized to fill the area with exactly `grid-max-row-count` x `grid-max-column-count` cells (the pixel sizes are ignored). Useful for a fixed grid shape (e.g. 3x3) that adapts to any screen, and for a recursive grid via `area=last-selected-hint-cell`.
-
-- **Groups**: `group-row-count` x `group-column-count` is the group, the block of cells
-  that shares a hint prefix. The grid is tiled with groups; a hint's prefix says which
-  group it is in and its cell keys where it sits inside that group. They do not change the grid's
-  own row and column counts, which come from `grid-cell-sizing`.
-  - `group-row-count=6` and `group-column-count=5`: 6x5 groups, as the shipped configurations use
-  - `group-row-count=1` and a column count wider than the grid: one prefix per row
-  - `group-column-count=1` and a row count taller than the grid: one prefix per column, the default
-  - `grid-order=left-to-right` (default `top-to-bottom`) numbers the groups down columns instead of across rows
-
-  A grid with no more cells than there are selection keys gives every hint a single key and no prefix.
-
-### Screen-specific overlay configurations
-
-Any hint property can hold a different value per screen: give the screen as a precondition of a [combo property](#mode-property-mutation).
+### Hint selection
 
 ```properties
-# A 4K screen gets denser hints than the others:
-hint1-mode.overlay.grid-cell-width=74 | _{3840x2160-100%} -> 96
-hint1-mode.overlay.grid-cell-height=41 | _{3840x2160-100%} -> 54
-hint1-mode.overlay.group-row-count=6 | _{3840x2160-100%} -> 4
-hint1-mode.overlay.group-column-count=5 | _{3840x2160-100%} -> 10
-```
-
-A screen filter is a screen resolution (`3840x2160`), a screen scale (`150%`), or both (`3840x2160-150%`). Each screen resolves its own value when the hints are drawn, so a mesh covering several screens gets a value per screen. The most specific matching filter wins: resolution and scale first, then resolution, then scale. A screen matching none of them takes the default value.
-
-A length — a padding, a border thickness, radius or length, a shadow blur or offset — is in the pixels of a 100% screen, and the screen's scale grows it, exactly as it grows a font size. A hint therefore keeps its proportions on a 200% or 300% screen with no per-screen value at all. To pin a length to a pixel count on one scale, override it there and divide: `hint1-mode.overlay.box-border-thickness=1 | _{150%} -> 0.67` draws a single pixel at 150%.
-
-```properties
-# Every screen scaled at 300%, whatever its resolution.
-hint1-mode.overlay.box-border-radius=1 | _{300%} -> 3
-
-# Mixed with a key precondition: on 300% screens only, and only while
-# leftshift is pressed.
-hint1-mode.overlay.box-border-radius=1 | _{300% leftshift} -> 3
-
-# Either of two screens. A space means AND, as it does between keys, so two
-# filters have to be alternatives: no screen is both at once.
-hint1-mode.overlay.box-border-radius=1 | _{3840x2160-300% | 1366x768-100%} -> 3
-
-# Alongside a key, one filter per branch: a | in that block would read as an
-# alternative to the key, which no screen can satisfy.
-hint1-mode.overlay.box-border-radius=1 | _{leftshift 3840x2160-300%} -> 3 \
-    | _{leftshift 1366x768-100%} -> 3
-```
-
-Only a hint property is filtered per screen. Everywhere else — another property, a command,
-a mode switch — a screen filter is a [virtual key](combo-reference.md#built-in-virtual-keys)
-that mousemaster presses while the active screen matches it, so it reads like any other key:
-
-```properties
-# A slower jump on a 300% screen.
-normal-mode.mouse.smooth-jump-velocity=30000 | _{300%} -> 20000
-
-# ^{} negates it, and it can share a block with a real key.
-normal-mode.indicator.size=12 | ^{300%} -> 8 | _{300% leftshift} -> 24
-
-# In a combo, like any other key.
-normal-mode.press.left=_{3840x2160-300%} +leftbutton
-```
-
-A set of screens can be named once with `screen-alias`, which behaves like a key alias: it
-stands for any one of the filters it lists, so `_{largescreen}` is a named `*`-list. A screen
-is then written down in one place instead of once per property:
-
-```properties
-screen-alias.largescreen=3840x2160-100% 3440x1440-100%
-screen-alias.mediumscreen=3840x2160-150% 2560x1440-100%
-screen-alias.smallscreen=1920x1080-125% 1366x768-100%
-# An alias can name another one, like a key alias can.
-screen-alias.tunedscreen=largescreen mediumscreen smallscreen
-
-hint1-mode.overlay.grid-cell-sizing=fit
-hint1-mode.overlay.grid-max-column-count=25 | _{mediumscreen | largescreen} -> 40
-hint1-mode.overlay.grid-max-row-count=30 | _{smallscreen} -> 20 | _{mediumscreen | largescreen} -> 40
-hint1-mode.overlay.selection-keys=hintkey | _{mediumscreen | largescreen} -> extendedhintkey
-```
-
-Aliases that split the screens into sets let each property name a set instead of a screen, so
-adding a screen to a set is all it takes to tune it.
-
-Note that a filter with no scale matches that resolution at *every* scale, so
-`3840x2160` also covers `3840x2160-150%`. Spelling the scale out on every filter keeps each
-one exact, and lets an unlisted scale fall back to the default value.
-
-### Hint selection and behavior
-
-```properties
-# Selection configuration
 key-alias.selectionkey=a b c d e f g h i j k l m n o p q r s t u v w x y z
 hint-mode.overlay.selection-keys=selectionkey
 hint-mode.select=+selectionkey
 hint-mode.deselect=backspace
 hint-mode.to.normal-mode=+selectionkey
-hint-mode.overlay.mouse-follows-target=true
-hint-mode.overlay.eat-unused-selection-keys=true
-hint-mode.overlay.label-override=plus
 ```
 
-- **`selection-keys`**: Keys that can be pressed to select hints. Without selection keys (the
-  default), the hints have no labels and cannot be selected, and `select`, `deselect` and
-  `deselect-all` are rejected. `none` gives no selection keys, for example in a mutation that
-  shows the labels only while a key is pressed:
-  `grid-mode.overlay.selection-keys=none | _{labels} -> hintkey`. `select` then works with the
-  keys of every branch.
-- **`select`**: Combo that triggers hint selection. For example, if you want to be able to hold leftshift while pressing a hint selection key, then use `hint-mode.select=_{none | leftshift} +selectionkey`
-- **`deselect`**: Combo that deselects the last selection key
-- **`deselect-all`**: Combo that deselects every selection key typed so far. A selected hint that
-  leads to a mode with other hints keeps the keys before its last one when its hints show again,
-  so a neighbor is one key away: `deselect-all` in the mode that brings the hints back starts
-  them from nothing instead (e.g., `pick-mode.deselect-all=wait-0`)
-- **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
-- **`mouse-follows-target`**: Whether the mouse follows the target (default `true`). The
-  target is a position that follows the mouse. Selecting a hint and `move-target-to` move it to
-  a point, and the mouse goes there. When it becomes `false`, the target stops where it is:
-  only those commands move it, and the mouse stays. Use `false` when the next mode will be
-  another hint grid.
-- **`target-follows-overlay-center`**: Whether the target goes to the center of the overlay
-  when the overlay shows, and when a selection key or `deselect` changes its hints (default
-  `false`). The mouse goes there too, unless `mouse-follows-target=false`. It does nothing for a
-  grid that follows the target: with `area-center=target`, or with `area-center=mouse` while the
-  mouse follows the target.
-- **`move-to.<point>`** / **`move-target-to.<point>`**: Like `to.<mode-name>`, commands of the
-  mode, not overlay properties. `move-to` moves the mouse to the point, and `move-target-to` the
-  target:
-  - `target` (`move-to` only) and `mouse` (`move-target-to` only).
-  - `last-selected-hint`: the hotspot of the last selected hint (see [Hotspots](#hotspots)).
-  - `overlay-center`: the center of the hints that the selection keys keep, the point that
-    `target-follows-overlay-center` uses.
-  - `cell-center`: the center of the cell that the point is in, or of the nearest cell. When the
-    point is in several cells, such as nested UI elements, the command uses the smallest one.
-  - `cell-top`, `cell-bottom`, `cell-left` and `cell-right`: the nearest point of a cell edge
-    on that side of the point that moves: a top edge above it, a bottom edge below it, a left
-    edge on its left and a right edge on its right. The edge of the cell that the point is in
-    comes first, the smallest one as for `cell-center`, so the edge of a UI element is its own
-    and not the one of the element next to it. A right or bottom edge is the last pixel of its
-    cell, so the point lands in the cell.
+| Property | Default | Description |
+|----------|---------|-------------|
+| `selection-keys` | – | The keys that select the hints. Without selection keys, the hints have no labels, and `select`, `deselect` and `deselect-all` are errors. `none` gives no selection keys. |
+| `target-follows-overlay-center` | `false` | If `true`, the [target](#target) goes to the center of the overlay when the overlay shows, and when its hints or its area change. |
+| `eat-unused-selection-keys` | `true` | If `false`, a selection key that no hint uses can complete other combos. |
+| `label-override` | – | A fixed label in each hint, in place of the keys of the hint. Give a key name: `plus` shows `+`. You still type the real keys. |
 
-  For example, after `mouse-follows-target=false` left the mouse where it was:
-  `normal-mode.move-to.last-selected-hint=+m`
-- **`eat-unused-selection-keys`**: If `false`, selection keys not used in the current hint display can be used in combos
-- **`label-override`**: Draws a fixed marker in every hint cell instead of each hint's own keys — visual only, you still press the real keys to select. The value is a key sequence rendered as the label: `plus` shows `+`, `plus plus` shows `++`. Useful for positional grids (e.g. a 3×3 recursive grid) where the per-cell letters are just clutter. Default: unset (each hint shows its own key sequence).
+The commands:
+
+- **`select`**: The combo that selects a hint. To select while `leftshift` is pressed, use
+  `hint-mode.select=_{none | leftshift} +selectionkey`.
+- **`deselect`**: Removes the last typed selection key.
+- **`deselect-all`**: Removes all the typed selection keys. A selected hint that leads to a mode
+  with its own hints keeps the keys before its last key when its hints show again. You can then
+  select a neighbor hint with one key. With `deselect-all` in the mode that shows the hints again,
+  no key stays typed: `pick-mode.deselect-all=wait-0`.
+- **`to.<mode>`**: Switches to the mode after a selection: `hint-mode.to.normal-mode=+selectionkey`.
+- **`move-to.<point>`** / **`move-target-to.<point>`**: Move the mouse or the target to a point:
+  - `target` (`move-to` only) and `mouse` (`move-target-to` only).
+  - `last-selected-hint`: the [hotspot](#hotspots) of the last selected hint.
+  - `overlay-center`: the center of the hints that the typed selection keys keep. It is the point of
+    `target-follows-overlay-center`.
+  - `cell-center`: the center of the cell that the mouse or the target is in, or of the nearest cell.
+    If it is in more than one cell, such as nested UI elements, the smallest cell applies.
+  - `cell-top`, `cell-bottom`, `cell-left` and `cell-right`: the nearest point of a cell edge on that
+    side of the mouse or the target. The edge of the cell that it is in comes first, the smallest
+    cell as for `cell-center`. A right or bottom edge is the last pixel of its cell, so the point
+    stays in the cell.
+
+`selection-keys=none` with a mutation shows the labels only while a key is pressed. `select` then
+works with the keys of each branch:
+
+```properties
+virtual-key.labels=released
+grid-mode.overlay.selection-keys=none | _{labels} -> selectionkey
+```
+
+`target-follows-overlay-center` does nothing for a grid that follows the target: a grid with
+`area-center=target`, or with `area-center=mouse` while the mouse follows the target.
 
 ### Hotspots
 
-The hotspot of a hint is where a selection of the hint puts the target, as the hotspot of a
-cursor is the one point of its image that clicks. The [hotspot properties](#hotspot-properties)
-`cell-x-percent` and `cell-y-percent` put the hotspots of all the hints at the same place of their
-cells, the center by default. The box of a hint stays at the center. Before you select a hint, a
-key [mutation](#mode-property-mutation) moves the hotspots: here, the first left arrow takes them
-to the left edges, and 3 a quarter across.
+The hotspot of a hint is the point where a selection of the hint puts the target. (The hotspot of a
+cursor is the point that clicks.) The box of a hint stays at the center of its cell.
 
 ```properties
 hint-mode.hotspots.cell-x-percent=0.5 | _{ishotspotscentered} +leftarrow -> 0 \
@@ -1237,532 +1157,470 @@ hint-mode.nudge-hotspots.left=^{ishotspotscentered} +leftarrow
 hint-mode.hotspots.nudge-distance=4 | _{leftctrl} -> 2
 ```
 
-- **`nudge-hotspots.<direction>`**: Moves the hotspots by the `hotspots.nudge-distance` of the
-  mode, in pixels at a 100% scale.
-- **`start-move-hotspots.<direction>`** / **`stop-move-hotspots.<direction>`**: Start and
-  stop a continuous move of the hotspots, with the `hotspots` speed of the mode.
-- A hotspot can leave its cell with a nudge or a move, but not the screen of its hint. Once every
-  hotspot is at the edge of its screen, a nudge or a move that way does nothing.
-- A new `cell-x-percent` undoes the nudges and moves across, and a new `cell-y-percent` the ones
-  down.
-- A mode without hints undoes the nudges and moves, and stops a move. A mode with the same
-  `overlay.type`, area, grid and groups keeps the hotspots where the commands left them, as it keeps the
-  overlay area: `pick-mode.overlay=hint-mode.overlay` with `pick-mode.hotspots=hint-mode.hotspots`
-  keeps them.
-- A hint without a cell, such as a saved position, keeps its hotspot at its center.
-- `ishotspotscentered` is pressed while the hotspots are at the centers, and `ishotspotsmoving`
-  while they move (see [Built-in virtual keys](combo-reference.md#built-in-virtual-keys)).
-- A hint saved in the overlay's `saved-hints` history has the position it was saved at as its
-  hotspot: it does not move with the other hotspots.
-- Once the hotspots are not at the centers, the overlay draws the hotspot of each hint, behind the
-  boxes, with `hotspot-box-*` and `hotspot-line-*` (see [Hint appearance](#hint-appearance)).
-  While they are at the centers, it draws only the hotspot of a saved hint that is off its center.
+Here, the first press of `leftarrow` moves the hotspots to the left edges of their cells. The next
+presses nudge them. A press of `3` moves them a quarter across.
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `hotspots.cell-x-percent` | `0.5` | The place of the hotspot across its cell, from `0` to `1`. `1` is the last pixel of the cell. |
+| `hotspots.cell-y-percent` | `0.5` | The place of the hotspot down its cell, from `0` to `1`. |
+
+The speed and nudge properties of `hotspots` are in [Movement properties](#movement-properties).
+
+- **`nudge-hotspots.<direction>`**: Moves the hotspots by `hotspots.nudge-distance`.
+- **`start-move-hotspots.<direction>`** / **`stop-move-hotspots.<direction>`**: Start and stop a
+  move of the hotspots, with the `hotspots` speed.
+- A hotspot can go out of its cell, but not out of the screen of its hint. When each hotspot is at
+  the edge of its screen, a nudge or a move in that direction does nothing.
+- A new `cell-x-percent` cancels the horizontal nudges and moves. A new `cell-y-percent` cancels the
+  vertical ones.
+- A mode without hints cancels the nudges and moves, and stops a move.
+- Two modes have the same overlay settings if they have the same `type`, `area`, `area-*`, `grid-*`,
+  `group-*`, `ui-order`, `label-length` and `vision-*` values. A mode with the same overlay
+  settings keeps the hotspots where the commands put them: `pick-mode.overlay=hint-mode.overlay`
+  with `pick-mode.hotspots=hint-mode.hotspots`.
+- A hint without a cell, such as a saved position, has its hotspot at its center.
+- A [saved hint](#saved-hints) has its hotspot at the position where you saved it. It does not move
+  with the other hotspots.
+- `ishotspotscentered` is pressed while the hotspots are at the centers. `ishotspotsmoving` is
+  pressed while they move. See [built-in virtual keys](combo-reference.md#built-in-virtual-keys).
+- When the hotspots are not at the centers, the overlay draws the hotspot of each hint behind the
+  boxes, with the `hotspot-box-*` and `hotspot-line-*` properties. Their opacities are `0` by
+  default: set them to show the hotspots. While the hotspots are at the centers, the overlay draws
+  only the hotspot of a saved hint that is not at its center.
 
 ### Hint appearance
 
+Each color property takes a hex color, a [gradient](#gradients) or a color alias. An opacity is from
+`0` to `1`.
+
 ```properties
-# Box appearance
-# One color, or several for a gradient through them.
-hint-mode.overlay.box-color=#000000
 hint-mode.overlay.box-opacity=0.4
-hint-mode.overlay.box-border-thickness=1
-hint-mode.overlay.box-border-length=1000
-hint-mode.overlay.box-border-color=#FFFFFF
-hint-mode.overlay.box-border-opacity=0.4
-hint-mode.overlay.box-border-radius=0
-# false draws the lines between the boxes only, no frame around the grid
-hint-mode.overlay.box-framed=true
-
-# Box shadow, mostly useful for UI hints and position history hints
-hint-mode.overlay.box-shadow-blur-radius=10
-hint-mode.overlay.box-shadow-color=#000000
-hint-mode.overlay.box-shadow-opacity=0
-hint-mode.overlay.box-shadow-stack-count=1
-hint-mode.overlay.box-shadow-horizontal-offset=0
-hint-mode.overlay.box-shadow-vertical-offset=0
-
-# Box size relative to the grid cell (for the hint grid only). Below 1, a box is at least as
-# large as its label and padding, so 0 fits each box to its label.
-hint-mode.overlay.box-width-percent=1.0
-hint-mode.overlay.box-height-percent=1.0
-
-# Decorations: purely visual grids drawn over the hints. subdecoration is drawn inside each
-# hint cell (a preview of the next level), subsubdecoration inside each of those, and
-# decoration spans the whole hint grid as one big cell.
-# Set subdecoration-label-keys to label the cells.
-hint-mode.overlay.subdecoration-max-row-count=1
-hint-mode.overlay.subdecoration-max-column-count=1
-hint-mode.overlay.subdecoration-label-keys=
-hint-mode.overlay.subdecoration-box-border-thickness=1
-hint-mode.overlay.subdecoration-box-border-length=10000
-hint-mode.overlay.subdecoration-box-border-color=#FFFFFF
-hint-mode.overlay.subdecoration-box-border-opacity=1.0
-hint-mode.overlay.subdecoration-box-framed=false
-hint-mode.overlay.subdecoration-font-size=10
-hint-mode.overlay.subdecoration-font-color=#FFFFFF
-hint-mode.overlay.subdecoration-font-opacity=1.0
-
-# Box padding, mostly useful for UI hints and position history hints
-hint-mode.overlay.box-horizontal-padding=0
-hint-mode.overlay.box-vertical-padding=0
-
-# Font appearance
-hint-mode.overlay.font-name=Consolas
 hint-mode.overlay.font-size=18
-hint-mode.overlay.font-spacing-percent=0.7
-hint-mode.overlay.font-color=#FFFFFF
-hint-mode.overlay.font-opacity=1.0
-
-# Font effects
-hint-mode.overlay.font-outline-thickness=0
-hint-mode.overlay.font-outline-color=#000000
-hint-mode.overlay.font-outline-opacity=0.5
-hint-mode.overlay.font-shadow-blur-radius=0
-hint-mode.overlay.font-shadow-color=#000000
-hint-mode.overlay.font-shadow-opacity=1.0
-hint-mode.overlay.font-shadow-horizontal-offset=0
-hint-mode.overlay.font-shadow-vertical-offset=0
-
-# Selected hint appearance
-hint-mode.overlay.selected-font-color=#A3A3A3
-hint-mode.overlay.selected-font-opacity=1.0
-
-# Group box (for multi-character hints). A border is never drawn where an enclosing one
-# already draws, so the hint boxes leave the group box its own.
-hint-mode.overlay.group-box-enabled=true
-hint-mode.overlay.group-box-border-thickness=2
-hint-mode.overlay.group-box-border-color=#FFD93D
-hint-mode.overlay.group-box-border-opacity=0.8
-# false draws the lines between the group boxes only, no frame around the grid
-hint-mode.overlay.group-box-framed=true
-hint-mode.overlay.prefix-in-background=true
-
-# Transition (when the hints change)
-hint-mode.overlay.transition-enabled=true
-hint-mode.overlay.transition-duration-millis=100
-hint-mode.overlay.transition-easing=smootherstep
-
-# Fade (when the hints appear or disappear)
-hint-mode.overlay.fade-enabled=true
-hint-mode.overlay.fade-duration-millis=100
-hint-mode.overlay.fade-easing=smootherstep
-
-# Background, mostly useful for UI hints and position history hints
-hint-mode.overlay.background-color=#000000
-hint-mode.overlay.background-opacity=0
 ```
 
-- Box appearance: controls the background and border of hint boxes
-  - `box-color`: One color, or several for a gradient through them, evenly spaced and interpolated
-    through OkLab. Each hint takes the color at its center, and its boxes show it, so with
-    `top-to-bottom` a grid row is one color. `box-opacity` applies to the whole gradient.
-    ```properties
-    hint-mode.overlay.box-color=#FF0000 #FFA500 #FFFF00 #00FF00 #800080
-    hint-mode.overlay.box-color=across-screen left-to-right #FF6B00 #FF006E
-    ```
-    Keywords go anywhere among the colors, in any order:
-    - Direction: `top-to-bottom` (default), `bottom-to-top`, `left-to-right`, `right-to-left`, the
-      four diagonals (`top-left-to-bottom-right` and so on), and four round ones: `center-to-corner`
-      and `corner-to-center` reach the last color at the corners, `center-to-edge` and
-      `edge-to-center` at every edge.
-    - What one sweep covers, narrowest first: `across-box` (each box, blended inside it),
-      `across-group` (each [group](#overlay-area-and-grid), so the gradient repeats), `across-all-hints` (the
-      hints on that screen), `across-area` (default, the region `area` names, so
-      the sweep spans it even where no hint sits), `across-screen`, `across-all-screens` (one sweep
-      over the whole arrangement).
-    - What shares one color: `per-hint` (default), `per-group` (one color per group),
-      `per-pixel` (none: the gradient ramps inside a box and continues into the next).
-      `per-group` needs a span larger than a group, so not with `across-group` or
-      `across-box`.
-    - A grid without groups, such as one without `selection-keys`, is one group: with
-      `per-group`, all its boxes share one color.
-    - Hints without a grid (UI hints and position history hints) are in groups too: the hints
-      whose labels differ only in the last key are one group. With the labels
-      `a b c da db dc`, `a b c` is one group and `da db dc` is another. Thus with 2-key labels
-      and `per-group in-turn`, each first key gets its own color.
-    - `in-turn`, in place of a direction: the colors are not blended. The hints (with
-      `per-hint`) or the groups (with `per-group`) take the colors in turn, in the order
-      their labels are given, and start again at the first color after the last one. An
-      `across-` keyword and `per-pixel` cannot be given with it, and an indicator color cannot
-      use it:
-      ```properties
-      hint-mode.overlay.box-color=per-group in-turn #E06C75 #98C379 #61AFEF
-      ```
-  - `box-border-color`: One color, or a gradient as for `box-color`. So is every other color of
-    the overlay, such as `box-shadow-color`, `background-color` and `<level>-box-color`: a
-    `<level>-` cell and the background are drawn as a box is. A shadow color is taken at each box
-    as a box color is, and where two shadows meet, their colors mix.
-    ```properties
-    hint-mode.overlay.box-border-color=across-screen per-pixel center-to-edge #F97316 #3B82F6
-    ```
-  - `saved-box-color`, `saved-box-opacity`, `saved-box-border-color`, `saved-box-border-opacity` and
-    the same four `saved-ui-element-box-` and `saved-hotspot-box-` properties: the box of a hint at
-    a saved position (see [Saved hints](#saved-hints)).
-  - `hotspot-box-width` and `hotspot-box-height` (pixels, default `8`), `hotspot-box-color` (default
-    `#000000`), `hotspot-box-opacity` (default `0`), `hotspot-box-border-thickness` (default `1`),
-    `hotspot-box-border-color` (default `#FFFFFF`), `hotspot-box-border-opacity` (default `0`) and
-    `hotspot-box-border-radius` (default `0`): the box drawn at the hotspot of a hint that is not at
-    the center of its cell (see [Hotspots](#hotspots)). A radius of half the size makes it a
-    dot.
-  - `hotspot-line-thickness` (default `1`), `hotspot-line-color` (default `#FFFFFF`) and
-    `hotspot-line-opacity` (default `0`): a line from the edge of the hint box to that hotspot,
-    when the hotspot is outside the hint box.
-  - The six `hotspot-box-shadow-` and the six `hotspot-line-shadow-` properties, with the
-    `box-shadow-` defaults: each hotspot box casts its own shadow, only outside the box. The
-    hotspot lines cast one shadow together: where the shadows of two lines meet, their colors mix.
-    A line is drawn over its shadow. The shadow of a hotspot line takes its colors as the line
-    does. The shadow of a hotspot box has one color: the color of the gradient at its hint, at the
-    center of the box for an `across-box` gradient, or where the box is for a `per-pixel`
-    gradient.
-  - `box-border-length`: Higher values create continuous lines between hint boxes, lower values create dotted separators
-  - `box-border-radius`: Radius for rounded corners (0-1000, default 0).
-  - `box-shadow-blur-radius`: Shadow blur radius (0-1000, default 10).
-  - `box-shadow-color`: Shadow color (default #000000).
-  - `box-shadow-opacity`: Shadow opacity (0-1, default 0 = disabled).
-  - `box-shadow-stack-count`: Number of times the shadow is composited on itself for stronger effect (1-100, default 1).
-  - `box-shadow-horizontal-offset`: Horizontal shadow offset (-100 to 100, default 0).
-  - `box-shadow-vertical-offset`: Vertical shadow offset (-100 to 100, default 0).
-  - `background-color`: Background color behind all hint boxes, mostly useful for UI hints (default #000000).
-  - `background-opacity`: Background opacity, mostly useful for UI hints (0-1, default 0 = no background).
-  - `background-border-thickness` / `background-border-color` / `background-border-opacity`: A
-    border inside the edge of the background, drawn without a background too (default 1 pixel of
-    #FFFFFF at 0 = no border).
-  - `background-border-radius`: Radius of the background's rounded corners (0-1000, default 8, matching
-    Windows' own window corners).
+#### Box
 
-- Decorations: purely visual grids drawn over the hints. Three levels share one set of
-  properties, prefixed by how deep they sit: `decoration-` spans the whole hint grid as one
-  big cell; `subdecoration-` is drawn inside each hint cell (a preview of the next level);
-  `subsubdecoration-` is drawn inside each subdecoration cell. All levels can be used at the same time.
-  - `<level>-max-row-count` / `<level>-max-column-count`: How many rows/columns to divide the area into (default 1 = disabled).
-  - `<level>-label-keys`: Keys whose hint-style labels are drawn in the cells (accepts a key-alias; empty = lines only, no labels). Labels are generated like the main grid, so they are 1- or 2-char depending on cell count vs. key count. (These are previews, not a selection.)
-  - `<level>-label-override`: A fixed label drawn in every cell (e.g. `plus` for a `+`), overriding label-keys.
-  - `<level>-font-size` / `<level>-font-color` / `<level>-font-opacity` / `<level>-font-spacing-percent` (and `-font-name`, `-font-weight`, `-font-outline-*`, `-font-shadow-*`): Font of the cell labels.
-  - `<level>-box-color` / `<level>-box-opacity`: Cell fill.
-  - `<level>-box-border-thickness` / `<level>-box-border-color` / `<level>-box-border-opacity` / `<level>-box-border-radius`: The lines. (Names mirror the top-level `box-border-*`.)
-  - `<level>-box-border-length`: Length of each line; high values (default 10000) draw continuous lines, low values draw short marks (e.g. a `+` at the center of a 2x2 decoration).
-  - `<level>-box-framed`: Whether this level draws its own frame (default false). A decoration spans its parent box exactly, so its frame would land on the parent's border and double it; false draws the interior lines only. Same property as the top-level `box-framed` and `group-box-framed`, which default to true since nothing above them draws that frame.
-  - `<level>-box-horizontal-padding` / `<level>-box-vertical-padding`: Grow each box around its cell, as `box-horizontal-padding` grows a hint box (default 0). With `box-framed=false`, a framed `decoration-` with paddings equal to its border thickness draws its frame around the grid, where a UI hint's element box draws:
-    ```properties
-    refine-ui-hint-mode.overlay.box-framed=false
-    refine-ui-hint-mode.overlay.decoration-box-framed=true
-    refine-ui-hint-mode.overlay.decoration-box-border-radius=1
-    refine-ui-hint-mode.overlay.decoration-box-horizontal-padding=1
-    refine-ui-hint-mode.overlay.decoration-box-vertical-padding=1
-    ```
+| Property | Default | Description |
+|----------|---------|-------------|
+| `box-color` | `#000000` | The fill of a hint box. |
+| `box-opacity` | `0.3` | The opacity of the fill. |
+| `box-border-thickness` | `1` | The thickness of the border. |
+| `box-border-length` | `10000` | The length of the border from each corner of a box. A low value draws short marks at the corners. |
+| `box-border-color` | `#FFFFFF` | The color of the border. |
+| `box-border-opacity` | `0.4` | The opacity of the border. |
+| `box-border-radius` | `0` | The radius of the corners, from `0` to `1000`. |
+| `box-framed` | `true` | If `false`, only the lines between the boxes show, with no frame around the grid. |
+| `box-width-percent` / `box-height-percent` | `1` | The size of a box in its grid cell. Less than `1`, a box is at least the size of its label and padding: `0` fits each box to its label. Grid only. |
+| `box-horizontal-padding` / `box-vertical-padding` | `0` | For a hint that is not in a grid, the space between the label and the edge of the box. In a grid, each box is larger than its cell by the padding on each side. |
 
-- Font appearance: controls how hint labels appear
-    - `font-spacing-percent`: Controls character spacing (0=touching, 1=evenly distributed, 0.5=minimal spacing with alignment)
+#### Box shadow
 
-- [Transitions](#transitions):
-    - `transition-enabled` / `transition-duration-millis` / `transition-easing`: moves the hint boxes to their new places when the hints change, for example after a key in a multi-level hint mode. Default enabled, 100ms.
-    - `fade-enabled` / `fade-duration-millis` / `fade-easing`: fades the hints in when they appear and out when they disappear. Default enabled, 100ms. A mode change that also changes the zoom does not fade.
+| Property | Default | Description |
+|----------|---------|-------------|
+| `box-shadow-opacity` | `0` | The opacity of the shadow. `0` shows no shadow. |
+| `box-shadow-blur-radius` | `10` | The blur radius, from `0` to `1000`. |
+| `box-shadow-color` | `#000000` | The color of the shadow. Where two shadows meet, their colors mix. |
+| `box-shadow-stack-count` | `1` | How many times mousemaster draws the shadow on itself, from `1` to `100`. |
+| `box-shadow-horizontal-offset` / `box-shadow-vertical-offset` | `0` | The offset, from `-100` to `100`. |
+
+#### Font
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `font-name` | `Consolas` on Windows, `Menlo` on macOS | The font of the labels. |
+| `font-weight` | `normal` | `thin`, `extra-light`, `light`, `normal`, `medium`, `demi-bold`, `bold`, `extra-bold` or `black`. |
+| `font-size` | `18` | The size, in points. |
+| `font-color` | `#FFFFFF` | The color of the letters. |
+| `font-opacity` | `1` | The opacity of the letters. |
+| `font-spacing-percent` | `0.7` | The space between the letters: `0` is no space, `1` spreads the letters evenly across the box, `0.5` is a small space with alignment. For hints that are not in a grid, a value more than `0.5` acts as `0.5`. |
+| `font-vertical-alignment` | `cap-height` | `baseline`, `middle` or `cap-height`. |
+| `font-outline-thickness` | `0` | The thickness of the outline of the letters. |
+| `font-outline-color` | `#000000` | The color of the outline. |
+| `font-outline-opacity` | `0.5` | The opacity of the outline. |
+| `font-shadow-opacity` | `1` | The opacity of the shadow of the letters. |
+| `font-shadow-blur-radius` | `10` | The blur radius of the shadow, from `0` to `1000`. |
+| `font-shadow-color` | `#FFFFFF` | The color of the shadow. |
+| `font-shadow-stack-count` | `1` | How many times mousemaster draws the shadow on itself, from `1` to `100`. |
+| `font-shadow-horizontal-offset` / `font-shadow-vertical-offset` | `0` | The offset of the shadow, from `-100` to `100`. |
+
+For the selected, focused, saved and prefix keys, see [Hint font states](#hint-font-states).
+
+#### Background
+
+The background is one box behind the hints. It covers the overlay area, not only the hints.
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `background-color` | `#000000` | The color of the background. |
+| `background-opacity` | `0` | The opacity. `0` shows no background. |
+| `background-border-thickness` | `1` | The thickness of the border. The border is inside the edge of the background. It also shows without a background. |
+| `background-border-color` | `#FFFFFF` | The color of the border. |
+| `background-border-opacity` | `0` | The opacity of the border. `0` shows no border. |
+| `background-border-radius` | `8` | The radius of the corners, from `0` to `1000`. |
+
+#### Group box
+
+The group box is a box around the hints of each [group](#overlay-area-and-grid). Grid only.
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `group-box-enabled` | `false` | If `true`, the group boxes show. A mode that sets another `group-box-*` property, and not `group-box-enabled`, enables the group boxes. |
+| `group-box-border-thickness` | `2` | The thickness of the border. |
+| `group-box-border-length` | `10000` | The length of the border from each corner. |
+| `group-box-border-color` | `#FFD93D` | The color of the border. |
+| `group-box-border-opacity` | `0.8` | The opacity of the border. |
+| `group-box-framed` | `true` | If `false`, only the lines between the group boxes show, with no frame around the grid. |
+
+A hint box draws no border where the group box draws one.
+
+#### Hotspot box and line
+
+The hotspot box shows the [hotspot](#hotspots) of a hint that is not at the center of its cell. The
+hotspot line goes from the edge of the hint box to a hotspot that is out of the hint box.
+
+| Property | Default |
+|----------|---------|
+| `hotspot-box-width` / `hotspot-box-height` | `8` |
+| `hotspot-box-color` | `#000000` |
+| `hotspot-box-opacity` | `0` |
+| `hotspot-box-border-thickness` | `1` |
+| `hotspot-box-border-color` | `#FFFFFF` |
+| `hotspot-box-border-opacity` | `0` |
+| `hotspot-box-border-radius` | `0` |
+| `hotspot-box-shadow-*` | The `box-shadow-*` defaults |
+| `hotspot-line-thickness` | `1` |
+| `hotspot-line-color` | `#FFFFFF` |
+| `hotspot-line-opacity` | `0` |
+| `hotspot-line-shadow-*` | The `box-shadow-*` defaults |
+
+A radius of half the size makes the hotspot box a dot.
+
+- Each hotspot box casts its own shadow, only outside the box. The hotspot lines cast one shadow
+  together: where the shadows of two lines meet, their colors mix. A line is drawn over its shadow.
+- The shadow of a hotspot box has one color: the color of the gradient at the center of the box.
+
+The `saved-` box properties are in [Saved hints](#saved-hints). The transition and fade properties
+are in [Transitions](#transitions).
+
+### Gradients
+
+A color can be a gradient: two or more colors with equal spaces between them. The colors blend in
+the OkLab color space. An opacity applies to the whole gradient.
+
+```properties
+hint-mode.overlay.box-color=#FF0000 #FFA500 #FFFF00 #00FF00 #800080
+hint-mode.overlay.background-color=across-screen left-to-right #FF6B00 #FF006E
+hint-mode.overlay.box-border-color=across-screen per-pixel center-to-edge #F97316 #3B82F6
+```
+
+Keywords can be anywhere among the colors, in any order:
+
+- **Direction**: `top-to-bottom` (default), `bottom-to-top`, `left-to-right`, `right-to-left`, the
+  four diagonals (`top-left-to-bottom-right` and the others), `center-to-corner`, `corner-to-center`,
+  `center-to-edge` and `edge-to-center`. `center-to-corner` and `center-to-edge` go from the first
+  color at the center to the last color at the corners or at the edges. `corner-to-center` and
+  `edge-to-center` go the other way.
+- **Span**: the area of one sweep of the gradient. From the smallest:
+  - `across-box`: each box. The colors always blend inside the box.
+  - `across-group`: each [group](#overlay-area-and-grid). The gradient repeats.
+  - `across-all-hints`: the hints on the screen.
+  - `across-area` (default): the area of `area`, also where there is no hint.
+  - `across-screen` and `across-all-screens`.
+- **Step**:
+  - `per-hint` (default): each hint has one color.
+  - `per-group`: each group has one color. It needs a span larger than a group: not
+    `across-group` or `across-box`.
+  - `per-pixel`: the colors blend inside each box, and continue into the next box.
+- **`in-turn`**, in place of a direction: the colors do not blend. Each hint (with `per-hint`) or
+  each group (with `per-group`) takes the next color. The order is the order of the hints: a
+  grid row by row from the top, UI hints in their `ui-order`. After the last color, the first color
+  comes again. You cannot use `in-turn` with an `across-` keyword, with `per-pixel` or in an
+  indicator color.
+
+```properties
+hint-mode.overlay.box-color=per-group in-turn #E06C75 #98C379 #61AFEF
+```
+
+- With `per-hint`, each hint takes the color at its center. Its boxes and its hotspot line show that
+  color. With `top-to-bottom`, a grid row has one color.
+- A grid without groups, such as a grid without `selection-keys`, is one group. With `per-group`,
+  all its boxes have one color.
+- Hints without a grid (UI hints and position history hints) are in groups too. The hints with
+  labels that differ only in the last key are one group. With the labels `a b c da db dc`, `a b c`
+  is a group and `da db dc` is another. With `per-group in-turn` and labels of 2 keys, each first
+  key then gets its own color.
+- mousemaster draws a decoration cell and the background as boxes. A shadow takes its color at each
+  box, as a box does.
+- A label takes one font, outline and shadow color: the color at its hint (`per-hint`), of its
+  group (`per-group`), or its turn color (`in-turn`). The letters never blend, and `per-pixel`
+  does not change this. A decoration label takes the color at its cell.
+- Where the shadows of labels of different colors meet, their colors mix.
+
+`color-alias.<name>` gives a name to a color or a gradient. Each color property can use the name as
+its value:
+
+```properties
+color-alias.accent=left-to-right #FF6B00 #FF006E
+hint-mode.overlay.box-border-color=accent
+```
+
+### Decorations
+
+Decorations are grids that mousemaster draws over the hints. They do not select. There are three
+levels, with the same properties. Each property name starts with the level:
+
+- `decoration-`: one grid over the whole hint grid, as one big cell.
+- `subdecoration-`: a grid in each hint cell, such as a preview of the next level.
+- `subsubdecoration-`: a grid in each subdecoration cell.
+
+Grid only. You can use the three levels at the same time.
+
+```properties
+hint-mode.overlay.subdecoration-max-row-count=3
+hint-mode.overlay.subdecoration-max-column-count=3
+hint-mode.overlay.subdecoration-box-border-opacity=0.5
+```
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `<level>-max-row-count` / `<level>-max-column-count` | `1` | The number of rows and columns. |
+| `<level>-label-keys` | `none` | The keys of the labels in the cells, or a key alias. Give at least 2 keys. The labels follow the rules of grid labels. |
+| `<level>-label-override` | – | A fixed label in each cell. Give a key name: `plus` shows `+`. It replaces `label-keys`. |
+| `<level>-box-color` / `<level>-box-opacity` | `#000000` / `0` | The fill of the cells. |
+| `<level>-box-border-thickness` | `1` | The thickness of the lines. |
+| `<level>-box-border-length` | `10000` | The length of the lines from each corner. A low value draws short marks, such as a `+` at the center of a 2×2 decoration. |
+| `<level>-box-border-color` / `<level>-box-border-opacity` | `#FFFFFF` / `1` | The color and the opacity of the lines. |
+| `<level>-box-border-radius` | `0` | The radius of the corners. |
+| `<level>-box-framed` | `false` | If `true`, the level draws its own frame. A decoration has the same size as its parent box, so its frame is on the border of the parent. |
+| `<level>-box-horizontal-padding` / `<level>-box-vertical-padding` | `0` | Make each box larger than its cell, as `box-horizontal-padding` does for a hint box in a grid. |
+| `<level>-font-*` | Size `10`, spacing `0`, shadow opacity `0`. The other defaults are the `font-*` defaults. | The font of the labels: `-font-name`, `-font-weight`, `-font-size`, `-font-color`, `-font-opacity`, `-font-spacing-percent`, `-font-vertical-alignment`, `-font-outline-*` and `-font-shadow-*`. |
+
+A level with one row and one column shows only if it has label keys, a label override, a frame or a
+fill.
+
+```properties
+# A frame around the grid, where the element box of a UI hint is.
+refine-ui-hint-mode.overlay.box-framed=false
+refine-ui-hint-mode.overlay.decoration-box-framed=true
+refine-ui-hint-mode.overlay.decoration-box-border-radius=1
+refine-ui-hint-mode.overlay.decoration-box-horizontal-padding=1
+refine-ui-hint-mode.overlay.decoration-box-vertical-padding=1
+```
 
 ### Hint prefix
 
-A hint is made of several keys (letters). For example, hint JKK is made of 3 keys: J, K and K.
-- The hint prefix is JK.
-- The prefix (JK) can be displayed "in the background" with `prefix-in-background=true`.
+The prefix of a label is its first keys, which all the hints of its [group](#overlay-area-and-grid)
+share. For example, the prefix of `JKK` is `J` or `JK`, by the number of groups. Grid only.
 
-- Hints in the same group have the same prefix (see
-  [Groups](#overlay-area-and-grid)), so a group one row tall gives one prefix per row
-  and one column wide one prefix per column.
+- **`prefix-in-background`**: If `true`, the overlay shows the prefix of each group one time, in
+  the background of the group. Default: `false`.
+- The [group box](#group-box) draws a box around each group.
 
-Initially:
-- None of the hint keys are selected.
-- The hint key J is focused.
+### Hint font states
 
-Then, when typing J on the keyboard:
-- J becomes selected.
-- The first K becomes focused.
-- The last K is neither focused nor selected.
+Each key of a label has a state:
 
-Then, when typing K:
-- J and the first K are selected.
-- The second K is focused.
+- **Focused**: the next key to type.
+- **Selected**: a key that you typed.
+- **Normal**: the other keys.
 
-Each hint key can be in one of three states: default, selected, or focused.
-Font styles are configured per state and per category (non-prefix and prefix).
+At the start, `J` of `JKK` is focused. After you type `J`, `J` is selected and the first `K` is
+focused. After you type `K`, `J` and the first `K` are selected, and the last `K` is focused.
 
-The `font-*` properties define the default state. The `selected-font-*` and `focused-font-*` properties override specific values for selected and focused keys. Unset selected/focused properties inherit from the default state. The `prefix-` variants follow the same pattern, with unset prefix properties inheriting from the corresponding non-prefix properties.
+Each state has its own font properties:
 
-The `saved-font-*` properties replace the default and focused states in the keys of a saved hint
-(see [Saved hints](#saved-hints)). Unset saved properties inherit from the default state.
+| Keys | Properties | Fallback when not set |
+|------|------------|-----------------------|
+| Normal | `font-*` | – |
+| Selected | `selected-font-*` | `font-*` |
+| Focused | `focused-font-*` | `font-*` |
+| Prefix, normal | `prefix-font-*` | `font-*` |
+| Prefix, selected | `prefix-selected-font-*` | `prefix-font-*`, `selected-font-*`, `font-*` |
+| Prefix, focused | `prefix-focused-font-*` | `prefix-font-*`, `focused-font-*`, `font-*` |
+| [Saved hint](#saved-hints), all states | `saved-font-*` | `font-*` |
+| Saved hint, prefix | – | `prefix-font-*`, `saved-font-*`, `font-*` |
 
-Each state supports the following font properties:
-- `font-name`
-- `font-weight`
-- `font-size`
-- `font-color`
-- `font-opacity`
-- `font-outline-thickness`
-- `font-outline-color`
-- `font-outline-opacity`
-- `font-shadow-blur-radius`
-- `font-shadow-color`
-- `font-shadow-opacity`
-- `font-shadow-stack-count`
-- `font-shadow-horizontal-offset`
-- `font-shadow-vertical-offset`
+- Each state has these properties: `font-name`, `font-weight`, `font-size`, `font-color`,
+  `font-opacity`, `font-outline-thickness`, `font-outline-color`, `font-outline-opacity`,
+  `font-shadow-blur-radius`, `font-shadow-color`, `font-shadow-opacity`, `font-shadow-stack-count`,
+  `font-shadow-horizontal-offset` and `font-shadow-vertical-offset`.
+- `font-spacing-percent` and `font-vertical-alignment` have no states. `prefix-font-spacing-percent`
+  and `prefix-font-vertical-alignment` apply only to a prefix in the background.
+- The fallback looks at the properties of the mode first, then at the properties of its parent.
+- A [mutation](#mode-property-mutation) of a font property also changes the properties that fall
+  back to it, if they are not set. For example, a mutation of `font-color` also changes
+  `selected-font-color`, if `selected-font-color` is not set.
 
-`font-spacing-percent` and `font-vertical-alignment` are the exceptions: there is one of each per
-category (`font-` and `prefix-font-`), shared across all 3 states.
+### Multi-level hints
 
-A font, outline or shadow color can be a gradient, as for `box-color`. Each label takes the color of
-the gradient at its hint, and a `<level>-` label at its cell, the way a `per-hint` box does: the text
-does not ramp, even with `per-pixel`. Where the shadows of labels of different colors meet, their
-colors mix.
-
-The property naming pattern is:
-- Default: `overlay.font-*`
-- Selected: `overlay.selected-font-*`
-- Focused: `overlay.focused-font-*`
-- Prefix default: `overlay.prefix-font-*`
-- Prefix selected: `overlay.prefix-selected-font-*`
-- Prefix focused: `overlay.prefix-focused-font-*`
-- Saved: `overlay.saved-font-*`
-
-### Multi-level hint example
-
-This example shows how to create a two-level hint system, where the first level selects a general area, and the second level provides more precise targeting:
+The first level selects an area. The second level shows a smaller grid there:
 
 ```properties
 key-alias.selectionkey=a b c d e f g h i j k l m n o p q r s t u v w x y z
-# First level hint mode
-hint1-mode.overlay.area=active-screen
 hint1-mode.overlay.selection-keys=selectionkey
 hint1-mode.to.hint2-mode=+selectionkey
-# Don't move mouse after first selection
+# The mouse does not move after the first selection.
 hint1-mode.overlay.mouse-follows-target=false
 
-# Second level hint mode
-hint2-mode.overlay.area=active-screen
-# Center on last selected hint
 hint2-mode.overlay.area-center=last-selected-hint
-# 3x8 grid
 hint2-mode.overlay.grid-max-row-count=3
 hint2-mode.overlay.grid-max-column-count=8
-# Smaller cells for precision
 hint2-mode.overlay.grid-cell-width=30
 hint2-mode.overlay.grid-cell-height=20
 hint2-mode.overlay.font-size=7
 hint2-mode.overlay.selection-keys=selectionkey
 hint2-mode.to.normal-mode=+selectionkey
-# Move mouse after second selection
-hint2-mode.overlay.mouse-follows-target=true
 ```
 
 ### Overlay commands
 
-These commands act on the overlay of the mode, whatever its type. An overlay without
-`selection-keys` has no labels and selects nothing: it is a grid to shrink and to move, and the
-target moves to its cell edges.
+These commands act on the overlay of the mode, whatever its type. The overlay area is the area of
+the overlay, or the cells that the typed selection keys keep. An overlay without `selection-keys` has
+no labels and selects nothing: it is a grid to shrink and to move.
 
 ```properties
-normal-mode.to.grid-mode=+g
-grid-mode.to.normal-mode=+esc
 grid-mode.overlay.grid-cell-sizing=fit
 grid-mode.overlay.grid-max-row-count=2
 grid-mode.overlay.grid-max-column-count=2
 grid-mode.overlay.target-follows-overlay-center=true
-grid-mode.overlay.box-color=#FF0000
-grid-mode.overlay.box-opacity=0.1
-grid-mode.overlay.box-border-color=#FF0000
-grid-mode.overlay.box-border-opacity=1
-
-# Halve the grid, keeping the half in the direction
+# Keep the half of the grid in that direction.
 grid-mode.shrink-overlay.up=+uparrow
-grid-mode.shrink-overlay.down=+downarrow
-grid-mode.shrink-overlay.left=+leftarrow
-grid-mode.shrink-overlay.right=+rightarrow
-
-# Move the grid to the area of the same size next to it
+# Move the grid to the area of the same size above it.
 grid-mode.move-overlay-to.area-above=_{leftshift} +uparrow
-grid-mode.move-overlay-to.area-below=_{leftshift} +downarrow
-grid-mode.move-overlay-to.area-left=_{leftshift} +leftarrow
-grid-mode.move-overlay-to.area-right=_{leftshift} +rightarrow
-
-# Move the target to the nearest cell edge on that side
+# Move the target to the nearest cell edge above it.
 grid-mode.move-target-to.cell-top=_{leftctrl} +uparrow
-grid-mode.move-target-to.cell-bottom=_{leftctrl} +downarrow
-grid-mode.move-target-to.cell-left=_{leftctrl} +leftarrow
-grid-mode.move-target-to.cell-right=_{leftctrl} +rightarrow
-
-# Move the target to the overlay center
 grid-mode.move-target-to.overlay-center=+space
-
-# Move the target while the key is held
 grid-mode.start-move-target.up=_{leftalt} +uparrow
 grid-mode.stop-move-target.up=-uparrow
-
-# Move the target by target.nudge-distance
 grid-mode.nudge-target.up=_{leftalt leftshift} +uparrow
 ```
 
-- **`shrink-overlay.<direction>`**: Halves the overlay area, keeping the half on that side.
-- **`move-overlay-to.<area>`**: Moves the overlay area to `area-above`, `area-below`, `area-left`
-  or `area-right`: the area of the same size next to it on that side. The center of the area
-  stays on a screen.
-- **`move-target-to.<point>`** / **`move-to.<point>`**: Move the target or the mouse to a point
-  of the overlay, such as `overlay-center` or `cell-top` (see
-  [Hint selection and behavior](#hint-selection-and-behavior)).
-- **`start-move-target.<direction>`** / **`stop-move-target.<direction>`**: Start and stop a
-  continuous move of the target, with the `target` properties. When the mouse follows the
-  target, they move the mouse, with the `mouse` properties. A mode where the mouse follows the
-  target stops a move of the target. `istargetmoving` is pressed while the target moves (see
-  [Built-in virtual keys](combo-reference.md#built-in-virtual-keys)).
-- **`nudge-target.<direction>`**: Moves the target by `target.nudge-distance`, in pixels at a
-  100% scale. When the mouse follows the target, it moves the mouse by `mouse.nudge-distance`.
-- **`nudge-hotspots.<direction>`**: Moves the hotspots (see [Hotspots](#hotspots)).
-- **`start-move-hotspots.<direction>`** / **`stop-move-hotspots.<direction>`**: Start and
-  stop a continuous move of the hotspots (see [Hotspots](#hotspots)).
+- **`shrink-overlay.<direction>`**: Keeps the half of the overlay area on that side.
+- **`move-overlay-to.<area>`**: Moves the overlay area to `area-above`, `area-below`, `area-left` or
+  `area-right`: the area of the same size next to it on that side. The center of the area stays on a
+  screen.
+- **`move-target-to.<point>`** / **`move-to.<point>`**: See [Hint selection](#hint-selection).
+- **`start-move-target.<direction>`** / **`stop-move-target.<direction>`**: Start and stop a move of
+  the target, with the `target` speed. While the mouse follows the target, they move the mouse, with
+  the `mouse` speed. A switch to a mode where the mouse follows the target stops a move of the
+  target. `istargetmoving` is pressed while the target moves.
+- **`nudge-target.<direction>`**: Moves the target by `target.nudge-distance`. While the mouse
+  follows the target, it moves the mouse by `mouse.nudge-distance`.
+- **`nudge-hotspots`**, **`start-move-hotspots`**, **`stop-move-hotspots`**: See
+  [Hotspots](#hotspots).
 
-A command name says what it acts on: `move-target-to`, `start-move-target` and `nudge-target`
-move the target, `start-move-hotspots` and `nudge-hotspots` move the hotspots,
-and `move-overlay-to` and `shrink-overlay` change the overlay area. A name that says nothing,
-such as `start-move`, `nudge` or `move-to`, moves the mouse. `move-to`, `move-target-to` and
-`move-overlay-to` jump to a destination, `nudge`, `nudge-target` and `nudge-hotspots` move by
-a distance, and `start-move`, `start-move-target` and `start-move-hotspots` move until
-`stop-move`, `stop-move-target` and `stop-move-hotspots`.
+The name of a command tells what it moves:
 
-The overlay area is the area of the overlay, or the cells that the typed selection keys keep. After
-`shrink-overlay` or `move-overlay-to`, the overlay shows what is in its new area: a grid lays its
-cells out in it, UI hints look for the elements in it with a new query, and saved positions show
-the positions in it.
+| What moves | Jump to a place | Move by a distance | Start and stop a move |
+|------------|-----------------|--------------------|-----------------------|
+| The mouse | `move-to` | `nudge` | `start-move`, `stop-move` |
+| The target | `move-target-to` | `nudge-target` | `start-move-target`, `stop-move-target` |
+| The hotspots | – | `nudge-hotspots` | `start-move-hotspots`, `stop-move-hotspots` |
+| The overlay area | `move-overlay-to`, `shrink-overlay` | – | – |
 
-A mode with the same `overlay.type`, area, grid and groups keeps the overlay area where the commands left it. With
-`target-follows-overlay-center=true`, the target goes to the center of the overlay after each
-change. The mouse follows the target, unless `mouse-follows-target=false`: then it stays
-where it is.
+After `shrink-overlay` or `move-overlay-to`, the overlay shows what is in its new area:
+
+- A grid puts its cells in it.
+- UI hints find the elements in it, with a new scan.
+- Position history hints show the positions in it.
+
+A mode with the same overlay settings (see [Hotspots](#hotspots)) keeps the overlay area where the
+commands put it.
 
 ## App aliases
 
-App aliases allow you to group applications together and create mode switches based on which application is currently active. This is useful for creating app-specific behaviors or disabling mousemaster for certain applications.
-
-### Defining app aliases
+An app alias gives a name to one or more apps, by their executable names:
 
 ```properties
-app-alias.browserapp=firefox.exe chrome.exe edge.exe
-
-# An executable name containing a space, as macOS ones often do, goes in double quotes:
-app-alias.settingsapp="System Settings" "Activity Monitor"
+app-alias.browserapp=firefox.exe chrome.exe msedge.exe
 ```
 
-App aliases work similarly to key aliases, but instead of grouping keys, they group application executable names.
+- The names must match exactly, with the same uppercase and lowercase letters.
+- On macOS, put a name that has a space in double quotes: `app-alias.settingsapp="System Settings"`.
+  On Windows, write the name without its spaces.
 
-### Using app aliases in combos
-
-App aliases can be used in combo preconditions to create app-specific behavior:
+A precondition can use the alias. `_{browserapp}` is true when one of the apps is the active app.
+`^{browserapp}` is true when another app is the active app:
 
 ```properties
-# Switch to browser-mode when a browser becomes active
 idle-mode.to.browser-mode=_{browserapp}
-normal-mode.to.browser-mode=_{browserapp}
-
-# Switch back to idle-mode when no browser is active
 browser-mode.to.idle-mode=^{browserapp}
 ```
 
-In this example:
-- `_{browserapp}` is a precondition that is satisfied when any of the specified browsers is the active application
-- `^{browserapp}` is a precondition that is satisfied when none of the specified browsers is the active application
-
 ## Position history
 
-Position history allows you to save positions of the target (see `mouse-follows-target`) and quickly return to them later. Unless the mode has `mouse-follows-target=false`, the target follows the mouse, so these are mouse positions. This feature can be used for frequently accessed UI elements or for creating custom navigation patterns.
-
-### Basic configuration
+A position history keeps positions of the [target](#target). While the mouse follows the target,
+these are mouse positions. A hint mode can show the saved
+positions as hints.
 
 ```properties
-# Set the maximum number of positions to remember
 position-history.max-size=16
-
-# Define a key to save the position of the target
 normal-mode.save.position-history=+f1
-
-# Define a key to clear all saved positions
 normal-mode.clear.position-history=+f2
+normal-mode.to.position-hint-mode=+p
+position-hint-mode.overlay.type=position-history
+position-hint-mode.overlay.selection-keys=selectionkey
 ```
 
-- **`max-size`**: Maximum number of positions that can be stored, 1-100 (older positions are removed when this limit is reached). Default 16.
-- **`save`**: Command to save the position of the target to history. When the target is on the hotspot of the last selected hint, the history also keeps that hint (see [Saved hints](#saved-hints) and the indicator's `position-anchor`)
-- **`unsave`**: Command to remove the saved position the target is on
-- **`toggle-save`**: Command to `unsave` the target when it is on a saved position, and to `save` it when it is not
-- **`clear`**: Command to clear all saved positions
-- **`cycle-next`** / **`cycle-previous`**: Commands to move the target to the next or previous saved position, continuing from the one it is on. The mouse follows, unless the mode has `mouse-follows-target=false`
+The name of a history ends with `-position-history`, or is `position-history`. The history exists
+when a mode has a command for it. Each command names its history.
 
-While a history holds no position, it reads as a pressed key: `is`, its name without the hyphens,
-then `empty`. `_{isdragpositionhistoryempty}` matches while `drag-position-history` is empty, and
-`^{isdragpositionhistoryempty}` while it holds a position. With `isolation=active-app`, it is the
-list of the active app.
+| Property | Default | Description |
+|----------|---------|-------------|
+| `<history>.max-size` | `16` | The maximum number of positions, from `1` to `100`. When the history is full, a save removes the oldest position. |
+| `<history>.isolation` | `none` | `active-app` keeps a separate list of positions for each app, by its executable name. `none` keeps one list for all apps. |
 
-### Several position histories
+The commands:
 
-Position history names end with `-position-history`, the same way mode names end with
-`-mode`. Every command and every hint mode names the history it acts on, and
-`position-history` alone is the default one:
+- **`save.<history>`**: Saves the position of the target. If the target is on the hotspot of the
+  last selected hint, the history also keeps that hint (see [Saved hints](#saved-hints) and the
+  indicator [`position-anchor`](#position)).
+- **`unsave.<history>`**: Removes the saved position that the target is on.
+- **`toggle-save.<history>`**: Removes the saved position that the target is on. If the target is
+  not on a saved position, saves the position.
+- **`clear.<history>`**: Removes all the positions.
+- **`cycle-next.<history>`** / **`cycle-previous.<history>`**: Move the target to the next or the
+  previous saved position. The mouse follows, unless `mouse-follows-target=false`.
 
-```properties
-# Two isolated histories, with their own sizes
-browser-position-history.max-size=4
-normal-mode.save.position-history=+f1
-normal-mode.save.browser-position-history=_{browserapp} +f2
-normal-mode.clear.browser-position-history=+f3
-```
+Rules:
 
-A history exists as soon as a mode defines a command for it. Positions saved in one history are invisible to the others, and each history has its own cycling position.
-
-### Isolating a position history
-
-A history can keep a separate list of positions for each app, so that saving a position in
-one app never shows it in another:
+- Each history has its own positions and its own cycle position.
+- With `isolation=active-app`, the commands and the hints use the list of the active app.
+  `max-size` applies to each list. `clear` removes only the positions of the active app.
+- If the history has no position, a built-in virtual key is pressed: `is`, the name of the history
+  without its hyphens, then `empty`. `_{isdragpositionhistoryempty}` is true while
+  `drag-position-history` is empty. With `isolation=active-app`, it is the list of the active app.
 
 ```properties
+# Firefox, Chrome and Edge each keep their own 4 positions. F4 clears only those of the active app.
 browser-position-history.isolation=active-app
 browser-position-history.max-size=4
+normal-mode.save.browser-position-history=_{browserapp} +f3
+normal-mode.clear.browser-position-history=+f4
 ```
 
-- **`isolation`**: What the history keeps a separate list of positions for. `active-app`
-  isolates by the active app, identified by its executable name. `none` (default): one list
-  shared by every app.
+### Position history hints
 
-Every command and the hints act on the list of the app that is active when they run, so
-`max-size` applies to each app's list, and `clear` only clears the active app's list. Unlike
-naming a history per app, this needs no knowledge of which apps exist.
+A hint mode with the history as its `overlay.type` shows one hint for each saved position, on the
+screen of that position.
 
-### Using position history with hints
+- `area` does not apply. `shrink-overlay` and `move-overlay-to` can limit the hints to an area.
+- A selection of a hint moves the target to the position.
+- If the history has no position, the mode saves the target first, so its hint shows.
+- A mutation on `overlay.type` lets one mode show different histories:
 
-Position history works in conjunction with a hint mode whose type is the name of the history:
-
-```properties
-# Configure a hint mode to use position history
-position-hint-mode.overlay.type=position-history
-position-hint-mode.overlay.selection-keys=a b c d e f g h i j k l m n o p q r s t u v w x y z
-
-# Switch to position hint mode
-normal-mode.to.position-hint-mode=+p
-
-# A hint mode for the browser history
-browser-hint-mode.overlay.type=browser-position-history
-```
-
-Because `overlay.type` can be combo-triggered, one hint mode can show different histories:
-
-```properties
-position-hint-mode.overlay.type=position-history | _{browserapp} -> browser-position-history
-```
-
-When you enter a position history hint mode:
-1. One hint box will be displayed for each saved position
-2. Selecting a hint moves the mouse to that saved position
-3. If no positions are saved, the target is saved first, so its hint is displayed
+  ```properties
+  position-hint-mode.overlay.type=position-history | _{browserapp} -> browser-position-history
+  ```
 
 ### Saved hints
 
-An overlay can show which of its hints are saved. `saved-hints` names the position history that
-saves them, and the `saved-` properties style them:
+An overlay can show which hints are saved. `saved-hints` names the position history that saves
+them. The `saved-` properties style them:
 
 ```properties
+ui-hint-mode.save.drag-position-history=+f5
 ui-hint-mode.overlay.saved-hints=drag-position-history
 ui-hint-mode.overlay.saved-box-color=#00FF00
 ui-hint-mode.overlay.saved-box-opacity=0.5
@@ -1770,229 +1628,138 @@ ui-hint-mode.overlay.saved-ui-element-box-border-color=#00FF00
 ui-hint-mode.overlay.saved-font-color=#000000
 ```
 
-- A hint is saved when a position of the history was saved at it: the user saved the position at
-  the hotspot of the last selected hint. The overlay finds that hint again by its element (UI
-  hints), by its cell (grids), or by its center when it has neither. A position saved anywhere else
-  marks no hint.
-- `saved-box-color`, `saved-box-opacity`, `saved-box-border-color`, `saved-box-border-opacity`,
-  `saved-ui-element-box-color`, `saved-ui-element-box-opacity`, `saved-ui-element-box-border-color`,
-  `saved-ui-element-box-border-opacity` and the same four `saved-hotspot-box-` properties replace
-  the values of the box for a saved hint. A value that is not set is the value of the box,
-  mutations included.
-- The `saved-font-*` properties replace every font state in the keys of a saved hint: default,
-  selected and focused.
-- A saved hint stays shown when the selected keys hide the other hints.
-- A save, an unsave or a clear of that history shows on the overlay at once.
-
-### Example workflow
-
-```properties
-# Save positions in normal mode
-normal-mode.save.position-history=+f1
-
-# Access saved positions through hint mode
-normal-mode.to.position-hint-mode=+p
-
-# Clear all saved positions if needed
-normal-mode.clear.position-history=+f2
-```
-
-Typical usage:
-1. Navigate to important locations and press F1 at each one to save them
-2. Press P to enter position hint mode
-3. Select a hint to instantly move to that saved position
-4. Press F2 if you want to clear all saved positions and start over
-
-This feature is especially useful for:
-- Frequently accessed UI elements in complex applications
-- Navigating between multiple work areas
-- Creating custom navigation patterns for repeated tasks
+- A hint is saved if you saved a position of the history on its hotspot, after you selected the
+  hint. The overlay finds the hint again by its element (UI hints), by its cell (grids), or else by
+  its center. A position saved at another place marks no hint.
+- These properties replace the values of the box for a saved hint: `saved-box-color`,
+  `saved-box-opacity`, `saved-box-border-color`, `saved-box-border-opacity` and the same four
+  properties with `saved-ui-element-box-` and `saved-hotspot-box-`. A value that is not set is the
+  value of the box, with its mutations.
+- The `saved-font-*` properties replace the font of all the keys of a saved hint (see
+  [Hint font states](#hint-font-states)).
+- A saved hint stays when the typed keys hide the other hints.
+- A save, an unsave or a clear of the history shows on the overlay immediately.
 
 ## Macros
 
-Macros allow you to define sequences of key presses and releases that are triggered by a
-combo. Macros can send keys to the operating system (for controlling other applications)
-or to mousemaster itself (for triggering mousemaster commands).
+A macro sends a sequence of key presses and releases when its combo completes:
 
-### Basic macro syntax
-
-A macro is defined with:
 ```properties
-mode-name.macro.macro-name=combo -> output
+<mode>.macro.<name>=<combo> -> <output>
 ```
 
-Where:
-- `combo` is the trigger combo (same syntax as other combos)
-- `output` is the sequence of key moves to execute
+The output sends keys to the OS or to mousemaster:
 
-### Macro output syntax
+| Output   | Meaning                                                             | Example     |
+|----------|---------------------------------------------------------------------|-------------|
+| `+key`   | Press the key. The OS gets it.                                      | `+leftctrl` |
+| `-key`   | Release the key. The OS gets it.                                    | `-leftctrl` |
+| `'text'` | Type the text, whatever the active keyboard layout. The OS gets it. | `'hello'`   |
+| `#key`   | Press the key. mousemaster gets it, and its combos can complete.    | `#rightalt` |
+| `~key`   | Release the key. mousemaster gets it.                               | `~rightalt` |
+| `wait-N` | Wait N milliseconds.                                                | `wait-50`   |
+| `key`    | Tap: `#key ~key`.                                                   | `rightalt`  |
 
-The output uses the following syntax:
-
-|          | Meaning                                                                                          | Example     |
-|----------|--------------------------------------------------------------------------------------------------|-------------|
-| `+key`   | Press key (sent to OS)                                                                           | `+leftctrl` |
-| `-key`   | Release key (sent to OS)                                                                         | `-leftctrl` |
-| `'text'` | Type the string character by character, independently of the active keyboard layout (sent to OS) | `'hello'`   |
-| `#key`   | Press key (sent to mousemaster)                                                                  | `#rightalt` |
-| `~key`   | Release key (sent to mousemaster)                                                                | `~rightalt` |
-| `wait-N` | Wait N milliseconds before continuing                                                            | `wait-50`   |
-| `key`    | Shorthand for `#key ~key`                                                                        | `rightalt`  |
-
-### OS-bound vs internal keys
-
-- OS-bound keys (`+`/`-`): These keys are sent to the operating system.
-  Other applications will receive these key events. Use this for controlling other
-  applications, typing text, or triggering system shortcuts.
-
-- Internal keys (`#`/`~` or unprefixed): These keys are fed back into mousemaster's
-  combo system. They can trigger other mousemaster commands (including mode switches). Use this for
-  automating mousemaster itself.
-
-### Virtual keys
-
-Sometimes a macro needs a key purely as an internal signal — e.g. to bracket a region
-of the macro and gate a mode property on it — without any risk of colliding with a real
-key on the keyboard. Declare such keys on their own line, stating whether the key starts
-pressed or released:
+For the full output syntax, see [combo-reference.md](combo-reference.md#macro-output-syntax).
 
 ```properties
-virtual-key.drilling=released
-```
-
-A virtual key can never be produced by hardware, is never sent to the
-OS, and is only ever pressed/released by a macro via `#`/`~`. It can be used anywhere a
-real key can in the combo system — in a macro's `#`/`~` moves, and in `_{}`/`^{}`
-preconditions. It has no OS side, so `+`/`-` on it mean the same thing as `#`/`~`.
-
-Declaring it (rather than relying on a name that happens not to exist) keeps typo
-detection: an undeclared unknown key name is still rejected at load time.
-
-```properties
-# "drilling" is held only for the span of the macro; gate a property on it.
-virtual-key.drilling=released
-some-mode.macro.example=+g -> #drilling k k ~drilling
-some-mode.overlay.visible=true | _{drilling} -> false
-```
-
-A macro can also leave a virtual key pressed past its own end, making it persistent state that
-combos and property values can be gated on. See
-[virtual keys](combo-reference.md#virtual-keys) for reading them in preconditions and for
-driving property mutation.
-
-### Examples
-
-#### Simple key remapping
-
-Remap V to Ctrl+V in normal mode:
-```properties
+# v sends ctrl+v.
 normal-mode.macro.paste=+v -> +leftctrl +v -v -leftctrl
-```
-
-#### Open an app
-
-Open the Windows notepad when pressing Win+F1:
-```properties
+# win+f1 opens notepad.
 idle-mode.macro.notepad=_{leftwin} +f1 -> +leftwin +r -r -leftwin wait-100 'notepad' +enter -enter
-```
-
-#### Automating mousemaster
-
-Select the second screen when pressing F12:
-```properties
-# In the neo-mousekeys-ijkl configuration, pressing c shows the screen selection hints,
-# then pressing k will select the second screen (because the hint keys are j k l ; a s d f g).
+# f12 taps c, then k. In neo-mousekeys-ijkl, c shows the screen hints, and k selects screen 2.
 normal-mode.macro.selectsecondscreen=+f12 -> c k
-# Equivalent to:
-#normal-mode.macro.selectsecondscreen=+f12 -> #c ~c #k ~k
 ```
 
-## Console window
+## Virtual keys
 
-mousemaster runs with a console (command line) window by default. You can hide this window for a cleaner experience.
+A virtual key is a key that only mousemaster knows. Declare it with its start state, `pressed` or
+`released`:
 
 ```properties
-# Hide the console window
+virtual-key.drilling=released
+```
+
+- No keyboard can press a virtual key, and the OS never gets it. A macro presses and releases it with
+  `#` and `~`. On a virtual key, `+` and `-` do the same as `#` and `~`.
+- A combo, a precondition and a [mutation](#mode-property-mutation) can use it as a key.
+- A virtual key keeps its state after a mode switch. A configuration reload returns it to its start
+  state.
+- A key name that is not declared and is not a real key is an error when the configuration loads.
+
+```properties
+# drilling is pressed while the macro runs. The overlay hides while drilling is pressed.
+virtual-key.drilling=released
+grid-mode.macro.drill=+g -> #drilling k k ~drilling
+grid-mode.overlay.visible=true | _{drilling} -> false
+```
+
+For more, see [virtual keys](combo-reference.md#virtual-keys).
+
+## Console window, exit and restart
+
+```properties
 hide-console=true
 ```
 
-### Important considerations
-
-- When the console window is hidden, you won't see any error messages or logs
-- If the console is hidden, you can stop mousemaster by:
-  - Pressing a combo bound to the `exit` command, for example `normal-mode.exit=+leftctrl +leftalt +q`
-  - Using the Task Manager to end the mousemaster.exe process
-  - Using Win+R and typing: `taskkill /F /IM mousemaster.exe`
-- Pressing a combo bound to the `restart` command restarts mousemaster with the same arguments, for example `normal-mode.restart=+leftctrl +leftalt +r`
+- **`hide-console`**: If `true`, mousemaster hides its console window. Windows only. Default:
+  `false`.
+- Without the console, you do not see the errors and the logs. `logging.to-file=true` writes them to
+  a file (see [Logging](#logging)).
+- **`exit`**: Stops mousemaster: `normal-mode.exit=+leftctrl +leftalt +q`. On Windows, you can also
+  stop mousemaster in the Task Manager, or with `taskkill /F /IM mousemaster.exe`.
+- **`restart`**: Restarts mousemaster with the same arguments:
+  `normal-mode.restart=+leftctrl +leftalt +r`.
 
 ## Logging
 
-mousemaster provides configurable logging to help with troubleshooting and debugging.
-
 ```properties
-# Logging configuration
 logging.level=INFO
 logging.key-redaction=pseudonymize
 logging.to-file=true
 log-last-key-events-on-exit=true
 ```
 
-### Logging options
+| Property | Default | Description |
+|----------|---------|-------------|
+| `logging.level` | `DEBUG` | `ERROR`, `WARN`, `INFO`, `DEBUG` or `TRACE`. `DEBUG` and `TRACE` log more, and can make mousemaster slower. |
+| `logging.key-redaction` | `none` | How the log shows a key that types a character (see below). |
+| `logging.to-file` | `false` | If `true`, mousemaster also writes the log to `mousemaster.log`, in the working directory. |
+| `log-last-key-events-on-exit` | `false` | If `true`, mousemaster logs the last key events when it stops (see below). |
 
-- **`logging.level`**: Controls the verbosity of logging
-  - Valid values: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
-  - Higher levels (DEBUG, TRACE) provide more detailed information but may impact performance
+**`logging.key-redaction`**:
 
-- **`logging.key-redaction`**: How a key that types a character is logged
-  - `none` (default): as itself, for troubleshooting keyboard issues
-  - `pseudonymize`: as `key#1`, a name that is stable for this run only, so a press and its
-    release get the same name and a log still shows a key that was never released
-  - `anonymize`: as `<redacted>`, the same name for every key, so keys cannot be told apart
-  - Keys that type no character (modifiers, arrows, function keys) are always logged as themselves
+- `none`: the name of the key.
+- `pseudonymize`: a name such as `key#1`. The name stays the same until the configuration loads
+  again, so a press and its release have the same name.
+- `anonymize`: `<redacted>` for all keys.
+- A key that types no character, such as a modifier, an arrow or a function key, always shows its
+  name.
 
-- **`logging.to-file`**: When set to `true`, logs are written to `mousemaster.log` in the working
-  directory, in addition to the console
-  - Useful when `hide-console=true` or for persistent logging
+**`log-last-key-events-on-exit`**:
 
-- **`log-last-key-events-on-exit`**: When set to `true`, the last key events are logged when mousemaster exits
-  - They are always logged when a stuck key is detected
-  - The format is combo syntax, with the milliseconds between events: `[+a-377 -a-32 +leftwin]`
-  - Useful for reporting a combo that stopped working, without leaving `logging.level=TRACE` on
+- They are the key events of the last 15 seconds, and at least the last 128 events.
+- The format is the combo syntax, with the milliseconds between the events:
+  `[+a-377 -a-32 #leftwin]`. `+` is a press that mousemaster ate. `#` is a press that the OS also
+  got.
+- On Windows, mousemaster also logs them when it finds a stuck key.
 
 ## Keyboard layout
 
-mousemaster reads the active keyboard layout from the foreground window and follows it as it changes.
-`forced-active-keyboard-layout` overrides that detection, for a layout mousemaster gets wrong:
+On Windows, mousemaster uses the keyboard layout of the active window. On macOS, it uses the
+selected input source. mousemaster follows the layout when it changes.
+`forced-active-keyboard-layout` replaces the layout that mousemaster finds:
+
 ```properties
 forced-active-keyboard-layout=us-dvorak
 ```
-The following keyboard layouts are currently exposed and can be referenced in the configuration file:
-- zh-qwerty-pinyin
-- fr-azerty
-- de-qwertz
-- it-qwerty
-- jp-kana-jis
-- jp-kana-ansi
-- pt-qwerty-abnt2
-- ru-jcuken
-- es-qwerty
-- us-qwerty
-- uk-qwerty
-- us-dvorak
-- us-halmak
-- sv-qwerty
 
-If the property `configuration-keyboard-layout` is defined, then mousemaster will consider
-that the keys used in the configuration file are for that layout. If the active layout is 
-different from the `configuration-keyboard-layout`, then the key will be converted to the active layout.
-For example:
-- `configuration-keyboard-layout=us-qwerty`
-- A combo uses the key - (`minus`)
-- The active layout is fr-azerty
+The layout names are `de-qwertz`, `es-qwerty`, `fr-azerty`, `it-qwerty`, `jp-kana-ansi`,
+`jp-kana-jis`, `pt-qwerty-abnt2`, `ru-jcuken`, `sv-qwerty`, `uk-qwerty`, `us-dvorak`, `us-halmak`,
+`us-qwerty` and `zh-qwerty-pinyin`. A layout can also be a Windows keyboard layout identifier, such
+as `00000409`.
 
-In that case, the combo will be triggered when the user presses the à key because - in 
-us-qwerty and à in fr-azerty correspond to the same physical key (same scan code).
-If the active layout is us-qwerty then the combo will be triggered when the user presses the - key (`minus`).
-
-If `configuration-keyboard-layout` is not defined, then its default value is the active 
-layout at the time the configuration file is loaded.
+`configuration-keyboard-layout` is the layout of the keys in the configuration. mousemaster changes
+each key to the key at the same place (the same scan code) on the active layout. For example, with
+`configuration-keyboard-layout=us-qwerty`, a combo with `0` completes on the `à` key of `fr-azerty`.
+Default: the active layout when the configuration loads.

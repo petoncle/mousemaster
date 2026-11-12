@@ -500,7 +500,7 @@ Some virtual keys are maintained by mousemaster. They can be read like any other
 | `ishotspotsmoving`         | mousemaster is moving the [hotspots](configuration-reference.md#hotspots) (`start-move-hotspots`). |
 | `iswindows`, `ismacos`     | mousemaster runs on that operating system.                                                                       |
 | `isdragpositionhistoryempty` | The [position history](configuration-reference.md#position-history) `drag-position-history`, of the active app, holds no position. A history's key is `is`, its name without the hyphens, then `empty`. |
-| `3840x2160-300%`           | The active screen matches that [screen filter](configuration-reference.md#screen-specific-overlay-configurations): a resolution, a scale (`300%`), or both. A `screen-alias` names a set of them. |
+| `3840x2160-300%`           | The active screen matches that [screen filter](configuration-reference.md#screen-specific-values): a resolution, a scale (`300%`), or both. A `screen-alias` names a set of them. |
 
 ```
 _{isidling} +a                                     combo only works while the mouse is idle
