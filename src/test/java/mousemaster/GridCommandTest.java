@@ -322,6 +322,21 @@ class GridCommandTest {
     }
 
     @Test
+    void aCellPartOfTwoKeysGivesEachHintItsOwnLabel() throws IOException {
+        start("""
+                idle-mode.to.label-grid-mode=+l
+                label-grid-mode.overlay.selection-keys=a b c d e f g h i j
+                label-grid-mode.overlay.grid-cell-sizing=fit
+                label-grid-mode.overlay.grid-max-row-count=8
+                label-grid-mode.overlay.grid-max-column-count=16
+                label-grid-mode.overlay.layout-row-count=4
+                label-grid-mode.overlay.layout-column-count=4
+                """);
+        switchMode("label-grid-mode");
+        assertEquals(128, shownHintMesh.hints().stream().map(Hint::keySequence).distinct().count());
+    }
+
+    @Test
     void aFixedGridFillsItsAreaWithAnInset() throws IOException {
         start("""
                 idle-mode.to.fixed-grid-mode=+f

@@ -1860,12 +1860,12 @@ public class HintManager implements ModeListener, MousePositionListener {
                             bigColumnCount, bigRowCount,
                             layoutColumnCount, layoutRowCount, beginSubgridIndex,
                             subgridCount, hintCount);
-            int second = (layout.second + rowKeyOffset) % keyCount;
+            int second = layout.second + rowKeyOffset;
             if (layout.oneOne) {
                 prefixLengths.add(1);
                 return List.of(
                         keys.get(layout.first),
-                        keys.get(second)
+                        keys.get(second % keyCount)
                 );
             }
             else if (layout.threeOrFour) {
@@ -1873,7 +1873,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     prefixLengths.add(1);
                     return List.of(
                             keys.get(layout.first),
-                            keys.get(second / keyCount),
+                            keys.get(second / keyCount % keyCount),
                             keys.get(second % keyCount)
                     );
                 }
@@ -1882,7 +1882,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     return List.of(
                             keys.get(layout.first / keyCount),
                             keys.get(layout.first % keyCount),
-                            keys.get(second)
+                            keys.get(second % keyCount)
                     );
                 }
                 if (layout.twoTwo) { // 6^4 = 1296 hints
@@ -1890,7 +1890,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     return List.of(
                             keys.get(layout.first / keyCount),
                             keys.get(layout.first % keyCount),
-                            keys.get(second / keyCount),
+                            keys.get(second / keyCount % keyCount),
                             keys.get(second % keyCount)
                     );
                 }
