@@ -242,6 +242,19 @@ class PreconditionOnlyMutationTest {
     }
 
     @Test
+    void aMutationDoesNotStopTheCommandsOfTheMode() {
+        load("idle-mode.indicator.size=26 | _{isleftmousepressing} -> 50");
+        MouseManager mouseManager = mouseManager();
+        mouseManager.modeChanged(comboWatcher.getMutatedMode());
+        mouseManager.pressLeft();
+        setMouseAndKeyboardKeys(new MouseState(mouseManager));
+        assertEquals(50, size());
+        mouseManager.modeChanged(comboWatcher.getMutatedMode());
+        mouseManager.update(0.01);
+        assertTrue(mouseManager.leftPressing());
+    }
+
+    @Test
     void ticksWithoutAChangeDoNotNotifyListeners() {
         load("idle-mode.indicator.render-as-cursor=false | _{isidling} -> true");
         tick();

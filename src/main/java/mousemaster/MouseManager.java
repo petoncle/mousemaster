@@ -12,6 +12,7 @@ public class MouseManager implements ModeListener, MousePositionListener {
     private final ScreenManager screenManager;
     private final MouseController mouseController;
     private final Mover mover = new Mover();
+    private Mode currentMode;
     private Wheel wheel;
     private boolean leftPressing, middlePressing, rightPressing;
     private boolean leftJustPressed, middleJustPressed, rightJustPressed;
@@ -363,11 +364,15 @@ public class MouseManager implements ModeListener, MousePositionListener {
 
     @Override
     public void modeChanged(Mode newMode) {
+        boolean sameMode =
+                currentMode != null && newMode.name().equals(currentMode.name());
+        boolean stopCommandsFromPreviousMode = !sameMode && newMode.stopCommandsFromPreviousMode();
+        currentMode = newMode;
         if (mover.jumping() && !newMode.mouse().smoothJumpEnabled()) {
             mouseController.beginMove();
             mouseController.synchronousMoveTo(mover.jumpEndX(), mover.jumpEndY());
         }
-        mover.modeChanged(newMode.mouse(), newMode.stopCommandsFromPreviousMode());
+        mover.modeChanged(newMode.mouse(), stopCommandsFromPreviousMode);
         if (wheel != null && wheelDuration != 0 && activelyWheeling()) {
             double wheelVelocity = Mover.velocity(wheel.velocity(), wheelDuration);
             wheelDuration = Mover.inverseVelocityDuration(newMode.wheel().velocity(), wheelVelocity);
@@ -384,7 +389,7 @@ public class MouseManager implements ModeListener, MousePositionListener {
             }
         }
         setWheel(newMode.wheel());
-        if (newMode.stopCommandsFromPreviousMode()) {
+        if (stopCommandsFromPreviousMode) {
             stopWheelDown();
             stopWheelUp();
             stopWheelLeft();
