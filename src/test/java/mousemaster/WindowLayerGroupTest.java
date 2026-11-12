@@ -84,6 +84,13 @@ class WindowLayerGroupTest {
     }
 
     @Test
+    void aCopyIsDrawnBelowALayerThatFollowsTheMouse() {
+        IndicatorConfiguration indicator = indicator("idle-mode.a-indicator.size=20");
+        assertEquals(" | copy of a-indicator *a-indicator",
+                windowLayerGroups(indicator, indicatorByCopyKey(indicator, "a-indicator"), 0));
+    }
+
+    @Test
     void aCopyWithAHigherZIsDrawnAboveALayer() {
         IndicatorConfiguration indicator = indicator(
                 "idle-mode.a-indicator.follow=false", "idle-mode.a-indicator.z=-1",

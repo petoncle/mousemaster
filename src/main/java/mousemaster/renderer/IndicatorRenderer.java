@@ -158,8 +158,8 @@ public final class IndicatorRenderer {
                         entry.getValue().layerByName().get(entry.getKey().layerName()).z(),
                         false));
         layers.sort(Comparator.comparingInt(OrderedLayer::z)
-                              .thenComparing(layer -> !layer.followMouse())
-                              .thenComparing(layer -> layer.copyKey() == null));
+                              .thenComparing(layer -> layer.copyKey() == null)
+                              .thenComparing(layer -> !layer.followMouse()));
         List<IndicatorConfiguration> currentIndicators = currentWindowLayerGroups.stream()
                 .flatMap(windowLayerGroup -> windowLayerGroup.indicators().stream())
                 .toList();
