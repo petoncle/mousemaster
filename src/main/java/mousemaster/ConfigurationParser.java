@@ -526,8 +526,11 @@ public class ConfigurationParser {
                 continue;
             }
             Matcher keyMatcher = modeKeyPattern.matcher(propertyKey);
-            if (!keyMatcher.matches())
+            if (!keyMatcher.matches()) {
+                if (!isNonModePropertyKey(propertyKey))
+                    throw new IllegalArgumentException("Invalid property key " + propertyKey);
                 continue;
+            }
             String modeName = keyMatcher.group(1);
             if (!modeName.endsWith("-mode"))
                 throw new IllegalArgumentException(
@@ -2725,6 +2728,14 @@ public class ConfigurationParser {
 
     private static boolean isAnimationName(String name) {
         return name.endsWith("-animation");
+    }
+
+    private static boolean isNonModePropertyKey(String propertyKey) {
+        String name = propertyKey.split("\\.")[0];
+        return List.of("key-alias", "app-alias", "screen-alias", "color-alias").contains(name) ||
+               List.of("configuration-keyboard-layout", "forced-active-keyboard-layout",
+                       "keyboard-layout").contains(propertyKey) ||
+               isPositionHistoryName(name) || isAnimationName(name);
     }
 
     private static String checkedPositionHistoryName(String propertyName,
