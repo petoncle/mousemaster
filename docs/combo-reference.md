@@ -678,7 +678,7 @@ Here `letters` in the output resolves to the specific key that was matched in th
 
 Macros support an alias remap between combo and output: `combo -> remap -> output`.
 
-**Broadcast** (one target for all alias keys):
+**Broadcast** (one key for all alias keys):
 
 ```properties
 key-alias.myalias=a b c
@@ -687,7 +687,7 @@ mode.macro.x=+myalias -> myalias=z -> +myalias
 
 Any key from myalias is remapped to `z` in the output.
 
-**Positional** (zip alias keys with target keys):
+**Positional** (zip alias keys with the keys of the remap):
 
 ```properties
 key-alias.myalias=i j k l

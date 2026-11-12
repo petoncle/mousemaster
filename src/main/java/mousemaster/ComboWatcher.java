@@ -286,7 +286,7 @@ public class ComboWatcher {
         suspendMutatedModeNotification();
         setVirtualKeyPressed(BuiltInVirtualKey.IS_IDLING, mouseState.idling());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_MOVING, mouseState.moving());
-        setVirtualKeyPressed(BuiltInVirtualKey.IS_TARGET_MOVING, hintManager.movingTarget());
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_TARGET_MOVING, hintManager.targetMoving());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_WHEELING, mouseState.wheeling());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_MOUSE_PRESSING, mouseState.pressing());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_LEFT_MOUSE_PRESSING,
@@ -302,7 +302,7 @@ public class ComboWatcher {
         setVirtualKeyPressed(BuiltInVirtualKey.IS_HOTSPOTS_CENTERED,
                 hintManager.hotspotsCentered());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_HOTSPOTS_MOVING,
-                hintManager.movingHotspots());
+                hintManager.hotspotsMoving());
         for (String positionHistoryName : hintManager.positionHistoryNames())
             setVirtualKeyPressed(BuiltInVirtualKey.positionHistoryKey(positionHistoryName),
                     hintManager.positionHistory(positionHistoryName, () -> lastActiveApp)

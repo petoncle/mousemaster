@@ -299,7 +299,7 @@ class GridCommandTest {
         switchMode("grid-mode");
         hintManager.moveTargetToCellTop();
         hintManager.moveTargetToCellTop();
-        assertEquals(new Point(700, 230), hintManager.targetPoint());
+        assertEquals(new Point(700, 230), hintManager.target());
     }
 
     @Test
@@ -419,7 +419,7 @@ class GridCommandTest {
         hintManager.startMoveTargetRight();
         update(0.1);
         update(0.1);
-        assertEquals(new Point(300, 100), hintManager.targetPoint());
+        assertEquals(new Point(300, 100), hintManager.target());
     }
 
     @Test
@@ -480,7 +480,7 @@ class GridCommandTest {
         hintManager.moveTargetToCellRight();
         hintManager.moveTargetToCellRight();
         assertEquals(List.of(), mousePositions);
-        assertEquals(new Point(1919, 100), hintManager.targetPoint());
+        assertEquals(new Point(1919, 100), hintManager.target());
         hintManager.moveToTarget();
         assertEquals(List.of(1919, 100), mousePositions);
     }
@@ -497,7 +497,7 @@ class GridCommandTest {
         hintManager.moveToCellRight();
         hintManager.moveToOverlayCenter();
         assertEquals(List.of(959, 100, 960, 540), mousePositions);
-        assertEquals(new Point(100, 100), hintManager.targetPoint());
+        assertEquals(new Point(100, 100), hintManager.target());
     }
 
     @Test
@@ -512,9 +512,9 @@ class GridCommandTest {
         switchMode("grid-mode");
         hintManager.selectHintKey(Key.ofName("a"));
         hintManager.moveTargetToMouse();
-        assertEquals(new Point(100, 100), hintManager.targetPoint());
+        assertEquals(new Point(100, 100), hintManager.target());
         hintManager.moveTargetToLastSelectedHint();
-        assertEquals(new Point(480, 270), hintManager.targetPoint());
+        assertEquals(new Point(480, 270), hintManager.target());
         assertEquals(List.of(), mousePositions);
     }
 
@@ -535,10 +535,10 @@ class GridCommandTest {
         switchMode("grid-mode");
         hintManager.startMoveTargetRight();
         update(0.1);
-        assertEquals(new Point(200, 100), hintManager.targetPoint());
+        assertEquals(new Point(200, 100), hintManager.target());
         hintManager.stopMoveTargetRight();
         update(0.1);
-        assertEquals(new Point(200, 100), hintManager.targetPoint());
+        assertEquals(new Point(200, 100), hintManager.target());
         assertEquals(List.of(), mouseMoves);
     }
 
@@ -589,7 +589,7 @@ class GridCommandTest {
         switchMode("other-grid-mode");
         switchMode("grid-mode");
         update(0.1);
-        assertEquals(new Point(100, 100), hintManager.targetPoint());
+        assertEquals(new Point(100, 100), hintManager.target());
     }
 
     @Test
@@ -604,7 +604,7 @@ class GridCommandTest {
         switchMode("grid-mode");
         hintManager.startMoveTargetRight();
         update(0.1);
-        assertEquals(new Point(130, 100), hintManager.targetPoint());
+        assertEquals(new Point(130, 100), hintManager.target());
     }
 
     @Test
@@ -673,7 +673,7 @@ class GridCommandTest {
         assertEquals(List.of(new Point(959, 100), new Point(1919, 100)),
                 hintManager.positionHistory("position-history").positions());
         hintManager.cyclePosition("position-history", 1);
-        assertEquals(new Point(959, 100), hintManager.targetPoint());
+        assertEquals(new Point(959, 100), hintManager.target());
         assertEquals(List.of(), mousePositions);
     }
 
@@ -801,7 +801,7 @@ class GridCommandTest {
                 """);
         hintManager.mouseMoved(100, 100);
         switchMode("grid-mode");
-        assertEquals(new Point(960, 540), hintManager.targetPoint());
+        assertEquals(new Point(960, 540), hintManager.target());
         assertEquals(List.of(), mousePositions);
     }
 
@@ -815,10 +815,10 @@ class GridCommandTest {
                 """);
         switchMode("grid-mode");
         hintManager.mouseMoved(100, 100);
-        assertEquals(new Point(100, 100), hintManager.targetPoint());
+        assertEquals(new Point(100, 100), hintManager.target());
         switchMode("still-mode");
         hintManager.mouseMoved(300, 300);
-        assertEquals(new Point(100, 100), hintManager.targetPoint());
+        assertEquals(new Point(100, 100), hintManager.target());
     }
 
     @Test
@@ -835,7 +835,7 @@ class GridCommandTest {
         switchMode("grid-mode");
         hintManager.moveTargetToCellRight();
         switchMode("other-grid-mode");
-        assertEquals(new Point(959, 100), hintManager.targetPoint());
+        assertEquals(new Point(959, 100), hintManager.target());
     }
 
     @Test

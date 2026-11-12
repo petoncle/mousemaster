@@ -117,7 +117,7 @@ public class IndicatorManager implements ModeListener {
         }
         Map<IndicatorPosition, List<Point>> newPointsByPosition = new HashMap<>();
         newPointsByPosition.put(IndicatorPosition.PointIndicatorPosition.TARGET,
-                List.of(hintManager.targetPoint()));
+                List.of(hintManager.target()));
         if (hintManager.lastSelectedHotspot() != null)
             newPointsByPosition.put(IndicatorPosition.PointIndicatorPosition.LAST_SELECTED_HINT,
                     List.of(hintManager.lastSelectedHotspot()));

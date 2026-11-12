@@ -37,8 +37,8 @@ The layout above shows normal mode.
 
 ## Grid Mode (_leftshift, leftshift_)
 
-- Divide screen into a 2x2 grid, refining target area with each key press.
-- Move mouse to the middle of the targeted grid section.
+- Divide screen into a 2x2 grid, refining the area with each key press.
+- Move mouse to the middle of the selected grid section.
 - Shrink the grid in one direction with _h_, _j_, _k_, _l_.
 - Move the grid in one direction with _leftshift + h_, _leftshift + j_, _leftshift + k_, _leftshift + l_.
 - Exit with _leftshift_, _;_, or _esc_.

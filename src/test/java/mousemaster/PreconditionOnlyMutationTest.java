@@ -46,7 +46,7 @@ class PreconditionOnlyMutationTest {
                 new HintManager(Map.of(), null, null, null, null, noApp,
                         new KeyRedactor(KeyRedaction.NONE), null) {
                     @Override
-                    public boolean movingTarget() {
+                    public boolean targetMoving() {
                         return false;
                     }
                 };

@@ -2,7 +2,7 @@
 
 [neru](https://github.com/y3owk1n/neru), the mousemaster way.
 
-A keyboard-only mouse driven by hints: launch a mode, jump the cursor onto a target, click. The pattern is always **Ctrl+Shift** to start a mode, then **unmodified keys** to pick a cell, and **Shift+L/R/M** to click.
+A keyboard-only mouse driven by hints: launch a mode, jump the cursor onto an element, click. The pattern is always **Ctrl+Shift** to start a mode, then **unmodified keys** to pick a cell, and **Shift+L/R/M** to click.
 
 ![neru layout](assets/neru-layout.png)
 
@@ -46,7 +46,7 @@ v b n
 ```
 
 - Each cell previews the next level's keys where its cells will fall. Set `virtual-key.showrecursivehintkeys` to `released` in [neru.properties](../configuration/neru.properties) to replace them with a `+` spanning the whole region and a dot per cell.
-- Five levels deep; the fifth keypress lands on the target.
+- Five levels deep; the fifth keypress lands on the last cell.
 - The cursor tracks the current region's center as you drill; `` ` `` (backtick) toggles that off/on.
 - `Space` resets to the full screen, `Backspace` steps back one level (and exits at the top), `Esc` exits.
 
@@ -90,7 +90,7 @@ A big label (`a s d f g h j k l`) sits on each monitor — press one to warp the
 
 ## After a jump
 
-Completing any hint leaves you on the target, click-ready: click with `Shift+L/R/M`, nudge with the arrows, launch another mode with `Ctrl+Shift+<key>`, or `Esc` to idle.
+Completing any hint leaves the cursor on the hint, click-ready: click with `Shift+L/R/M`, nudge with the arrows, launch another mode with `Ctrl+Shift+<key>`, or `Esc` to idle.
 
 ## Rebinding
 

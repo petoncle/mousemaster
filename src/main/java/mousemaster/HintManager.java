@@ -51,11 +51,11 @@ public class HintManager implements ModeListener, MousePositionListener {
     private Rectangle areaOverride;
     /** The area of the overlay the current mode was entered from, unzoomed. */
     private Rectangle lastOverlayArea;
-    private Point stoppedTargetPoint;
+    private Point detachedTarget;
     private final Mover targetMover = new Mover();
     private final Mover hotspotMover = new Mover();
-    private double hotspotXPercent = 0.5;
-    private double hotspotYPercent = 0.5;
+    private double cellXPercent = 0.5;
+    private double cellYPercent = 0.5;
     private double hotspotXOffset;
     private double hotspotYOffset;
     private double hotspotFrameDelta;
@@ -252,10 +252,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         return hintMesh;
     }
 
-    /** The target follows the mouse, until mouse-follows-target=false stops it where
-     *  it is. */
-    public Point targetPoint() {
-        return stoppedTargetPoint == null ? new Point(mouseX, mouseY) : stoppedTargetPoint;
+    public Point target() {
+        return detachedTarget == null ? new Point(mouseX, mouseY) : detachedTarget;
     }
 
     public Point lastSelectedHotspot() {
@@ -268,7 +266,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public void moveToTarget() {
-        moveTo(targetPoint());
+        moveTo(target());
     }
 
     public void moveToLastSelectedHint() {
@@ -404,7 +402,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public void moveTargetToCellCenter() {
-        moveTargetToNearestCell(nearestCellCenter(targetPoint()));
+        moveTargetToNearestCell(nearestCellCenter(target()));
     }
 
     public void moveTargetToCellTop() {
@@ -442,7 +440,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private void nudgeTarget(boolean horizontal, boolean forward) {
         MovementConfiguration movement = currentMode.hintMesh().mouseFollowsTarget() ?
                 currentMode.mouse() : currentMode.target();
-        moveTargetTo(nudgedPoint(targetPoint(), movement.nudgeDistance(), horizontal, forward));
+        moveTargetTo(nudgedPoint(target(), movement.nudgeDistance(), horizontal, forward));
     }
 
     private Point nudgedPoint(Point point, double nudgeDistance, boolean horizontal,
@@ -454,7 +452,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public boolean hotspotsCentered() {
-        return hotspotXPercent == 0.5 && hotspotYPercent == 0.5 && hotspotXOffset == 0 &&
+        return cellXPercent == 0.5 && cellYPercent == 0.5 && hotspotXOffset == 0 &&
                hotspotYOffset == 0;
     }
 
@@ -506,7 +504,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         hotspotMover.stopMoveRight();
     }
 
-    public boolean movingHotspots() {
+    public boolean hotspotsMoving() {
         return hotspotMover.moving();
     }
 
@@ -605,7 +603,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             mouseManager.stopMoveRight();
     }
 
-    public boolean movingTarget() {
+    public boolean targetMoving() {
         return currentMode.hintMesh().mouseFollowsTarget() ? mouseManager.moving() :
                 targetMover.moving();
     }
@@ -613,10 +611,10 @@ public class HintManager implements ModeListener, MousePositionListener {
     public void update(double delta) {
         Point move = targetMover.move(delta);
         if (move != null) {
-            double scale = screenManager.nearestScreenContaining(stoppedTargetPoint.x(),
-                    stoppedTargetPoint.y()).scale();
-            stoppedTargetPoint = nearestScreenPoint(stoppedTargetPoint.x() + (long) move.x() * scale,
-                    stoppedTargetPoint.y() + (long) move.y() * scale);
+            double scale = screenManager.nearestScreenContaining(detachedTarget.x(),
+                    detachedTarget.y()).scale();
+            detachedTarget = nearestScreenPoint(detachedTarget.x() + (long) move.x() * scale,
+                    detachedTarget.y() + (long) move.y() * scale);
         }
         hotspotFrameDelta = hotspotMover.moving() ? hotspotFrameDelta + delta : 0;
         if (hotspotFrameDelta >= Mousemaster.FRAME_INTERVAL) {
@@ -638,7 +636,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (currentMode.hintMesh().mouseFollowsTarget() &&
             mouseManager.jumping(horizontal, forward))
             return;
-        moveTargetToNearestCell(nearestCellEdge(targetPoint(), horizontal, forward));
+        moveTargetToNearestCell(nearestCellEdge(target(), horizontal, forward));
     }
 
     private void moveToNearestCell(Point point) {
@@ -782,9 +780,9 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (!sameMode)
             lastOverlayArea = overlayArea();
         if (newMode.hintMesh().mouseFollowsTarget())
-            stoppedTargetPoint = null;
-        else if (stoppedTargetPoint == null)
-            stoppedTargetPoint = new Point(mouseX, mouseY);
+            detachedTarget = null;
+        else if (detachedTarget == null)
+            detachedTarget = new Point(mouseX, mouseY);
         targetMover.modeChanged(newMode.target(), newMode.stopCommandsFromPreviousMode() ||
                 newMode.hintMesh().mouseFollowsTarget());
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
@@ -795,13 +793,13 @@ public class HintManager implements ModeListener, MousePositionListener {
             areaOverride = null;
         HotspotConfiguration hotspots = newMode.hotspots();
         if (!hintMeshConfiguration.enabled() || !sameHintMeshType ||
-            hotspots.cellXPercent() != hotspotXPercent)
+            hotspots.cellXPercent() != cellXPercent)
             hotspotXOffset = 0;
         if (!hintMeshConfiguration.enabled() || !sameHintMeshType ||
-            hotspots.cellYPercent() != hotspotYPercent)
+            hotspots.cellYPercent() != cellYPercent)
             hotspotYOffset = 0;
-        hotspotXPercent = hotspots.cellXPercent();
-        hotspotYPercent = hotspots.cellYPercent();
+        cellXPercent = hotspots.cellXPercent();
+        cellYPercent = hotspots.cellYPercent();
         hotspotMover.modeChanged(hotspots.movement(),
                 newMode.stopCommandsFromPreviousMode() || !hintMeshConfiguration.enabled());
         boolean sameUiElementQueryArea =
@@ -819,7 +817,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             currentPositionHistory =
                     positionHistory(hintMeshConfiguration.type().positionHistoryName());
             if (currentPositionHistory.positions().isEmpty())
-                savePosition(currentPositionHistory, targetPoint());
+                savePosition(currentPositionHistory, target());
         }
         ScreenFilter newScreenFilter = screenFilter(hintMeshConfiguration);
         List<Key> selectionKeys =
@@ -1249,7 +1247,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         return switch (center) {
             case ACTIVE_SCREEN_CENTER -> screenManager.activeScreen().rectangle().center();
             case MOUSE -> new Point(mouseX, mouseY);
-            case TARGET -> targetPoint();
+            case TARGET -> target();
             case LAST_SELECTED_HINT -> lastSelectedHotspot == null ?
                     screenManager.activeScreen().rectangle().center() : lastSelectedHotspot;
             case ACTIVE_WINDOW_CENTER ->
@@ -1591,9 +1589,9 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private double hotspotCoordinate(Rectangle cell, boolean horizontal) {
         return horizontal ?
-                cellCoordinate(cell.x() + hotspotXPercent * cell.width(), cell.x(),
+                cellCoordinate(cell.x() + cellXPercent * cell.width(), cell.x(),
                         cell.width()) :
-                cellCoordinate(cell.y() + hotspotYPercent * cell.height(), cell.y(),
+                cellCoordinate(cell.y() + cellYPercent * cell.height(), cell.y(),
                         cell.height());
     }
 
@@ -2304,7 +2302,7 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private void moveTargetTo(Point point) {
         if (!currentMode.hintMesh().mouseFollowsTarget()) {
-            stoppedTargetPoint = new Point(Math.round(point.x()), Math.round(point.y()));
+            detachedTarget = new Point(Math.round(point.x()), Math.round(point.y()));
             return;
         }
         moveTo(point);
@@ -2364,18 +2362,18 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public void saveCurrentPosition(String positionHistoryName) {
-        savePosition(positionHistory(positionHistoryName), targetPoint());
+        savePosition(positionHistory(positionHistoryName), target());
         showSavedPositions(positionHistoryName);
     }
 
     public void unsaveCurrentPosition(String positionHistoryName) {
-        positionHistory(positionHistoryName).unsave(targetPoint());
+        positionHistory(positionHistoryName).unsave(target());
         showSavedPositions(positionHistoryName);
     }
 
     public void toggleSaveCurrentPosition(String positionHistoryName) {
         PositionHistory positionHistory = positionHistory(positionHistoryName);
-        Point position = targetPoint();
+        Point position = target();
         if (positionHistory.positions().contains(position))
             positionHistory.unsave(position);
         else
@@ -2390,7 +2388,7 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     public void cyclePosition(String positionHistoryName, int offset) {
         Point position =
-                positionHistory(positionHistoryName).cycle(offset, targetPoint());
+                positionHistory(positionHistoryName).cycle(offset, target());
         if (position != null)
             moveTargetTo(position);
     }

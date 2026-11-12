@@ -25,7 +25,7 @@ Fifteen virtual keys are declared, each next to the macros that press or release
 and hint state: `islclick` `ismclick` `isrclick` `isnohintclick` `islongpresshintkey` `isnomove`
 `mouseanchored` `zooming` `autodrilling`, and `showrecursivehintkeys`, the only one declared
 `pressed`. Four belong to `ui-hint-mode`: `isrefine` arms the refine grid, `issnapped` makes the
-direction keys move its target once the first one snapped it, and `isdensehints`/`issparsehints`
+direction keys move the target once the first one snapped it, and `isdensehints`/`issparsehints`
 cycle the hint density. `indicating` is pressed while the indicator shows, so the indicator pops in
 only when it appears and pops out only when idle-mode hides it.
 
@@ -541,7 +541,7 @@ _recursive-hint-mode.macro.unsetmouseanchored=^{autodrilling} +recursivehintkey 
 normal-mode.break-combo-preparation=+middlebutton-0-150 -middlebutton-1 | ^{leftalt} +fasttrackkey
 ```
 
-The pointer is usually already roughly on target, so `7`, `8` and `9` open the grid pre-drilled to one
+The pointer is usually already near the element, so `7`, `8` and `9` open the grid pre-drilled to one
 third, one ninth or one twenty-seventh of the screen, **centered on the cursor**:
 
 - `autodrilling` is a virtual key, and pressing it *is* the trigger for `to.recursive-hint1-mode` — the

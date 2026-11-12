@@ -29,8 +29,8 @@ _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the
 
 ## Grid Mode (_g_ in normal mode)
 
-- Divide screen into a 2x2 grid, refining target area with each key press.
-- Move mouse to the middle of the targeted grid section.
+- Divide screen into a 2x2 grid, refining the area with each key press.
+- Move mouse to the middle of the selected grid section.
 - Shrink the grid in one direction with _i_, _j_, _k_, _l_.
 - Go back to normal mode with _g_ or _esc_.
 
@@ -52,7 +52,7 @@ _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the
 ## Recursive Hint Mode (_r_ in normal mode)
 
 - Display a 3x3 grid over the screen, positioned like the _u_, _i_, _o_, _j_, _k_, _l_, _m_, _,_, _._ keys.
-- Press one of those keys to narrow the grid to that ninth of the current area, and repeat (up to five times) until the mouse is on target.
+- Press one of those keys to narrow the grid to that ninth of the current area, and repeat (up to five times) until the mouse is on the element.
 - The mouse follows the center of the current area, so the drill can be left at any depth. Press _`_ (backtick) to leave the mouse where it is instead.
 - Press mouse buttons without leaving the drill, with the same keys as in normal mode.
 - Go back one level with _backspace_, back to the whole screen with _space_.

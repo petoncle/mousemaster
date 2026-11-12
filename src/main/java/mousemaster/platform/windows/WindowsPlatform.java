@@ -167,7 +167,7 @@ public class WindowsPlatform implements Platform {
         long sleepMillis =
                 overlay.hintTransitionAnimating() || zoomManager.animating() ||
                 indicatorManager.animating() || hintManager.waitingForUiElements() ||
-                hintManager.movingHotspots() || overlay.hintMeshBuildPending() ? 1 : 10;
+                hintManager.hotspotsMoving() || overlay.hintMeshBuildPending() ? 1 : 10;
         long beforeTime = System.nanoTime();
         while (true) {
             long currentTime = System.nanoTime();

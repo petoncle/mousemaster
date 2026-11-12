@@ -346,9 +346,9 @@ class HotspotTest {
         switchMode("pick-mode");
         hintManager.nudgeTargetLeft();
         hintManager.nudgeTargetUp();
-        assertEquals(new Point(90, 96), hintManager.targetPoint());
+        assertEquals(new Point(90, 96), hintManager.target());
         hintManager.nudgeTargetRight();
-        assertEquals(new Point(100, 96), hintManager.targetPoint());
+        assertEquals(new Point(100, 96), hintManager.target());
         assertEquals(10, mousePositions.size());
     }
 
@@ -612,11 +612,11 @@ class HotspotTest {
         press("h");
         down("rightarrow");
         hintManager.update(0.1);
-        assertEquals(new Point(110, 100), hintManager.targetPoint());
+        assertEquals(new Point(110, 100), hintManager.target());
         down("downarrow");
-        assertEquals(new Point(110, 100), hintManager.targetPoint());
+        assertEquals(new Point(110, 100), hintManager.target());
         hintManager.update(0.1);
-        assertEquals(new Point(117, 107), hintManager.targetPoint());
+        assertEquals(new Point(117, 107), hintManager.target());
     }
 
     @Test

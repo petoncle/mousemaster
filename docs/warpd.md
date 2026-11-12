@@ -46,8 +46,8 @@ The layout above shows normal mode.
 
 ## Grid Mode (_leftalt + g_ or _g_ in normal mode)
 
-- Divide screen into a 2x2 grid, refining target area with each key press.
-- Move mouse to the middle of the targeted grid section.
+- Divide screen into a 2x2 grid, refining the area with each key press.
+- Move mouse to the middle of the selected grid section.
 - Shrink the grid to one quadrant with _u_, _i_, _j_, _k_ (see illustration below).
 - Move the grid in one direction with _w_, _a_, _s_, _d_.
 - Switch to normal mode with _c_.
