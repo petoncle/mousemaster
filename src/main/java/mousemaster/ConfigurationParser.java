@@ -325,7 +325,7 @@ public class ConfigurationParser {
                       .outlineThickness(0d).outlineColor(Color.parse("#000000"))
                       .outlineOpacity(0.5d)
                       .verticalAlignment(FontVerticalAlignment.CAP_HEIGHT);
-            decoration.fontStyle().spacingPercent(0.7d);
+            decoration.fontStyle().spacingPercent(0d);
             decoration.fontStyle().defaultFontStyle().shadow()
                       .blurRadius(10d).color(Color.parse("#FFFFFF")).opacity(0d)
                       .horizontalOffset(0d).verticalOffset(0d).stackCount(1);

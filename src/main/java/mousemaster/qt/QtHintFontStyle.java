@@ -10,6 +10,12 @@ public record QtHintFontStyle(QtFontStyle defaultStyle,
                               boolean perKeyShadow,
                               double fontSpacingPercent) {
 
+    /** The same style for each key, as a decoration label has. */
+    public static QtHintFontStyle of(QtFontStyle style, double fontSpacingPercent) {
+        return new QtHintFontStyle(style, style, style, null, null, null, false, false,
+                fontSpacingPercent);
+    }
+
     /** Whether every state this mesh can draw is invisible, so the layer stays empty. */
     public boolean invisible(boolean hasSelectedKeys) {
         if (!defaultStyle.invisible() || !focusedStyle.invisible() ||
