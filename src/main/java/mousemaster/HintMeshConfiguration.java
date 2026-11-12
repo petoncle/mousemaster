@@ -34,28 +34,28 @@ public record HintMeshConfiguration(boolean enabled,
         private Boolean eatUnusedSelectionKeys;
         private Integer z;
 
-        public HintMeshConfigurationBuilder enabled(boolean enabled) {
+        public HintMeshConfigurationBuilder enabled(Boolean enabled) {
             this.enabled = enabled;
             return this;
         }
 
-        public HintMeshConfigurationBuilder visible(boolean visible) {
+        public HintMeshConfigurationBuilder visible(Boolean visible) {
             this.visible = visible;
             return this;
         }
 
-        public HintMeshConfigurationBuilder excludeFromCapture(boolean excludeFromCapture) {
+        public HintMeshConfigurationBuilder excludeFromCapture(Boolean excludeFromCapture) {
             this.excludeFromCapture = excludeFromCapture;
             return this;
         }
 
-        public HintMeshConfigurationBuilder mouseFollowsTarget(boolean mouseFollowsTarget) {
+        public HintMeshConfigurationBuilder mouseFollowsTarget(Boolean mouseFollowsTarget) {
             this.mouseFollowsTarget = mouseFollowsTarget;
             return this;
         }
 
         public HintMeshConfigurationBuilder targetFollowsOverlayCenter(
-                boolean targetFollowsOverlayCenter) {
+                Boolean targetFollowsOverlayCenter) {
             this.targetFollowsOverlayCenter = targetFollowsOverlayCenter;
             return this;
         }
@@ -87,12 +87,12 @@ public record HintMeshConfiguration(boolean enabled,
         }
 
         public HintMeshConfigurationBuilder eatUnusedSelectionKeys(
-                boolean eatUnusedSelectionKeys) {
+                Boolean eatUnusedSelectionKeys) {
             this.eatUnusedSelectionKeys = eatUnusedSelectionKeys;
             return this;
         }
 
-        public HintMeshConfigurationBuilder z(int z) {
+        public HintMeshConfigurationBuilder z(Integer z) {
             this.z = z;
             return this;
         }

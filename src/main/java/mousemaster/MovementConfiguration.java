@@ -17,17 +17,17 @@ public record MovementConfiguration(VelocityConfiguration velocity,
             return velocity;
         }
 
-        public MovementConfigurationBuilder smoothJumpEnabled(boolean smoothJumpEnabled) {
+        public MovementConfigurationBuilder smoothJumpEnabled(Boolean smoothJumpEnabled) {
             this.smoothJumpEnabled = smoothJumpEnabled;
             return this;
         }
 
-        public MovementConfigurationBuilder smoothJumpVelocity(double smoothJumpVelocity) {
+        public MovementConfigurationBuilder smoothJumpVelocity(Double smoothJumpVelocity) {
             this.smoothJumpVelocity = smoothJumpVelocity;
             return this;
         }
 
-        public MovementConfigurationBuilder nudgeDistance(double nudgeDistance) {
+        public MovementConfigurationBuilder nudgeDistance(Double nudgeDistance) {
             this.nudgeDistance = nudgeDistance;
             return this;
         }

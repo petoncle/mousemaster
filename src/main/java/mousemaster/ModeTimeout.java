@@ -11,7 +11,7 @@ public record ModeTimeout(boolean enabled, Duration duration, String modeName,
         private String modeName;
         private Boolean onlyIfIdle;
 
-        public ModeTimeoutBuilder enabled(boolean enabled) {
+        public ModeTimeoutBuilder enabled(Boolean enabled) {
             this.enabled = enabled;
             return this;
         }
@@ -26,7 +26,7 @@ public record ModeTimeout(boolean enabled, Duration duration, String modeName,
             return this;
         }
 
-        public ModeTimeoutBuilder onlyIfIdle(boolean onlyIfIdle) {
+        public ModeTimeoutBuilder onlyIfIdle(Boolean onlyIfIdle) {
             this.onlyIfIdle = onlyIfIdle;
             return this;
         }

@@ -27,9 +27,13 @@ class MultipleParentModeTest {
         Mode mode = mode("normal-mode", "virtual-keys=flag",
                 "idle-mode.to.normal-mode=+leftshift",
                 "_a-mode.indicator.size=42",
+                "_b-mode.indicator.fill-opacity=0.5",
+                "_b-mode.mouse.max-velocity=5000",
                 "_b-mode.macro.x=+a -> #flag",
                 "normal-mode=_a-mode _b-mode");
         assertEquals(42, mode.indicator().layerByName().get("indicator").size());
+        assertEquals(0.5, mode.indicator().layerByName().get("indicator").fillOpacity());
+        assertEquals(5000, mode.mouse().velocity().maxVelocity());
         assertEquals(List.of("x"), macroNames(mode));
     }
 

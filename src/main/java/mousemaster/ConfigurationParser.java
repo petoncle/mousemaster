@@ -50,28 +50,28 @@ public class ConfigurationParser {
         AtomicReference<Boolean> stopCommandsFromPreviousMode = new AtomicReference<>(false);
         AtomicReference<String> modeAfterPressingUnhandledKeysOnly = new AtomicReference<>();
         MovementConfigurationBuilder mouse = new MovementConfigurationBuilder();
-        mouse.velocity().initialVelocity(1000)
-                 .maxVelocity(2200)
-                 .acceleration(3000)
+        mouse.velocity().initialVelocity(1000d)
+                 .maxVelocity(2200d)
+                 .acceleration(3000d)
                  .accelerationEasing(new Easing.Smootherstep())
-                 .deceleration(20);
+                 .deceleration(20d);
         mouse.smoothJumpEnabled(true)
-             .smoothJumpVelocity(30000)
-             .nudgeDistance(1);
+             .smoothJumpVelocity(30000d)
+             .nudgeDistance(1d);
         MovementConfigurationBuilder target = new MovementConfigurationBuilder();
         target.smoothJumpEnabled(false)
-              .smoothJumpVelocity(0);
+              .smoothJumpVelocity(0d);
         extendMovement(target, mouse);
         HotspotConfigurationBuilder hotspots = new HotspotConfigurationBuilder();
         hotspots.cellXPercent(0.5)
                   .cellYPercent(0.5);
         extendMovement(hotspots.movement(), target);
         WheelBuilder wheel = new WheelBuilder();
-        wheel.velocity().initialVelocity(1000)
-                 .maxVelocity(1000)
-                 .acceleration(500)
+        wheel.velocity().initialVelocity(1000d)
+                 .maxVelocity(1000d)
+                 .acceleration(500d)
                  .accelerationEasing(new Easing.Polynomial(1))
-                 .deceleration(0);
+                 .deceleration(0d);
         HintMeshConfigurationBuilder hintMesh = defaultHintMesh();
         // The deprecated grid's defaults.
         HintMeshConfigurationBuilder gridHintMesh = defaultHintMesh();
@@ -619,13 +619,9 @@ public class ConfigurationParser {
         while (!extendablePropertyKeys.isEmpty()) {
             PropertyKey propertyKey = extendablePropertyKeys.poll();
             extendedPropertyKeys.add(propertyKey);
-            List<PropertyKey> parentProperties =
-                    parentPropertiesByChildProperty.getOrDefault(propertyKey,
-                            List.of(new PropertyKey(null, propertyKey.propertyName())));
-            for (PropertyKey parentPropertyKey : parentProperties)
-                extendProperty(parentPropertyKey.modeName() == null ?
-                                defaultPropertyByName.get(parentPropertyKey.propertyName()) :
-                                propertyByKey.get(parentPropertyKey),
+            for (PropertyKey parentPropertyKey :
+                    parentPropertiesByChildProperty.getOrDefault(propertyKey, List.of()))
+                extendProperty(propertyByKey.get(parentPropertyKey),
                         propertyByKey.get(propertyKey));
             for (PropertyKey childPropertyKey :
                     childPropertiesByParentProperty.getOrDefault(propertyKey, Set.of()))
@@ -639,6 +635,9 @@ public class ConfigurationParser {
                 throw new IllegalArgumentException(
                         "Found property dependency cycle involving property key " +
                         propertyKey);
+        for (Map.Entry<PropertyKey, Property<?>> entry : propertyByKey.entrySet())
+            extendProperty(defaultPropertyByName.get(entry.getKey().propertyName()),
+                    entry.getValue());
         // A mode that uses the deprecated grid, and has no hint, shows the grid as its hint.
         for (ModeBuilder mode : modeByName.values()) {
             if (mode.hintMesh.builder.enabled() ||

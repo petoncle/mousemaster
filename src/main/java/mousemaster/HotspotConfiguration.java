@@ -11,12 +11,12 @@ public record HotspotConfiguration(double cellXPercent, double cellYPercent,
         private Double cellYPercent;
         private final MovementConfigurationBuilder movement = new MovementConfigurationBuilder();
 
-        public HotspotConfigurationBuilder cellXPercent(double cellXPercent) {
+        public HotspotConfigurationBuilder cellXPercent(Double cellXPercent) {
             this.cellXPercent = cellXPercent;
             return this;
         }
 
-        public HotspotConfigurationBuilder cellYPercent(double cellYPercent) {
+        public HotspotConfigurationBuilder cellYPercent(Double cellYPercent) {
             this.cellYPercent = cellYPercent;
             return this;
         }

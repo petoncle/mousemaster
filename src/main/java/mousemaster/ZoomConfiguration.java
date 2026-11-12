@@ -20,7 +20,7 @@ public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, AreaCente
         private AreaCenter center;
         private final Transition.TransitionBuilder transition = new Transition.TransitionBuilder();
 
-        public ZoomConfigurationBuilder percent(double percent) {
+        public ZoomConfigurationBuilder percent(Double percent) {
             this.percent = percent;
             return this;
         }
@@ -30,12 +30,12 @@ public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, AreaCente
             return this;
         }
 
-        public ZoomConfigurationBuilder areaWidthPercent(double areaWidthPercent) {
+        public ZoomConfigurationBuilder areaWidthPercent(Double areaWidthPercent) {
             this.areaWidthPercent = areaWidthPercent;
             return this;
         }
 
-        public ZoomConfigurationBuilder areaHeightPercent(double areaHeightPercent) {
+        public ZoomConfigurationBuilder areaHeightPercent(Double areaHeightPercent) {
             this.areaHeightPercent = areaHeightPercent;
             return this;
         }

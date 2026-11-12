@@ -8,7 +8,7 @@ public record HideCursor(boolean enabled, Duration idleDuration) {
         private Boolean enabled;
         private Duration idleDuration;
 
-        public HideCursorBuilder enabled(boolean enabled) {
+        public HideCursorBuilder enabled(Boolean enabled) {
             this.enabled = enabled;
             return this;
         }

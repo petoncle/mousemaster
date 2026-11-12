@@ -11,17 +11,17 @@ public record VelocityConfiguration(double initialVelocity, double maxVelocity,
         private Easing accelerationEasing;
         private Double deceleration;
 
-        public VelocityConfigurationBuilder initialVelocity(double initialVelocity) {
+        public VelocityConfigurationBuilder initialVelocity(Double initialVelocity) {
             this.initialVelocity = initialVelocity;
             return this;
         }
 
-        public VelocityConfigurationBuilder maxVelocity(double maxVelocity) {
+        public VelocityConfigurationBuilder maxVelocity(Double maxVelocity) {
             this.maxVelocity = maxVelocity;
             return this;
         }
 
-        public VelocityConfigurationBuilder acceleration(double acceleration) {
+        public VelocityConfigurationBuilder acceleration(Double acceleration) {
             this.acceleration = acceleration;
             return this;
         }
@@ -31,7 +31,7 @@ public record VelocityConfiguration(double initialVelocity, double maxVelocity,
             return this;
         }
 
-        public VelocityConfigurationBuilder deceleration(double deceleration) {
+        public VelocityConfigurationBuilder deceleration(Double deceleration) {
             this.deceleration = deceleration;
             return this;
         }
