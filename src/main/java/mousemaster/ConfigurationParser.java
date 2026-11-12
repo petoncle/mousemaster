@@ -462,7 +462,7 @@ public class ConfigurationParser {
             }
             else if (propertyKey.equals("logging.redact-keys")) {
                 logger.warn(
-                        "logging.redact-keys is deprecated: use logging.key-redaction=none, pseudonymize or anonymize instead");
+                        "logging.redact-keys has been deprecated: use logging.key-redaction=none, pseudonymize or anonymize instead");
                 keyRedaction = Boolean.parseBoolean(propertyValue) ?
                         KeyRedaction.ANONYMIZE : KeyRedaction.NONE;
                 continue;
@@ -1333,7 +1333,7 @@ public class ConfigurationParser {
             String propertyValue = lineMatcher.group(2).strip();
             if (propertyKey.equals("keyboard-layout")) {
                 logger.warn(
-                        "key-layout has been deprecated: use forced-active-keyboard-layout instead");
+                        "keyboard-layout has been deprecated: use forced-active-keyboard-layout instead");
                 forcedActiveKeyboardLayout = parseKeyboardLayout(propertyValue);
             }
             if (propertyKey.equals("forced-active-keyboard-layout")) {
