@@ -238,13 +238,19 @@ public class IndicatorManager implements ModeListener {
             copyByKey.put(new IndicatorLayerCopyKey(entry.getKey(), index), entry.getValue());
             layerNamesToAnchor.add(entry.getKey());
         }
-        copyByKey.values().removeIf(copy -> copy.runningTimelineByPropertyPath().values().stream()
-                .allMatch(runningTimeline -> animationPlayer.ended(
-                        runningTimeline.timeline().animationName(), runningTimeline.elapsed())));
+        copyByKey.values().removeIf(this::ended);
         for (IndicatorLayerCopy copy : copyByKey.values())
             copy.runningTimelineByPropertyPath().replaceAll((propertyPath, runningTimeline) ->
                     new RunningTimeline(runningTimeline.timeline(),
                             runningTimeline.elapsed() + delta, runningTimeline.current()));
+        if (copyByKey.values().stream().anyMatch(this::ended))
+            frameWait = 0;
+    }
+
+    private boolean ended(IndicatorLayerCopy copy) {
+        return copy.runningTimelineByPropertyPath().values().stream()
+                   .allMatch(runningTimeline -> animationPlayer.ended(
+                           runningTimeline.timeline().animationName(), runningTimeline.elapsed()));
     }
 
     private void updateTimelines() {
@@ -261,6 +267,8 @@ public class IndicatorManager implements ModeListener {
                 elapsed >= runningTimeline.elapsed()) {
                 newRunningTimelineByPropertyPath.put(propertyPath,
                         new RunningTimeline(timeline, elapsed, runningTimeline.current()));
+                if (animationPlayer.ended(timeline.animationName(), elapsed))
+                    frameWait = 0;
                 continue;
             }
             Object current = ModePropertyMutator.getModeProperty(resolvedIndicator,

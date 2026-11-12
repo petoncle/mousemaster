@@ -163,6 +163,18 @@ class AnimationTest {
     }
 
     @Test
+    void theFrameAtTheEndOfAnAnimationIsDrawn() {
+        load("grow-animation.duration-millis=100",
+                "idle-mode.start.grow-animation=+a",
+                "idle-mode.indicator.enabled=true",
+                "idle-mode.indicator.size=26 | _{growanimation} -> 0% 10; 100% 50");
+        tap("a");
+        for (int i = 0; i < 110; i++)
+            tick(0.001);
+        assertTrue(drawn.stream().anyMatch(layer -> layer != null && layer.size() == 50));
+    }
+
+    @Test
     void aTextShowsTheKeyThatMatchedItsAliasInPlace() {
         load("key-alias.move=i j",
                 "keycast-animation.duration-millis=100",
