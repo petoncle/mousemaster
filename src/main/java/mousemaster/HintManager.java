@@ -1140,7 +1140,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private static boolean sameUiElementQuery(HintMeshType type, HintMeshType currentType) {
-        if (type.type() != currentType.type() || !type.area().equals(currentType.area()))
+        if (type.type() != currentType.type() || !type.area().equals(currentType.area()) ||
+            type.order().center() != currentType.order().center())
             return false;
         if (type.type() == HintMeshTypeType.UI_ACCESSIBILITY)
             return true;

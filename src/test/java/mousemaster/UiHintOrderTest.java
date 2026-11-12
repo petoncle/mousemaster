@@ -161,6 +161,28 @@ public class UiHintOrderTest {
     }
 
     @Test
+    void aModeWithAPointOrderAfterAModeWithAnEdgeOrderSortsFromThePoint() throws IOException {
+        ModeMap modeMap = parse("""
+                idle-mode.to.edge-mode=+u
+                edge-mode.to.mouse-mode=+m
+                mouse-mode.to.idle-mode=+esc
+                edge-mode.overlay.selection-keys=a b c d
+                edge-mode.overlay.type=ui-accessibility
+                mouse-mode.overlay.selection-keys=a b c d
+                mouse-mode.overlay.type=ui-accessibility
+                mouse-mode.overlay.ui-order=mouse
+                """).modeMap();
+        HintManager hintManager = hintManager(List.of(new UiElement(new Rectangle(10, 10, 0, 0)),
+                new UiElement(new Rectangle(510, 505, 0, 0))));
+        hintManager.mouseMoved(500, 500);
+        hintManager.modeChanged(modeMap.get("edge-mode"));
+        hintManager.completePendingUiHintQuery();
+        hintManager.modeChanged(modeMap.get("mouse-mode"));
+        hintManager.completePendingUiHintQuery();
+        assertEquals(510, hintManager.hintMesh().hints().getFirst().centerX());
+    }
+
+    @Test
     void theElementsNearestTheCenterOfTheActiveScreenComeFirst() throws IOException {
         Mode mode = parse("""
                 idle-mode.to.ui-hint-mode=+u
