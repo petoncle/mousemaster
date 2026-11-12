@@ -465,9 +465,6 @@ public class ComboWatcher {
                 lastProcessingSet = null;
             }
         }
-        // For a given waiting combo, we know that its precondition has to be satisfied still, because otherwise it
-        // would mean that currentlyPressedComboPreconditionKeys has changed. But when currentlyPressedComboPreconditionKeys is changed,
-        // combosWaitingForLastMoveToComplete is always reset.
         List<ComboWaitingForLastMoveToComplete> completedCombosWaitingForLastMoveToComplete = new ArrayList<>();
         Key comboPreparationBreakerKey = null;
         // Remove waiting combos that don't belong to the current mode.
@@ -480,6 +477,8 @@ public class ComboWatcher {
                 completedCombosWaitingForLastMoveToComplete.add(comboWaitingForLastMoveToComplete);
                 Combo combo = comboWaitingForLastMoveToComplete.comboAndCommands.combo;
                 ComboSequenceMatch waitingMatch = comboWaitingForLastMoveToComplete.comboAndCommands.match;
+                if (!comboPreconditionSatisfied(combo, currentlyPressedComboKeys, waitingMatch))
+                    continue;
                 if (waitingMatch.hasMatch() &&
                     comboWaitingForLastMoveToComplete.comboAndCommands.commands.stream()
                                                                                .anyMatch(
@@ -986,24 +985,7 @@ public class ComboWatcher {
             long postMatchStartNanos = System.nanoTime();
             ResolvedKeyComboMove currentKeyMove = match.hasMatch() ?
                     match.lastMatchedKeyMove() : null;
-            // If the combo has no explicit pressed precondition, we ignore the
-            // currently pressed keys: the combo fires regardless of what's held.
-            // Only combos with an explicit _{...} precondition check pressed keys.
-            if (!combo.precondition().keyPrecondition().pressedKeyPrecondition().isEmpty() &&
-                findSatisfiedPressedPreconditionKeys(combo, currentlyPressedKeys,
-                        currentlyPressedCompletedComboKeys, match.matchedKeyMoves(),
-                        match.absorbedPressedKeys()) == null) {
-                // Then it's as if the currently pressed precondition key is an unhandled key:
-                // other keys that are pressed should not even be considered but passed onto other apps.
-                // logger.info("currentlyPressedPressedComboKeysNotPartOfAlreadyCompletedCombo = " +
-                //             currentlyPressedPressedComboKeysNotPartOfAlreadyCompletedCombo +
-                //             ", skipping combo: " + combo);
-                continue;
-            }
-            if (!comboUnpressedPreconditionSatisfied(combo, currentlyPressedComboKeys, match.matchedKeyMoves())) {
-                continue;
-            }
-            if (!combo.precondition().variablePrecondition().satisfiedBy(activeVariables))
+            if (!comboPreconditionSatisfied(combo, currentlyPressedKeys, match))
                 continue;
             // A modifier key event keeps the combo alive, without being part of it.
             if (event != null && combo.sequence().modifierKeys().contains(event.key())) {
@@ -1411,6 +1393,20 @@ public class ComboWatcher {
                  command instanceof Command.StopMoveHotspotsDown ||
                  command instanceof Command.StopMoveHotspotsLeft ||
                  command instanceof Command.StopMoveHotspotsRight);
+    }
+
+    private boolean comboPreconditionSatisfied(Combo combo, Set<Key> currentlyPressedKeys,
+                                               ComboSequenceMatch match) {
+        // If the combo has no explicit pressed precondition, we ignore the
+        // currently pressed keys: the combo fires regardless of what's held.
+        // Only combos with an explicit _{...} precondition check pressed keys.
+        return (combo.precondition().keyPrecondition().pressedKeyPrecondition().isEmpty() ||
+                findSatisfiedPressedPreconditionKeys(combo, currentlyPressedKeys,
+                        currentlyPressedCompletedComboKeys, match.matchedKeyMoves(),
+                        match.absorbedPressedKeys()) != null) &&
+               comboUnpressedPreconditionSatisfied(combo, currentlyPressedComboKeys,
+                       match.matchedKeyMoves()) &&
+               combo.precondition().variablePrecondition().satisfiedBy(activeVariables);
     }
 
     private Set<Key> findSatisfiedPressedPreconditionKeys(Combo combo,

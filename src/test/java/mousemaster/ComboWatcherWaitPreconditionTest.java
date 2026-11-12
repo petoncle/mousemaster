@@ -26,13 +26,18 @@ class ComboWatcherWaitPreconditionTest {
         Configuration configuration = ConfigurationParser.parse(List.of(lines),
                 KeyboardLayout.keyboardLayout("00000409", null));
         ModeMap modeMap = configuration.modeMap();
+        Set<Key> unpressedPreconditionKeys = new HashSet<>();
         Set<Key> pressedPreconditionKeys = new HashSet<>();
-        for (Mode mode : modeMap.modes())
-            for (Combo combo : mode.comboMap().commandsByCombo().keySet())
+        for (Mode mode : modeMap.modes()) {
+            for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
+                unpressedPreconditionKeys.addAll(
+                        combo.precondition().keyPrecondition().unpressedKeySet());
                 pressedPreconditionKeys.addAll(combo.precondition()
                                                     .keyPrecondition()
                                                     .pressedKeyPrecondition()
                                                     .allKeys());
+            }
+        }
         CommandRunner commandRunner = new CommandRunner(null, null, null) {
             @Override
             public boolean mouseJumping() {
@@ -45,7 +50,8 @@ class ComboWatcherWaitPreconditionTest {
             }
         };
         comboWatcher = new ComboWatcher(commandRunner, null, () -> new App("test.exe"), null,
-                () -> now, Set.of(), pressedPreconditionKeys, new KeyRedactor(KeyRedaction.NONE),
+                () -> now, unpressedPreconditionKeys, pressedPreconditionKeys,
+                new KeyRedactor(KeyRedaction.NONE),
                 modeMap, configuration.initiallySetVariables(), configuration.virtualKeys(),
                 configuration.initiallyPressedVirtualKeys(),
                 configuration.activeKeyboardLayout());
@@ -55,6 +61,10 @@ class ComboWatcherWaitPreconditionTest {
 
     private void press(String keyName) {
         comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, Key.ofName(keyName)));
+    }
+
+    private void release(String keyName) {
+        comboWatcher.keyEvent(new KeyEvent.ReleaseKeyEvent(now, Key.ofName(keyName)));
     }
 
     private void elapse(long millis) {
@@ -97,6 +107,45 @@ class ComboWatcherWaitPreconditionTest {
         press("b");
         elapse(10);
         assertEquals(PRESS, ranCommands);
+    }
+
+    @Test
+    void aTrailingWaitDoesNotRunWithAPreconditionKeyReleasedDuringIt() {
+        load("idle-mode.press.middle=_{leftctrl} +b #!{b}-250");
+        press("leftctrl");
+        press("b");
+        release("leftctrl");
+        elapse(300);
+        assertEquals(List.of(), ranCommands);
+    }
+
+    @Test
+    void aHeldLastMoveDoesNotRunWithAPreconditionKeyReleasedDuringIt() {
+        load("idle-mode.press.middle=_{leftctrl} +b-250");
+        press("leftctrl");
+        press("b");
+        release("leftctrl");
+        elapse(300);
+        assertEquals(List.of(), ranCommands);
+    }
+
+    @Test
+    void aTrailingWaitDoesNotRunWithAPreconditionVirtualKeyReleasedDuringIt() {
+        load("idle-mode.press.middle=_{ishotspotscentered} +b #!{b}-250");
+        comboWatcher.setVirtualKeyPressed(BuiltInVirtualKey.IS_HOTSPOTS_CENTERED, true);
+        press("b");
+        comboWatcher.setVirtualKeyPressed(BuiltInVirtualKey.IS_HOTSPOTS_CENTERED, false);
+        elapse(300);
+        assertEquals(List.of(), ranCommands);
+    }
+
+    @Test
+    void aTrailingWaitDoesNotRunWithAnUnpressedPreconditionKeyPressedDuringIt() {
+        load("idle-mode.press.middle=^{leftctrl} +b #!{b}-250");
+        press("b");
+        press("leftctrl");
+        elapse(300);
+        assertEquals(List.of(), ranCommands);
     }
 
     @Test
