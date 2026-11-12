@@ -26,6 +26,14 @@ class OverlayTest {
     }
 
     @Test
+    void aScreenOnAPropertyWithOneValueForAllScreensIsAKey() {
+        assertEquals(AreaSizeSource.ACTIVE_SCREEN, overlay("grid-mode",
+                "idle-mode.to.grid-mode=+g",
+                "grid-mode.overlay.area=active-screen | _{300%} -> all-screens")
+                .type().area().size().source());
+    }
+
+    @Test
     void hintIsOverlay() {
         assertEquals(
                 overlay("grid-mode", "idle-mode.to.grid-mode=+g",

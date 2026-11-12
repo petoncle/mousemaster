@@ -1643,6 +1643,15 @@ public class ConfigurationParser {
                                     positionHistoryNames, colorAliases);
                     ModePropertyHandler handler = handlerByFilter.apply(screenFilter);
                     if (handler != null) {
+                        boolean screenSpecific = handler.propertyPath()
+                                                        .fieldNames()
+                                                        .stream()
+                                                        .anyMatch(fieldName -> fieldName.endsWith(
+                                                                "ByFilter"));
+                        if (!screenSpecific && !(screenFilter instanceof AnyScreenFilter))
+                            throw new IllegalArgumentException(
+                                    "Invalid screen filter: " + hintKey +
+                                    " has one value for all screens");
                         if (!tryParseComboProperty(propertyValue, modeName,
                                 handler.propertyPath(), handler.valueParser(),
                                 handler.modeBuilderSetter(),
@@ -1650,8 +1659,10 @@ public class ConfigurationParser {
                                 hintMesh.setPropertyPaths,
                                 defaultComboMoveDuration, keyAliases, appAliases,
                                 keyResolver, allVariableNames,
-                                new ScreenFilterProperty(screenFilter,
-                                        handlerByFilter, screenFilterAliases)))
+                                screenSpecific ?
+                                        new ScreenFilterProperty(screenFilter,
+                                                handlerByFilter, screenFilterAliases) :
+                                        null))
                             handler.modeBuilderSetter().accept(propertyValue);
                         return;
                     }
