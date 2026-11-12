@@ -322,6 +322,17 @@ class GridCommandTest {
     }
 
     @Test
+    void aFixedGridFillsItsAreaWithAnInset() throws IOException {
+        start("""
+                idle-mode.to.fixed-grid-mode=+f
+                fixed-grid-mode.overlay.area-top-inset=100
+                """);
+        switchMode("fixed-grid-mode");
+        Hint hint = shownHintMesh.hints().getFirst();
+        assertEquals(100, hint.centerY() - hint.cellHeight() / 2);
+    }
+
+    @Test
     void aCellCommandActsOnTheDrawnCellsOfAnAreaWithAnInset() throws IOException {
         start("""
                 grid-mode.overlay.area-width-percent=0.5

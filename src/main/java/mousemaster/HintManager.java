@@ -1318,8 +1318,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                     areaRectangles.add(areaRectangle);
                     HintGridLayout gridLayout = type.layout(
                             ScreenFilter.of(activeScreen));
-                    fixedSizeHintGrids.add(hintGridForArea(areaRectangle,
-                            areaRectangle.center(), gridLayout, screen.scale(), zoom));
+                    fixedSizeHintGrids.add(hintGridForArea(areaRectangle, gridLayout,
+                            screen.scale(), zoom));
                 }
                 hintMesh.area(Rectangle.union(areaRectangles));
                 hintMesh.backgroundArea(
@@ -1373,8 +1373,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                 Screen scaleScreen = screenManager.nearestScreenContaining(
                         gridCenter.x(), gridCenter.y());
                 HintGridLayout gridLayout = type.layout(screenFilter);
-                fixedSizeHintGrids.add(hintGridForArea(areaRectangle, gridCenter,
-                        gridLayout, scaleScreen.scale(), zoom));
+                fixedSizeHintGrids.add(hintGridForArea(areaRectangle, gridLayout,
+                        scaleScreen.scale(), zoom));
                 hintMesh.area(areaRectangle);
                 hintMesh.backgroundArea(
                         area.size().source() == AreaSizeSource.ACTIVE_WINDOW ?
@@ -1979,13 +1979,13 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     }
 
-    private FixedSizeHintGrid hintGridForArea(Rectangle areaRectangle, Point gridCenter,
+    private FixedSizeHintGrid hintGridForArea(Rectangle areaRectangle,
                                               HintGridLayout gridLayout, double scale,
                                               Zoom zoom) {
         HintCellSizing cellSizing = gridLayout.cellSizing();
         return switch (cellSizing.type()) {
             case FIXED -> fixedSizeHintGrid(
-                    areaRectangle, gridCenter, gridLayout.maxRowCount(),
+                    areaRectangle, gridLayout.maxRowCount(),
                     gridLayout.maxColumnCount(),
                     cellSizing.cellWidth() * scale * zoom.percent(),
                     cellSizing.cellHeight() * scale * zoom.percent());
@@ -2057,8 +2057,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 decoration.maxRowCount(), decoration.maxColumnCount(),
                 new HintCellSizing(HintCellSizing.HintCellSizingType.FIT, 0, 0),
                 decoration.maxRowCount(), decoration.maxColumnCount(), true);
-        FixedSizeHintGrid grid = hintGridForArea(area,
-                area.center(), decorationLayout, scale, zoom);
+        FixedSizeHintGrid grid = hintGridForArea(area, decorationLayout, scale, zoom);
         int layoutRowCount = Math.min(grid.rowCount(), decorationLayout.layoutRowCount());
         int layoutColumnCount = Math.min(grid.columnCount(),
                 decorationLayout.layoutColumnCount());
@@ -2100,8 +2099,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 decorationStyleByFilter, area, area, null, childMesh, List.of(), Map.of());
     }
 
-    private FixedSizeHintGrid fixedSizeHintGrid(Rectangle areaRectangle,
-                                                Point gridCenter, int maxRowCount,
+    private FixedSizeHintGrid fixedSizeHintGrid(Rectangle areaRectangle, int maxRowCount,
                                                 int maxColumnCount, double cellWidth,
                                                 double cellHeight) {
         double hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight;
@@ -2151,8 +2149,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (areaRectangle.height() - hintMeshHeight > 0
             && areaRectangle.height() - hintMeshHeight < rowCount)
             hintMeshHeight = areaRectangle.height();
-        hintMeshX = gridCenter.x() - hintMeshWidth / 2;
-        hintMeshY = gridCenter.y() - hintMeshHeight / 2;
+        hintMeshX = areaRectangle.center().x() - hintMeshWidth / 2;
+        hintMeshY = areaRectangle.center().y() - hintMeshHeight / 2;
         return new FixedSizeHintGrid(hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight,
                 rowCount, columnCount, cellWidth, cellHeight);
     }
