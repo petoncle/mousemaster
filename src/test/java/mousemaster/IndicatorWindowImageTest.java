@@ -245,8 +245,11 @@ class IndicatorWindowImageTest {
         assertFalse(inked(circles, 600, 500));
     }
 
+    private static final List<Point> hintCenters =
+            List.of(new Point(500, 500), new Point(500, 700), new Point(700, 700));
+
     private static WindowImage renderThroughHints(String positionAnchor,
-                                                  String endPositionAnchor,
+                                                  String endPositionAnchor, List<Point> points,
                                                   Map<Point, HintRectangles> hintRectanglesByPoint) {
         return render(indicator("idle-mode.save.position-history=+f1",
                         "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=line",
@@ -254,15 +257,15 @@ class IndicatorWindowImageTest {
                         "idle-mode.indicator.end-position=position-history",
                         "idle-mode.indicator.position-anchor=" + positionAnchor,
                         "idle-mode.indicator.end-position-anchor=" + endPositionAnchor),
-                Map.of(new PositionHistoryIndicatorPosition("position-history"),
-                        List.of(new Point(500, 500), new Point(500, 700), new Point(700, 700))),
+                Map.of(new PositionHistoryIndicatorPosition("position-history"), points),
                 hintRectanglesByPoint);
     }
 
     @Test
     void anEdgeAnchorRunsALayerBetweenTheEdgesOfTheHintBoxes() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
-        WindowImage lines = renderThroughHints("hint-box-edge", "hint-box-edge", boxes());
+        WindowImage lines =
+                renderThroughHints("hint-box-edge", "hint-box-edge", hintCenters, boxes());
         assertFalse(inked(lines, 500, 505));
         assertTrue(inked(lines, 500, 515));
         assertTrue(inked(lines, 500, 685));
@@ -276,11 +279,28 @@ class IndicatorWindowImageTest {
     @Test
     void anEndPositionAnchorSetsOnlyWhereTheLayerStops() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
-        WindowImage lines = renderThroughHints("hint-box-edge", "point", boxes());
+        WindowImage lines = renderThroughHints("hint-box-edge", "point", hintCenters, boxes());
         assertFalse(inked(lines, 500, 505));
         assertTrue(inked(lines, 500, 695));
         assertFalse(inked(lines, 515, 700));
         assertTrue(inked(lines, 695, 700));
+    }
+
+    @Test
+    void anEdgeAnchorTakesThePointWhenItIsOutsideTheHintBox() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        WindowImage lines = renderThroughHints("hint-box-edge", "hint-box-edge",
+                List.of(new Point(500, 580), new Point(500, 780), new Point(700, 780)),
+                Map.of(new Point(500, 580), new HintRectangles(new Rectangle(450, 450, 100, 100),
+                                new Rectangle(480, 490, 40, 20)),
+                        new Point(500, 780), new HintRectangles(new Rectangle(450, 650, 100, 100),
+                                new Rectangle(480, 690, 40, 20)),
+                        new Point(700, 780), new HintRectangles(new Rectangle(650, 650, 100, 100),
+                                new Rectangle(680, 690, 40, 20))));
+        assertEquals(580, inkBox(lines).y(), 1);
+        assertTrue(inked(lines, 500, 600));
+        assertTrue(inked(lines, 500, 760));
+        assertTrue(inked(lines, 510, 780));
     }
 
     private static Map<Point, HintRectangles> boxes() {
@@ -300,12 +320,13 @@ class IndicatorWindowImageTest {
                 new Point(500, 500), new HintRectangles(new Rectangle(450, 450, 100, 100), null),
                 new Point(500, 700), new HintRectangles(new Rectangle(450, 650, 100, 100), null),
                 new Point(700, 700), new HintRectangles(new Rectangle(650, 650, 100, 100), null));
-        WindowImage cellEdges = renderThroughHints("hint-box-edge", "hint-box-edge", cells);
+        WindowImage cellEdges =
+                renderThroughHints("hint-box-edge", "hint-box-edge", hintCenters, cells);
         assertFalse(inked(cellEdges, 500, 545));
         assertTrue(inked(cellEdges, 500, 560));
         assertFalse(inked(cellEdges, 545, 700));
         assertTrue(inked(cellEdges, 560, 700));
-        WindowImage points = renderThroughHints("point", "point", cells);
+        WindowImage points = renderThroughHints("point", "point", hintCenters, cells);
         assertTrue(inked(points, 500, 545));
         assertTrue(inked(points, 545, 700));
     }

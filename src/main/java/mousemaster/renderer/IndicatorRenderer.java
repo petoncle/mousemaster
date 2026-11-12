@@ -396,7 +396,7 @@ public final class IndicatorRenderer {
     }
 
     /** A point a layer is laid out by, on the screen, and the hint box or cell it starts and
-     *  stops at, null when there is none. */
+     *  stops at when the point is in it, null when there is none. */
     private record PositionPoint(Point point, Rectangle rectangle) {
     }
 
@@ -513,7 +513,7 @@ public final class IndicatorRenderer {
 
     private static double rectangleExit(PositionPoint from, PositionPoint to) {
         Rectangle rectangle = from.rectangle();
-        if (rectangle == null)
+        if (rectangle == null || !rectangle.contains(from.point().x(), from.point().y()))
             return 0;
         return rectangle.exit(from.point(), to.point());
     }

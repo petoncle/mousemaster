@@ -559,9 +559,9 @@ normal-mode.keycast-indicator.text= | +move -> <table cellpadding=6><tr><td>You 
   - `hint-box-edge`: at the edge of the hint box.
   - `hint-cell-edge`: at the edge of the hint cell.
 
-  At a position without a hint, the layer starts or stops at the point, whatever the value. The
-  hint box is the box the overlay draws for the hint: when the overlay does not draw it, the layer
-  uses the cell. The cell of a UI hint is its element. Lines from the box of each saved hint to
+  At a position without a hint, or outside its hint box or cell, the layer starts or stops at the
+  point, whatever the value. The hint box is the box the overlay draws for the hint: when the
+  overlay does not draw it, the layer uses the cell. The cell of a UI hint is its element. Lines from the box of each saved hint to
   the box of the next:
   ```properties
   ui-hint-mode.line-indicator.position=click-position-history
