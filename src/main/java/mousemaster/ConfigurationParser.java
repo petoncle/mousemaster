@@ -2366,10 +2366,6 @@ public class ConfigurationParser {
                     if (keyMatcher.group(group4) == null)
                         throw new IllegalArgumentException(
                                 "Invalid indicator property key");
-                    IndicatorLayerConfigurationBuilder layer =
-                            mode.indicator.builder.layer(group2);
-                    if (layer.enabled() == null)
-                        layer.enabled(true);
                     if (keyMatcher.group(group5) != null)
                         throw new IllegalArgumentException(
                                 "Invalid indicator property key: " +
@@ -3175,9 +3171,13 @@ public class ConfigurationParser {
                                                 Set<String> positionHistoryNames) {
         ModePropertyHandler handler = layerName.equals("indicator") ?
                 indicatorHandler(indicator, key, colorAliases) : null;
-        if (handler == null)
+        if (handler == null) {
             handler = indicatorLayerHandler(indicator, layerName, key, colorAliases, keyAliases,
                     positionHistoryNames);
+            IndicatorLayerConfigurationBuilder layer = indicator.layer(layerName);
+            if (layer.enabled() == null)
+                layer.enabled(true);
+        }
         if (handler == null)
             throw new IllegalArgumentException("Invalid indicator property key: " + key);
         if (!tryParseComboProperty(propertyValue, modeName, handler.propertyPath(),

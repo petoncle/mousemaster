@@ -23,6 +23,13 @@ class IndicatorLayerTest {
     }
 
     @Test
+    void aPropertyOfTheWholeIndicatorDoesNotEnableALayer() {
+        Mode mode = parse("idle-mode.indicator.render-as-cursor=true",
+                "idle-mode.indicator.exclude-from-capture=true").modeMap().get(Mode.IDLE_MODE_NAME);
+        assertFalse(layer(mode, "indicator").enabled());
+    }
+
+    @Test
     void aLayerTakesItsDefaultsFromTheDefaultIndicatorNotFromTheModeIndicator() {
         Mode mode = parse("idle-mode.indicator.size=40",
                 "idle-mode.ripple-indicator.fill-color=#00FF00").modeMap().get(Mode.IDLE_MODE_NAME);
