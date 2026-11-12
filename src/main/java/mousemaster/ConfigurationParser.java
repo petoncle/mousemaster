@@ -1,5 +1,6 @@
 package mousemaster;
 
+import ch.qos.logback.classic.Level;
 import mousemaster.ComboMove.KeyComboMove;
 import mousemaster.ComboMove.PressComboMove;
 import mousemaster.HideCursor.HideCursorBuilder;
@@ -452,6 +453,10 @@ public class ConfigurationParser {
             String propertyKey = lineMatcher.group(1).strip();
             String propertyValue = lineMatcher.group(2).strip();
             if (propertyKey.equals("logging.level")) {
+                if (Level.toLevel(propertyValue, null) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid property value in " + propertyKey + "=" + propertyValue +
+                            ": expected one of " + List.of("ERROR", "WARN", "INFO", "DEBUG", "TRACE"));
                 logLevel = propertyValue;
                 continue;
             }

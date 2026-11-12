@@ -25,4 +25,12 @@ class PropertyKeyTest {
                         KeyboardLayout.keyboardLayout("00000409", null)));
     }
 
+    @Test
+    void anUnknownLogLevelIsRejected() {
+        assertThrows(IllegalArgumentException.class,
+                () -> ConfigurationParser.parse(List.of("logging.level=bogus",
+                                "idle-mode.indicator.enabled=true"),
+                        KeyboardLayout.keyboardLayout("00000409", null)));
+    }
+
 }
