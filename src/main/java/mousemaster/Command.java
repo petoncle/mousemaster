@@ -130,10 +130,10 @@ public sealed interface Command {
     record DeselectHintKey() implements Command {}
     record DeselectAllHintKeys() implements Command {}
 
-    record MutateMode(String modeName, ModePropertyPath propertyPath, Object newPropertyValue, Combo combo) implements Command {
+    record MutateMode(String modeName, ModePropertyPath propertyPath, Object newPropertyValue, Combo combo, int branchIndex) implements Command {
         @Override
         public boolean equals(Object o) {
-            // Ignore combo.
+            // Ignore combo and branchIndex.
             if (this == o) return true;
             if (!(o instanceof MutateMode m)) return false;
             return modeName.equals(m.modeName) &&

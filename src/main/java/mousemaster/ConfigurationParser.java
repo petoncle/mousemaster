@@ -3020,7 +3020,7 @@ public class ConfigurationParser {
                             newEntries.computeIfAbsent(entry.getKey(), c -> new ArrayList<>())
                                       .add(new Command.MutateMode(mutateMode.modeName(),
                                               paths.getFirst(), mutateMode.newPropertyValue(),
-                                              mutateMode.combo()));
+                                              mutateMode.combo(), mutateMode.branchIndex()));
                     }
                 }
                 if (reached)
@@ -3116,7 +3116,8 @@ public class ConfigurationParser {
                     if (command instanceof Command.MutateMode mutateMode) {
                         adjusted = new Command.MutateMode(
                                 childModeName, mutateMode.propertyPath(),
-                                mutateMode.newPropertyValue(), mutateMode.combo());
+                                mutateMode.newPropertyValue(), mutateMode.combo(),
+                                mutateMode.branchIndex());
                     }
                     property.mutateModeCommands
                             .computeIfAbsent(entry.getKey(),
@@ -3871,7 +3872,9 @@ public class ConfigurationParser {
                         propertyPath;
         String label = modeName + "." + String.join(".", propertyPath.fieldNames());
         Set<ScreenFilter> valuedScreenFilters = new HashSet<>();
-        for (SplitComboProperty.ComboPropertyValue comboPropertyValue : splitComboProperty.comboValues()) {
+        List<SplitComboProperty.ComboPropertyValue> comboValues = splitComboProperty.comboValues();
+        for (int branchIndex = 0; branchIndex < comboValues.size(); branchIndex++) {
+            SplitComboProperty.ComboPropertyValue comboPropertyValue = comboValues.get(branchIndex);
             String comboString = comboPropertyValue.comboString();
             List<ModePropertyPath> comboMutationPaths = List.of(mutationPath);
             // A hint mesh spans screens, so a filter picks the entries the value applies to.
@@ -3944,7 +3947,7 @@ public class ConfigurationParser {
                 }
                 for (ModePropertyPath comboMutationPath : comboMutationPaths) {
                     Command command = new Command.MutateMode(modeName, comboMutationPath,
-                            parsedValue, combo);
+                            parsedValue, combo, branchIndex);
                     mutateModeCommandMap
                             .computeIfAbsent(combo, c -> new ArrayList<>())
                             .add(command);

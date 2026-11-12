@@ -63,6 +63,8 @@ public class ComboWatcher {
      * field path are precondition-only (no sequence moves).
      */
     private final Map<ModePropertyPath, Boolean> preconditionOnlyByPropertyPath = new HashMap<>();
+    private final Map<ModePropertyPath, Command.MutateMode> satisfiedMutateModeByPropertyPath =
+            new LinkedHashMap<>();
     /**
      * Computed once on mode change: the virtual keys referenced by some
      * precondition-only mutation of the current mode. When a virtual key
@@ -1704,7 +1706,8 @@ public class ComboWatcher {
                          mutateMode.newPropertyValue() instanceof UnresolvedAliasComboPropertyValue unresolved) {
                     resolvedCommands.add(new Command.MutateMode(
                             mutateMode.modeName(), mutateMode.propertyPath(),
-                            unresolved.resolve(resolution), mutateMode.combo()));
+                            unresolved.resolve(resolution), mutateMode.combo(),
+                            mutateMode.branchIndex()));
                     changed = true;
                 }
                 else {
@@ -2014,6 +2017,7 @@ public class ComboWatcher {
             }
         }
         // Activate newly satisfied precondition-only mutations.
+        satisfiedMutateModeByPropertyPath.clear();
         for (Map.Entry<Combo, List<Command>> entry : baseMode.comboMap()
                                                              .commandsByCombo()
                                                              .entrySet()) {
@@ -2023,13 +2027,18 @@ public class ComboWatcher {
             if (!isMutationComboPreconditionSatisfied(combo, activeApp))
                 continue;
             for (Command command : entry.getValue()) {
-                if (command instanceof Command.MutateMode mutateMode) {
-                    ActiveModeMutation mutation =
-                            new ActiveModeMutation(mutateMode.newPropertyValue(), combo);
-                    activeMutationsChanged |= !mutation.equals(
-                            activeMutations.put(mutateMode.propertyPath(), mutation));
-                }
+                if (command instanceof Command.MutateMode mutateMode)
+                    satisfiedMutateModeByPropertyPath.merge(mutateMode.propertyPath(),
+                            mutateMode, (existing, newMutateMode) ->
+                                    newMutateMode.branchIndex() > existing.branchIndex() ?
+                                            newMutateMode : existing);
             }
+        }
+        for (Command.MutateMode mutateMode : satisfiedMutateModeByPropertyPath.values()) {
+            ActiveModeMutation mutation =
+                    new ActiveModeMutation(mutateMode.newPropertyValue(), mutateMode.combo());
+            activeMutationsChanged |= !mutation.equals(
+                    activeMutations.put(mutateMode.propertyPath(), mutation));
         }
         // The mutated mode is a function of the base mode and the active mutations,
         // and the base mode only changes through modeChanged, which rebuilds it.

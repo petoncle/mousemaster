@@ -172,6 +172,17 @@ class PreconditionOnlyMutationTest {
     }
 
     @Test
+    void theRightmostBranchWinsWhateverTheOrderOfAnotherProperty() {
+        load("idle-mode.indicator.fill-color=#FF0000 | _{ismoving} -> #00FF00 | _{iswheeling} -> #0000FF",
+                "idle-mode.indicator.fill-opacity=0 | _{iswheeling} -> 0.5 | _{ismoving} -> 1");
+        comboWatcher.setVirtualKeyPressed(BuiltInVirtualKey.IS_MOVING, true);
+        comboWatcher.setVirtualKeyPressed(BuiltInVirtualKey.IS_WHEELING, true);
+        tick();
+        assertEquals(Color.parse("#0000FF"), color());
+        assertEquals(1, opacity());
+    }
+
+    @Test
     void mutationFollowsItsVariableAcrossTicks() {
         load("idle-mode.indicator.render-as-cursor=false | _{isidling} -> true");
         tick();
