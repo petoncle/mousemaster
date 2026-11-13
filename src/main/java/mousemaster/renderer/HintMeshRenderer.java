@@ -610,28 +610,32 @@ public final class HintMeshRenderer {
             hintMeshFadeAnimator.cancel();
         cancelPendingBuild();
         clearBoxShadowPixmaps();
-        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
-            boolean showedNothing = hintMeshWindow.window().showsNothing();
-            // Drop the crop before hiding children, or update() would call container.setMask()
-            // on a widget whose C++ object has been destroyed.
-            containerCropByWindow.remove(hintMeshWindow.window());
-            transitionedCropByWindow.remove(hintMeshWindow.window());
-            BorderMorph lineMorph = borderMorphByWindow.remove(hintMeshWindow.window());
-            if (lineMorph != null)
-                stopBorderMorph(lineMorph);
-            hintMeshWindow.window().setBackground(null, null, 0, null, 0);
-            hintMeshWindow.window().hideChildren();
-            showInLayeredWindow(hintMeshWindow.window(), null);
-            // An opaque window is cleared with what changes with it, such as the indicator. A
-            // faded one is cleared before it is made opaque again for reuse.
-            if (!showedNothing && hintMeshWindow.window().windowOpacity() == 1)
-                hintMeshWindow.window().update();
-            else if (!showedNothing)
-                hintMeshWindow.window().repaint();
-            hintMeshWindow.window().setWindowOpacity(1.0);
-        }
+        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
+            hideHintMeshWindow(hintMeshWindow.window());
         for (LayeredWindow layeredWindow : layeredWindowByWindow.values())
             layeredWindow.setOpacity(1);
+    }
+
+    private void hideHintMeshWindow(TransparentWindow window) {
+        setUncachedHintMeshWindowRunnables.remove(window);
+        boolean showedNothing = window.showsNothing();
+        // Drop the crop before hiding children, or update() would call container.setMask()
+        // on a widget whose C++ object has been destroyed.
+        containerCropByWindow.remove(window);
+        transitionedCropByWindow.remove(window);
+        BorderMorph lineMorph = borderMorphByWindow.remove(window);
+        if (lineMorph != null)
+            stopBorderMorph(lineMorph);
+        window.setBackground(null, null, 0, null, 0);
+        window.hideChildren();
+        showInLayeredWindow(window, null);
+        // An opaque window is cleared with what changes with it, such as the indicator. A
+        // faded one is cleared before it is made opaque again for reuse.
+        if (!showedNothing && window.windowOpacity() == 1)
+            window.update();
+        else if (!showedNothing)
+            window.repaint();
+        window.setWindowOpacity(1.0);
     }
 
     private void createOrUpdateHintMeshWindows(HintMesh hintMesh, Zoom zoom, boolean animate,
@@ -649,7 +653,7 @@ public final class HintMeshRenderer {
             HintMeshWindow window = entry.getValue();
             if (!hintsByScreen.containsKey(screen)) {
                 window.hints().clear();
-                showInLayeredWindow(window.window(), null);
+                hideHintMeshWindow(window.window());
             }
         }
         for (Map.Entry<Screen, List<Hint>> entry : hintsByScreen.entrySet()) {
