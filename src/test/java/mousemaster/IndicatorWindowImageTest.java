@@ -56,7 +56,7 @@ class IndicatorWindowImageTest {
                                       IndicatorConfiguration indicator,
                                       Set<String> layerNamesToAnchor, int mouseX) {
         return renderer.renderWindowImage(indicator, layerNamesToAnchor, Map.of(), Map.of(),
-                Map.of(), new Rectangle(mouseX, 500, 32, 32), new Point(4, 4), SCREEN, null,
+                Map.of(), new Rectangle(mouseX, 500, 32, 32), new Point(4, 4), Set.of(SCREEN), null,
                 lastSelectedHintColors("#000000"));
     }
 
@@ -70,7 +70,7 @@ class IndicatorWindowImageTest {
                                       Map<Point, HintRectangles> hintRectanglesByPoint) {
         return new IndicatorRenderer().renderWindowImage(indicator, Set.of("indicator"),
                 pointsByPosition, Map.of(), hintRectanglesByPoint, new Rectangle(100, 100, 32, 32),
-                new Point(4, 4), SCREEN, null, lastSelectedHintColors("#000000"));
+                new Point(4, 4), Set.of(SCREEN), null, lastSelectedHintColors("#000000"));
     }
 
     private static Map<IndicatorPosition, List<Point>> hintAndTarget(Point hint, Point target) {
@@ -123,7 +123,7 @@ class IndicatorWindowImageTest {
             IndicatorRenderer.IndicatorImage image = argb(new IndicatorRenderer().renderWindowImage(
                     indicator, Set.of(), Map.of(), Map.of(), Map.of(),
                     new Rectangle(500, 500, 32, 32), new Point(4, 4),
-                    new Screen(new Rectangle(0, 0, 3840, 2160), (int) (96 * scale), scale),
+                    Set.of(new Screen(new Rectangle(0, 0, 3840, 2160), (int) (96 * scale), scale)),
                     null, lastSelectedHintColors("#000000")));
             boolean green = false, blue = false;
             for (int argb : image.argb()) {
@@ -149,7 +149,7 @@ class IndicatorWindowImageTest {
                 1910)) <= 1920);
         WindowImage zoomed = new IndicatorRenderer().renderWindowImage(indicator(label), Set.of(),
                 Map.of(), Map.of(), Map.of(), new Rectangle(1700, 500, 32, 32), new Point(4, 4),
-                SCREEN, new Zoom(3, new Point(1400, 540), SCREEN.rectangle()),
+                Set.of(SCREEN), new Zoom(3, new Point(1400, 540), SCREEN.rectangle()),
                 lastSelectedHintColors("#000000"));
         assertTrue(inkRight(zoomed) <= 1920);
         assertTrue(inkRight(render(new IndicatorRenderer(), indicator(
@@ -243,6 +243,29 @@ class IndicatorWindowImageTest {
         assertTrue(inked(circles, 500, 500));
         assertTrue(inked(circles, 700, 500));
         assertFalse(inked(circles, 600, 500));
+    }
+
+    @Test
+    void aLayerTakesTheScaleOfTheScreenItIsOn() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        IndicatorConfiguration indicator = indicator("idle-mode.save.position-history=+f1",
+                "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=rectangle",
+                "idle-mode.indicator.size=40", "idle-mode.indicator.fill-opacity=1",
+                "idle-mode.indicator.stroke-thickness=0",
+                "idle-mode.indicator.position=position-history");
+        Set<Screen> screens =
+                Set.of(SCREEN, new Screen(new Rectangle(1920, 0, 2560, 1440), 96, 2));
+        for (int mouseX : new int[]{100, 2000}) {
+            WindowImage squares = new IndicatorRenderer().renderWindowImage(indicator,
+                    Set.of("indicator"),
+                    Map.of(new PositionHistoryIndicatorPosition("position-history"),
+                            List.of(new Point(500, 500), new Point(3000, 500))), Map.of(),
+                    Map.of(), new Rectangle(mouseX, 500, 32, 32), new Point(4, 4), screens,
+                    null, lastSelectedHintColors("#000000"));
+            assertEquals(new Rectangle(480, 460, 2560, 80), inkBox(squares));
+            assertTrue(inked(squares, 500, 519));
+            assertFalse(inked(squares, 500, 521));
+        }
     }
 
     private static final List<Point> hintCenters =
@@ -478,7 +501,7 @@ class IndicatorWindowImageTest {
                 Set.of("indicator"), Map.of(),
                 Map.of(indicator.layerByName().get("indicator").area(),
                         new Rectangle(500, 400, 101, 50)),
-                Map.of(), new Rectangle(100, 100, 32, 32), new Point(4, 4), SCREEN, null,
+                Map.of(), new Rectangle(100, 100, 32, 32), new Point(4, 4), Set.of(SCREEN), null,
                 lastSelectedHintColors("#000000"));
         assertEquals(new Rectangle(499, 399, 103, 52), inkBox(box));
         assertEquals(255, alpha(box, 499, 420));
@@ -711,10 +734,10 @@ class IndicatorWindowImageTest {
                 "idle-mode.indicator.fill-opacity=1");
         IndicatorRenderer renderer = new IndicatorRenderer();
         int red = centerArgb(renderer.renderWindowImage(indicator, Set.of("indicator"), Map.of(),
-                Map.of(), Map.of(), new Rectangle(500, 500, 32, 32), new Point(4, 4), SCREEN,
+                Map.of(), Map.of(), new Rectangle(500, 500, 32, 32), new Point(4, 4), Set.of(SCREEN),
                 null, lastSelectedHintColors("#FF0000")));
         int blue = centerArgb(renderer.renderWindowImage(indicator, Set.of(), Map.of(), Map.of(),
-                Map.of(), new Rectangle(500, 500, 32, 32), new Point(4, 4), SCREEN, null,
+                Map.of(), new Rectangle(500, 500, 32, 32), new Point(4, 4), Set.of(SCREEN), null,
                 lastSelectedHintColors("#0000FF")));
         assertTrue((red >> 16 & 0xFF) > 0xE0 && (red & 0xFF) < 0x20, Integer.toHexString(red));
         assertTrue((blue & 0xFF) > 0xE0 && (blue >> 16 & 0xFF) < 0x20, Integer.toHexString(blue));
@@ -731,10 +754,10 @@ class IndicatorWindowImageTest {
                 "idle-mode.indicator.fill-opacity=1");
         int left = centerArgb(new IndicatorRenderer().renderWindowImage(gradient,
                 Set.of("indicator"), Map.of(), Map.of(), Map.of(), new Rectangle(20, 500, 32, 32),
-                new Point(4, 4), SCREEN, null, lastSelectedHintColors));
+                new Point(4, 4), Set.of(SCREEN), null, lastSelectedHintColors));
         int right = centerArgb(new IndicatorRenderer().renderWindowImage(gradient,
                 Set.of("indicator"), Map.of(), Map.of(), Map.of(),
-                new Rectangle(1870, 500, 32, 32), new Point(4, 4), SCREEN, null,
+                new Rectangle(1870, 500, 32, 32), new Point(4, 4), Set.of(SCREEN), null,
                 lastSelectedHintColors));
         assertTrue((left >> 16 & 0xFF) > 0xE0 && (left & 0xFF) < 0x20, Integer.toHexString(left));
         assertTrue((right & 0xFF) > 0xE0 && (right >> 16 & 0xFF) < 0x20,
@@ -745,7 +768,7 @@ class IndicatorWindowImageTest {
         for (int mouseX : List.of(20, 1870)) {
             int argb = centerArgb(new IndicatorRenderer().renderWindowImage(center,
                     Set.of("indicator"), Map.of(), Map.of(), Map.of(),
-                    new Rectangle(mouseX, 500, 32, 32), new Point(4, 4), SCREEN, null,
+                    new Rectangle(mouseX, 500, 32, 32), new Point(4, 4), Set.of(SCREEN), null,
                     lastSelectedHintColors));
             assertEquals(0xFF00FF00, argb, Integer.toHexString(argb));
         }

@@ -276,6 +276,7 @@ public class WindowsOverlay implements Overlay {
             Map<IndicatorPosition, List<Point>> pointsByPosition,
             Map<Area, Rectangle> rectangleByArea,
             Map<Point, HintRectangles> hintRectanglesByPoint, WinDef.POINT mousePosition) {
+        Set<Screen> screens = WindowsScreen.findScreens();
         List<WindowsLayeredWindow> windows = new ArrayList<>();
         List<List<IndicatorRenderer.WindowImage>> windowImages = new ArrayList<>();
         Map<WindowsLayeredWindow, Set<String>> layerNamesByWindow = new HashMap<>();
@@ -293,16 +294,17 @@ public class WindowsOverlay implements Overlay {
             for (IndicatorLayerCopyKey copyKey : windowLayerGroup.copyKeys()) {
                 images.add(windowImage(anchoredIndicatorRendererByCopyKey.get(copyKey),
                         indicatorByCopyKey.get(copyKey), Set.of(), Map.of(), Map.of(),
-                        Map.of(), mousePosition));
+                        Map.of(), mousePosition, screens));
                 layerNames.add(copyKey.layerName());
             }
             for (IndicatorConfiguration indicator : windowLayerGroup.indicators()) {
                 images.add(windowLayerGroup.followMouse() ?
                         windowImage(followingIndicatorRenderer(followingIndex++), indicator,
-                                Set.of(), Map.of(), Map.of(), Map.of(), mousePosition) :
+                                Set.of(), Map.of(), Map.of(), Map.of(), mousePosition,
+                                screens) :
                         windowImage(anchoredIndicatorRenderer(runIndex++), indicator,
                                 layerNamesToAnchor, pointsByPosition, rectangleByArea,
-                                hintRectanglesByPoint, mousePosition));
+                                hintRectanglesByPoint, mousePosition, screens));
                 layerNames.addAll(indicator.layerByName().keySet());
             }
             windows.add(window);
@@ -424,12 +426,13 @@ public class WindowsOverlay implements Overlay {
             IndicatorRenderer renderer, IndicatorConfiguration indicator,
             Set<String> layerNamesToAnchor, Map<IndicatorPosition, List<Point>> pointsByPosition,
             Map<Area, Rectangle> rectangleByArea,
-            Map<Point, HintRectangles> hintRectanglesByPoint, WinDef.POINT mousePosition) {
+            Map<Point, HintRectangles> hintRectanglesByPoint, WinDef.POINT mousePosition,
+            Set<Screen> screens) {
         return renderer.renderWindowImage(indicator, layerNamesToAnchor,
                 pointsByPosition, rectangleByArea, hintRectanglesByPoint,
                 mouseRectangle(mousePosition),
                 mouse.cursorVisualCenter(),
-                WindowsScreen.findActiveScreen(mousePosition), currentZoom,
+                screens, currentZoom,
                 hintMeshRenderer.lastSelectedHintColors());
     }
 

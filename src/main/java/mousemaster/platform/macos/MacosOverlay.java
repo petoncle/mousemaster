@@ -248,14 +248,15 @@ public class MacosOverlay implements Overlay {
             for (IndicatorLayerCopyKey copyKey : windowLayerGroup.copyKeys())
                 images.add(windowImage(anchoredIndicatorRendererByCopyKey.get(copyKey),
                         indicatorByCopyKey.get(copyKey), Set.of(), Map.of(), Map.of(),
-                        Map.of(), mousePosition));
+                        Map.of(), mousePosition, screens));
             for (IndicatorConfiguration indicator : windowLayerGroup.indicators())
                 images.add(windowLayerGroup.followMouse() ?
                         windowImage(followingIndicatorRenderer(followingIndex++), indicator,
-                                Set.of(), Map.of(), Map.of(), Map.of(), mousePosition) :
+                                Set.of(), Map.of(), Map.of(), Map.of(), mousePosition,
+                                screens) :
                         windowImage(anchoredIndicatorRenderer(runIndex++), indicator,
                                 layerNamesToAnchor, pointsByPosition, rectangleByArea,
-                                hintRectanglesByPoint, mousePosition));
+                                hintRectanglesByPoint, mousePosition, screens));
             for (Screen screen : screens) {
                 MacosIndicatorWindow window = atLevel(
                         indicatorWindow(indicatorWindowsByScreen, screen, windowIndex),
@@ -299,12 +300,13 @@ public class MacosOverlay implements Overlay {
             IndicatorRenderer renderer, IndicatorConfiguration indicator,
             Set<String> layerNamesToAnchor, Map<IndicatorPosition, List<Point>> pointsByPosition,
             Map<Area, Rectangle> rectangleByArea,
-            Map<Point, HintRectangles> hintRectanglesByPoint, QPoint mousePosition) {
+            Map<Point, HintRectangles> hintRectanglesByPoint, QPoint mousePosition,
+            Set<Screen> screens) {
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
         return renderer.renderWindowImage(indicator, layerNamesToAnchor, pointsByPosition,
                 rectangleByArea, hintRectanglesByPoint,
                 cursorRectangle(mousePosition, activeScreen), cursorVisualCenter(activeScreen),
-                activeScreen, null, hintMeshRenderer.lastSelectedHintColors());
+                screens, null, hintMeshRenderer.lastSelectedHintColors());
     }
 
     @Override

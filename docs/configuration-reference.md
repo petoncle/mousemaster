@@ -312,7 +312,8 @@ normal-mode.ring-indicator.fill-opacity=0
 - A mode that sets a property of a layer, and not its `enabled`, enables that layer.
 - A layer takes the properties of the layer with the same name in the parent modes.
 - `<mode>.indicator=<other-mode>.indicator` takes all the layers of the other mode.
-- A length is in pixels at a 100% scale. On a 200% screen, it is two times larger.
+- A length is in pixels at a 100% scale. On a 200% screen, it is two times larger. A layer takes
+  the scale of the screen that its position is on.
 - An opacity is from `0` to `1`.
 - `render-as-cursor` and `exclude-from-capture` apply to the whole indicator. Set them on
   `<mode>.indicator`. They do not enable a layer.
