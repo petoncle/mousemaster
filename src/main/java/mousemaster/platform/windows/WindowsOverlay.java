@@ -160,9 +160,12 @@ public class WindowsOverlay implements Overlay {
         WinDef.HWND foregroundWindow = User32.INSTANCE.GetForegroundWindow();
         // https://stackoverflow.com/a/65605845
         WinDef.RECT excludeShadow = windowRectExcludingShadow(foregroundWindow);
-        return new Rectangle(excludeShadow.left, excludeShadow.top,
+        Rectangle window = new Rectangle(excludeShadow.left, excludeShadow.top,
                 excludeShadow.right - excludeShadow.left,
                 excludeShadow.bottom - excludeShadow.top);
+        if (window.isEmpty())
+            return WindowsScreen.findActiveScreen(mouse.findMousePosition()).rectangle();
+        return window;
     }
 
     static WinDef.RECT windowRectExcludingShadow(WinDef.HWND hwnd) {

@@ -176,7 +176,7 @@ public class MacosOverlay implements Overlay {
     @Override
     public Rectangle activeWindowRectangle() {
         Rectangle window = MacosAccessibility.focusedWindowFrame();
-        if (window == null)
+        if (window == null || window.isEmpty())
             return MacosScreens.findActiveScreen(mouse.findMousePosition()).rectangle();
         return window;
     }
