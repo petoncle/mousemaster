@@ -23,6 +23,7 @@
 
 <p align="center">
 <a href="#demo">Demo</a> •
+<a href="#overlay-styling">Overlay styling</a> •
 <a href="#windows">Install on Windows</a> •
 <a href="#macos">Install on macOS</a> •
 <a href="#usage">Usage</a> •
@@ -46,6 +47,20 @@ https://github.com/user-attachments/assets/b395505e-9a06-4ec8-b361-81323c7b3fb4
 
 ### Continuous mouse movement
 https://github.com/user-attachments/assets/7300bf36-6a02-4615-b068-30c38571fc24
+
+## Overlay styling
+
+Here are a few examples of hint styles. Each color, font, box, border, glow and shadow is a
+property (see [Hint appearance](docs/configuration-reference.md#hint-appearance)).
+
+### Hint grid
+https://github.com/user-attachments/assets/8c3d6c52-e81b-4ad5-a36b-c8f036d950c8
+
+### UI hints
+https://github.com/user-attachments/assets/2ce13ff4-7a32-4abe-9599-45eb021e2ea6
+
+### Recursive hint grid
+https://github.com/user-attachments/assets/08dd3c6a-939f-4204-98a8-0f02233e4991
 
 ## Installation
 
