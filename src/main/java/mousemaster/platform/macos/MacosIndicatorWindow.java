@@ -13,7 +13,7 @@ import mousemaster.renderer.IndicatorRenderer.WindowImage;
 import java.util.List;
 
 /**
- * The indicator window on macOS: it covers the active screen and draws images over each other.
+ * An indicator window on macOS: it covers a screen and draws images over each other.
  * It is shown once and never hidden: a window that shows reaches the screen a frame after the
  * others are updated.
  */
@@ -23,13 +23,13 @@ final class MacosIndicatorWindow extends TransparentWindow {
     private List<WindowImage> windowImages = List.of();
 
     /** The images, in z order. */
-    void show(List<WindowImage> windowImages, Screen activeScreen) {
+    void show(List<WindowImage> windowImages, Screen screen) {
         Rectangle dirty;
-        if (activeScreen.equals(screen))
+        if (screen.equals(this.screen))
             dirty = IndicatorRenderer.changedRectangle(windowImages, this.windowImages)
                                      .intersection(screen.rectangle());
         else {
-            screen = activeScreen;
+            this.screen = screen;
             coverInPixels(screen);
             dirty = screen.rectangle();
         }

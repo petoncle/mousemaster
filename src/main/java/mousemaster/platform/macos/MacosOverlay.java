@@ -43,8 +43,10 @@ public class MacosOverlay implements Overlay {
     private final List<IndicatorRenderer> anchoredIndicatorRenderers = new ArrayList<>();
     private final Map<IndicatorLayerCopyKey, IndicatorRenderer>
             anchoredIndicatorRendererByCopyKey = new LinkedHashMap<>();
-    private final List<MacosIndicatorWindow> followingIndicatorWindows = new ArrayList<>();
-    private final List<MacosIndicatorWindow> anchoredIndicatorWindows = new ArrayList<>();
+    private final Map<Screen, List<MacosIndicatorWindow>> followingIndicatorWindowsByScreen =
+            new HashMap<>();
+    private final Map<Screen, List<MacosIndicatorWindow>> anchoredIndicatorWindowsByScreen =
+            new HashMap<>();
     private Map<IndicatorLayerCopyKey, IndicatorConfiguration> indicatorByCopyKey = Map.of();
     private List<IndicatorRenderer.WindowLayerGroup> currentWindowLayerGroups = List.of();
     private List<MacosIndicatorWindow> orderedIndicatorWindows = List.of();
@@ -121,13 +123,16 @@ public class MacosOverlay implements Overlay {
     private void createIndicatorWindows() {
         followingIndicatorRenderer = new IndicatorRenderer();
         followingIndicatorRenderers.add(followingIndicatorRenderer);
-        followingIndicatorWindows.add(createIndicatorWindow());
-        anchoredIndicatorWindows.add(createIndicatorWindow());
+        for (Screen screen : MacosScreens.screens()) {
+            indicatorWindow(followingIndicatorWindowsByScreen, screen, 0);
+            indicatorWindow(anchoredIndicatorWindowsByScreen, screen, 0);
+        }
     }
 
     private List<MacosIndicatorWindow> indicatorWindows() {
-        List<MacosIndicatorWindow> indicatorWindows = new ArrayList<>(followingIndicatorWindows);
-        indicatorWindows.addAll(anchoredIndicatorWindows);
+        List<MacosIndicatorWindow> indicatorWindows = new ArrayList<>();
+        followingIndicatorWindowsByScreen.values().forEach(indicatorWindows::addAll);
+        anchoredIndicatorWindowsByScreen.values().forEach(indicatorWindows::addAll);
         return indicatorWindows;
     }
 
@@ -143,13 +148,12 @@ public class MacosOverlay implements Overlay {
         return anchoredIndicatorRenderers.get(index);
     }
 
-    private MacosIndicatorWindow createIndicatorWindow() {
+    private MacosIndicatorWindow createIndicatorWindow(Screen screen) {
         MacosIndicatorWindow indicatorWindow = new MacosIndicatorWindow();
         MacosWindow.applyOverlayProperties(indicatorWindow, MacosWindow.aboveOverlayLevel);
         levelByIndicatorWindow.put(indicatorWindow, MacosWindow.aboveOverlayLevel);
         MacosWindow.setExcludedFromCapture(indicatorWindow, indicatorExcludedFromCapture);
-        indicatorWindow.show(List.of(),
-                MacosScreens.findActiveScreen(mouse.findMousePosition()));
+        indicatorWindow.show(List.of(), screen);
         return indicatorWindow;
     }
 
@@ -230,17 +234,16 @@ public class MacosOverlay implements Overlay {
             Map<IndicatorPosition, List<Point>> pointsByPosition,
             Map<Area, Rectangle> rectangleByArea,
             Map<Point, HintRectangles> hintRectanglesByPoint, QPoint mousePosition) {
-        Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
+        Set<Screen> screens = MacosScreens.screens();
         List<MacosIndicatorWindow> windows = new ArrayList<>();
         int followingIndex = 0;
         int anchoredIndex = 0;
         int runIndex = 0;
         for (IndicatorRenderer.WindowLayerGroup windowLayerGroup : windowLayerGroups) {
-            MacosIndicatorWindow window = atLevel(windowLayerGroup.followMouse() ?
-                    indicatorWindow(followingIndicatorWindows, followingIndex) :
-                    indicatorWindow(anchoredIndicatorWindows, anchoredIndex++),
-                    windowLayerGroup.belowOverlay() ? MacosWindow.belowOverlayLevel :
-                            MacosWindow.aboveOverlayLevel);
+            Map<Screen, List<MacosIndicatorWindow>> indicatorWindowsByScreen =
+                    windowLayerGroup.followMouse() ? followingIndicatorWindowsByScreen :
+                            anchoredIndicatorWindowsByScreen;
+            int windowIndex = windowLayerGroup.followMouse() ? followingIndex : anchoredIndex++;
             List<IndicatorRenderer.WindowImage> images = new ArrayList<>();
             for (IndicatorLayerCopyKey copyKey : windowLayerGroup.copyKeys())
                 images.add(windowImage(anchoredIndicatorRendererByCopyKey.get(copyKey),
@@ -253,12 +256,16 @@ public class MacosOverlay implements Overlay {
                         windowImage(anchoredIndicatorRenderer(runIndex++), indicator,
                                 layerNamesToAnchor, pointsByPosition, rectangleByArea,
                                 hintRectanglesByPoint, mousePosition));
-            window.show(images, activeScreen);
-            windows.add(window);
+            for (Screen screen : screens) {
+                MacosIndicatorWindow window = atLevel(
+                        indicatorWindow(indicatorWindowsByScreen, screen, windowIndex),
+                        windowLayerGroup.belowOverlay() ? MacosWindow.belowOverlayLevel :
+                                MacosWindow.aboveOverlayLevel);
+                window.show(images, screen);
+                windows.add(window);
+            }
         }
-        for (MacosIndicatorWindow indicatorWindow : indicatorWindows())
-            if (!windows.contains(indicatorWindow))
-                indicatorWindow.show(List.of(), activeScreen);
+        clearIndicatorWindows(windows);
         // Within a level, the window ordered front last is drawn on top.
         if (!windows.equals(orderedIndicatorWindows))
             for (MacosIndicatorWindow window : windows)
@@ -268,10 +275,24 @@ public class MacosOverlay implements Overlay {
         this.indicatorByCopyKey = indicatorByCopyKey;
     }
 
-    private MacosIndicatorWindow indicatorWindow(List<MacosIndicatorWindow> windows, int index) {
-        while (windows.size() <= index)
-            windows.add(createIndicatorWindow());
-        return windows.get(index);
+    private MacosIndicatorWindow indicatorWindow(
+            Map<Screen, List<MacosIndicatorWindow>> indicatorWindowsByScreen, Screen screen,
+            int index) {
+        List<MacosIndicatorWindow> indicatorWindows =
+                indicatorWindowsByScreen.computeIfAbsent(screen, screen_ -> new ArrayList<>());
+        while (indicatorWindows.size() <= index)
+            indicatorWindows.add(createIndicatorWindow(screen));
+        return indicatorWindows.get(index);
+    }
+
+    private void clearIndicatorWindows(List<MacosIndicatorWindow> shownWindows) {
+        for (Map<Screen, List<MacosIndicatorWindow>> indicatorWindowsByScreen : List.of(
+                followingIndicatorWindowsByScreen, anchoredIndicatorWindowsByScreen))
+            indicatorWindowsByScreen.forEach((screen, indicatorWindows) -> {
+                for (MacosIndicatorWindow indicatorWindow : indicatorWindows)
+                    if (!shownWindows.contains(indicatorWindow))
+                        indicatorWindow.show(List.of(), screen);
+            });
     }
 
     private IndicatorRenderer.WindowImage windowImage(
@@ -288,9 +309,7 @@ public class MacosOverlay implements Overlay {
 
     @Override
     public void hideIndicator() {
-        Screen activeScreen = MacosScreens.findActiveScreen(mouse.findMousePosition());
-        for (MacosIndicatorWindow indicatorWindow : indicatorWindows())
-            indicatorWindow.show(List.of(), activeScreen);
+        clearIndicatorWindows(List.of());
         indicatorByCopyKey = Map.of();
         currentWindowLayerGroups = List.of();
     }
