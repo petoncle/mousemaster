@@ -107,6 +107,8 @@ public interface ExtendedUser32 extends User32 {
     boolean SetProcessDpiAwarenessContext(HANDLE dpiContext);
     long DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4L;
 
+    int GetSystemMetricsForDpi(int nIndex, int dpi);
+
     HKL LoadKeyboardLayoutA(String pwszKLID, int Flags);
 
     HCURSOR CreateCursor(HINSTANCE hInst, int xHotSpot, int yHotSpot, int nWidth,

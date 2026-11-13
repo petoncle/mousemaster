@@ -428,10 +428,12 @@ public class WindowsOverlay implements Overlay {
             Map<Area, Rectangle> rectangleByArea,
             Map<Point, HintRectangles> hintRectanglesByPoint, WinDef.POINT mousePosition,
             Set<Screen> screens) {
+        Screen activeScreen = ScreenManager.nearestScreenContaining(screens, mousePosition.x,
+                mousePosition.y);
         return renderer.renderWindowImage(indicator, layerNamesToAnchor,
                 pointsByPosition, rectangleByArea, hintRectanglesByPoint,
-                mouseRectangle(mousePosition),
-                mouse.cursorVisualCenter(),
+                mouseRectangle(mousePosition, activeScreen),
+                cursorVisualCenter(activeScreen),
                 screens, currentZoom,
                 hintMeshRenderer.lastSelectedHintColors());
     }
@@ -473,10 +475,18 @@ public class WindowsOverlay implements Overlay {
     }
 
     /** The cursor's bounding rectangle (position + size) at the given mouse position. */
-    private Rectangle mouseRectangle(WinDef.POINT mousePosition) {
+    private Rectangle mouseRectangle(WinDef.POINT mousePosition, Screen activeScreen) {
         WindowsMouseController.MouseSize mouseSize = mouse.mouseSize();
+        double cursorScale = WindowsMouseController.cursorScale(activeScreen);
         return new Rectangle(mousePosition.x, mousePosition.y,
-                mouseSize.width(), mouseSize.height());
+                (int) Math.round(mouseSize.width() * cursorScale),
+                (int) Math.round(mouseSize.height() * cursorScale));
+    }
+
+    private Point cursorVisualCenter(Screen activeScreen) {
+        Point visualCenter = mouse.cursorVisualCenter();
+        double cursorScale = WindowsMouseController.cursorScale(activeScreen);
+        return new Point(visualCenter.x() * cursorScale, visualCenter.y() * cursorScale);
     }
 
     private void createIndicatorWindows() {
@@ -648,7 +658,8 @@ public class WindowsOverlay implements Overlay {
     private void setIndicatorCursor(IndicatorConfiguration indicator, boolean animating,
                                     boolean includeOriginalCursor,
                                     WinDef.POINT mousePosition) {
-        double scale = WindowsScreen.findActiveScreen(mousePosition).scale();
+        Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
+        double scale = activeScreen.scale() / WindowsMouseController.cursorScale(activeScreen);
         if (indicatorIsCursor && indicator.equals(currentCursorIndicator) &&
             scale == currentCursorScale &&
             includeOriginalCursor == currentIncludeOriginalCursor &&
@@ -657,8 +668,8 @@ public class WindowsOverlay implements Overlay {
         IndicatorRenderer.IndicatorImage image =
                 followingIndicatorRenderer.renderCursorImage(indicator, scale,
                         hintMeshRenderer.lastSelectedHintColors(),
-                        mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
-                        WindowsScreen.findActiveScreen(mousePosition));
+                        mouseRectangle(mousePosition, activeScreen),
+                        cursorVisualCenter(activeScreen), activeScreen);
         mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
                 includeOriginalCursor, !animating);
         indicatorIsCursor = true;
@@ -815,9 +826,10 @@ public class WindowsOverlay implements Overlay {
 
     void mouseMoved(WinDef.POINT mousePosition) {
         if (indicatorIsCursor) {
-            // The OS moves the cursor; only re-install when the screen scale changes
-            // (cursors don't auto-scale per-monitor DPI) or a color depends on where it is.
-            double scale = WindowsScreen.findActiveScreen(mousePosition).scale();
+            // The OS moves the cursor; only re-install when the scale of the image changes or a
+            // color depends on where it is.
+            Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
+            double scale = activeScreen.scale() / WindowsMouseController.cursorScale(activeScreen);
             boolean scaleChanged = scale != currentCursorScale;
             if (currentCursorIndicator != null && (scaleChanged ||
                     !IndicatorRenderer.looksTheSameAnywhere(currentCursorIndicator,
@@ -826,8 +838,8 @@ public class WindowsOverlay implements Overlay {
                         followingIndicatorRenderer.renderCursorImage(
                                 currentCursorIndicator, scale,
                                 hintMeshRenderer.lastSelectedHintColors(),
-                                mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
-                                WindowsScreen.findActiveScreen(mousePosition));
+                                mouseRectangle(mousePosition, activeScreen),
+                                cursorVisualCenter(activeScreen), activeScreen);
                 mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
                         currentIncludeOriginalCursor, scaleChanged);
                 currentCursorScale = scale;

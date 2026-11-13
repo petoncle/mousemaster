@@ -721,6 +721,13 @@ public class WindowsMouseController implements MouseController {
 
     }
 
+    /** Windows draws the cursor image at the cursor size of the screen it is on. */
+    static double cursorScale(Screen screen) {
+        return (double) ExtendedUser32.INSTANCE.GetSystemMetricsForDpi(User32.SM_CXCURSOR,
+                (int) Math.round(screen.scale() * 96)) /
+               User32.INSTANCE.GetSystemMetrics(User32.SM_CXCURSOR);
+    }
+
     private final Map<Pointer, Point> centerByCursorHandle = new HashMap<>();
 
     /**
