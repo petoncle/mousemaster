@@ -15,6 +15,9 @@ import mousemaster.Os;
 import mousemaster.Rectangle;
 import mousemaster.Screen;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class TransparentWindow extends QWidget {
@@ -25,6 +28,8 @@ public class TransparentWindow extends QWidget {
     private QBrush backgroundBorderColor;
     private int backgroundBorderThickness;
     private double pointsPerPixel = 1;
+    private Rectangle screenRectangle;
+    private QRect screenGeometry;
     private Runnable beforePaint = () -> {};
 
     public TransparentWindow() {
@@ -92,31 +97,96 @@ public class TransparentWindow extends QWidget {
     /** Sizes scale, but a position is an offset into the screen: only that offset scales. */
     public void moveAndResizeInPixels(Screen screen, int x, int y, int width, int height) {
         pointsPerPixel = Os.macos ? screen.scale() : 1;
-        Rectangle rectangle = screen.rectangle();
-        QRect logical = logicalGeometry(rectangle);
-        move(logical.x() + toPoints(x - rectangle.x()),
-                logical.y() + toPoints(y - rectangle.y()));
+        screenRectangle = screen.rectangle();
+        screenGeometry = logicalGeometry(screenRectangle);
+        move(screenGeometry.x() + toPoints(x - screenRectangle.x()),
+                screenGeometry.y() + toPoints(y - screenRectangle.y()));
         resize(toPoints(width), toPoints(height));
     }
 
     /** Where Qt itself puts the screen, rather than a second guess at its arrangement. */
     private static QRect logicalGeometry(Rectangle screenRectangle) {
-        for (QScreen qScreen : QGuiApplication.screens()) {
-            QRect geometry = qScreen.geometry();
-            double scale = qScreen.devicePixelRatio();
-            if (Math.round(geometry.x() * scale) == screenRectangle.x() &&
-                Math.round(geometry.y() * scale) == screenRectangle.y())
-                return geometry;
-        }
+        for (Map.Entry<QScreen, Rectangle> entry : rectangleByQScreen().entrySet())
+            if (entry.getValue().x() == screenRectangle.x() &&
+                entry.getValue().y() == screenRectangle.y())
+                return entry.getKey().geometry();
         return QGuiApplication.primaryScreen().geometry();
     }
 
+    /**
+     * The screens in pixels. The main screen is at its origin, and each other screen is placed
+     * against the nearest screen already placed, from the start of the edge they share.
+     */
+    public static Map<QScreen, Rectangle> rectangleByQScreen() {
+        List<QScreen> qScreens = QGuiApplication.screens();
+        QScreen primaryQScreen = QGuiApplication.primaryScreen();
+        QRect primaryGeometry = primaryQScreen.geometry();
+        double primaryScale = primaryQScreen.devicePixelRatio();
+        Map<QScreen, Rectangle> rectangleByQScreen = new HashMap<>();
+        rectangleByQScreen.put(primaryQScreen,
+                new Rectangle((int) Math.round(primaryGeometry.x() * primaryScale),
+                        (int) Math.round(primaryGeometry.y() * primaryScale),
+                        (int) Math.round(primaryGeometry.width() * primaryScale),
+                        (int) Math.round(primaryGeometry.height() * primaryScale)));
+        while (rectangleByQScreen.size() < qScreens.size()) {
+            QScreen nearestQScreen = null;
+            QScreen nearestPlacedQScreen = null;
+            int nearestDistance = Integer.MAX_VALUE;
+            for (QScreen qScreen : qScreens) {
+                if (rectangleByQScreen.containsKey(qScreen))
+                    continue;
+                for (QScreen placedQScreen : rectangleByQScreen.keySet()) {
+                    int distance = distance(qScreen.geometry(), placedQScreen.geometry());
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestQScreen = qScreen;
+                        nearestPlacedQScreen = placedQScreen;
+                    }
+                }
+            }
+            QRect geometry = nearestQScreen.geometry();
+            QRect placedGeometry = nearestPlacedQScreen.geometry();
+            Rectangle placedRectangle = rectangleByQScreen.get(nearestPlacedQScreen);
+            double scale = nearestQScreen.devicePixelRatio();
+            double placedScale = nearestPlacedQScreen.devicePixelRatio();
+            rectangleByQScreen.put(nearestQScreen, new Rectangle(
+                    start(geometry.x(), geometry.width(), scale, placedGeometry.x(),
+                            placedGeometry.width(), placedRectangle.x(),
+                            placedRectangle.width(), placedScale),
+                    start(geometry.y(), geometry.height(), scale, placedGeometry.y(),
+                            placedGeometry.height(), placedRectangle.y(),
+                            placedRectangle.height(), placedScale),
+                    (int) Math.round(geometry.width() * scale),
+                    (int) Math.round(geometry.height() * scale)));
+        }
+        return rectangleByQScreen;
+    }
+
+    private static int distance(QRect geometry, QRect otherGeometry) {
+        return Math.max(
+                Math.max(geometry.x() - otherGeometry.x() - otherGeometry.width(),
+                        otherGeometry.x() - geometry.x() - geometry.width()),
+                Math.max(geometry.y() - otherGeometry.y() - otherGeometry.height(),
+                        otherGeometry.y() - geometry.y() - geometry.height()));
+    }
+
+    private static int start(int start, int size, double scale, int placedStart, int placedSize,
+                             int placedPixelStart, int placedPixelSize, double placedScale) {
+        if (start >= placedStart + placedSize)
+            return placedPixelStart + placedPixelSize;
+        if (start + size <= placedStart)
+            return placedPixelStart - (int) Math.round(size * scale);
+        int sharedStart = Math.max(start, placedStart);
+        return placedPixelStart + (int) Math.round((sharedStart - placedStart) * placedScale) -
+               (int) Math.round((sharedStart - start) * scale);
+    }
+
     public int xInPixels() {
-        return toPixels(x());
+        return screenRectangle.x() + toPixels(x() - screenGeometry.x());
     }
 
     public int yInPixels() {
-        return toPixels(y());
+        return screenRectangle.y() + toPixels(y() - screenGeometry.y());
     }
 
     public int widthInPixels() {

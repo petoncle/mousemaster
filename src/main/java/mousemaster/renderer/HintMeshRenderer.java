@@ -475,20 +475,18 @@ public final class HintMeshRenderer {
 
     private static void placeHotspotBoxes(ClearBackgroundQLabel container,
                                         Map<List<Key>, Point> hotspotByKeySequence) {
-        int originX = container.window().x() + container.x();
-        int originY = container.window().y() + container.y();
+        TransparentWindow window = (TransparentWindow) container.window();
         for (HintBox hotspotBox : container.hotspotBoxes) {
             Point hotspot = hotspotByKeySequence.get(hotspotBox.hint.keySequence());
             double qtScaleFactor = hotspotBox.qtScaleFactor;
-            int left = (int) Math.round(
-                    (hotspot.x() - container.hotspotBoxWidth / 2d) / qtScaleFactor);
-            int top = (int) Math.round(
-                    (hotspot.y() - container.hotspotBoxHeight / 2d) / qtScaleFactor);
-            int right = (int) Math.round(
-                    (hotspot.x() + container.hotspotBoxWidth / 2d) / qtScaleFactor);
-            int bottom = (int) Math.round(
-                    (hotspot.y() + container.hotspotBoxHeight / 2d) / qtScaleFactor);
-            hotspotBox.setGeometry(left - originX, top - originY, right - left, bottom - top);
+            double x = hotspot.x() - window.xInPixels();
+            double y = hotspot.y() - window.yInPixels();
+            int left = (int) Math.round((x - container.hotspotBoxWidth / 2d) / qtScaleFactor);
+            int top = (int) Math.round((y - container.hotspotBoxHeight / 2d) / qtScaleFactor);
+            int right = (int) Math.round((x + container.hotspotBoxWidth / 2d) / qtScaleFactor);
+            int bottom = (int) Math.round((y + container.hotspotBoxHeight / 2d) / qtScaleFactor);
+            hotspotBox.setGeometry(left - container.x(), top - container.y(), right - left,
+                    bottom - top);
             HotspotBoxShadow shadow = hotspotBox.shadow;
             if (shadow == null)
                 continue;
@@ -568,10 +566,11 @@ public final class HintMeshRenderer {
                 continue;
             double qtScaleFactor = qtScaleFactor(entry.getKey().scale());
             QWidget container = containers.getLast();
-            int left = hintMeshWindow.window.x() + container.x() + rectangle.x();
-            int top = hintMeshWindow.window.y() + container.y() + rectangle.y();
-            return new Rectangle((int) Math.round(left * qtScaleFactor),
-                    (int) Math.round(top * qtScaleFactor),
+            int left = container.x() + rectangle.x();
+            int top = container.y() + rectangle.y();
+            return new Rectangle(
+                    hintMeshWindow.window.xInPixels() + (int) Math.round(left * qtScaleFactor),
+                    hintMeshWindow.window.yInPixels() + (int) Math.round(top * qtScaleFactor),
                     (int) Math.round(rectangle.width() * qtScaleFactor),
                     (int) Math.round(rectangle.height() * qtScaleFactor));
         }
@@ -993,11 +992,11 @@ public final class HintMeshRenderer {
             double pixmapScale =
                     pixmapsAndPosition.pixelRowChunks().getFirst().devicePixelRatio();
             pixmapLabel.setGeometry(pixmapsAndPosition.x() + (int) Math.round(
-                            (newFirstHint.centerX() - originalFirstHint.centerX()) / qtScaleFactor
-                            - window.x() + originalWindowX),
+                            (newFirstHint.centerX() - originalFirstHint.centerX()
+                             - window.xInPixels() + originalWindowX) / qtScaleFactor),
                     pixmapsAndPosition.y() + (int) Math.round(
-                            (newFirstHint.centerY() - originalFirstHint.centerY()) / qtScaleFactor
-                            - window.y() + originalWindowY),
+                            (newFirstHint.centerY() - originalFirstHint.centerY()
+                             - window.yInPixels() + originalWindowY) / qtScaleFactor),
                     (int) Math.round(pixmapsAndPosition.width() / pixmapScale),
                     (int) Math.round(pixmapsAndPosition.height() / pixmapScale));
             newContainer = pixmapLabel;
@@ -1476,8 +1475,9 @@ public final class HintMeshRenderer {
             top = Math.min(top, hint.centerY() - hint.cellHeight() / 2.0);
             bottom = Math.max(bottom, hint.centerY() + hint.cellHeight() / 2.0);
         }
-        return new QRect((int) Math.round(left / qtScaleFactor - hintMeshWindow.window.x()),
-                (int) Math.round(top / qtScaleFactor - hintMeshWindow.window.y()),
+        return new QRect(
+                (int) Math.round((left - hintMeshWindow.window.xInPixels()) / qtScaleFactor),
+                (int) Math.round((top - hintMeshWindow.window.yInPixels()) / qtScaleFactor),
                 (int) Math.round((right - left) / qtScaleFactor),
                 (int) Math.round((bottom - top) / qtScaleFactor));
     }
@@ -1594,6 +1594,8 @@ public final class HintMeshRenderer {
                                                               ClearBackgroundQLabel container,
                                                               List<Rectangle> enclosingInk) {
         long beforeMetrics = System.nanoTime();
+        int windowX = (int) Math.round(hintMeshWindow.window.xInPixels() / qtScaleFactor);
+        int windowY = (int) Math.round(hintMeshWindow.window.yInPixels() / qtScaleFactor);
         boolean isHintPartOfGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
@@ -1849,13 +1851,13 @@ public final class HintMeshRenderer {
             y += hintLabel.top;
             // Not sure why required, but this help having the grid match the screen
             // right and bottom borders (pixel perfect).
-            if (x + boxWidth == hintMeshWindow.window.x() + hintMeshWindow.window.width() - 1)
+            if (x + boxWidth == windowX + hintMeshWindow.window.width() - 1)
                 boxWidth++;
-            else if (x + boxWidth == hintMeshWindow.window.x() + hintMeshWindow.window.width() + 1)
+            else if (x + boxWidth == windowX + hintMeshWindow.window.width() + 1)
                 boxWidth--;
-            if (y + boxHeight == hintMeshWindow.window.y() + hintMeshWindow.window.height() - 1)
+            if (y + boxHeight == windowY + hintMeshWindow.window.height() - 1)
                 boxHeight++;
-            else if (y + boxHeight == hintMeshWindow.window.y() + hintMeshWindow.window.height() + 1)
+            else if (y + boxHeight == windowY + hintMeshWindow.window.height() + 1)
                 boxHeight--;
 //            logger.debug("x + boxWidth: " + (x+boxWidth) + ", (y+boxHeight): " + (y+boxHeight));
             minHintLeft = Math.min(minHintLeft, x);
@@ -1876,8 +1878,8 @@ public final class HintMeshRenderer {
                         elementBoxBorderThickness, null, null,
                         false, true, true, true, true, true, qtScaleFactor,
                         elementBoxBorderRadius);
-                elementBox.setGeometry(elementBoxLeft - hintMeshWindow.window.x(),
-                        elementBoxTop - hintMeshWindow.window.y(),
+                elementBox.setGeometry(elementBoxLeft - windowX,
+                        elementBoxTop - windowY,
                         elementBoxRight - elementBoxLeft, elementBoxBottom - elementBoxTop);
                 elementBoxes.add(elementBox);
                 minHintLeft = Math.min(minHintLeft, elementBoxLeft);
@@ -1885,8 +1887,8 @@ public final class HintMeshRenderer {
                 maxHintRight = Math.max(maxHintRight, elementBoxRight);
                 maxHintBottom = Math.max(maxHintBottom, elementBoxBottom);
             }
-            hintBox.setGeometry(x - hintMeshWindow.window.x(),
-                    y - hintMeshWindow.window.y(),
+            hintBox.setGeometry(x - windowX,
+                    y - windowY,
                     boxWidth,
                     boxHeight);
             hintLabel.setFixedSize(boxWidth, boxHeight);
@@ -1984,8 +1986,8 @@ public final class HintMeshRenderer {
                 x += prefixHintLabel.left;
                 y += prefixHintLabel.top;
                 prefixHintLabel.move(
-                        x - (minHintLeft - hintMeshWindow.window.x()),
-                        y - (minHintTop - hintMeshWindow.window.y())
+                        x - (minHintLeft - windowX),
+                        y - (minHintTop - windowY)
                 );
                 prefixHintLabel.setFixedSize(boxWidth, boxHeight);
                 hintGroup.prefixHintLabel = prefixHintLabel;
@@ -2031,20 +2033,20 @@ public final class HintMeshRenderer {
                 (!isHintPartOfGrid || !hintMeshKey.hotspotByKeySequence().isEmpty()) &&
                 layeredWindowByWindow.containsKey(hintMeshWindow.window);
         if (!hintMeshKey.hotspotByKeySequence().isEmpty() && !inLayeredWindow) {
-            minHintLeft = Math.min(minHintLeft, hintMeshWindow.window.x());
-            minHintTop = Math.min(minHintTop, hintMeshWindow.window.y());
+            minHintLeft = Math.min(minHintLeft, windowX);
+            minHintTop = Math.min(minHintTop, windowY);
             maxHintRight = Math.max(maxHintRight,
-                    hintMeshWindow.window.x() + hintMeshWindow.window.width());
+                    windowX + hintMeshWindow.window.width());
             maxHintBottom = Math.max(maxHintBottom,
-                    hintMeshWindow.window.y() + hintMeshWindow.window.height());
+                    windowY + hintMeshWindow.window.height());
         }
-        int offsetX = minHintLeft - hintMeshWindow.window.x();
-        int offsetY = minHintTop - hintMeshWindow.window.y();
+        int offsetX = minHintLeft - windowX;
+        int offsetY = minHintTop - windowY;
         // The boxes are moved into the container at (offsetX, offsetY), so the sweep is too.
-        Point sweepOrigin = new Point((hintMeshWindow.window.x() + offsetX) * qtScaleFactor,
-                (hintMeshWindow.window.y() + offsetY) * qtScaleFactor);
-        Point windowOrigin = new Point(hintMeshWindow.window.x() * qtScaleFactor,
-                hintMeshWindow.window.y() * qtScaleFactor);
+        Point sweepOrigin = new Point((windowX + offsetX) * qtScaleFactor,
+                (windowY + offsetY) * qtScaleFactor);
+        Point windowOrigin = new Point(windowX * qtScaleFactor,
+                windowY * qtScaleFactor);
         Map<List<Key>, Rectangle> hintBoxRectangles = new HashMap<>();
         for (int hintIndex = 0; hintIndex < hintBoxes.size(); hintIndex++) {
             HintBox hintBox = hintBoxes.get(hintIndex);
@@ -2798,7 +2800,8 @@ public final class HintMeshRenderer {
         // Copies: the container disposes its own.
         PixmapsAndPosition pixmapsAndPosition = new PixmapsAndPosition(
                 container.pixelRowChunks.stream().map(QPixmap::new).toList(), container.x(),
-                container.y(), boxes, enclosingInk, hintMesh, window.x(), window.y());
+                container.y(), boxes, enclosingInk, hintMesh, window.xInPixels(),
+                window.yInPixels());
         hintMeshPixmaps.put(pixmapKey(hintMeshKey), pixmapsAndPosition);
         if (!preWarming)
             logger.debug("Cached hint mesh pixmaps " + pixmapsAndPosition +
@@ -5071,7 +5074,8 @@ public final class HintMeshRenderer {
         HintMesh hintMesh = currentHintMesh.builder().hints(List.of(hint)).build();
         PixmapsAndPosition pixmapsAndPosition =
                 new PixmapsAndPosition(List.of(pixmap), boxWindowX, boxWindowY, null, List.of(),
-                        hintMesh, hintMeshWindow.window.x(), hintMeshWindow.window.y());
+                        hintMesh, hintMeshWindow.window.xInPixels(),
+                        hintMeshWindow.window.yInPixels());
         setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style, true,
                 pixmapsAndPosition);
     }

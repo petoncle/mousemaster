@@ -53,11 +53,9 @@ final class MacosDesktopCapture {
     }
 
     /** ScreenCaptureKit reports the display in points, the desktop is in pixels. */
-    private static Rectangle pixels(CoreGraphics.CGRect.ByValue frame, double scale) {
-        return new Rectangle((int) Math.round(frame.x * scale),
-                (int) Math.round(frame.y * scale),
-                (int) Math.round(frame.width * scale),
-                (int) Math.round(frame.height * scale));
+    private static Rectangle rectangle(CoreGraphics.CGRect.ByValue frame) {
+        return new Rectangle((int) Math.round(frame.x), (int) Math.round(frame.y),
+                (int) Math.round(frame.width), (int) Math.round(frame.height));
     }
 
     private static final ObjectiveC.BlockHandler handler = (block, first, second) -> {
@@ -111,9 +109,7 @@ final class MacosDesktopCapture {
             Pointer display = displayContaining(content, center);
             if (display == null)
                 throw new IllegalStateException("no display contains " + bounds);
-            displayBounds = pixels(
-                    ObjectiveC.ReturningRect.INSTANCE.objc_msgSend(display, frame),
-                    MacosScreens.scaleAt(center));
+            displayBounds = MacosScreens.findActiveScreen(center).rectangle();
             Pointer filter = objectiveC.objc_msgSend(
                     objectiveC.objc_msgSend(objectiveC.objc_getClass("SCContentFilter"),
                             alloc),
@@ -239,7 +235,7 @@ final class MacosDesktopCapture {
             Pointer display = objectiveC.objc_msgSend(all, objectAtIndex, index);
             if (first == null)
                 first = display;
-            if (pixels(ObjectiveC.ReturningRect.INSTANCE.objc_msgSend(display, frame), 1)
+            if (rectangle(ObjectiveC.ReturningRect.INSTANCE.objc_msgSend(display, frame))
                     .contains(logicalPoint.x(), logicalPoint.y()))
                 return display;
         }
