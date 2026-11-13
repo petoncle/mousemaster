@@ -50,8 +50,10 @@ https://github.com/user-attachments/assets/7300bf36-6a02-4615-b068-30c38571fc24
 
 ## Overlay styling
 
-Here are a few examples of hint styles. Each color, font, box, border, glow and shadow is a
+Here are a few examples of overlay styles. Each color, font, box, border, glow and shadow is a
 property (see [Hint appearance](docs/configuration-reference.md#hint-appearance)).
+
+To use one of these styles, find it in [Overlay styles](docs/overlay-styles.md).
 
 ### Hint grid
 https://github.com/user-attachments/assets/8c3d6c52-e81b-4ad5-a36b-c8f036d950c8
