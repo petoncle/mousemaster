@@ -2208,8 +2208,8 @@ public final class HintMeshRenderer {
             prefixLabels.add(prefixHintLabel);
         }
         long beforeLayers = System.nanoTime();
-        int containerWidth = maxHintRight - minHintLeft;
-        int containerHeight = maxHintBottom - minHintTop;
+        int containerWidth = Math.max(1, maxHintRight - minHintLeft);
+        int containerHeight = Math.max(1, maxHintBottom - minHintTop);
         container.setGeometry(offsetX, offsetY, containerWidth, containerHeight);
         placeHotspotBoxes(container, hintMesh.hotspotByKeySequence());
         // Layer 0: Element box shadow and element boxes, under the hotspots.
