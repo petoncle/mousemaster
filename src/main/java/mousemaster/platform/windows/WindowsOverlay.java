@@ -515,6 +515,7 @@ public class WindowsOverlay implements Overlay {
     @Override
     public void preWarmFontsAndWindows(Set<HintMeshConfiguration> hintMeshConfigurations) {
         QtHintFont.preWarm(hintMeshConfigurations);
+        logger.debug("Screens " + WindowsScreen.findScreens());
         hintMeshRenderer.preWarmHintMeshWindows(WindowsScreen.findScreens());
         preWarmZoomWindow();
         if (followingIndicatorRenderer != null)
