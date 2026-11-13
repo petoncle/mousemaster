@@ -325,7 +325,7 @@ public final class HintMeshRenderer {
                 .stream()
                 .map(entry -> pixmapKey(hintMeshKey(hintMesh, entry.getValue(),
                         hintMesh.styleByFilter().get(ScreenFilter.of(entry.getKey())),
-                        entry.getKey().scale())))
+                        entry.getKey().scale()), entry.getKey().scale()))
                 .toList();
         if (preWarmedPixmapKeys.containsAll(pixmapKeys))
             return;
@@ -971,7 +971,7 @@ public final class HintMeshRenderer {
         forgetHintBoxRectangles(lastHintMeshKey);
         PixmapsAndPosition pixmapsAndPosition =
                 matchBoxPixmap != null ? matchBoxPixmap :
-                        hintMeshPixmaps.get(pixmapKey(hintMeshKey));
+                        hintMeshPixmaps.get(pixmapKey(hintMeshKey, screenScale));
         boolean isHintGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
         ClearBackgroundQLabel newContainer;
         if (pixmapsAndPosition != null) {
@@ -1044,8 +1044,8 @@ public final class HintMeshRenderer {
                         // Only a grid with labels and unmoved hotspots is drawn the same again.
                         if (isHintGrid && !hintMesh.hints().getFirst().keySequence().isEmpty() &&
                             hintMeshKey.hotspotByKeySequence().isEmpty())
-                            cachePixmaps(window, container, hintMeshKey, hintMesh, boxes,
-                                    enclosingInk);
+                            cachePixmaps(window, container, hintMeshKey, hintMesh,
+                                    screenScale, boxes, enclosingInk);
                         if (preWarming) {
                             container.setParent(null);
                             disposeWidget(container);
@@ -2795,14 +2795,14 @@ public final class HintMeshRenderer {
     }
 
     private void cachePixmaps(TransparentWindow window, ClearBackgroundQLabel container,
-                              HintMesh hintMeshKey, HintMesh hintMesh, List<HintBox> boxes,
-                              List<Rectangle> enclosingInk) {
+                              HintMesh hintMeshKey, HintMesh hintMesh, double screenScale,
+                              List<HintBox> boxes, List<Rectangle> enclosingInk) {
         // Copies: the container disposes its own.
         PixmapsAndPosition pixmapsAndPosition = new PixmapsAndPosition(
                 container.pixelRowChunks.stream().map(QPixmap::new).toList(), container.x(),
                 container.y(), boxes, enclosingInk, hintMesh, window.xInPixels(),
                 window.yInPixels());
-        hintMeshPixmaps.put(pixmapKey(hintMeshKey), pixmapsAndPosition);
+        hintMeshPixmaps.put(pixmapKey(hintMeshKey, screenScale), pixmapsAndPosition);
         if (!preWarming)
             logger.debug("Cached hint mesh pixmaps " + pixmapsAndPosition +
                          ", cache size is " + hintMeshPixmaps.size());
@@ -2825,16 +2825,18 @@ public final class HintMeshRenderer {
      *  anywhere. A mesh that only moved has the same key. */
     /** The colors of the hint selected last change with each selection, so a mesh drawn in them
      *  is cached with them. */
-    private record PixmapKey(HintMesh hintMeshKey, LastSelectedHintColors lastSelectedHintColors) {
+    private record PixmapKey(HintMesh hintMeshKey, double screenScale,
+                             LastSelectedHintColors lastSelectedHintColors) {
     }
 
-    private PixmapKey pixmapKey(HintMesh hintMeshKey) {
+    private PixmapKey pixmapKey(HintMesh hintMeshKey, double screenScale) {
         boolean lastSelected = hintMeshKey.styleByFilter().map().values().stream().anyMatch(
                 style -> Stream.concat(colors(style),
                                        Stream.of(style.backgroundColor(),
                                                style.backgroundBorderColor()))
                                .anyMatch(color -> !(color instanceof GradientColor)));
-        return new PixmapKey(hintMeshKey, lastSelected ? lastSelectedHintColors : null);
+        return new PixmapKey(hintMeshKey, screenScale,
+                lastSelected ? lastSelectedHintColors : null);
     }
 
     private HintMesh hintMeshKey(HintMesh hintMesh, List<Hint> hints, HintMeshStyle style,
