@@ -40,6 +40,9 @@ public class WindowsPlatform implements Platform {
     private final ActiveAppFinder activeAppFinder = new WindowsActiveAppFinder();
     private final Console console = new WindowsConsole();
     private final WindowsClock clock = new WindowsClock();
+    private final String simulationKeyEvents;
+    private Thread simulationThread;
+    private final LinkedBlockingDeque<KeyEvent> keyEventQueue = new LinkedBlockingDeque<>();
 
     private MouseManager mouseManager;
     private KeyboardManager keyboardManager;
@@ -90,9 +93,10 @@ public class WindowsPlatform implements Platform {
     private double consoleCheckTimer;
 
     public WindowsPlatform(boolean multipleInstancesAllowed, boolean keyRegurgitationEnabled,
-                           boolean ignoreInjectedEvents) {
+                           boolean ignoreInjectedEvents, String simulationKeyEvents) {
         this.keyRegurgitationEnabled = keyRegurgitationEnabled;
         this.ignoreInjectedEvents = ignoreInjectedEvents;
+        this.simulationKeyEvents = simulationKeyEvents;
         WindowsUiAccess.checkAndTryToGetUiAccess(); // Done before acquiring the single instance mutex.
         if (!multipleInstancesAllowed && !acquireSingleInstanceMutex())
             throw new IllegalStateException("Another instance is already running");
@@ -114,6 +118,8 @@ public class WindowsPlatform implements Platform {
         if (killProcessRequested)
             killProcess(0);
         killProcessIfConsoleIsGone(delta);
+        for (KeyEvent keyEvent; (keyEvent = keyEventQueue.poll()) != null;)
+            keyEvent(keyEvent, 0);
         keyboard.update(delta);
         sanityCheckCurrentlyPressedKeys(delta);
         resetIfLockedChanged(delta);
@@ -235,6 +241,8 @@ public class WindowsPlatform implements Platform {
         overlay.setMessagePump(this::pumpEvents);
         if (keyboardHookCallback == null)
             installHooks();
+        if (simulationKeyEvents != null && simulationThread == null)
+            simulationThread = startSimulationThread(simulationKeyEvents, keyEventQueue::add);
     }
 
     /**

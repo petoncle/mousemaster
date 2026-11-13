@@ -290,7 +290,7 @@ public class MacosPlatform implements Platform {
         if (hidThread == null)
             startHidThread();
         if (simulationKeyEvents != null && simulationThread == null)
-            startSimulationThread();
+            simulationThread = startSimulationThread(simulationKeyEvents, keyEventQueue::add);
     }
 
     private static void sleepMillis(long millis) {
@@ -328,35 +328,6 @@ public class MacosPlatform implements Platform {
         hidThread.setName("macos-hid");
         hidThread.setDaemon(true);
         hidThread.start();
-    }
-
-    /** A token is +key, -key, a bare key for a tap, or a number of milliseconds to wait. */
-    private void startSimulationThread() {
-        simulationThread = new Thread(() -> {
-            for (String token : simulationKeyEvents.trim().split("\\s+")) {
-                try {
-                    if (token.matches("\\d+")) {
-                        Thread.sleep(Integer.parseInt(token));
-                        continue;
-                    }
-                }
-                catch (InterruptedException e) {
-                    return;
-                }
-                boolean press = !token.startsWith("-");
-                boolean tap = !token.startsWith("+") && !token.startsWith("-");
-                Key key = Key.ofName(tap ? token : token.substring(1));
-                logger.info("Simulating " + (tap ? "" : token.substring(0, 1)) + key);
-                keyEventQueue.add(press ? new PressKeyEvent(clock.now(), key) :
-                        new ReleaseKeyEvent(clock.now(), key));
-                if (tap)
-                    keyEventQueue.add(new ReleaseKeyEvent(clock.now(), key));
-            }
-            logger.info("Finished simulating keys");
-        });
-        simulationThread.setName("macos-simulated-keys");
-        simulationThread.setDaemon(true);
-        simulationThread.start();
     }
 
     /** Returns once the input is released. */
