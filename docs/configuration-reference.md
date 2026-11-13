@@ -489,6 +489,8 @@ points. `aspect-ratio` cannot be set.
 - The layer runs from each point of `position` to each point of `end-position`.
 - From a position to the same position, the layer runs from each point to the next point.
 - Without two points, the layer does not show.
+- When its two points are on different screens, the layer stops at the edge of the first screen
+  and starts again at the edge of the other screen. Each part takes the scale of its screen.
 
 ```properties
 # A line from the last selected hint to the target.

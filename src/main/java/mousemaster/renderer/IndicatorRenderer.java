@@ -396,9 +396,9 @@ public final class IndicatorRenderer {
                 anchorByLayerName.computeIfAbsent(layerName, name -> mouseAnchor);
     }
 
-    /** A point a layer is laid out by, on the screen, and the hint box or cell it starts and
-     *  stops at when the point is in it, null when there is none. */
-    private record PositionPoint(Point point, Rectangle rectangle) {
+    /** A point a layer is laid out by, on the screen, the hint box or cell it starts and stops
+     *  at when the point is in it, null when there is none, and the screen of the point. */
+    private record PositionPoint(Point point, Rectangle rectangle, Screen screen) {
     }
 
     private List<PositionPoint> positionPoints(LayerAnchor anchor, Zoom zoom,
@@ -407,7 +407,8 @@ public final class IndicatorRenderer {
         List<Point> points = anchor.pointsByPosition().get(position);
         if (points == null)
             return List.of(new PositionPoint(
-                    layerTopLeft(anchor, zoom, position, new LayerSize(0, 0)), null));
+                    layerTopLeft(anchor, zoom, position, new LayerSize(0, 0)), null,
+                    anchor.activeScreen()));
         List<PositionPoint> positionPoints = new ArrayList<>();
         for (Point point : points)
             positionPoints.add(positionPoint(point, anchor, zoom, positionAnchor));
@@ -417,14 +418,16 @@ public final class IndicatorRenderer {
     private static PositionPoint positionPoint(Point point, LayerAnchor anchor, Zoom zoom,
                                                PositionAnchor positionAnchor) {
         Point zoomedPoint = new Point(zoomedX(point.x(), zoom), zoomedY(point.y(), zoom));
+        Screen screen =
+                ScreenManager.nearestScreenContaining(anchor.screens(), point.x(), point.y());
         HintRectangles hintRectangles = anchor.hintRectanglesByPoint().get(point);
         if (positionAnchor == PositionAnchor.POINT || hintRectangles == null)
-            return new PositionPoint(zoomedPoint, null);
+            return new PositionPoint(zoomedPoint, null, screen);
         return new PositionPoint(zoomedPoint,
                 positionAnchor == PositionAnchor.HINT_BOX_EDGE && hintRectangles.box() != null ?
                         hintRectangles.box() :
                         zoom == null ? hintRectangles.cell() :
-                                zoom.zoomedRectangle(hintRectangles.cell()));
+                                zoom.zoomedRectangle(hintRectangles.cell()), screen);
     }
 
     private record PositionedLayer(IndicatorLayerConfiguration layer, Point topLeft,
@@ -458,12 +461,11 @@ public final class IndicatorRenderer {
                             anchor.activeScreen());
                 else
                     for (Point point : points) {
-                        Screen screen = ScreenManager.nearestScreenContaining(anchor.screens(),
-                                point.x(), point.y());
+                        PositionPoint positionPoint =
+                                positionPoint(point, anchor, zoom, layer.positionAnchor());
+                        Screen screen = positionPoint.screen();
                         LayerSize layerSizeWithStroke = layerSizeWithStroke(layer, screen.scale());
-                        Rectangle rectangle =
-                                positionPoint(point, anchor, zoom, layer.positionAnchor())
-                                        .rectangle();
+                        Rectangle rectangle = positionPoint.rectangle();
                         if (rectangle == null)
                             add(positionedLayers, layer, new Point(
                                     zoomedX(point.x(), zoom) - layerSizeWithStroke.width() / 2.0,
@@ -484,24 +486,34 @@ public final class IndicatorRenderer {
                         layer.endPosition(), layer.endPositionAnchor());
                 if (layer.endPosition().equals(layer.position()))
                     for (int i = 1; i < points.size(); i++)
-                        add(positionedLayers, layer, points.get(i - 1), endPoints.get(i), anchor);
+                        add(positionedLayers, layer, points.get(i - 1), endPoints.get(i));
                 else
                     for (PositionPoint point : points)
                         for (PositionPoint endPoint : endPoints)
-                            add(positionedLayers, layer, point, endPoint, anchor);
+                            add(positionedLayers, layer, point, endPoint);
             }
         }
         return positionedLayers;
     }
 
     private void add(List<PositionedLayer> positionedLayers, IndicatorLayerConfiguration layer,
-                     PositionPoint from, PositionPoint to, LayerAnchor anchor) {
+                     PositionPoint from, PositionPoint to) {
+        Screen screen = from.screen();
+        if (!to.screen().equals(screen)) {
+            Point toPoint = ScreenManager.inOtherScreen(to.point(), to.screen(), screen);
+            double exit = screen.rectangle().exit(from.point(), toPoint);
+            Point edgePoint = new Point(from.point().x() + exit * (toPoint.x() - from.point().x()),
+                    from.point().y() + exit * (toPoint.y() - from.point().y()));
+            add(positionedLayers, layer, from, new PositionPoint(edgePoint, null, screen));
+            add(positionedLayers, layer, new PositionPoint(
+                    ScreenManager.inOtherScreen(edgePoint, screen, to.screen()), null,
+                    to.screen()), to);
+            return;
+        }
         double fromExit = rectangleExit(from, to);
         double toExit = rectangleExit(to, from);
         if (fromExit + toExit >= 1)
             return;
-        Screen screen = ScreenManager.nearestScreenContaining(anchor.screens(), from.point().x(),
-                from.point().y());
         double deltaX = to.point().x() - from.point().x();
         double deltaY = to.point().y() - from.point().y();
         double length =

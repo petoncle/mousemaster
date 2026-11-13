@@ -258,6 +258,7 @@ echo "  show-mode: mouse $MOUSE on $(screen_of "$MOUSE"), pin $PIN on $(screen_o
 WANTED=$(echo "$MOUSE $B $PB" | tr ',' ' ' | awk '{ printf "%d %d", $8 + ($1 - $3) / $7, $9 + ($2 - $4) / $7 }')
 check "the pointer is at the mouse position, $WANTED in points" "\"$CURSOR\" == \"$WANTED\""
 read -r AT W H <<< "$(measured /tmp/two-screens-show-B.png magenta)"
+INDICATOR=$AT
 WANTED=$(local_point "$MOUSE" "$B")
 check "the indicator is on B at the mouse $WANTED, ${W:-0}x${H:-0} for 40 at scale $SB: at ${AT:-nothing}" \
     "\"${AT:-x}\" != \"x\" && (${W:-0} - 40 * $SB) ^ 2 <= 16 && (${H:-0} - 40 * $SB) ^ 2 <= 16" \
@@ -272,6 +273,20 @@ check "the line from the pin to the mouse shows on A ($(count /tmp/two-screens-s
     "$(count /tmp/two-screens-show-A.png blue) > 100"
 check "the line from the pin to the mouse shows on B ($(count /tmp/two-screens-show-B.png blue) pixels)" \
     "$(count /tmp/two-screens-show-B.png blue) > 100"
+# Points along the line in points, on the capture of their screen. The line ends where the
+# indicator at the mouse is: the visual center of the cursor.
+LINE_END=$(echo "$INDICATOR $PB $SB" | tr ',' ' ' \
+    | awk '{ printf "%g,%g", $3 + $1 / $7, $4 + $2 / $7 }')
+for t in 0.2 0.4 0.6 0.8; do
+    read -r SCREEN AT_X AT_Y <<< "$(echo "$(in_points "$PIN") $LINE_END $PA $SA $PB $SB" \
+        | tr ',' ' ' | awk -v t=$t '{ x = $1 + t * ($3 - $1); y = $2 + t * ($4 - $2)
+            if (x >= $5 && x < $5 + $7 && y >= $6 && y < $6 + $8)
+                printf "A %d %d", (x - $5) * $9, (y - $6) * $9
+            else printf "B %d %d", (x - $10) * $14, (y - $11) * $14 }')"
+    N=$(count "/tmp/two-screens-show-$SCREEN.png" blue $((AT_X - 3)) $((AT_Y - 3)) 7 7)
+    check "the line is straight in points: $t of the way, on $SCREEN at $AT_X,$AT_Y ($N pixels)" \
+        "$N > 0"
+done
 
 for screen in A B; do
     [ $screen = A ] && RECT=$A || RECT=$B

@@ -268,6 +268,23 @@ class IndicatorWindowImageTest {
         }
     }
 
+    @Test
+    void aLayerThatRunsOntoAnotherScreenTakesTheScaleOfEachScreen() {
+        assumeTrue(qtAvailable, "Qt natives are unavailable here");
+        WindowImage line = new IndicatorRenderer().renderWindowImage(indicator(
+                        "idle-mode.indicator.enabled=true", "idle-mode.indicator.shape=line",
+                        "idle-mode.indicator.position=last-selected-hint",
+                        "idle-mode.indicator.end-position=target",
+                        "idle-mode.indicator.stroke-thickness=4"),
+                Set.of("indicator"), hintAndTarget(new Point(1500, 500), new Point(2500, 500)),
+                Map.of(), Map.of(), new Rectangle(100, 100, 32, 32), new Point(4, 4),
+                Set.of(SCREEN, new Screen(new Rectangle(1920, 0, 2560, 1440), 96, 2)), null,
+                lastSelectedHintColors("#000000"));
+        assertTrue(inked(line, 1700, 498));
+        assertFalse(inked(line, 1700, 497));
+        assertTrue(inked(line, 2200, 496));
+    }
+
     private static final List<Point> hintCenters =
             List.of(new Point(500, 500), new Point(500, 700), new Point(700, 700));
 

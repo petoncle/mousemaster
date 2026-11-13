@@ -45,37 +45,44 @@ public class ScreenManager implements MousePositionListener {
         return nearestScreen;
     }
 
-    /**
-     * Where a move of x and y pixels from a point stops. On macOS, the screens are arranged in
-     * points: past the edge of its screen, the move goes on in the points of the next screen,
-     * from where the two screens meet.
-     */
+    /** Where a move of x and y pixels from a point stops. */
     public Point movedPoint(Point point, double x, double y) {
         return movedPoint(screens(), point, x, y);
     }
 
     public static Point movedPoint(Set<Screen> screens, Point point, double x, double y) {
         Screen screen = nearestScreenContaining(screens, point.x(), point.y());
-        double movedX = point.x() + x;
-        double movedY = point.y() + y;
-        Screen movedScreen = nearestScreenContaining(screens, movedX, movedY);
-        if (Os.macos && !movedScreen.equals(screen)) {
-            Rectangle rectangle = screen.rectangle();
-            Rectangle movedRectangle = movedScreen.rectangle();
-            double ratio = movedScreen.scale() / screen.scale();
-            movedX = inMovedScreen(movedX, rectangle.x(), rectangle.width(),
-                    movedRectangle.x(), movedRectangle.width(), ratio);
-            movedY = inMovedScreen(movedY, rectangle.y(), rectangle.height(),
-                    movedRectangle.y(), movedRectangle.height(), ratio);
-            movedScreen = nearestScreenContaining(screens, movedX, movedY);
+        Point movedPoint = new Point(point.x() + x, point.y() + y);
+        Screen movedScreen = nearestScreenContaining(screens, movedPoint.x(), movedPoint.y());
+        if (!movedScreen.equals(screen)) {
+            movedPoint = inOtherScreen(movedPoint, screen, movedScreen);
+            movedScreen = nearestScreenContaining(screens, movedPoint.x(), movedPoint.y());
         }
-        return movedScreen.rectangle().nearestPoint(movedX, movedY);
+        return movedScreen.rectangle().nearestPoint(movedPoint.x(), movedPoint.y());
     }
 
-    private static double inMovedScreen(double coordinate, int start, int size, int movedStart,
-                                        int movedSize, double ratio) {
-        double meeting = movedStart >= start + size ? movedStart :
-                movedStart + movedSize <= start ? start : Math.max(start, movedStart);
+    /**
+     * A point in the pixels of a screen, in the pixels of another screen. On macOS, the screens
+     * are arranged in points: past the edge of a screen, a point goes on in the points of the
+     * other screen, from where the two screens meet.
+     */
+    public static Point inOtherScreen(Point point, Screen screen, Screen otherScreen) {
+        if (!Os.macos)
+            return point;
+        Rectangle rectangle = screen.rectangle();
+        Rectangle otherRectangle = otherScreen.rectangle();
+        double ratio = otherScreen.scale() / screen.scale();
+        return new Point(
+                coordinateInOtherScreen(point.x(), rectangle.x(), rectangle.width(),
+                        otherRectangle.x(), otherRectangle.width(), ratio),
+                coordinateInOtherScreen(point.y(), rectangle.y(), rectangle.height(),
+                        otherRectangle.y(), otherRectangle.height(), ratio));
+    }
+
+    private static double coordinateInOtherScreen(double coordinate, int start, int size,
+                                                  int otherStart, int otherSize, double ratio) {
+        double meeting = otherStart >= start + size ? otherStart :
+                otherStart + otherSize <= start ? start : Math.max(start, otherStart);
         return meeting + (coordinate - meeting) * ratio;
     }
 
