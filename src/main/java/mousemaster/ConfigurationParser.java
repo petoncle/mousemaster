@@ -385,6 +385,7 @@ public class ConfigurationParser {
                                       KeyboardLayout platformActiveKeyboardLayout) {
         properties = desugarOverlayKeys(properties);
         properties = desugarHintMeshEmpty(properties);
+        properties = desugarScreenCenterAndUi(properties);
         properties = desugarGradientKeywords(properties);
         properties = desugarIndicatorStates(properties);
         properties = desugarIndicatorAndZoomKeys(properties);
@@ -956,10 +957,12 @@ public class ConfigurationParser {
             Map.entry("fade-animation-enabled", "fade-enabled"),
             Map.entry("fade-animation-duration-millis", "fade-duration-millis"));
 
-    private static final Map<String, String> HINT_PROPERTY_BY_SYNCHRONIZATION = Map.of(
-            "mouse-follows-grid-center", "mouse-movement=mouse-follows-overlay-center",
-            "mouse-and-grid-center-unsynchronized", "mouse-movement=no-movement",
-            "grid-center-follows-mouse", "area-center=mouse");
+    private static final Map<String, List<String>> HINT_PROPERTIES_BY_SYNCHRONIZATION = Map.of(
+            "mouse-follows-grid-center",
+            List.of("mouse-follows-target=true", "target-follows-overlay-center=true"),
+            "mouse-and-grid-center-unsynchronized",
+            List.of("mouse-follows-target=false", "target-follows-overlay-center=false"),
+            "grid-center-follows-mouse", List.of("area-center=mouse"));
 
     private static boolean usesGridCommands(ModeBuilder mode) {
         return !mode.comboMap.shrinkOverlay.builder.isEmpty() ||
@@ -1056,6 +1059,51 @@ public class ConfigurationParser {
                     lineMatcher.group(2).strip()).replaceAll("isoverlayempty"));
         }
         return desugared;
+    }
+
+    private static final Pattern screenCenterKeyPattern =
+            Pattern.compile("[^.]+-mode\\.(.+\\.area-center|zoom\\.center|[^.]+\\.(end-)?position)");
+    private static final Pattern screenCenterPattern =
+            Pattern.compile("(?<![\\w-])screen-center(?![\\w-])");
+    private static final Pattern overlayTypeKeyPattern =
+            Pattern.compile("[^.]+-mode\\.overlay\\.type");
+    private static final Pattern uiPattern = Pattern.compile("(?<![\\w-])ui(?![\\w-])");
+
+    /**
+     * Rewrites the deprecated screen-center and ui values: a-mode.zoom.center=screen-center
+     * becomes a-mode.zoom.center=active-screen-center, and a-mode.overlay.type=ui becomes
+     * a-mode.overlay.type=ui-accessibility.
+     */
+    private static List<String> desugarScreenCenterAndUi(List<String> properties) {
+        List<String> desugared = new ArrayList<>(properties.size());
+        for (String property : properties) {
+            Matcher lineMatcher = propertyLinePattern.matcher(property);
+            if (!lineMatcher.matches()) {
+                desugared.add(property);
+                continue;
+            }
+            String propertyKey = lineMatcher.group(1).strip();
+            String value = lineMatcher.group(2).strip();
+            String newValue = screenCenterKeyPattern.matcher(propertyKey).matches() ?
+                    replaceDeprecatedValue(propertyKey, value, screenCenterPattern,
+                            "active-screen-center") :
+                    overlayTypeKeyPattern.matcher(propertyKey).matches() ?
+                            replaceDeprecatedValue(propertyKey, value, uiPattern,
+                                    "ui-accessibility") : value;
+            desugared.add(newValue.equals(value) ? property : propertyKey + "=" + newValue);
+        }
+        return desugared;
+    }
+
+    private static String replaceDeprecatedValue(String propertyKey, String value,
+                                                 Pattern deprecatedValuePattern,
+                                                 String newValue) {
+        Matcher deprecatedValueMatcher = deprecatedValuePattern.matcher(value);
+        if (!deprecatedValueMatcher.find())
+            return value;
+        logger.warn(deprecatedValueMatcher.group() + " in " + propertyKey +
+                    " has been deprecated: use " + newValue + " instead");
+        return deprecatedValueMatcher.replaceAll(newValue);
     }
 
     /**
@@ -1160,21 +1208,34 @@ public class ConfigurationParser {
                 desugared.add(property);
                 continue;
             }
-            logger.warn(lineMatcher.group(1).strip() + " has been deprecated: use overlay instead");
-            if (keyMatcher.group(5) == null || keyMatcher.group(7) != null) {
-                desugared.add(property);
-                continue;
-            }
+            String propertyKey = lineMatcher.group(1).strip();
             String gridKey = keyMatcher.group(1) + ".grid";
+            String overlayKey = keyMatcher.group(1) + ".overlay";
             String key = keyMatcher.group(5);
             String value = lineMatcher.group(2).strip();
-            if (key.equals("synchronization") &&
-                HINT_PROPERTY_BY_SYNCHRONIZATION.containsKey(value))
-                desugared.add(gridKey + "." + HINT_PROPERTY_BY_SYNCHRONIZATION.get(value));
-            else if (HINT_KEY_BY_GRID_KEY.containsKey(key))
-                desugared.add(gridKey + "." + HINT_KEY_BY_GRID_KEY.get(key) + "=" + value);
-            else
+            if (key == null || keyMatcher.group(7) != null) {
+                logger.warn(propertyKey + " has been deprecated: use " + overlayKey + " instead");
                 desugared.add(property);
+            }
+            else if (key.equals("synchronization") &&
+                     HINT_PROPERTIES_BY_SYNCHRONIZATION.containsKey(value)) {
+                List<String> hintProperties = HINT_PROPERTIES_BY_SYNCHRONIZATION.get(value);
+                logger.warn(propertyKey + " has been deprecated: use " +
+                            hintProperties.stream()
+                                          .map(hintProperty -> overlayKey + "." + hintProperty)
+                                          .collect(Collectors.joining(" and ")) + " instead");
+                for (String hintProperty : hintProperties)
+                    desugared.add(gridKey + "." + hintProperty);
+            }
+            else if (HINT_KEY_BY_GRID_KEY.containsKey(key)) {
+                logger.warn(propertyKey + " has been deprecated: use " + overlayKey + "." +
+                            HINT_KEY_BY_GRID_KEY.get(key) + " instead");
+                desugared.add(gridKey + "." + HINT_KEY_BY_GRID_KEY.get(key) + "=" + value);
+            }
+            else {
+                logger.warn(propertyKey + " has been deprecated: use " + overlayKey + " instead");
+                desugared.add(property);
+            }
         }
         return desugared;
     }
@@ -1197,15 +1258,14 @@ public class ConfigurationParser {
             Matcher keyMatcher = modeKeyPattern.matcher(
                     lineMatcher.matches() ? lineMatcher.group(1).strip() : "");
             if (!keyMatcher.matches() || !"mouse-movement".equals(keyMatcher.group(5)) ||
-                keyMatcher.group(7) != null ||
-                !List.of("overlay", "grid").contains(keyMatcher.group(3))) {
+                keyMatcher.group(7) != null || !"overlay".equals(keyMatcher.group(3))) {
                 desugared.add(property);
                 continue;
             }
-            if (keyMatcher.group(3).equals("overlay"))
-                logger.warn(lineMatcher.group(1).strip() + " has been deprecated: use " +
-                            "mouse-follows-target and target-follows-overlay-center instead");
-            String overlayKey = keyMatcher.group(1) + "." + keyMatcher.group(3);
+            String overlayKey = keyMatcher.group(1) + ".overlay";
+            logger.warn(lineMatcher.group(1).strip() + " has been deprecated: use " +
+                        overlayKey + ".mouse-follows-target and " + overlayKey +
+                        ".target-follows-overlay-center instead");
             String value = lineMatcher.group(2).strip();
             desugared.add(overlayKey + ".mouse-follows-target=" +
                           mouseMovementPattern.matcher(value).replaceAll(
@@ -1248,7 +1308,9 @@ public class ConfigurationParser {
             String value = lineMatcher.group(2).strip();
             if (name.equals("position-history") && command == null) {
                 logger.warn(lineMatcher.group(1).strip() + " has been deprecated: use " +
-                            "save, unsave, clear, cycle-next and cycle-previous instead");
+                            modeName + ".save, " + modeName + ".unsave, " + modeName +
+                            ".clear, " + modeName + ".cycle-next and " + modeName +
+                            ".cycle-previous instead");
                 for (String positionHistoryCommand : POSITION_HISTORY_COMMAND_BY_DEPRECATED_NAME.values())
                     desugared.add(modeName + "." + positionHistoryCommand + "=" +
                                   value.replaceFirst("\\.position-history$",
@@ -1737,7 +1799,7 @@ public class ConfigurationParser {
                         case "move-mouse" -> {
                             boolean moveMouse = Boolean.parseBoolean(propertyValue);
                             logger.warn(
-                                    "hint.move-mouse has been deprecated: use " +
+                                    propertyKey + " has been deprecated: use " +
                                     modeName + ".overlay.mouse-follows-target=" +
                                     moveMouse + " instead");
                             if (hintMesh.builder.mouseFollowsTarget() == null)
@@ -1749,7 +1811,7 @@ public class ConfigurationParser {
                                     checkModeReference(modeAfterSelection));
                             hintMesh.builder.modeAfterSelection(modeAfterSelection);
                             logger.warn(
-                                    "hint.mode-after-selection has been deprecated: use " +
+                                    propertyKey + " has been deprecated: use " +
                                     modeName + ".to." + modeAfterSelection +
                                     "=<combo> instead, along with " + modeName +
                                     ".break-combo-preparation=<combo>");
@@ -2191,7 +2253,9 @@ public class ConfigurationParser {
             }
             case "shrink-overlay", "shrink-grid" -> {
                 if (group2.equals("shrink-grid"))
-                    logger.warn(propertyKey + " has been deprecated: use shrink-overlay instead");
+                    logger.warn(propertyKey + " has been deprecated: use " + modeName +
+                                ".shrink-overlay" + (keyMatcher.group(group4) == null ? "" :
+                            "." + keyMatcher.group(group4)) + " instead");
                 if (keyMatcher.group(group3) == null)
                     mode.comboMap.shrinkOverlay.parsePropertyReference(
                             propertyKey.replaceFirst("\\.shrink-grid$", ".shrink-overlay"),
@@ -2235,7 +2299,14 @@ public class ConfigurationParser {
                 }
             }
             case "move-grid" -> {
-                logger.warn(propertyKey + " has been deprecated: use move-overlay-to.area-above, area-below, area-left or area-right instead");
+                String direction = keyMatcher.group(group4);
+                logger.warn(propertyKey + " has been deprecated: use " + modeName +
+                            ".move-overlay-to" + (direction == null ? "" : ".area-" +
+                        switch (direction) {
+                            case "up" -> "above";
+                            case "down" -> "below";
+                            default -> direction;
+                        }) + " instead");
                 if (keyMatcher.group(group3) == null)
                     mode.comboMap.moveOverlayTo.parsePropertyReference(
                             propertyKey.replaceFirst("\\.move-grid$", ".move-overlay-to"),
@@ -2308,7 +2379,9 @@ public class ConfigurationParser {
             }
             // @formatter:off
             case "move-to-grid-center" -> {
-                logger.warn(propertyKey + " has been deprecated: use move-to.overlay-center instead");
+                logger.warn(propertyKey + " has been deprecated: use " + modeName + ".move-to" +
+                            (propertyValue.endsWith(".move-to-grid-center") ? "" :
+                                    ".overlay-center") + " instead");
                 mode.comboMap.moveTo.parseReferenceOr(
                         propertyKey.replaceFirst("\\.move-to-grid-center$", ".move-to"),
                         propertyValue.replaceFirst("\\.move-to-grid-center$", ".move-to"),
@@ -2316,7 +2389,9 @@ public class ConfigurationParser {
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
             case "move-to-last-selected-hint" -> {
-                logger.warn(propertyKey + " has been deprecated: use move-to.last-selected-hint instead");
+                logger.warn(propertyKey + " has been deprecated: use " + modeName + ".move-to" +
+                            (propertyValue.endsWith(".move-to-last-selected-hint") ? "" :
+                                    ".last-selected-hint") + " instead");
                 mode.comboMap.moveTo.parseReferenceOr(
                         propertyKey.replaceFirst("\\.move-to-last-selected-hint$", ".move-to"),
                         propertyValue.replaceFirst("\\.move-to-last-selected-hint$", ".move-to"),
@@ -2324,7 +2399,14 @@ public class ConfigurationParser {
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
             case "snap" -> {
-                logger.warn(propertyKey + " has been deprecated: use move-to.cell-top, cell-bottom, cell-left or cell-right instead");
+                String direction = keyMatcher.group(group4);
+                logger.warn(propertyKey + " has been deprecated: use " + modeName + ".move-to" +
+                            (direction == null ? "" : ".cell-" +
+                        switch (direction) {
+                            case "up" -> "top";
+                            case "down" -> "bottom";
+                            default -> direction;
+                        }) + " instead");
                 if (keyMatcher.group(group3) == null)
                     mode.comboMap.moveTo.parsePropertyReference(
                             propertyKey.replaceFirst("\\.snap$", ".move-to"),
@@ -3444,9 +3526,9 @@ public class ConfigurationParser {
             case "font-size" -> ModePropertyHandler.of(prefix.append("fontSize"), v -> parseDouble(v, false, 0, 1000), v -> layer.fontSize(v));
             case "font-weight" -> ModePropertyHandler.of(prefix.append("fontWeight"), v -> FontWeight.of(v), v -> layer.fontWeight(v));
             case "text-style-sheet" -> ModePropertyHandler.of(prefix.append("textStyleSheet"), v -> v, v -> layer.textStyleSheet(v));
-            case "position" -> ModePropertyHandler.of(prefix.append("position"), v -> IndicatorPosition.fromString(layerName + ".position", v, positionHistoryNames), v -> layer.position(v));
+            case "position" -> ModePropertyHandler.of(prefix.append("position"), v -> IndicatorPosition.fromString(v, positionHistoryNames), v -> layer.position(v));
             case "position-anchor" -> ModePropertyHandler.of(prefix.append("positionAnchor"), v -> PositionAnchor.fromString(v), v -> layer.positionAnchor(v));
-            case "end-position" -> ModePropertyHandler.of(prefix.append("endPosition"), v -> IndicatorPosition.fromString(layerName + ".end-position", v, positionHistoryNames), v -> layer.endPosition(v));
+            case "end-position" -> ModePropertyHandler.of(prefix.append("endPosition"), v -> IndicatorPosition.fromString(v, positionHistoryNames), v -> layer.endPosition(v));
             case "end-position-anchor" -> ModePropertyHandler.of(prefix.append("endPositionAnchor"), v -> PositionAnchor.fromString(v), v -> layer.endPositionAnchor(v));
             case "area" -> ModePropertyHandler.of(prefix.append("area", "size", "source"), v -> parseAreaSizeSource(layerName + ".area", v), v -> layer.area().source(v));
             case "area-width-percent" -> ModePropertyHandler.of(prefix.append("area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> layer.area().widthPercent(v));
@@ -4174,11 +4256,6 @@ public class ConfigurationParser {
         return switch (propertyValue) {
             case "grid" -> HintMeshType.HintMeshTypeType.GRID;
             case "ui-accessibility" -> HintMeshType.HintMeshTypeType.UI_ACCESSIBILITY;
-            case "ui" -> {
-                logger.warn(
-                        "hint.type=ui has been deprecated: use overlay.type=ui-accessibility instead");
-                yield HintMeshType.HintMeshTypeType.UI_ACCESSIBILITY;
-            }
             case "ui-vision" -> HintMeshType.HintMeshTypeType.UI_VISION;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
@@ -4278,11 +4355,6 @@ public class ConfigurationParser {
     private static AreaCenter parseAreaCenter(String propertyKey, String propertyValue) {
         return switch (propertyValue) {
             case "active-screen-center" -> AreaCenter.ACTIVE_SCREEN_CENTER;
-            case "screen-center" -> {
-                logger.warn(propertyKey + "=screen-center has been deprecated: use " +
-                            propertyKey + "=active-screen-center instead");
-                yield AreaCenter.ACTIVE_SCREEN_CENTER;
-            }
             case "mouse" -> AreaCenter.MOUSE;
             case "target" -> AreaCenter.TARGET;
             case "last-selected-hint" -> AreaCenter.LAST_SELECTED_HINT;

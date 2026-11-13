@@ -1,7 +1,5 @@
 package mousemaster;
 
-import org.slf4j.LoggerFactory;
-
 import java.util.Set;
 
 public sealed interface IndicatorPosition {
@@ -28,8 +26,7 @@ public sealed interface IndicatorPosition {
             implements IndicatorPosition {
     }
 
-    static IndicatorPosition fromString(String propertyKey, String value,
-                                        Set<String> positionHistoryNames) {
+    static IndicatorPosition fromString(String value, Set<String> positionHistoryNames) {
         if (positionHistoryNames.contains(value))
             return new PositionHistoryIndicatorPosition(value);
         return switch (value) {
@@ -43,12 +40,6 @@ public sealed interface IndicatorPosition {
             case "active-screen-top-right" -> PointIndicatorPosition.ACTIVE_SCREEN_TOP_RIGHT;
             case "active-screen-bottom-left" -> PointIndicatorPosition.ACTIVE_SCREEN_BOTTOM_LEFT;
             case "active-screen-bottom-right" -> PointIndicatorPosition.ACTIVE_SCREEN_BOTTOM_RIGHT;
-            case "screen-center" -> {
-                LoggerFactory.getLogger(IndicatorPosition.class).warn(
-                        propertyKey + "=screen-center has been deprecated: use " + propertyKey +
-                        "=active-screen-center instead");
-                yield PointIndicatorPosition.ACTIVE_SCREEN_CENTER;
-            }
             case "target" -> PointIndicatorPosition.TARGET;
             case "last-selected-hint" -> PointIndicatorPosition.LAST_SELECTED_HINT;
             case "active-window-center" -> PointIndicatorPosition.ACTIVE_WINDOW_CENTER;

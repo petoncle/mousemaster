@@ -2328,8 +2328,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                         .build();
         if (hintMeshConfiguration.modeAfterSelection() != null) {
             logger.warn(
-                    "hint.mode-after-selection has been deprecated: use " +
-                    currentMode.name() + ".to." +
+                    currentMode.name() + ".overlay.mode-after-selection has been deprecated: " +
+                    "use " + currentMode.name() + ".to." +
                     hintMeshConfiguration.modeAfterSelection() +
                     "=<combo> instead, along with " + currentMode.name() +
                     ".break-combo-preparation=<combo>");
