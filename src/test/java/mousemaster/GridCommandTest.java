@@ -194,6 +194,22 @@ class GridCommandTest {
     }
 
     @Test
+    void pastTheGridTheMouseGoesBackToTheEdgeOnThatSide() throws IOException {
+        start("""
+                grid-mode.hint.area-width-percent=0.5
+                grid-mode.hint.area-height-percent=0.5
+                grid-mode.hint.grid-max-row-count=1
+                grid-mode.hint.grid-max-column-count=1
+                """);
+        hintManager.mouseMoved(100, 540);
+        switchMode("grid-mode");
+        hintManager.moveToCellLeft();
+        hintManager.mouseMoved(960, 100);
+        hintManager.moveToCellTop();
+        assertEquals(List.of(480, 540, 960, 270), mousePositions);
+    }
+
+    @Test
     void theTargetGoesToTheCenterOfTheNearestCell() throws IOException {
         start("""
                 grid-mode.hint.area-width-percent=0.5

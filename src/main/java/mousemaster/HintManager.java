@@ -694,23 +694,23 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     /**
      * The edge on that side of the cell the point is in, the smallest one when the point is in
-     * several, or else the nearest cell edge on that side of the point.
+     * several, or else the nearest cell edge on that side of the point, or else, for a point in
+     * no cell, the nearest edge on that side of a cell.
      */
     private Point nearestCellEdge(Point from, boolean horizontal, boolean forward) {
         List<Rectangle> cells = cells();
         if (cells == null || cells.isEmpty())
             return null;
-        Point nearestCellEdge =
+        Optional<Rectangle> fromCell =
                 cells.stream()
                      .filter(cell -> cell.contains(from.x(), from.y()))
-                     .min(Comparator.comparingLong(cell -> (long) cell.width() * cell.height()))
-                     .map(cell -> cellEdge(cell, from, horizontal, forward))
-                     .or(() -> cells.stream()
-                                    .map(cell -> cellEdge(cell, from, horizontal, forward))
-                                    .filter(Objects::nonNull)
-                                    .min(Comparator.comparingDouble(cellEdge -> Math.hypot(
-                                            cellEdge.x() - from.x(), cellEdge.y() - from.y()))))
-                     .orElse(null);
+                     .min(Comparator.comparingLong(cell -> (long) cell.width() * cell.height()));
+        Point nearestCellEdge =
+                fromCell.map(cell -> cellEdge(cell, from, horizontal, forward, true))
+                        .or(() -> nearestCellEdge(cells, from, horizontal, forward, true))
+                        .or(() -> fromCell.isPresent() ? Optional.empty() :
+                                nearestCellEdge(cells, from, horizontal, forward, false))
+                        .orElse(null);
         if (nearestCellEdge == null)
             return null;
         return nearestScreenPoint(nearestCellEdge.x(), nearestCellEdge.y());
@@ -720,16 +720,27 @@ public class HintManager implements ModeListener, MousePositionListener {
         return screenManager.nearestScreenContaining(x, y).rectangle().nearestPoint(x, y);
     }
 
+    private static Optional<Point> nearestCellEdge(List<Rectangle> cells, Point from,
+                                                   boolean horizontal, boolean forward,
+                                                   boolean pastThePoint) {
+        return cells.stream()
+                    .map(cell -> cellEdge(cell, from, horizontal, forward, pastThePoint))
+                    .filter(Objects::nonNull)
+                    .min(Comparator.comparingDouble(cellEdge -> Math.hypot(
+                            cellEdge.x() - from.x(), cellEdge.y() - from.y())));
+    }
+
     /**
-     * The nearest point of the edge of the cell on that side of the point, or null when the edge
-     * is not past the point. Backward, a point 1 pixel past the edge is not past it.
+     * The nearest point of the edge on that side of the cell. With pastThePoint, null when the
+     * edge is not past the point. Backward, a point 1 pixel past the edge is not past it.
      */
-    private static Point cellEdge(Rectangle cell, Point from, boolean horizontal, boolean forward) {
+    private static Point cellEdge(Rectangle cell, Point from, boolean horizontal, boolean forward,
+                                  boolean pastThePoint) {
         int coordinate = (int) (horizontal ? from.x() : from.y());
         int lastX = cell.x() + cell.width() - 1;
         int lastY = cell.y() + cell.height() - 1;
         int edge = horizontal ? forward ? lastX : cell.x() : forward ? lastY : cell.y();
-        if (forward ? edge <= coordinate : edge >= coordinate - 1)
+        if (pastThePoint && (forward ? edge <= coordinate : edge >= coordinate - 1))
             return null;
         return horizontal ? new Point(edge, cellCoordinate(from.y(), cell.y(), cell.height())) :
                 new Point(cellCoordinate(from.x(), cell.x(), cell.width()), edge);
