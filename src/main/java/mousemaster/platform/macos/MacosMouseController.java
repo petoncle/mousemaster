@@ -6,6 +6,8 @@ import io.qt.core.QRect;
 import io.qt.gui.QCursor;
 import io.qt.gui.QGuiApplication;
 import io.qt.gui.QScreen;
+import mousemaster.Point;
+import mousemaster.ScreenManager;
 import mousemaster.platform.MouseController;
 
 import java.util.LinkedHashSet;
@@ -64,8 +66,10 @@ public class MacosMouseController implements MouseController {
             return;
         QPoint position = findMousePosition();
         double scale = MacosScreens.findActiveScreen(position).scale();
-        moveTo(position.x() + Math.round(deltaX * scale),
-                position.y() + Math.round(deltaY * scale));
+        Point movedPoint = ScreenManager.movedPoint(MacosScreens.screens(),
+                new Point(position.x(), position.y()), Math.round(deltaX * scale),
+                Math.round(deltaY * scale));
+        moveTo(Math.round(movedPoint.x()), Math.round(movedPoint.y()));
     }
 
     @Override

@@ -447,8 +447,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                               boolean forward) {
         long distance = (forward ? 1 : -1) * Math.round(nudgeDistance *
                 screenManager.nearestScreenContaining(point.x(), point.y()).scale());
-        return nearestScreenPoint(point.x() + (horizontal ? distance : 0),
-                point.y() + (horizontal ? 0 : distance));
+        return screenManager.movedPoint(point, horizontal ? distance : 0,
+                horizontal ? 0 : distance);
     }
 
     public boolean hotspotsCentered() {
@@ -613,8 +613,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (move != null) {
             double scale = screenManager.nearestScreenContaining(detachedTarget.x(),
                     detachedTarget.y()).scale();
-            detachedTarget = nearestScreenPoint(detachedTarget.x() + (long) move.x() * scale,
-                    detachedTarget.y() + (long) move.y() * scale);
+            detachedTarget = screenManager.movedPoint(detachedTarget, (long) move.x() * scale,
+                    (long) move.y() * scale);
         }
         hotspotFrameDelta = hotspotMover.moving() ? hotspotFrameDelta + delta : 0;
         if (hotspotFrameDelta >= Mousemaster.FRAME_INTERVAL) {
