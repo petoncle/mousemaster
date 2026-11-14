@@ -13,7 +13,7 @@ public class WindowsConsole implements Console {
     @Override
     public void show() {
         WinDef.HWND hwnd = Kernel32.INSTANCE.GetConsoleWindow();
-        User32.INSTANCE.ShowWindow(hwnd, WinUser.SW_SHOW);
+        User32.INSTANCE.ShowWindow(hwnd, WinUser.SW_SHOWNOACTIVATE);
     }
 
     @Override

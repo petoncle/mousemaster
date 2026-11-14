@@ -32,6 +32,7 @@ public class Mousemaster {
     private KeyboardLayout forcedActiveKeyboardLayout;
     private final boolean preWarmHints;
     private boolean logToFileEnabledByConfiguration;
+    private boolean consoleHiddenByConfiguration;
 
     public Mousemaster(Path configurationPath, Platform platform, boolean preWarmHints)
             throws IOException {
@@ -214,10 +215,14 @@ public class Mousemaster {
             MousemasterApplication.disableLogToFile();
             logToFileEnabledByConfiguration = false;
         }
-        if (configuration.hideConsole())
+        if (configuration.hideConsole()) {
             platform.console().hide();
-        else
+            consoleHiddenByConfiguration = true;
+        }
+        else if (consoleHiddenByConfiguration) {
             platform.console().show();
+            consoleHiddenByConfiguration = false;
+        }
         logger.info((reload ? "Reloaded" : "Loaded") + " configuration " +
                     (readFile ? "file " + configurationPath + " " : "") +
                     "with active keyboard layout " + activeKeyboardLayout);
