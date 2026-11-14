@@ -53,7 +53,7 @@ A pick stays on screen, outlined, with a dashed line to the next one.
 
 Each hint acts at its target, at the center of its element at first. Before you type a hint, these keys move the targets of all the hints together. A moved target shows as a dot in the color of its hint, with a line from its label.
 
-- Arrows (or `Shift+I J K L`): the first one to the edge of the elements, then 4px steps. Hold an arrow to move the targets on after half a second. An arrow pressed during the move joins it. Hold `Ctrl` for 2px steps and half the speed.
+- Arrows (or `Shift+I J K L`): the first one to the edge of the elements, then 4px steps. Hold an arrow to move the targets on after half a second. An arrow pressed during the move, or held when it starts, joins it. Hold `Ctrl` for 2px steps and half the speed.
 - `1` to `9`: across the elements in eighths, from the left edge (`1`) through the center (`5`) to the right edge (`9`). `Shift` and a digit: down them.
 - Numpad: the nine points of the elements.
 
