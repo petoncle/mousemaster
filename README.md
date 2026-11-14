@@ -69,12 +69,13 @@ https://github.com/user-attachments/assets/08dd3c6a-939f-4204-98a8-0f02233e4991
 
 1. Download **mousemaster.exe** (a portable executable) from the [Release page](https://github.com/petoncle/mousemaster/releases/latest), or build it from source.
 2. In the same Release page, choose and download one of the existing configuration files:
-   - **neo-mousekeys-ijkl.properties** (***recommended***): an IJKL configuration ([see documentation](docs/neo-mousekeys-ijkl.md))
-   - **neru.properties**: a recursive hint configuration ([see documentation](docs/neru.md))
-   - **neo-mousekeys-wasd.properties**: a WASD configuration ([see documentation](docs/neo-mousekeys-wasd.md))
-   - **warpd.properties**: an HJKL configuration ([see documentation](docs/warpd.md))
-   - **mouseable.properties**: another HJKL configuration ([see documentation](docs/mouseable.md))
-   - **author.properties**: an IJKL configuration designed to control everything with the right hand only ([see documentation](docs/author.md))
+   - **neo-mousekeys-ijkl.properties**: IJKL moves the mouse, with grids, hints and UI hints ([see documentation](docs/neo-mousekeys-ijkl.md))
+   - **neverclick.properties**: vision hints on every screen to click, select text and drag ([see documentation](docs/neverclick.md))
+   - **neru.properties**: recursive hints, each key narrows the area to one cell ([see documentation](docs/neru.md))
+   - **neo-mousekeys-wasd.properties**: neo-mousekeys-ijkl with WASD ([see documentation](docs/neo-mousekeys-wasd.md))
+   - **warpd.properties**: the keys and modes of warpd (HJKL) ([see documentation](docs/warpd.md))
+   - **mouseable.properties**: the keys and modes of mouseable (HJKL) ([see documentation](docs/mouseable.md))
+   - **author.properties**: my playground, not recommended for production use: everything with the right hand only ([see documentation](docs/author.md))
 3. Place the executable and the configuration file of your choice in the same directory.
 4. Rename the configuration file to **mousemaster.properties**.
 5. Run **mousemaster.exe**: make sure to run it as administrator if you want
@@ -124,7 +125,8 @@ permissions are needed.
    granting, then run mousemaster again.
    - **Input Monitoring**, to read the keys you press. Always needed.
    - **Accessibility**, only for UI hints (`overlay.type=ui-accessibility`).
-   - **Screen Recording**, only for zoom (`mode.zoom`).
+   - **Screen Recording**, only for zoom (`mode.zoom`) and vision UI hints
+     (`overlay.type=ui-vision`).
 
 ## Features
 

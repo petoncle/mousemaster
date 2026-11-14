@@ -37,12 +37,13 @@ jobs:
           $releaseNotes += "### Installation on Windows`n"
           $releaseNotes += "1. Download **mousemaster.exe** (a portable executable).`n"
           $releaseNotes += "2. Download one of the existing configuration files:`n"
-          $releaseNotes += "   - **neo-mousekeys-ijkl.properties** (***recommended***): an IJKL configuration ([see documentation](docs/neo-mousekeys-ijkl.md))`n"
-          $releaseNotes += "   - **neru.properties**: a recursive hint configuration ([see documentation](docs/neru.md))`n"
-          $releaseNotes += "   - **neo-mousekeys-wasd.properties**: a WASD configuration ([see documentation](docs/neo-mousekeys-wasd.md))`n"
-          $releaseNotes += "   - **warpd.properties**: an HKJL configuration ([see documentation](docs/warpd.md))`n"
-          $releaseNotes += "   - **mouseable.properties**: another HKJL configuration ([see documentation](docs/mouseable.md))`n"
-          $releaseNotes += "   - **author.properties**: an IJKL configuration designed to control everything with the right hand only ([see documentation](docs/author.md))`n"
+          $releaseNotes += "   - **neo-mousekeys-ijkl.properties**: IJKL moves the mouse, with grids, hints and UI hints ([see documentation](docs/neo-mousekeys-ijkl.md))`n"
+          $releaseNotes += "   - **neverclick.properties**: vision hints on every screen to click, select text and drag ([see documentation](docs/neverclick.md))`n"
+          $releaseNotes += "   - **neru.properties**: recursive hints, each key narrows the area to one cell ([see documentation](docs/neru.md))`n"
+          $releaseNotes += "   - **neo-mousekeys-wasd.properties**: neo-mousekeys-ijkl with WASD ([see documentation](docs/neo-mousekeys-wasd.md))`n"
+          $releaseNotes += "   - **warpd.properties**: the keys and modes of warpd (HJKL) ([see documentation](docs/warpd.md))`n"
+          $releaseNotes += "   - **mouseable.properties**: the keys and modes of mouseable (HJKL) ([see documentation](docs/mouseable.md))`n"
+          $releaseNotes += "   - **author.properties**: my playground, not recommended for production use: everything with the right hand only ([see documentation](docs/author.md))`n"
           $releaseNotes += "3. Place the executable and the configuration file in the same directory.`n"
           $releaseNotes += "4. Rename the configuration file to **mousemaster.properties**.`n"
           $releaseNotes += "5. Run **mousemaster.exe**: make sure to run it as administrator if you want the mousemaster overlay to be displayed on top of everything else.`n"
@@ -57,12 +58,12 @@ jobs:
           $releaseNotes += "5. Run it from a terminal, as root, which the virtual HID device requires. The configuration is read from the working directory, so start it from where you put it: ``cd /Applications && sudo mousemaster.app/Contents/MacOS/mousemaster```n"
           $releaseNotes += "6. Grant the permissions macOS asks for, under **System Settings > Privacy & Security**, then quit and relaunch:`n"
           $releaseNotes += "   - **Input Monitoring**, to read the keys you press. Always needed.`n"
-          $releaseNotes += "   - **Accessibility**, only for UI hints (``hint.type=ui``).`n"
-          $releaseNotes += "   - **Screen Recording**, only for zoom (``mode.zoom``).`n"
+          $releaseNotes += "   - **Accessibility**, only for UI hints (``overlay.type=ui-accessibility``).`n"
+          $releaseNotes += "   - **Screen Recording**, only for zoom (``mode.zoom``) and vision UI hints (``overlay.type=ui-vision``).`n"
           $releaseNotes += "### License`n"
           $releaseNotes += "mousemaster.exe and mousemaster.app embed Qt and QtJambi, used under the GNU Lesser General Public License. Run mousemaster with ``--licenses`` for the third-party notices and the full license texts.`n"
           Set-Content -Path ./release-notes.txt -Value $releaseNotes
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create ${{ github.ref_name }} "target/mousemaster.exe" "target/mousemaster-macos.zip" "configuration/author.properties" "configuration/mouseable.properties" "configuration/neo-mousekeys-ijkl.properties" "configuration/neo-mousekeys-wasd.properties" "configuration/neru.properties" "configuration/warpd.properties" --title "v${{ needs.build.outputs.version }}" --notes-file ./release-notes.txt
+        run: gh release create ${{ github.ref_name }} "target/mousemaster.exe" "target/mousemaster-macos.zip" "configuration/author.properties" "configuration/mouseable.properties" "configuration/neo-mousekeys-ijkl.properties" "configuration/neo-mousekeys-wasd.properties" "configuration/neverclick.properties" "configuration/neru.properties" "configuration/warpd.properties" --title "v${{ needs.build.outputs.version }}" --notes-file ./release-notes.txt
