@@ -628,6 +628,7 @@ public final class HintMeshRenderer {
         window.setBackground(null, null, 0, null, 0);
         window.hideChildren();
         showInLayeredWindow(window, null);
+        containers(window).forEach(HintMeshRenderer::disposeBuffers);
         // An opaque window is cleared with what changes with it, such as the indicator. A
         // faded one is cleared before it is made opaque again for reuse.
         if (!showedNothing && window.windowOpacity() == 1)
@@ -771,10 +772,14 @@ public final class HintMeshRenderer {
 
         void disposeBuffers() {
             pixelRowChunks.forEach(QPixmap::dispose);
+            pixelRowChunks = List.of();
             belowHotspotImages.forEach(QImage::dispose);
+            belowHotspotImages = List.of();
             aboveHotspotImages.forEach(QImage::dispose);
+            aboveHotspotImages = List.of();
             if (!hotspotBoxes.isEmpty() && hotspotBoxes.getFirst().shadow != null)
                 hotspotBoxes.getFirst().shadow.dispose();
+            hotspotBoxes = List.of();
         }
 
         /** Crops to {@code r}, scheduling a paint of the band between the old and new crop (the whole
@@ -1392,10 +1397,14 @@ public final class HintMeshRenderer {
         }
     }
 
-    /** Window children that hold rendered content — everything but the live border layer. */
     /** A shadow pixmap or a container's pixmap is a screen sized buffer that its widget does not
      *  own, so destroying the widget leaves it behind. */
     private static void disposeWidget(QWidget widget) {
+        disposeBuffers(widget);
+        QtDisposal.disposeLater(widget);
+    }
+
+    private static void disposeBuffers(QWidget widget) {
         if (widget instanceof HintPaintLayer layer)
             layer.disposeBuffers();
         if (widget instanceof ClearBackgroundQLabel label)
@@ -1404,9 +1413,9 @@ public final class HintMeshRenderer {
             layer.disposeBuffers();
         for (ClearBackgroundQLabel label : widget.findChildren(ClearBackgroundQLabel.class))
             label.disposeBuffers();
-        QtDisposal.disposeLater(widget);
     }
 
+    /** Window children that hold rendered content — everything but the live border layer. */
     private List<QWidget> containers(TransparentWindow window) {
         List<QWidget> result = new ArrayList<>();
         for (QObject child : window.children())
