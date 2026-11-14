@@ -1134,8 +1134,9 @@ The commands:
     If it is in more than one cell, such as nested UI elements, the smallest cell applies.
   - `cell-top`, `cell-bottom`, `cell-left` and `cell-right`: the nearest point of a cell edge on that
     side of the mouse or the target. The edge of the cell that it is in comes first, the smallest
-    cell as for `cell-center`. A right or bottom edge is the last pixel of its cell, so the point
-    stays in the cell.
+    cell as for `cell-center`. If it is in no cell and no cell edge is on that side, it goes back
+    to the nearest edge of that type: for `cell-left`, the nearest left edge of a cell. A right or
+    bottom edge is the last pixel of its cell, so the point stays in the cell.
 
 `selection-keys=none` with a mutation shows the labels only while a key is pressed. `select` then
 works with the keys of each branch:
