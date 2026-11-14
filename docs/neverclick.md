@@ -65,6 +65,10 @@ A pick keeps its target. The next activation starts the targets at the centers a
 - `Ctrl+\` activates the Sticky Hints Tool. It shows the sticky spots, or starts to pick them when there are none. Type the hint of a spot to click it: the tool stays active for the next click.
 - In the Sticky Hints Tool, `=` goes back to the hints to add more, and `Delete` forgets them all.
 
+## Glow
+
+To make the outlines of the elements, and the dots and lines of moved targets, glow in their colors, change `virtual-key.isglow=released` to `pressed` in [neverclick.properties](../configuration/neverclick.properties).
+
 ## Rebinding
 
 Every key is an alias at the top of [neverclick.properties](../configuration/neverclick.properties), e.g. `key-alias.toolkey.us-qwerty=enter`: change the value to remap, and the cheatsheet shows the new key. `hintkey` lists the hint keys in priority order. The numpad Enter does what `toolkey` does.
