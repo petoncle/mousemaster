@@ -296,7 +296,7 @@ public class WindowsUiAutomation implements UiAutomation {
         User32.INSTANCE.EnumWindows((hwnd, data) -> {
             if (!User32.INSTANCE.IsWindowVisible(hwnd) ||
                 ExtendedUser32.INSTANCE.IsIconic(hwnd) ||
-                isCloaked(hwnd) ||
+                Dwmapi.isCloaked(hwnd) ||
                 // A click-through window does not receive the clicks the hints perform,
                 // and does not hide what is behind it.
                 (User32.INSTANCE.GetWindowLong(hwnd, WinUser.GWL_EXSTYLE) &
@@ -336,13 +336,6 @@ public class WindowsUiAutomation implements UiAutomation {
                 uiElements.size(), walkedWindows, windows.size(), area,
                 (long) ((System.nanoTime() - before) / 1e6));
         return uiElements;
-    }
-
-    /** Windows of another virtual desktop, and suspended UWP apps, are cloaked. */
-    private static boolean isCloaked(HWND hwnd) {
-        IntByReference cloaked = new IntByReference();
-        Dwmapi.INSTANCE.DwmGetWindowAttribute(hwnd, Dwmapi.DWMWA_CLOAKED, cloaked, 4);
-        return cloaked.getValue() != 0;
     }
 
     private static void queryUiElementsOfWindow(HWND hwnd,

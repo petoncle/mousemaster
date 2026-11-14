@@ -2,6 +2,7 @@ package mousemaster.platform.windows;
 
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
+import com.sun.jna.ptr.IntByReference;
 import io.qt.core.QEvent;
 import io.qt.core.Qt;
 import io.qt.gui.QImage;
@@ -191,14 +192,15 @@ public class WindowsOverlay implements Overlay {
         // First in the hwnds list means drawn on top.
         for (WindowsLayeredWindow indicatorWindow : indicatorWindowsAboveOverlay)
             hwnds.add(indicatorWindow.hwnd());
-        for (WinDef.HWND hwnd : hintMeshHwnds())
-            (hintMeshRenderer.showing() ? hwnds : notTopmostHwnds).add(hwnd);
+        hwnds.addAll(hintMeshHwnds());
         for (WindowsLayeredWindow indicatorWindow : indicatorWindowsBelowOverlay)
             hwnds.add(indicatorWindow.hwnd());
         if (zoomHwnd != null)
             (currentZoom != null ? hwnds : notTopmostHwnds).add(zoomHwnd);
         // The shell demotes the taskbar under a topmost window that covers a screen.
         notTopmostHwnds.forEach(this::setWindowNotTopmost);
+        for (TransparentWindow window : hintMeshRenderer.windows())
+            setWindowCloaked(hwnd(window), !hintMeshRenderer.showing());
         if (hwnds.isEmpty())
             return;
         if (currentZoom != null) {
@@ -247,6 +249,13 @@ public class WindowsOverlay implements Overlay {
             return;
         User32.INSTANCE.SetWindowPos(hwnd, ExtendedUser32.HWND_NOTOPMOST, 0, 0, 0, 0,
                 WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE | WinUser.SWP_NOACTIVATE);
+    }
+
+    private static void setWindowCloaked(WinDef.HWND hwnd, boolean cloaked) {
+        if (Dwmapi.isCloaked(hwnd) == cloaked)
+            return;
+        Dwmapi.INSTANCE.DwmSetWindowAttribute(hwnd, Dwmapi.DWMWA_CLOAK,
+                new IntByReference(cloaked ? 1 : 0), 4);
     }
 
     private static boolean topmost(WinDef.HWND hwnd) {
@@ -519,6 +528,7 @@ public class WindowsOverlay implements Overlay {
         hintMeshWindowsShowingNothing.add(window);
         applyOverlayExStyles(hwnd(window));
         applyCaptureExclusion(hwnd(window), currentZoom != null || hintMeshExcludedFromCapture);
+        setWindowCloaked(hwnd(window), true);
         return window;
     }
 
@@ -527,6 +537,9 @@ public class WindowsOverlay implements Overlay {
         QtHintFont.preWarm(hintMeshConfigurations);
         logger.debug("Screens " + WindowsScreen.findScreens());
         hintMeshRenderer.preWarmHintMeshWindows(WindowsScreen.findScreens());
+        // They stay shown, cloaked: a window that shows reaches the screen a frame after the
+        // windows already shown.
+        hintMeshRenderer.windows().forEach(TransparentWindow::show);
         preWarmZoomWindow();
         if (followingIndicatorRenderer != null)
             return;
