@@ -26,7 +26,6 @@
 <a href="#overlay-styling">Overlay styling</a> •
 <a href="#windows">Install on Windows</a> •
 <a href="#macos">Install on macOS</a> •
-<a href="#usage">Usage</a> •
 <a href="#features">Features</a> •
 <a href="#contributing">Contributing</a>
 </p>
@@ -126,27 +125,6 @@ permissions are needed.
    - **Input Monitoring**, to read the keys you press. Always needed.
    - **Accessibility**, only for UI hints (`overlay.type=ui-accessibility`).
    - **Screen Recording**, only for zoom (`mode.zoom`).
-
-## Usage
-
-### neo-mousekeys-ijkl configuration
-
-- **Activate**: Press _leftalt + e_ or _leftalt + capslock_
-- **Deactivate**: Press _q_ or _p_
-- **Mouse movement**: Use _i_ (up), _j_ (left), _k_ (down), _l_ (right)
-- **Mouse buttons**: _;_ (left), _rightshift_ (middle), _'_ (right)
-- **Grid mode**: Press _g_
-- **Hint mode**: Press _f_
-- **Recursive hint mode**: Press _r_
-- **UI Hint mode**: Press _leftalt + ;_
-- **Screen selection**: Press _c_
-
-![neo-mousekeys-ijkl layout](docs/assets/neo-mousekeys-ijkl-layout.png)
-
-For a complete reference, see the [neo-mousekeys-ijkl documentation](docs/neo-mousekeys-ijkl.md).
-The other configurations are documented too: [neru](docs/neru.md),
-[neo-mousekeys-wasd](docs/neo-mousekeys-wasd.md), [warpd](docs/warpd.md),
-[mouseable](docs/mouseable.md), [author](docs/author.md).
 
 ## Features
 
